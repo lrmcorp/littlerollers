@@ -104,21 +104,24 @@ export class IdentityReviewQueryService {
     if (filters.status) {
       const upperStatus = filters.status.toUpperCase();
       if (upperStatus === 'PENDING') {
-        // Dalam antrean: memiliki dokumen parsial atau sedang menunggu verifikasi
+        // Dalam antrean: memiliki dokumen yang belum disetujui (atau parsial)
         andConditions.push({
           profile: {
             OR: [
+              { ktpUrl: { not: null }, notes: { not: { contains: 'KYC_APPROVED' } } },
+              { selfieUrl: { not: null }, notes: { not: { contains: 'KYC_APPROVED' } } },
               { ktpUrl: { not: null }, selfieUrl: null },
               { ktpUrl: null, selfieUrl: { not: null } },
             ],
           },
         });
       } else if (upperStatus === 'APPROVED') {
-        // Disetujui: kedua dokumen (KTP & Selfie) lengkap
+        // Disetujui: kedua dokumen (KTP & Selfie) lengkap dan KYC_APPROVED
         andConditions.push({
           profile: {
             ktpUrl: { not: null },
             selfieUrl: { not: null },
+            notes: { contains: 'KYC_APPROVED' },
           },
         });
       } else if (upperStatus === 'ACTION_REQUIRED') {
@@ -194,12 +197,13 @@ export class IdentityReviewQueryService {
       const documents: any[] = [];
       const profile = user.profile;
       const hasBoth = Boolean(profile?.ktpUrl && profile?.selfieUrl);
+      const isApproved = hasBoth && Boolean(profile?.notes?.includes('KYC_APPROVED'));
 
       if (profile?.ktpUrl) {
         documents.push({
           id: `doc-ktp-${user.id}`,
           kind: 'KTP_FRONT',
-          status: hasBoth ? 'APPROVED' : 'PENDING',
+          status: isApproved ? 'APPROVED' : 'PENDING',
           uploadStatus: 'FINALIZED',
           scanStatus: 'CLEAN',
           fileName: 'ktp.jpg',
@@ -220,7 +224,7 @@ export class IdentityReviewQueryService {
         documents.push({
           id: `doc-selfie-${user.id}`,
           kind: 'SELFIE',
-          status: hasBoth ? 'APPROVED' : 'PENDING',
+          status: isApproved ? 'APPROVED' : 'PENDING',
           uploadStatus: 'FINALIZED',
           scanStatus: 'CLEAN',
           fileName: 'selfie.jpg',
@@ -237,7 +241,7 @@ export class IdentityReviewQueryService {
         });
       }
 
-      const verificationStatus = hasBoth
+      const verificationStatus = isApproved
         ? 'APPROVED'
         : documents.length > 0
           ? 'PENDING'

@@ -80,8 +80,46 @@ export function BookingDetailView({
   const [qrPassUrl, setQrPassUrl] = useState<string | null>(null);
   const [qrLoading, setQrLoading] = useState(false);
   const [qrError, setQrError] = useState('');
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [cancelSubmitting, setCancelSubmitting] = useState(false);
+  const [cancelError, setCancelError] = useState('');
+  const [cancelMessage, setCancelMessage] = useState('');
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const intentKey = useRef(newIntentKey());
+
+  const handleCancelBooking = async () => {
+    if (!booking) return;
+    setCancelSubmitting(true);
+    setCancelError('');
+    try {
+      if (client.cancel) {
+        await client.cancel(booking.id);
+      } else {
+        const response = await fetch(`/api/v1/bookings/${encodeURIComponent(booking.id)}/cancel`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'content-type': 'application/json', 'idempotency-key': newIntentKey() },
+          body: JSON.stringify({
+            reasonCode: 'CUSTOMER_SCHEDULE_CONFLICT',
+            reason: 'Dibatalkan mandiri oleh pelanggan',
+          }),
+        });
+        if (!response.ok) throw await response.json();
+      }
+      setCancelDialogOpen(false);
+      setCancelMessage('Booking berhasil dibatalkan. Kuota sesi paket Anda telah dikembalikan secara utuh.');
+      await load();
+    } catch (cause: any) {
+      const code = cause?.error?.code ?? cause?.code;
+      if (code === 'CANCELLATION_CUTOFF_PASSED') {
+        setCancelError('Batas pembatalan H-24 sudah terlewati. Hubungi admin studio.');
+      } else {
+        setCancelError('Gagal membatalkan booking. Silakan coba kembali.');
+      }
+    } finally {
+      setCancelSubmitting(false);
+    }
+  };
 
   const loadRescheduleOptions = useCallback(async () => {
     if (!canLoadReschedule) {
@@ -419,6 +457,13 @@ export function BookingDetailView({
           </ButtonLink>
         </div>
       )}
+      {cancelMessage && (
+        <AlertBanner
+          tone="success"
+          title="Booking berhasil dibatalkan"
+          message={cancelMessage}
+        />
+      )}
       {rescheduleMessage && (
         <AlertBanner
           tone="success"
@@ -426,22 +471,69 @@ export function BookingDetailView({
           message={rescheduleMessage}
         />
       )}
-      {options?.canRequest && !showForm && (
+      {booking.status === 'BOOKED' && !booking.attendance && (
         <section className="rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card">
-          <h2 className="text-lg font-semibold">Perlu mengganti jadwal?</h2>
+          <h2 className="text-lg font-semibold">Perubahan atau Pembatalan Booking</h2>
           <p className="mt-2 text-sm leading-6 text-dd-muted">
-            Pengajuan dapat dibuat sampai tepat H-24. Reservation tetap di kelas ini selama
-            permintaan ditinjau.
+            Perubahan jadwal (reschedule) dan pembatalan mandiri dapat dilakukan sebelum batas waktu H-24 sebelum kelas dimulai.
           </p>
-          <Button
-            className="mt-4"
-            onClick={() => {
-              setMutationError('');
-              setShowForm(true);
-            }}
-          >
-            Ajukan reschedule
-          </Button>
+          <div className="mt-4 flex flex-wrap gap-3">
+            {options?.canRequest && !showForm && (
+              <Button
+                onClick={() => {
+                  setMutationError('');
+                  setShowForm(true);
+                  setCancelDialogOpen(false);
+                }}
+              >
+                Ajukan reschedule
+              </Button>
+            )}
+            {!showForm && !cancelDialogOpen && (
+              <Button
+                variant="danger"
+                onClick={() => {
+                  setCancelError('');
+                  setCancelDialogOpen(true);
+                }}
+              >
+                Batalkan booking
+              </Button>
+            )}
+          </div>
+
+          {cancelDialogOpen && (
+            <div className="mt-5 space-y-3 rounded-dd-lg border border-red-200 bg-red-50/60 p-4">
+              <h3 className="text-sm font-semibold text-red-900">
+                Konfirmasi Pembatalan Booking
+              </h3>
+              <p className="text-xs leading-relaxed text-red-700 sm:text-sm">
+                Apakah Anda yakin ingin membatalkan booking kelas ini? Kuota sesi paket Anda akan otomatis dikembalikan secara utuh.
+              </p>
+              {cancelError && (
+                <p className="text-xs font-semibold text-red-600 bg-red-100 p-2.5 rounded-dd-md">
+                  {cancelError}
+                </p>
+              )}
+              <div className="flex flex-wrap gap-3 pt-1">
+                <Button
+                  variant="danger"
+                  loading={cancelSubmitting}
+                  loadingLabel="Membatalkan…"
+                  onClick={() => void handleCancelBooking()}
+                >
+                  Ya, Batalkan
+                </Button>
+                <Button
+                  variant="secondary"
+                  disabled={cancelSubmitting}
+                  onClick={() => setCancelDialogOpen(false)}
+                >
+                  Kembali
+                </Button>
+              </div>
+            </div>
+          )}
         </section>
       )}
       {showForm && options?.canRequest && (

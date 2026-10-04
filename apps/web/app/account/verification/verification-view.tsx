@@ -508,19 +508,163 @@ export function VerificationView() {
       </section>
     );
 
-  if (!summary?.documents.length)
-    return (
-      <section className="mx-auto max-w-xl rounded-dd-xl border border-dd-line bg-white p-8 text-center shadow-dd-card">
-        <FileCheck2 className="mx-auto size-9 text-dd-muted" />
-        <h1 className="mt-4 text-2xl font-bold">Dokumen verifikasi belum ditemukan</h1>
-        <p className="mt-2 text-sm leading-6 text-dd-muted">
-          Hubungi tim Daily Dose agar dokumen registrasi Anda dapat diperiksa dengan aman.
-        </p>
-        <Link className="mt-5 inline-flex font-bold text-dd-forest" href="/contact">
-          Hubungi bantuan
-        </Link>
+function KycSubmissionForm({ onSubmitted }: { onSubmitted: () => Promise<void> }) {
+  const [nik, setNik] = useState('');
+  const [address, setAddress] = useState('');
+  const [ktpFile, setKtpFile] = useState<File | null>(null);
+  const [selfieFile, setSelfieFile] = useState<File | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const feedback = useAppFeedback();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!ktpFile || !selfieFile) {
+      setError('Foto KTP dan Foto Selfie wajib diunggah.');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    try {
+      await verificationClient.submit({
+        nik,
+        address,
+        ktp: ktpFile,
+        selfie: selfieFile,
+      });
+      feedback.showToast({
+        tone: 'success',
+        title: 'Dokumen verifikasi terkirim',
+        message: 'Dokumen Anda berhasil diunggah dan sedang dalam antrean pemeriksaan staf.',
+      });
+      await onSubmitted();
+    } catch {
+      setError('Gagal mengirim dokumen verifikasi. Silakan coba beberapa saat lagi.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="mx-auto max-w-2xl space-y-6">
+      <section className="rounded-dd-xl border border-dd-line bg-white p-6 shadow-dd-card sm:p-8">
+        <div className="border-b border-dd-line/60 pb-5">
+          <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-dd-brass-dark">
+            Verifikasi Identitas Member (KYC)
+          </span>
+          <h1 className="mt-2 text-2xl font-bold tracking-tight text-dd-ink sm:text-3xl">
+            Lengkapi Dokumen Verifikasi
+          </h1>
+          <p className="mt-2 text-sm leading-6 text-dd-muted">
+            Sesuai kebijakan keamanan studio Daily Dose, silakan unggah identitas resmi (KTP) dan foto selfie untuk mengaktifkan pemesanan kelas.
+          </p>
+        </div>
+
+        {error && (
+          <div className="mt-4 rounded-dd-md bg-dd-danger-soft p-3 text-sm text-dd-danger" role="alert">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="mt-6 space-y-5">
+          <div>
+            <label htmlFor="nik" className="block text-xs font-semibold uppercase tracking-wider text-dd-forest">
+              Nomor Induk Kependudukan (NIK)
+            </label>
+            <input
+              id="nik"
+              name="nik"
+              type="text"
+              value={nik}
+              onChange={(e) => setNik(e.target.value)}
+              placeholder="3174051203950001"
+              required
+              className="mt-1.5 w-full rounded-dd-md border border-dd-line bg-white px-3.5 py-2.5 text-sm text-dd-ink transition focus:border-dd-forest focus:outline-none focus:ring-1 focus:ring-dd-forest"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="address" className="block text-xs font-semibold uppercase tracking-wider text-dd-forest">
+              Alamat Sesuai KTP
+            </label>
+            <textarea
+              id="address"
+              name="address"
+              rows={2}
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              placeholder="Jl. Kedoya Pesing No. 18, Jakarta Barat"
+              required
+              className="mt-1.5 w-full rounded-dd-md border border-dd-line bg-white px-3.5 py-2.5 text-sm text-dd-ink transition focus:border-dd-forest focus:outline-none focus:ring-1 focus:ring-dd-forest"
+            />
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="rounded-dd-lg border border-dashed border-dd-line p-4">
+              <label htmlFor="ktp" className="block text-xs font-bold uppercase tracking-wider text-dd-forest">
+                Unggah Foto KTP
+              </label>
+              <p className="mt-1 text-[11px] text-dd-muted">
+                Foto e-KTP jelas, tanpa pantulan cahaya (maks. 8 MB)
+              </p>
+              <input
+                id="ktp"
+                name="ktp"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                required
+                onChange={(e) => setKtpFile(e.target.files?.[0] ?? null)}
+                className="mt-3 block w-full text-xs text-dd-muted file:mr-3 file:rounded-dd-sm file:border-0 file:bg-dd-surface-muted file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-dd-forest hover:file:bg-dd-forest hover:file:text-white"
+              />
+              {ktpFile && (
+                <p className="mt-2 text-xs font-medium text-dd-forest">
+                  ✓ {ktpFile.name} ({(ktpFile.size / 1_000_000).toFixed(1)} MB)
+                </p>
+              )}
+            </div>
+
+            <div className="rounded-dd-lg border border-dashed border-dd-line p-4">
+              <label htmlFor="selfie" className="block text-xs font-bold uppercase tracking-wider text-dd-forest">
+                Unggah Foto Selfie
+              </label>
+              <p className="mt-1 text-[11px] text-dd-muted">
+                Wajah terlihat jelas dan pencahayaan terang (maks. 8 MB)
+              </p>
+              <input
+                id="selfie"
+                name="selfie"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                required
+                onChange={(e) => setSelfieFile(e.target.files?.[0] ?? null)}
+                className="mt-3 block w-full text-xs text-dd-muted file:mr-3 file:rounded-dd-sm file:border-0 file:bg-dd-surface-muted file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-dd-forest hover:file:bg-dd-forest hover:file:text-white"
+              />
+              {selfieFile && (
+                <p className="mt-2 text-xs font-medium text-dd-forest">
+                  ✓ {selfieFile.name} ({(selfieFile.size / 1_000_000).toFixed(1)} MB)
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="pt-2">
+            <Button
+              type="submit"
+              fullWidth
+              loading={loading}
+              loadingLabel="Mengirim dokumen verifikasi..."
+            >
+              Kirim Dokumen Verifikasi
+            </Button>
+          </div>
+        </form>
       </section>
-    );
+    </div>
+  );
+}
+
+  if (!summary?.documents.length)
+    return <KycSubmissionForm onSubmitted={load} />;
 
   const copy = statusCopy[summary.status];
 

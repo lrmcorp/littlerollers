@@ -109,9 +109,15 @@ export class BookingsService {
   }
 
   private async requireVerifiedCustomer(principal: SessionPrincipal) {
-    const user = await this.db.user.findUnique({ where: { id: principal.userId } });
+    const user = await this.db.user.findUnique({
+      where: { id: principal.userId },
+      include: { profile: true },
+    });
     if (!user || user.status !== 'ACTIVE')
       throw new ApiProblem('IDENTITY_VERIFICATION_REQUIRED', HttpStatus.FORBIDDEN);
+    if (!user.profile?.notes?.includes('KYC_APPROVED')) {
+      throw new ApiProblem('IDENTITY_VERIFICATION_REQUIRED', HttpStatus.FORBIDDEN);
+    }
   }
 
   bookingView(booking: any) {

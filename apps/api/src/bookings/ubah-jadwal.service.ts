@@ -301,7 +301,7 @@ export class ReschedulesService {
         if (targetSlot.bookedCount >= targetSlot.capacity)
           throw new ApiProblem('CLASS_CAPACITY_FULL', HttpStatus.CONFLICT);
 
-        // Buat record UbahJadwal
+        // Buat record UbahJadwal berstatus PENDING
         const reschedule = await tx.ubahJadwal.create({
           data: {
             id: randomUUID(),
@@ -309,7 +309,7 @@ export class ReschedulesService {
             sourceSlotId: booking.classSlotId,
             targetSlotId: targetSlot.id,
             requestedById: principal.userId,
-            status: 'APPROVED',
+            status: 'PENDING',
             reason: input.reasonCode,
           },
           include: {
@@ -319,29 +319,11 @@ export class ReschedulesService {
           },
         });
 
-        // Pindahkan booking ke targetSlot
-        await tx.pemesananKelas.update({
-          where: { id: booking.id },
-          data: { classSlotId: targetSlot.id },
-        });
-
-        // Kurangi bookedCount slot lama
-        await tx.slotKelas.update({
-          where: { id: booking.classSlotId },
-          data: { bookedCount: { decrement: 1 } },
-        });
-
-        // Tambah bookedCount slot baru
-        await tx.slotKelas.update({
-          where: { id: targetSlot.id },
-          data: { bookedCount: { increment: 1 } },
-        });
-
         return {
           status: HttpStatus.CREATED,
           body: {
             id: reschedule.id,
-            status: 'APPROVED',
+            status: 'PENDING',
             bookingId: booking.id,
             sourceClassSlotId: reschedule.sourceSlotId,
             targetClassSlotId: reschedule.targetSlotId,
@@ -372,11 +354,32 @@ export class ReschedulesService {
       async (tx) => {
         const reschedule = await tx.ubahJadwal.findUnique({
           where: { id },
-          include: { booking: true },
+          include: { booking: true, targetSlot: true, sourceSlot: true },
         });
         if (!reschedule) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
 
         const newStatus: RescheduleStatus = decision === 'approve' ? 'APPROVED' : 'REJECTED';
+
+        if (decision === 'approve') {
+          // Pindahkan booking ke targetSlot
+          await tx.pemesananKelas.update({
+            where: { id: reschedule.bookingId },
+            data: { classSlotId: reschedule.targetSlotId },
+          });
+
+          // Kurangi bookedCount slot lama (kapasitas kembali bertambah)
+          await tx.slotKelas.update({
+            where: { id: reschedule.sourceSlotId },
+            data: { bookedCount: { decrement: 1 } },
+          });
+
+          // Tambah bookedCount slot baru (kapasitas berkurang)
+          await tx.slotKelas.update({
+            where: { id: reschedule.targetSlotId },
+            data: { bookedCount: { increment: 1 } },
+          });
+        }
+
         const updated = await tx.ubahJadwal.update({
           where: { id },
           data: {

@@ -95,7 +95,7 @@ export function CheckInLinkView({ token }: { token: string }) {
           <p className="text-xs font-bold uppercase tracking-[0.25em] text-dd-forest">
             Daily Dose Pilates
           </p>
-          <h1 className="mt-2 text-2xl font-bold tracking-tight text-dd-charcoal">
+          <h1 className="mt-2 text-2xl font-bold tracking-tight text-dd-ink">
             Presensi Kehadiran Kelas
           </h1>
           <p className="mt-1 text-sm text-dd-muted">
@@ -138,15 +138,15 @@ export function CheckInLinkView({ token }: { token: string }) {
             <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/50 p-4 text-left text-sm space-y-2">
               <div className="flex justify-between">
                 <span className="text-dd-muted">Customer:</span>
-                <span className="font-semibold text-dd-charcoal">{successResult.customerName}</span>
+                <span className="font-semibold text-dd-ink">{successResult.customerName}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-dd-muted">Kelas:</span>
-                <span className="font-semibold text-dd-charcoal">{successResult.className}</span>
+                <span className="font-semibold text-dd-ink">{successResult.className}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-dd-muted">Cabang:</span>
-                <span className="font-semibold text-dd-charcoal">{successResult.branchName}</span>
+                <span className="font-semibold text-dd-ink">{successResult.branchName}</span>
               </div>
             </div>
 
@@ -156,10 +156,10 @@ export function CheckInLinkView({ token }: { token: string }) {
           </div>
         ) : info ? (
           <div className="mt-6 space-y-6">
-            <div className="rounded-xl border border-dd-line bg-dd-surface-subtle p-5 space-y-3">
+            <div className="rounded-xl border border-dd-line bg-dd-surface-muted p-5 space-y-3">
               <div>
                 <p className="text-xs font-medium text-dd-muted uppercase">Nama Peserta</p>
-                <p className="text-base font-semibold text-dd-charcoal">{info.customerName}</p>
+                <p className="text-base font-semibold text-dd-ink">{info.customerName}</p>
               </div>
               <hr className="border-dd-line" />
               <div>
@@ -170,12 +170,12 @@ export function CheckInLinkView({ token }: { token: string }) {
               {info.instructorName && (
                 <div>
                   <p className="text-xs font-medium text-dd-muted uppercase">Instruktur</p>
-                  <p className="text-sm font-semibold text-dd-charcoal">{info.instructorName}</p>
+                  <p className="text-sm font-semibold text-dd-ink">{info.instructorName}</p>
                 </div>
               )}
               <div>
                 <p className="text-xs font-medium text-dd-muted uppercase">Jadwal Sesi</p>
-                <p className="text-sm font-medium text-dd-charcoal">
+                <p className="text-sm font-medium text-dd-ink">
                   {formatSchedule(info.startAt, info.endAt)}
                 </p>
               </div>

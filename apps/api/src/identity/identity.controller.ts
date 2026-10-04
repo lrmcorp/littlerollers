@@ -229,6 +229,49 @@ export class IdentityController {
     );
   }
 
+  @SelfService()
+  @UseGuards(AuthGuard)
+  @Post('identity-verification/me/submission')
+  @UseInterceptors(
+    FileFieldsInterceptor(
+      [
+        { name: 'selfie', maxCount: 1 },
+        { name: 'ktp', maxCount: 1 },
+      ],
+      { limits: multipartLimits },
+    ),
+  )
+  async submitMyIdentityVerification(
+    @Req() request: AuthenticatedRequest,
+    @Body() body: { nik?: string; address?: string },
+    @UploadedFiles() files: { selfie?: MemoryUpload[]; ktp?: MemoryUpload[] },
+  ) {
+    const selfie = files?.selfie?.[0];
+    const ktp = files?.ktp?.[0];
+    return this.identityDocumentWorkflow.submitKyc(
+      request.principal,
+      {
+        nik: body?.nik,
+        address: body?.address,
+        selfie: selfie
+          ? {
+              originalName: selfie.originalname,
+              claimedMimeType: selfie.mimetype,
+              buffer: selfie.buffer,
+            }
+          : undefined,
+        ktp: ktp
+          ? {
+              originalName: ktp.originalname,
+              claimedMimeType: ktp.mimetype,
+              buffer: ktp.buffer,
+            }
+          : undefined,
+      },
+      request.correlationId ?? 'unknown',
+    );
+  }
+
   @UseGuards(AuthGuard)
   @Get('identity-verifications')
   listIdentityReview(

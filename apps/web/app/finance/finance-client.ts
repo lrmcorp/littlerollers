@@ -315,14 +315,15 @@ export interface FinanceClient {
 }
 
 async function financeFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  const { headers, ...restInit } = init ?? {};
   const response = await fetch(`/api/v1${path}`, {
     credentials: 'include',
+    ...restInit,
     headers: {
       Accept: 'application/json',
       ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
-      ...init?.headers,
+      ...headers,
     },
-    ...init,
   });
   if (!response.ok) {
     let data: any;

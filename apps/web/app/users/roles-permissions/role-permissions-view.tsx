@@ -750,7 +750,7 @@ export function RolePermissionsView({
                   <section className="rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
-                        <p className="eyebrow">
+                        <p className="text-xs font-bold uppercase tracking-[0.16em] text-dd-forest">
                           {creatingRole ? 'Custom role baru' : 'Konfigurasi role'}
                         </p>
                         <h2>{creatingRole ? 'Buat role' : selectedRole?.displayName}</h2>
@@ -1103,7 +1103,7 @@ export function RolePermissionsView({
             <section className="rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <p className="eyebrow">Akses efektif pengguna</p>
+                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-dd-forest">Akses efektif pengguna</p>
                   <h2>Penugasan dan override</h2>
                   <p className="mt-1 text-sm text-dd-muted">
                     Penolakan akses lebih kuat daripada pemberian role. Override tetap aktif sampai

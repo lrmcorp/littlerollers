@@ -112,15 +112,16 @@ export class IdentityService {
       where: { userId },
     });
     const hasDocs = Boolean(profile?.ktpUrl || profile?.selfieUrl);
+    const isApproved = Boolean(profile?.notes?.includes('KYC_APPROVED'));
     const documents: Array<{ kind: 'SELFIE' | 'KTP_FRONT'; status: string }> = [];
     if (profile?.selfieUrl) {
-      documents.push({ kind: 'SELFIE', status: 'APPROVED' });
+      documents.push({ kind: 'SELFIE', status: isApproved ? 'APPROVED' : 'PENDING' });
     }
     if (profile?.ktpUrl) {
-      documents.push({ kind: 'KTP_FRONT', status: 'APPROVED' });
+      documents.push({ kind: 'KTP_FRONT', status: isApproved ? 'APPROVED' : 'PENDING' });
     }
     return {
-      status: profile?.ktpUrl && profile?.selfieUrl ? 'APPROVED' : hasDocs ? 'PENDING' : 'ACTION_REQUIRED',
+      status: isApproved ? 'APPROVED' : hasDocs ? 'PENDING' : 'ACTION_REQUIRED',
       documents,
     };
   }
@@ -178,9 +179,18 @@ export class IdentityService {
       select: { id: true, code: true, name: true, timezone: true },
     });
 
+    const isCustomerOnly = projection.roles.every((r) => r === 'CUSTOMER' || r === 'MEMBER');
+    let identityVerificationStatus = 'APPROVED';
+    if (isCustomerOnly) {
+      const profile = await this.db.profilPengguna.findUnique({ where: { userId } });
+      const isApproved = Boolean(profile?.notes?.includes('KYC_APPROVED'));
+      const hasDocs = Boolean(profile?.ktpUrl || profile?.selfieUrl);
+      identityVerificationStatus = isApproved ? 'APPROVED' : hasDocs ? 'PENDING' : 'ACTION_REQUIRED';
+    }
+
     return {
       ...projection,
-      identityVerificationStatus: 'APPROVED',
+      identityVerificationStatus,
       sessionExpiresAt: sessionExpiresAt.toISOString(),
       branches,
     };
@@ -601,8 +611,17 @@ export class IdentityService {
     let ktpUrl: string | null = null;
     let selfieUrl: string | null = null;
 
+    const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
+    const ALLOWED_EXT = ['jpg', 'jpeg', 'png', 'webp'];
+
     if (input.ktp?.buffer) {
-      const ext = input.ktp.originalName?.split('.').pop() || 'jpg';
+      const ext = (input.ktp.originalName?.split('.').pop() || '').toLowerCase();
+      const mime = (input.ktp.claimedMimeType || '').toLowerCase();
+      if (!ALLOWED_EXT.includes(ext) || !ALLOWED_MIME.includes(mime)) {
+        throw new ApiProblem('UPLOAD_REJECTED', HttpStatus.UNPROCESSABLE_ENTITY, false, [
+          { field: 'ktp', issue: 'Hanya format gambar (JPEG, PNG, WEBP) yang diperbolehkan.' },
+        ]);
+      }
       const key = `identity-documents/${userId}/ktp-${Date.now()}.${ext}`;
       if (this.privateStorage) {
         await this.privateStorage.put({ key, content: input.ktp.buffer }).catch(() => null);
@@ -611,7 +630,13 @@ export class IdentityService {
     }
 
     if (input.selfie?.buffer) {
-      const ext = input.selfie.originalName?.split('.').pop() || 'jpg';
+      const ext = (input.selfie.originalName?.split('.').pop() || '').toLowerCase();
+      const mime = (input.selfie.claimedMimeType || '').toLowerCase();
+      if (!ALLOWED_EXT.includes(ext) || !ALLOWED_MIME.includes(mime)) {
+        throw new ApiProblem('UPLOAD_REJECTED', HttpStatus.UNPROCESSABLE_ENTITY, false, [
+          { field: 'selfie', issue: 'Hanya format gambar (JPEG, PNG, WEBP) yang diperbolehkan.' },
+        ]);
+      }
       const key = `identity-documents/${userId}/selfie-${Date.now()}.${ext}`;
       if (this.privateStorage) {
         await this.privateStorage.put({ key, content: input.selfie.buffer }).catch(() => null);
@@ -664,12 +689,13 @@ export class IdentityService {
       where: { userId: principal.userId },
     });
 
+    const isApproved = Boolean(profile?.notes?.includes('KYC_APPROVED'));
     const documents: any[] = [];
     if (profile?.selfieUrl) {
       documents.push({
         id: `doc-selfie-${principal.userId}`,
         kind: 'SELFIE',
-        status: 'APPROVED',
+        status: isApproved ? 'APPROVED' : 'PENDING',
         uploadStatus: 'FINALIZED',
         scanStatus: 'CLEAN',
         fileName: 'selfie.jpg',
@@ -686,7 +712,7 @@ export class IdentityService {
       documents.push({
         id: `doc-ktp-${principal.userId}`,
         kind: 'KTP_FRONT',
-        status: 'APPROVED',
+        status: isApproved ? 'APPROVED' : 'PENDING',
         uploadStatus: 'FINALIZED',
         scanStatus: 'CLEAN',
         fileName: 'ktp.jpg',
@@ -701,7 +727,7 @@ export class IdentityService {
     }
 
     return {
-      status: documents.length >= 2 ? 'APPROVED' : documents.length > 0 ? 'PENDING' : 'ACTION_REQUIRED',
+      status: isApproved ? 'APPROVED' : documents.length > 0 ? 'PENDING' : 'ACTION_REQUIRED',
       documents,
     };
   }

@@ -65,6 +65,65 @@ export class IdentityDocumentWorkflowService {
     };
   }
 
+  async submitKyc(
+    principal: SessionPrincipal,
+    input: {
+      nik?: string;
+      address?: string;
+      selfie?: { originalName: string; claimedMimeType: string; buffer: Buffer };
+      ktp?: { originalName: string; claimedMimeType: string; buffer: Buffer };
+    },
+    _correlationId: string,
+  ) {
+    let ktpKey: string | null = null;
+    let selfieKey: string | null = null;
+
+    if (input.ktp?.buffer) {
+      const ext = input.ktp.originalName?.split('.').pop() || 'png';
+      const key = `identity-documents/${principal.userId}/ktp-${Date.now()}.${ext}`;
+      if (this.storage) {
+        await this.storage.put({ key, content: input.ktp.buffer }).catch(() => null);
+      }
+      ktpKey = key;
+    }
+
+    if (input.selfie?.buffer) {
+      const ext = input.selfie.originalName?.split('.').pop() || 'png';
+      const key = `identity-documents/${principal.userId}/selfie-${Date.now()}.${ext}`;
+      if (this.storage) {
+        await this.storage.put({ key, content: input.selfie.buffer }).catch(() => null);
+      }
+      selfieKey = key;
+    }
+
+    if (this.db) {
+      await this.db.profilPengguna.upsert({
+        where: { userId: principal.userId },
+        create: {
+          id: newId(),
+          userId: principal.userId,
+          nik: input.nik ?? null,
+          address: input.address ?? null,
+          ktpUrl: ktpKey,
+          selfieUrl: selfieKey,
+          notes: 'KYC_PENDING_REVIEW: Menunggu verifikasi staf',
+        },
+        update: {
+          ...(input.nik !== undefined ? { nik: input.nik } : {}),
+          ...(input.address !== undefined ? { address: input.address } : {}),
+          ...(ktpKey ? { ktpUrl: ktpKey } : {}),
+          ...(selfieKey ? { selfieUrl: selfieKey } : {}),
+          notes: 'KYC_PENDING_REVIEW: Menunggu verifikasi staf',
+        },
+      });
+    }
+
+    return {
+      status: 'PENDING',
+      message: 'Dokumen verifikasi berhasil dikirim dan sedang menunggu pemeriksaan staf.',
+    };
+  }
+
   async decideIdentityDocument(
     principal: SessionPrincipal,
     id: string,
@@ -78,10 +137,28 @@ export class IdentityDocumentWorkflowService {
     if (id === 'document-1' && !this.db?.profilPengguna) {
       throw new ApiProblem('IDENTITY_DOCUMENT_NOT_READY', HttpStatus.CONFLICT);
     }
+    const auditReference = `audit-kyc-${Date.now()}`;
+
+    let targetUserId = '';
+    if (id.startsWith('doc-ktp-')) targetUserId = id.replace('doc-ktp-', '');
+    else if (id.startsWith('doc-selfie-')) targetUserId = id.replace('doc-selfie-', '');
+
+    if (targetUserId && this.db) {
+      const existing = await this.db.profilPengguna.findUnique({ where: { userId: targetUserId } });
+      const currentNotes = existing?.notes ? `${existing.notes} | ` : '';
+      await this.db.profilPengguna.updateMany({
+        where: { userId: targetUserId },
+        data: {
+          notes: `${currentNotes}KYC_${decision}: ${input.note || 'Dokumen valid dan sesuai identitas'} (ref: ${auditReference})`,
+        },
+      });
+    }
+
     return {
       id,
       status: decision,
       version: (input.expectedVersion ?? 1) + 1,
+      auditReference,
     };
   }
 

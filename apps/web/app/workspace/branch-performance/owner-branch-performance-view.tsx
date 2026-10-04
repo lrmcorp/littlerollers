@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Calendar, CircleDollarSign, RefreshCw, Users } from 'lucide-react';
 import { AdminPageHeader } from '../../components/admin/admin-page-header';
 import { Badge, DataTable, Panel, StatCard } from '../../components/admin/admin-ui';
@@ -41,13 +42,15 @@ interface PerformanceData {
 }
 
 export function OwnerBranchPerformanceView() {
+  const searchParams = useSearchParams();
+  const urlBranch = searchParams?.get('branch') || searchParams?.get('branchId') || '';
   const context = useSessionContext();
   const session = context?.session;
   const branches = session?.branches ?? [];
 
-  // Cabang mengikuti pemilih "Cabang aktif" di topbar; bila "Semua cabang", tampilkan cabang pertama.
+  // Cabang mengikuti query URL ?branch=; bila tidak ada, pemilih "Cabang aktif" di topbar; bila "Semua cabang", tampilkan cabang pertama.
   const activeBranchId = context?.activeBranchId ?? '';
-  const selectedBranchId = activeBranchId || branches[0]?.id || '';
+  const selectedBranchId = urlBranch || activeBranchId || branches[0]?.id || '';
   const [selectedPeriod, setSelectedPeriod] = useState<string>(() =>
     new Date().toISOString().slice(0, 7),
   );
@@ -69,7 +72,7 @@ export function OwnerBranchPerformanceView() {
       });
       if (!res.ok) {
         if (res.status === 403) {
-          throw new Error('Anda tidak memiliki wewenang untuk mengakses cabang ini.');
+          throw new Error('403 Forbidden: Anda tidak memiliki wewenang untuk mengakses cabang ini.');
         }
         throw new Error('Gagal memuat data performa cabang.');
       }
@@ -123,7 +126,7 @@ export function OwnerBranchPerformanceView() {
             type="month"
             value={selectedPeriod}
             onChange={(e) => setSelectedPeriod(e.target.value)}
-            className="rounded-dd border border-dd-line bg-dd-surface px-3 py-1.5 text-sm font-medium text-dd-foreground focus:outline-none focus:ring-2 focus:ring-dd-brand"
+            className="rounded-dd-sm border border-dd-line bg-dd-surface px-3 py-1.5 text-sm font-medium text-dd-ink focus:outline-none focus:ring-2 focus:ring-dd-forest"
           />
         </div>
       </div>
@@ -168,7 +171,7 @@ export function OwnerBranchPerformanceView() {
         <div className="border-b border-dd-line p-4">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-base font-bold text-dd-foreground">
+              <h3 className="text-base font-bold text-dd-ink">
                 Detail Biaya Mengajar Instruktur (Rule #10)
               </h3>
               <p className="text-xs text-dd-muted">
@@ -187,7 +190,7 @@ export function OwnerBranchPerformanceView() {
               id: 'instructorName',
               header: 'Nama Instruktur',
               cell: (item: InstructorBreakdown) => (
-                <div className="font-semibold text-dd-foreground">{item.instructorName}</div>
+                <div className="font-semibold text-dd-ink">{item.instructorName}</div>
               ),
             },
             {
@@ -224,7 +227,7 @@ export function OwnerBranchPerformanceView() {
               id: 'totalHours',
               header: 'Total Jam',
               cell: (item: InstructorBreakdown) => (
-                <div className="font-bold text-dd-foreground">{item.totalHours} jam</div>
+                <div className="font-bold text-dd-ink">{item.totalHours} jam</div>
               ),
             },
             {
@@ -232,7 +235,7 @@ export function OwnerBranchPerformanceView() {
               header: 'Total Honor (Rp)',
               cell: (item: InstructorBreakdown) => (
                 <div>
-                  <div className="font-bold text-dd-brand">{formatRupiah(item.totalFeeRp)}</div>
+                  <div className="font-bold text-dd-forest">{formatRupiah(item.totalFeeRp)}</div>
                   {item.unverifiedClassCount > 0 && (
                     <div className="text-xs font-semibold text-dd-warning">
                       {item.unverifiedClassCount} kelas belum terverifikasi

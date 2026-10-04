@@ -131,6 +131,22 @@ export const verificationClient = {
   mine(): Promise<VerificationSummary> {
     return request('/identity-verification/me');
   },
+  submit(input: {
+    nik?: string;
+    address?: string;
+    ktp?: File | null;
+    selfie?: File | null;
+  }): Promise<{ status: string; message: string }> {
+    const form = new FormData();
+    if (input.nik) form.set('nik', input.nik);
+    if (input.address) form.set('address', input.address);
+    if (input.ktp) form.set('ktp', input.ktp);
+    if (input.selfie) form.set('selfie', input.selfie);
+    return request('/identity-verification/me/submission', {
+      method: 'POST',
+      body: form,
+    });
+  },
   authorizeMine(kind: DocumentKind): Promise<{ url: string; expiresAt: string }> {
     return request(`/identity-verification/me/documents/${kind}/view-authorizations`, {
       method: 'POST',

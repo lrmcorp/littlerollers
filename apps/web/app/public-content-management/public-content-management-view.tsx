@@ -469,7 +469,7 @@ export function PublicContentManagementView() {
             {showSlideForm && (
               <form
                 onSubmit={saveSlideEdit}
-                className="mt-6 space-y-5 rounded-dd-xl border-2 border-dd-forest/30 bg-dd-cream/30 p-6 animate-fadeIn"
+                className="mt-6 space-y-5 rounded-dd-xl border-2 border-dd-forest/30 bg-dd-cream/30 p-6 animate-fade-in"
               >
                 <div className="flex items-center justify-between border-b border-dd-line/60 pb-3">
                   <div className="flex items-center gap-2">

@@ -153,7 +153,7 @@ export function PurchaseView({
   if (!isCustomer) return null;
   if (!branch)
     return (
-      <section className="card" aria-labelledby="purchase-title">
+      <section className="rounded-dd-xl border border-dd-line bg-dd-surface p-6 shadow-dd-card" aria-labelledby="purchase-title">
         <PageHeader
           eyebrow="Pengajuan customer"
           title="Beli paket"
@@ -165,7 +165,7 @@ export function PurchaseView({
     );
 
   return (
-    <section className="card purchase-workspace" aria-labelledby="purchase-title">
+    <section className="rounded-dd-xl border border-dd-line bg-dd-surface p-6 shadow-dd-card" aria-labelledby="purchase-title">
       <PageHeader
         eyebrow={`${branch.name} · ${branch.timezone}`}
         title="Beli paket"
@@ -178,7 +178,7 @@ export function PurchaseView({
           </>
         }
       />
-      <div className="workspace-toolbar">
+      <div className="my-4 flex items-center gap-3">
         <Button
           variant="secondary"
           loading={busyAction === 'packages'}
@@ -190,10 +190,14 @@ export function PurchaseView({
         </Button>
       </div>
       {packages.length > 0 && (
-        <div className="package-grid" role="radiogroup" aria-label="Paket aktif">
+        <div className="my-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3" role="radiogroup" aria-label="Paket aktif">
           {packages.map((item) => (
             <label
-              className={selectedId === item.id ? 'package-card selected' : 'package-card'}
+              className={`cursor-pointer rounded-dd-lg border p-4 transition ${
+                selectedId === item.id
+                  ? 'border-dd-forest bg-dd-surface-muted ring-2 ring-dd-forest/20'
+                  : 'border-dd-line bg-white hover:border-dd-forest/40'
+              }`}
               key={item.id}
             >
               <input
@@ -341,7 +345,7 @@ export function PurchaseView({
         </form>
       )}
       {proof && (
-        <div className="proof-status" aria-live="polite">
+        <div className="flex items-center gap-3 rounded-dd-md border border-dd-line bg-dd-surface-muted p-3 text-sm" aria-live="polite">
           <StatusBadge
             tone={
               proof.scanStatus === 'CLEAN'

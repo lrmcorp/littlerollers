@@ -435,6 +435,8 @@ export interface BookingClient {
   consumeCheckIn?(token: string, idempotencyKey: string): Promise<CheckInResult>;
   issueInstructorCheckIn?(classSlotId: string, idempotencyKey: string): Promise<InstructorCheckInIssue>;
   consumeInstructorCheckIn?(token: string, idempotencyKey: string): Promise<InstructorCheckInResult>;
+  /** Pembatalan mandiri oleh pelanggan (Aturan Bisnis #6: batas H-24). */
+  cancel?(bookingId: string, reason?: string, idempotencyKey?: string): Promise<void>;
   /** Pembatalan atas nama pelanggan oleh staf (Aturan Bisnis #6: batas H-24, alasan wajib). */
   cancelAsStaff?(bookingId: string, reason: string, idempotencyKey: string): Promise<void>;
   cancellationOptions?(bookingId: string): Promise<{
@@ -746,6 +748,27 @@ export const browserBookingClient: BookingClient = {
       createdAt: new Date(result.createdAt),
       cancelledAt: result.cancelledAt ? new Date(result.cancelledAt) : null,
     };
+  },
+  async cancel(bookingId, reason, idempotencyKey) {
+    const key =
+      idempotencyKey ??
+      (typeof crypto !== 'undefined' && 'randomUUID' in crypto
+        ? crypto.randomUUID()
+        : `cancel-${Date.now()}`);
+    const response = await foregroundFetch(
+      `/api/v1/bookings/${encodeURIComponent(bookingId)}/cancel`,
+      {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'content-type': 'application/json', 'idempotency-key': key },
+        body: JSON.stringify({
+          reasonCode: 'CUSTOMER_SCHEDULE_CONFLICT',
+          reason: reason ?? 'Dibatalkan mandiri oleh pelanggan',
+        }),
+      },
+      'Membatalkan booking…',
+    );
+    if (!response.ok) throw { response };
   },
   async cancelAsStaff(bookingId, reason, idempotencyKey) {
     const response = await foregroundFetch(
