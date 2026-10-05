@@ -11,10 +11,10 @@ import {
 import { Button, IconButton } from './actions';
 
 const toneDot = {
-  success: 'bg-emerald-500',
-  info: 'bg-sky-500',
-  warning: 'bg-amber-500',
-  danger: 'bg-red-500',
+  success: 'bg-dd-success',
+  info: 'bg-dd-info',
+  warning: 'bg-dd-warning',
+  danger: 'bg-dd-danger',
 };
 
 export function NotificationCenter({

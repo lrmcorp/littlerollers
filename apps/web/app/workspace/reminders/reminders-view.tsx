@@ -214,7 +214,7 @@ export function RemindersView() {
                   size="sm"
                   onClick={handleTriggerAutoCancel}
                   disabled={executingAutoCancel}
-                  leadingIcon={<Play className="size-4 text-amber-600" />}
+                  leadingIcon={<Play className="size-4 text-dd-warning" />}
                 >
                   {executingAutoCancel ? 'Mengevaluasi...' : 'Jalankan Auto-Cancel H-24'}
                 </Button>
@@ -354,7 +354,7 @@ export function RemindersView() {
                   header: 'Penerima',
                   cell: (item) => (
                     <div>
-                      <div className="font-medium text-slate-800">{item.recipientPhone}</div>
+                      <div className="font-medium text-dd-ink">{item.recipientPhone}</div>
                       <div className="text-xs text-dd-muted">{item.recipientType}</div>
                     </div>
                   ),
@@ -392,7 +392,7 @@ export function RemindersView() {
                     const preview = item.payload?.textPreview || '-';
                     return (
                       <span
-                        className="line-clamp-2 max-w-md text-xs text-slate-600"
+                        className="line-clamp-2 max-w-md text-xs text-dd-muted"
                         title={preview}
                       >
                         {preview}

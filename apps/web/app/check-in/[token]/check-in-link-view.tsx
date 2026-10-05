@@ -109,16 +109,16 @@ export function CheckInLinkView({ token }: { token: string }) {
             <p className="mt-4 text-sm text-dd-muted">Memuat data tiket sesi Anda...</p>
           </div>
         ) : error && !successResult ? (
-          <div className="mt-6 rounded-xl bg-red-50 p-5 text-center text-sm text-red-700 border border-red-200">
+          <div className="mt-6 rounded-dd-lg bg-dd-danger-soft p-5 text-center text-sm text-dd-danger border border-dd-danger/30">
             <p className="font-semibold">Presensi Tidak Dapat Diproses</p>
             <p className="mt-1">{error}</p>
-            <p className="mt-3 text-xs text-red-600">
+            <p className="mt-3 text-xs text-dd-danger/90">
               Jika Anda sudah berada di studio, silakan minta bantuan admin frontdesk untuk presensi.
             </p>
           </div>
         ) : successResult ? (
           <div className="mt-6 space-y-5 text-center">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-dd-success-soft text-dd-success">
               <svg
                 className="h-9 w-9"
                 fill="none"
@@ -131,11 +131,11 @@ export function CheckInLinkView({ token }: { token: string }) {
             </div>
 
             <div>
-              <h2 className="text-xl font-bold text-emerald-800">Kehadiran Terkonfirmasi!</h2>
+              <h2 className="text-xl font-bold text-dd-success">Kehadiran Terkonfirmasi!</h2>
               <p className="mt-1 text-sm text-dd-muted">{successResult.message}</p>
             </div>
 
-            <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/50 p-4 text-left text-sm space-y-2">
+            <div className="rounded-dd-lg border border-dd-success/30 bg-dd-success-soft/50 p-4 text-left text-sm space-y-2">
               <div className="flex justify-between">
                 <span className="text-dd-muted">Customer:</span>
                 <span className="font-semibold text-dd-ink">{successResult.customerName}</span>
@@ -156,7 +156,7 @@ export function CheckInLinkView({ token }: { token: string }) {
           </div>
         ) : info ? (
           <div className="mt-6 space-y-6">
-            <div className="rounded-xl border border-dd-line bg-dd-surface-muted p-5 space-y-3">
+            <div className="rounded-dd-lg border border-dd-line bg-dd-surface-muted p-5 space-y-3">
               <div>
                 <p className="text-xs font-medium text-dd-muted uppercase">Nama Peserta</p>
                 <p className="text-base font-semibold text-dd-ink">{info.customerName}</p>
@@ -182,15 +182,15 @@ export function CheckInLinkView({ token }: { token: string }) {
             </div>
 
             {info.status === 'TOO_EARLY' ? (
-              <div className="rounded-xl bg-amber-50 p-4 text-center text-sm text-amber-800 border border-amber-200">
+              <div className="rounded-dd-lg bg-dd-warning-soft p-4 text-center text-sm text-dd-warning border border-dd-warning/30">
                 <p className="font-semibold">Presensi Belum Dibuka</p>
                 <p className="mt-1 text-xs">
                   Tautan presensi baru dapat dikonfirmasi mulai 60 menit sebelum kelas dimulai.
                 </p>
               </div>
             ) : info.status === 'EXPIRED' ? (
-              <div className="rounded-xl bg-zinc-100 p-4 text-center text-sm text-zinc-700 border border-zinc-200">
-                <p className="font-semibold">Sesi Telah Selesai</p>
+              <div className="rounded-dd-lg bg-dd-surface-muted p-4 text-center text-sm text-dd-muted border border-dd-line">
+                <p className="font-semibold text-dd-ink">Sesi Telah Selesai</p>
                 <p className="mt-1 text-xs">
                   Jendela presensi mandiri telah berakhir. Silakan hubungi frontdesk jika Anda hadir.
                 </p>
@@ -198,7 +198,7 @@ export function CheckInLinkView({ token }: { token: string }) {
             ) : (
               <Button
                 type="button"
-                className="w-full py-3.5 text-base font-semibold shadow-lg shadow-dd-forest/20"
+                className="w-full py-3.5 text-base font-semibold shadow-dd-soft"
                 onClick={handleConfirm}
                 disabled={submitting}
               >

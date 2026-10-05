@@ -827,7 +827,7 @@ export function BookingView({
           )}
           {selectedPackage && selectedSlot && selectedCustomer && (
             <Panel
-              className="border-amber-200 bg-dd-warning-soft p-4 text-sm text-dd-warning"
+              className="border-dd-warning/30 bg-dd-warning-soft p-4 text-sm text-dd-warning"
               aria-label="Konsekuensi reservasi"
             >
               <strong className="mb-1 block">Konsekuensi reservasi</strong>
@@ -943,7 +943,7 @@ export function BookingView({
           )}
           {reviewId && (
             <Panel
-              className="grid gap-4 border-amber-200 bg-dd-warning-soft p-4 text-sm text-dd-warning"
+              className="grid gap-4 border-dd-warning/30 bg-dd-warning-soft p-4 text-sm text-dd-warning"
               aria-label="Keputusan reschedule"
             >
               <strong>Keputusan reschedule</strong>

@@ -17,10 +17,10 @@ type Tone = 'neutral' | 'success' | 'warning' | 'danger' | 'info';
 
 const tones: Record<Tone, string> = {
   neutral: 'bg-dd-surface-muted text-dd-muted ring-dd-line',
-  success: 'bg-dd-success-soft text-dd-success ring-emerald-200',
-  warning: 'bg-dd-warning-soft text-dd-warning ring-amber-200',
-  danger: 'bg-dd-danger-soft text-dd-danger ring-red-200',
-  info: 'bg-dd-info-soft text-dd-info ring-sky-200',
+  success: 'bg-dd-success-soft text-dd-success ring-dd-success/30',
+  warning: 'bg-dd-warning-soft text-dd-warning ring-dd-warning/30',
+  danger: 'bg-dd-danger-soft text-dd-danger ring-dd-danger/30',
+  info: 'bg-dd-info-soft text-dd-info ring-dd-info/30',
 };
 
 export function Badge({ children, tone = 'neutral' }: { children: ReactNode; tone?: Tone }) {
@@ -164,7 +164,7 @@ export function Tabs({
         >
           {item.label}
           {item.count != null && (
-            <span className="ml-2 rounded-full bg-stone-100 px-1.5 py-0.5 text-[10px]">
+            <span className="ml-2 rounded-full bg-dd-surface-muted px-1.5 py-0.5 text-[10px]">
               {item.count}
             </span>
           )}
@@ -563,7 +563,7 @@ export function AdminSkeleton({ rows = 3 }: { rows?: number }) {
       className="grid gap-3 rounded-dd-lg border border-dd-line bg-white p-5"
     >
       {Array.from({ length: rows }, (_, index) => (
-        <div key={index} className="h-12 animate-pulse rounded-dd-md bg-stone-100" />
+        <div key={index} className="h-12 animate-pulse rounded-dd-md bg-dd-surface-muted" />
       ))}
       <span className="sr-only">Memuat data</span>
     </div>

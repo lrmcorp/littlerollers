@@ -113,7 +113,7 @@ export function ClassDetailView({
                   <Gauge className="size-4 text-dd-forest" />
                   {item.profile.level}
                 </span>
-                <span className="inline-flex items-center gap-2 rounded-full border border-dd-forest/30 bg-emerald-50 px-3.5 py-2 font-semibold text-dd-forest shadow-xs">
+                <span className="inline-flex items-center gap-2 rounded-full border border-dd-forest/30 bg-dd-success-soft px-3.5 py-2 font-semibold text-dd-forest shadow-xs">
                   <Timer className="size-4 text-dd-forest" />
                   Durasi {item.profile.durationMinutes} Menit
                 </span>
@@ -154,7 +154,7 @@ export function ClassDetailView({
               {/* Fokus Latihan */}
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="rounded-dd-lg border border-dd-line bg-white p-5 shadow-xs">
-                  <div className="flex size-9 items-center justify-center rounded-dd-sm bg-emerald-50 text-dd-forest">
+                  <div className="flex size-9 items-center justify-center rounded-dd-sm bg-dd-forest/10 text-dd-forest">
                     <HeartPulse className="size-5" />
                   </div>
                   <h3 className="mt-3 text-base font-semibold text-dd-ink">Kekuatan Inti (Core)</h3>
@@ -163,7 +163,7 @@ export function ClassDetailView({
                   </p>
                 </div>
                 <div className="rounded-dd-lg border border-dd-line bg-white p-5 shadow-xs">
-                  <div className="flex size-9 items-center justify-center rounded-dd-sm bg-emerald-50 text-dd-forest">
+                  <div className="flex size-9 items-center justify-center rounded-dd-sm bg-dd-forest/10 text-dd-forest">
                     <Dumbbell className="size-5" />
                   </div>
                   <h3 className="mt-3 text-base font-semibold text-dd-ink">Postur & Keselarasan</h3>
@@ -269,7 +269,7 @@ export function ClassDetailView({
                       key={`${pkg.id}:${pkg.branch.id}`}
                     >
                       <div>
-                        <span className="inline-block rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-bold text-emerald-800 uppercase">
+                        <span className="inline-block rounded-full bg-dd-success-soft px-2.5 py-0.5 text-[11px] font-bold text-dd-success uppercase">
                           {pkg.branch.name}
                         </span>
                         <h3 className="mt-3 text-xl font-bold text-dd-ink">{pkg.name}</h3>
@@ -345,10 +345,10 @@ export function ClassDetailView({
                           <span
                             className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${
                               schedule.available < 1
-                                ? 'bg-red-100 text-red-700'
+                                ? 'bg-dd-danger-soft text-dd-danger'
                                 : schedule.available <= 2
-                                  ? 'bg-amber-100 text-amber-800'
-                                  : 'bg-emerald-100 text-emerald-800'
+                                  ? 'bg-dd-warning-soft text-dd-warning'
+                                  : 'bg-dd-success-soft text-dd-success'
                             }`}
                           >
                             {schedule.available < 1 ? 'Penuh' : `${schedule.available} tempat`}

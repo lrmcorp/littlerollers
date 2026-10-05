@@ -248,10 +248,10 @@ export function RelatedSchedules({
           <span
             className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${
               item.available < 1
-                ? 'border border-red-200 bg-red-50 text-red-700'
+                ? 'border border-dd-danger/30 bg-dd-danger-soft text-dd-danger'
                 : item.available <= 2
-                  ? 'border border-amber-200 bg-amber-50 text-amber-800'
-                  : 'border border-emerald-200 bg-emerald-50 text-emerald-800'
+                  ? 'border border-dd-warning/30 bg-dd-warning-soft text-dd-warning'
+                  : 'border border-dd-success/30 bg-dd-success-soft text-dd-success'
             }`}
           >
             {item.available < 1 ? 'Penuh' : `Sisa ${item.available} tempat`}

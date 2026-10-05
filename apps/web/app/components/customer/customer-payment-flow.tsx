@@ -425,11 +425,11 @@ export function CustomerPaymentFlow({
           </div>
 
           {order.status === 'PENDING' && (
-            <div className="mt-4 flex items-start gap-2.5 rounded-dd-lg border border-sky-200 bg-sky-50/70 p-3.5 text-xs text-sky-900 sm:text-sm">
-              <Clock3 className="size-4 shrink-0 text-sky-700 mt-0.5" />
+            <div className="mt-4 flex items-start gap-2.5 rounded-dd-lg border border-dd-info/30 bg-dd-info-soft/70 p-3.5 text-xs text-dd-info sm:text-sm">
+              <Clock3 className="size-4 shrink-0 text-dd-info mt-0.5" />
               <div>
-                <p className="font-semibold">Estimasi verifikasi: 15–30 menit</p>
-                <p className="mt-0.5 text-sky-800">
+                <p className="font-semibold text-dd-ink">Estimasi verifikasi: 15–30 menit</p>
+                <p className="mt-0.5 text-dd-muted">
                   Tim Finance memverifikasi transaksi setiap hari pukul 07.00 – 21.00 WIB. Begitu diverifikasi, saldo paket Anda otomatis bertambah dan siap dipakai untuk memesan kelas.
                 </p>
               </div>
@@ -666,7 +666,7 @@ function proofStatusVisual(status: CustomerOrder['paymentProofStatus']) {
   if (!status)
     return {
       icon: FileQuestion,
-      classes: 'bg-stone-100 text-stone-600',
+      classes: 'bg-dd-surface-muted text-dd-muted',
     };
   if (status.uploadStatus !== 'FINALIZED' || status.scanStatus === 'PENDING')
     return {
@@ -685,7 +685,7 @@ function proofStatusVisual(status: CustomerOrder['paymentProofStatus']) {
     };
   return {
     icon: FileQuestion,
-    classes: 'bg-stone-100 text-stone-600',
+    classes: 'bg-dd-surface-muted text-dd-muted',
   };
 }
 

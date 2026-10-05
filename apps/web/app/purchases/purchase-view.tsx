@@ -376,7 +376,7 @@ export function PurchaseView({
       )}
       {selected && proof?.scanStatus === 'CLEAN' && !purchase && (
         <Panel
-          className="grid gap-3 border-amber-200 bg-dd-warning-soft p-4 text-sm text-dd-warning"
+          className="grid gap-3 border-dd-warning/30 bg-dd-warning-soft p-4 text-sm text-dd-warning"
           aria-label="Konfirmasi pengajuan pembelian"
         >
           <strong>Konfirmasi pengajuan pembelian</strong>

@@ -201,7 +201,7 @@ export function SessionAdjustmentDetailView({ id }: { id: string }) {
           ) : (
             <div className="mt-4 grid gap-2">
               {Boolean(item.requestedBy?.id && session?.session?.id && item.requestedBy.id === session.session.id) && (
-                <div className="rounded-dd-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 mb-2">
+                <div className="rounded-dd-md border border-dd-warning/30 bg-dd-warning-soft p-3 text-xs text-dd-warning mb-2">
                   <strong className="block font-semibold">Pemisahan Tugas (Maker-Checker):</strong>
                   Anda mengajukan permohonan ini. Sesuai aturan pemisahan tugas, persetujuan harus dilakukan oleh staf/manager lain.
                 </div>

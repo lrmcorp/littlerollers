@@ -208,7 +208,7 @@ export function FaqEditor({
                   disabled={busy}
                   onClick={() => void remove(entry, index + 1)}
                   aria-label={`Hapus pertanyaan ${index + 1}`}
-                  className="rounded p-1.5 text-red-600 hover:bg-red-50 disabled:opacity-30"
+                  className="rounded p-1.5 text-dd-danger hover:bg-dd-danger-soft disabled:opacity-30"
                 >
                   <Trash2 className="size-4" aria-hidden="true" />
                 </button>

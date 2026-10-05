@@ -129,7 +129,7 @@ export function ImageUploadField({
       {/* Image Preview & Dropzone */}
       {hasImage && !previewError ? (
         <div className="relative overflow-hidden rounded-dd-lg border border-dd-line/80 bg-dd-surface-muted">
-          <div className="relative h-44 w-full bg-stone-900/5">
+          <div className="relative h-44 w-full bg-dd-ink/5">
             <img
               src={resolvedUrl}
               alt={label}
@@ -155,7 +155,7 @@ export function ImageUploadField({
                 type="button"
                 disabled={uploading}
                 onClick={() => fileInputRef.current?.click()}
-                className="inline-flex items-center gap-1.5 rounded-dd-md border border-dd-line px-2.5 py-1 text-xs font-medium text-dd-ink hover:bg-stone-50 transition"
+                className="inline-flex items-center gap-1.5 rounded-dd-md border border-dd-line px-2.5 py-1 text-xs font-medium text-dd-ink hover:bg-dd-surface-muted transition"
               >
                 <RefreshCw className="size-3" /> Ganti
               </button>
@@ -163,7 +163,7 @@ export function ImageUploadField({
                 type="button"
                 disabled={uploading}
                 onClick={() => updateValue('')}
-                className="inline-flex items-center gap-1 rounded-dd-md border border-red-200 px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 transition"
+                className="inline-flex items-center gap-1 rounded-dd-md border border-dd-danger/30 px-2 py-1 text-xs font-medium text-dd-danger hover:bg-dd-danger-soft transition"
                 title="Hapus gambar"
               >
                 <X className="size-3.5" />
@@ -217,7 +217,7 @@ export function ImageUploadField({
 
       {/* Optional Manual Key & Preset Options */}
       {showManualInput && (
-        <div className="mt-1 rounded-dd-md border border-dd-line bg-stone-50/70 p-3 space-y-2">
+        <div className="mt-1 rounded-dd-md border border-dd-line bg-dd-surface-muted/70 p-3 space-y-2">
           <div>
             <label className="text-xs font-semibold text-dd-ink">Key atau URL Aset</label>
             <input

@@ -110,10 +110,10 @@ export function paymentRowState(item: ReviewPurchase, now = new Date()): Payment
 }
 
 const rowClasses: Record<PaymentRowState, string> = {
-  danger: 'border-l-4 border-l-dd-danger bg-red-50/70',
-  success: 'border-l-4 border-l-dd-forest bg-emerald-50/60',
-  warning: 'border-l-4 border-l-dd-brass bg-amber-50/70',
-  neutral: 'border-l-4 border-l-stone-400 bg-stone-50/85',
+  danger: 'border-l-4 border-l-dd-danger bg-dd-danger-soft/70',
+  success: 'border-l-4 border-l-dd-forest bg-dd-success-soft/60',
+  warning: 'border-l-4 border-l-dd-brass bg-dd-warning-soft/70',
+  neutral: 'border-l-4 border-l-dd-muted/40 bg-dd-surface-muted/85',
   default: 'border-l-4 border-l-transparent bg-white',
 };
 
@@ -637,10 +637,10 @@ export function PurchaseReviewView({
         aria-label="Legenda status baris pembayaran"
       >
         {[
-          ['bg-emerald-100 border-dd-forest', 'Paket aktif'],
-          ['bg-amber-100 border-dd-brass', 'Menunggu tindakan'],
-          ['bg-red-100 border-dd-danger', 'Ditolak atau kedaluwarsa'],
-          ['bg-stone-100 border-stone-400', 'Belum dibayar atau belum aktif'],
+          ['bg-dd-success-soft border-dd-forest', 'Paket aktif'],
+          ['bg-dd-warning-soft border-dd-brass', 'Menunggu tindakan'],
+          ['bg-dd-danger-soft border-dd-danger', 'Ditolak atau kedaluwarsa'],
+          ['bg-dd-surface-muted border-dd-muted/40', 'Belum dibayar atau belum aktif'],
         ].map(([classes, label]) => (
           <span key={label} className="inline-flex items-center gap-2">
             <span className={`size-3 rounded-sm border-l-2 ${classes}`} aria-hidden="true" />

@@ -60,12 +60,12 @@ export function BranchDetailView({ id }: { id: string }) {
   if (!session || session.status === 'loading') return <Skeleton label="Memuat detail cabang" />;
   if (!canRead)
     return (
-      <div className="rounded-dd-lg border border-red-200 bg-red-50 p-4 text-red-800">
+      <div className="rounded-dd-lg border border-dd-danger/30 bg-dd-danger-soft p-4 text-dd-danger">
         <strong className="block font-semibold">Akses cabang tidak tersedia</strong>
         <p className="text-sm">Akun Anda tidak memiliki izin untuk membaca Branch Management.</p>
       </div>
     );
-  if (failure) return <div className="rounded-dd-lg border border-red-200 bg-red-50 p-4 text-red-800">{failure}</div>;
+  if (failure) return <div className="rounded-dd-lg border border-dd-danger/30 bg-dd-danger-soft p-4 text-dd-danger">{failure}</div>;
   if (!branch) return <Skeleton label="Memuat detail cabang" />;
 
   const blockingDependencies =

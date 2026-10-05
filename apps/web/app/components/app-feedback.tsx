@@ -495,7 +495,7 @@ export function DestructiveDialog({
         'Tindakan ini berdampak pada data operasional dan akan dicatat dalam audit log.'
       }
     >
-      <div className="mb-5 rounded-dd-md border border-red-200 bg-red-50 p-4 text-sm text-red-900">
+      <div className="mb-5 rounded-dd-md border border-dd-danger/30 bg-dd-danger-soft p-4 text-sm text-dd-danger">
         <div className="flex gap-3">
           <AlertTriangle className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
           <div>

@@ -402,7 +402,7 @@ export function PublicPackagesView({
                     >
                       <span
                         className={`grid size-11 shrink-0 place-items-center rounded-xl transition ${
-                          selected ? 'bg-white/20 text-white' : 'bg-dd-success-soft text-dd-forest border border-emerald-200'
+                          selected ? 'bg-white/20 text-white' : 'bg-dd-success-soft text-dd-forest border border-dd-success/30'
                         }`}
                       >
                         <MapPin className="size-5" aria-hidden="true" />
@@ -464,7 +464,7 @@ export function PublicPackagesView({
                         syncCatalogQuery(branchId, classTypeId, val, priceRange, sessionRange);
                       }}
                       placeholder="Cari nama paket…"
-                      className="min-h-11 w-full rounded-dd-md border border-dd-line bg-white pl-9 pr-8 font-sans text-sm text-dd-ink shadow-sm transition placeholder:text-dd-muted hover:border-dd-forest/40 focus:border-dd-forest focus:outline-hidden focus:ring-2 focus:ring-dd-forest/15 disabled:cursor-not-allowed disabled:bg-stone-100 disabled:text-dd-muted"
+                      className="min-h-11 w-full rounded-dd-md border border-dd-line bg-white pl-9 pr-8 font-sans text-sm text-dd-ink shadow-sm transition placeholder:text-dd-muted hover:border-dd-forest/40 focus:border-dd-forest focus:outline-hidden focus:ring-2 focus:ring-dd-forest/15 disabled:cursor-not-allowed disabled:bg-dd-surface-muted disabled:text-dd-muted"
                     />
                     {searchQuery && (
                       <button

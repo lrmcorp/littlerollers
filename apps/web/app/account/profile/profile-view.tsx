@@ -246,8 +246,8 @@ export function ProfileView() {
             role="status"
             className={`rounded-dd-md p-3.5 text-xs font-medium ${
               state === 'ready'
-                ? 'bg-dd-success-soft text-dd-success border border-emerald-200'
-                : 'bg-dd-danger-soft text-dd-danger border border-red-200'
+                ? 'bg-dd-success-soft text-dd-success border border-dd-success/30'
+                : 'bg-dd-danger-soft text-dd-danger border border-dd-danger/30'
             }`}
           >
             {message}

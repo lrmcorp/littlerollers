@@ -519,7 +519,7 @@ export function PublicContentManagementView() {
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <div className="relative size-16 shrink-0 overflow-hidden rounded-dd-md border border-dd-line bg-stone-200 shadow-sm">
+                      <div className="relative size-16 shrink-0 overflow-hidden rounded-dd-md border border-dd-line bg-dd-surface-muted shadow-xs">
                         {imagePreviewUrl ? (
                           <Image
                             src={imagePreviewUrl}
@@ -529,7 +529,7 @@ export function PublicContentManagementView() {
                             className="object-cover"
                           />
                         ) : (
-                          <div className="grid size-full place-items-center text-stone-400">
+                          <div className="grid size-full place-items-center text-dd-muted">
                             <FileImage className="size-6" />
                           </div>
                         )}
@@ -737,7 +737,7 @@ export function PublicContentManagementView() {
                     className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-dd-xl border p-4 transition ${
                       slide.active
                         ? 'border-dd-line bg-white shadow-sm'
-                        : 'border-dashed border-dd-line/80 bg-stone-50 opacity-70'
+                        : 'border-dashed border-dd-line/80 bg-dd-surface-muted opacity-70'
                     }`}
                   >
                     <div className="flex items-start gap-4">
@@ -747,7 +747,7 @@ export function PublicContentManagementView() {
                       </span>
 
                       {/* Thumbnail Preview */}
-                      <div className="relative size-16 shrink-0 overflow-hidden rounded-dd-md border border-dd-line bg-stone-200">
+                      <div className="relative size-16 shrink-0 overflow-hidden rounded-dd-md border border-dd-line bg-dd-surface-muted">
                         <Image
                           src={slide.imageSrc || '/images/public/landing/hero-pilates.png'}
                           fill
@@ -771,8 +771,8 @@ export function PublicContentManagementView() {
                           <span
                             className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
                               slide.active
-                                ? 'bg-emerald-100 text-emerald-800'
-                                : 'bg-stone-200 text-stone-600'
+                                ? 'bg-dd-success-soft text-dd-success'
+                                : 'bg-dd-surface-muted text-dd-muted'
                             }`}
                           >
                             {slide.active ? 'Aktif' : 'Nonaktif'}
@@ -833,7 +833,7 @@ export function PublicContentManagementView() {
                         type="button"
                         onClick={() => deleteSlide(index)}
                         aria-label="Hapus slide"
-                        className="rounded p-1.5 text-red-600 hover:bg-red-50"
+                        className="rounded p-1.5 text-dd-danger hover:bg-dd-danger-soft"
                       >
                         <Trash2 className="size-4" />
                       </button>

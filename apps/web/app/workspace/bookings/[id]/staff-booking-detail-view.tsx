@@ -266,8 +266,8 @@ export function StaffBookingDetailView({
                   : 'Buat Token QR Check-in'}
               </Button>
               {issue?.whatsappUrl && (
-                <div className="rounded-dd-lg border border-emerald-200 bg-emerald-50/70 p-3 text-xs space-y-2">
-                  <p className="font-semibold text-emerald-950">
+                <div className="rounded-dd-lg border border-dd-success/30 bg-dd-success-soft/70 p-3 text-xs space-y-2">
+                  <p className="font-semibold text-dd-forest-dark">
                     Kirim QR & Pengingat ke Pelanggan:
                   </p>
                   <p className="text-dd-muted italic line-clamp-2">

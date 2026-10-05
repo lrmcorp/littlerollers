@@ -477,19 +477,19 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
                     </div>
                     <div className="flex justify-between pt-2">
                       <span className="text-dd-muted">Beban Instruktur Realtime (jam kelas selesai):</span>
-                      <span className="font-semibold text-amber-600">
+                      <span className="font-semibold text-dd-warning">
                         - {formatRupiah(profitData.costRealtimeRp)}
                       </span>
                     </div>
                     <div className="flex justify-between pt-2">
                       <span className="text-dd-muted">Beban Instruktur Projeksi (Sesi Terjual):</span>
-                      <span className="font-semibold text-purple-600">
+                      <span className="font-semibold text-dd-info">
                         - {formatRupiah(profitData.costProjectionRp)}
                       </span>
                     </div>
                     <div className="flex justify-between pt-2">
                       <span className="text-dd-muted">Beban Operasional Lain (Other Cost):</span>
-                      <span className="font-semibold text-rose-600">
+                      <span className="font-semibold text-dd-danger">
                         - {formatRupiah(profitData.otherCostRp)}
                       </span>
                     </div>
@@ -501,7 +501,7 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
                     </div>
                     <div className="flex justify-between pt-2">
                       <span className="font-medium text-dd-ink">Laba Bersih Realtime:</span>
-                      <span className="font-bold text-emerald-600">
+                      <span className="font-bold text-dd-success">
                         {formatRupiah(profitData.netProfitRealtimeRp)}
                       </span>
                     </div>
@@ -610,7 +610,7 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
                         id: 'totalAmountRp',
                         header: 'Total Nominal',
                         cell: (t) => (
-                          <span className="font-semibold text-emerald-600">
+                          <span className="font-semibold text-dd-success">
                             {formatRupiah(t.totalAmountRp)}
                           </span>
                         ),
@@ -794,7 +794,7 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
                         id: 'totalCostRp',
                         header: 'Total Biaya Projeksi',
                         cell: (b) => (
-                          <span className="font-semibold text-purple-600">
+                          <span className="font-semibold text-dd-forest">
                             {formatRupiah(b.totalCostRp)}
                           </span>
                         ),
@@ -860,7 +860,7 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
                         id: 'amountRp',
                         header: 'Nominal',
                         cell: (c) => (
-                          <span className="font-semibold text-rose-600">
+                          <span className="font-semibold text-dd-danger">
                             {formatRupiah(c.amountRp)}
                           </span>
                         ),
@@ -884,7 +884,7 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
                             )}
                             <Button
                               variant="ghost"
-                              leadingIcon={<Trash2 className="h-4 w-4 text-rose-500" />}
+                              leadingIcon={<Trash2 className="h-4 w-4 text-dd-danger" />}
                               onClick={() => {
                                 void feedback
                                   .confirm({

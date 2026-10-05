@@ -263,9 +263,9 @@ export function ClassSlotView({
         type="button"
         className={`w-full text-left rounded-xl border p-3 shadow-xs transition-all duration-200 flex flex-col gap-1.5 focus-visible:ring-2 focus-visible:ring-dd-forest cursor-pointer hover:shadow-md ${
           isCancelled
-            ? 'border-red-200 bg-red-50/40 text-red-950 opacity-80'
+            ? 'border-dd-danger/30 bg-dd-danger-soft/40 text-dd-danger opacity-80'
             : isDraft
-              ? 'border-amber-200 bg-amber-50/30 hover:border-amber-400'
+              ? 'border-dd-warning/30 bg-dd-warning-soft/30 hover:border-dd-warning'
               : 'border-dd-line/80 bg-white hover:border-dd-forest/60'
         }`}
         key={slot.id}

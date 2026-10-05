@@ -92,7 +92,7 @@ export function SummaryButton({
         active
           ? 'border-dd-forest bg-dd-forest text-white shadow-dd-soft'
           : tone === 'danger'
-            ? 'border-red-200 bg-red-50/80 text-red-950 hover:border-red-400'
+            ? 'border-dd-danger/30 bg-dd-danger-soft/80 text-dd-danger hover:border-dd-danger'
             : 'border-dd-line/80 bg-white/95 text-dd-ink hover:border-dd-forest/60 hover:-translate-y-0.5'
       }`}
     >
@@ -215,7 +215,7 @@ export function DocumentReviewCard({
         </div>
 
         {/* Area Preview Gambar */}
-        <div className="relative group flex min-h-[240px] max-h-[340px] w-full items-center justify-center overflow-hidden rounded-dd-lg border border-dd-line/80 bg-slate-900/[0.03]">
+        <div className="relative group flex min-h-[240px] max-h-[340px] w-full items-center justify-center overflow-hidden rounded-dd-lg border border-dd-line/80 bg-dd-ink/[0.03]">
           {previewUrl ? (
             <>
               <img
@@ -291,15 +291,15 @@ export function DocumentReviewCard({
             <span
               className={`rounded-md border px-2 py-0.5 text-[11px] font-medium shadow-2xs ${
                 document.scanStatus === 'CLEAN'
-                  ? 'border-emerald-200 bg-emerald-50/80 text-emerald-800'
-                  : 'border-amber-200 bg-amber-50 text-amber-800'
+                  ? 'border-dd-success/30 bg-dd-success-soft/80 text-dd-success'
+                  : 'border-dd-warning/30 bg-dd-warning-soft text-dd-warning'
               }`}
             >
               Scan: <strong className="font-semibold">{scanLabels[document.scanStatus]}</strong>
             </span>
           </div>
           {document.rejectionReasonCode && (
-            <div className="mt-2 rounded-md border border-amber-200 bg-amber-50/70 p-2 text-[11px] text-amber-900">
+            <div className="mt-2 rounded-md border border-dd-warning/30 bg-dd-warning-soft/70 p-2 text-[11px] text-dd-warning">
               <strong>Catatan Perbaikan:</strong>{' '}
               {reasonLabels[document.rejectionReasonCode as RejectionReason] ?? 'Perlu perbaikan'}
               {document.rejectionNote && <span> — {document.rejectionNote}</span>}
@@ -329,7 +329,7 @@ export function DocumentReviewCard({
         {canDecide && mayDecide && (
           <div className="flex flex-col gap-2.5">
             <Button
-              className="w-full justify-center bg-emerald-700 hover:bg-emerald-800 text-white font-semibold py-2.5 shadow-xs"
+              className="w-full justify-center bg-dd-forest hover:bg-dd-forest-dark text-white font-semibold py-2.5 shadow-xs"
               leadingIcon={<CheckCircle2 className="size-4 shrink-0" aria-hidden="true" />}
               onClick={() => onApprove(document)}
             >
@@ -337,9 +337,9 @@ export function DocumentReviewCard({
             </Button>
             <Button
               variant="secondary"
-              className="w-full justify-center border-amber-300 bg-amber-50/50 text-amber-900 hover:bg-amber-100/70 font-semibold py-2.5 shadow-2xs"
+              className="w-full justify-center border-dd-warning/30 bg-dd-warning-soft/50 text-dd-warning hover:bg-dd-warning-soft font-semibold py-2.5 shadow-2xs"
               leadingIcon={
-                <AlertCircle className="size-4 shrink-0 text-amber-600" aria-hidden="true" />
+                <AlertCircle className="size-4 shrink-0 text-dd-warning" aria-hidden="true" />
               }
               onClick={() => onReject(document)}
             >
@@ -445,7 +445,7 @@ export function DecisionDialog({
             />
           </>
         )}
-        <div className="rounded-dd-md border border-amber-200 bg-dd-warning-soft p-4 text-sm text-dd-warning">
+        <div className="rounded-dd-md border border-dd-warning/30 bg-dd-warning-soft p-4 text-sm text-dd-warning">
           <AlertTriangle className="mr-2 inline size-4" />
           Keputusan dicatat dalam audit dan memberitahu pelanggan.
         </div>

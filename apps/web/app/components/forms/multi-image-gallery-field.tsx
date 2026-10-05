@@ -178,20 +178,20 @@ export function MultiImageGalleryField({
       {description && <p className="text-xs text-dd-muted">{description}</p>}
 
       {generalError && (
-        <p className="text-xs font-medium text-rose-600 bg-rose-50 border border-rose-200 px-3 py-1.5 rounded-lg">
+        <p className="text-xs font-medium text-dd-danger bg-dd-danger-soft border border-dd-danger/30 px-3 py-1.5 rounded-dd-md">
           {generalError}
         </p>
       )}
 
       {/* Manual Key Input Drawer / Form */}
       {showManualKeyInput && (
-        <div className="flex gap-2 p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
+        <div className="flex gap-2 p-2.5 bg-dd-surface-muted border border-dd-line rounded-dd-lg">
           <input
             type="text"
             value={manualKeyText}
             onChange={(e) => setManualKeyText(e.target.value)}
             placeholder="Masukkan path atau key aset (cth: branches/gallery-1.jpg)..."
-            className="flex-1 px-3 py-1.5 text-xs bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-dd-forest"
+            className="flex-1 px-3 py-1.5 text-xs bg-white border border-dd-line rounded-dd-md text-dd-ink focus:outline-none focus:ring-1 focus:ring-dd-forest"
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 e.preventDefault();
@@ -202,7 +202,7 @@ export function MultiImageGalleryField({
           <button
             type="button"
             onClick={handleAddManualKey}
-            className="px-3 py-1.5 text-xs font-medium text-white bg-dd-forest rounded-lg hover:bg-dd-forest/90 transition"
+            className="px-3 py-1.5 text-xs font-medium text-white bg-dd-forest rounded-dd-md hover:bg-dd-forest-dark transition"
           >
             Tambah
           </button>
@@ -214,32 +214,32 @@ export function MultiImageGalleryField({
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 p-3 rounded-2xl border-2 border-dashed transition-all ${
+        className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 p-3 rounded-dd-xl border-2 border-dashed transition-all ${
           isDragging
             ? 'border-dd-forest bg-dd-forest/5'
-            : 'border-slate-200 bg-slate-50/50 hover:bg-slate-50'
+            : 'border-dd-line bg-dd-surface-muted/50 hover:bg-dd-surface-muted'
         }`}
       >
         {items.map((item, index) => (
           <div
             key={item.id}
-            className="group relative aspect-4/3 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 shadow-xs flex items-center justify-center transition hover:shadow-md"
+            className="group relative aspect-4/3 rounded-dd-lg overflow-hidden bg-dd-surface-muted border border-dd-line shadow-xs flex items-center justify-center transition hover:shadow-dd-soft"
           >
             {item.uploading ? (
               <div className="flex flex-col items-center gap-1.5 p-2 text-center">
                 <Loader2 className="size-5 animate-spin text-dd-forest" />
-                <span className="text-[10px] font-medium text-slate-500">Mengunggah…</span>
+                <span className="text-[10px] font-medium text-dd-muted">Mengunggah…</span>
               </div>
             ) : item.error ? (
               <div className="flex flex-col items-center gap-1 p-2 text-center">
-                <X className="size-5 text-rose-500" />
-                <span className="text-[10px] font-medium text-rose-600 line-clamp-2">
+                <X className="size-5 text-dd-danger" />
+                <span className="text-[10px] font-medium text-dd-danger line-clamp-2">
                   {item.error}
                 </span>
                 <button
                   type="button"
                   onClick={() => handleRemove(item.id)}
-                  className="text-[10px] text-slate-500 underline mt-1"
+                  className="text-[10px] text-dd-muted underline mt-1"
                 >
                   Hapus
                 </button>
@@ -254,7 +254,7 @@ export function MultiImageGalleryField({
                   className="w-full h-full object-cover transition duration-300 group-hover:scale-105"
                   onError={(e) => {
                     (e.currentTarget as HTMLImageElement).style.display = 'none';
-                    e.currentTarget.parentElement?.classList.add('bg-amber-50');
+                    e.currentTarget.parentElement?.classList.add('bg-dd-warning-soft');
                   }}
                 />
 
@@ -268,7 +268,7 @@ export function MultiImageGalleryField({
                   <button
                     type="button"
                     onClick={() => handleRemove(item.id)}
-                    className="p-1.5 bg-rose-600 text-white rounded-lg shadow-sm hover:bg-rose-700 transition transform hover:scale-110"
+                    className="p-1.5 bg-dd-danger text-white rounded-dd-md shadow-sm hover:bg-dd-danger/90 transition transform hover:scale-110"
                     title="Hapus foto ini"
                   >
                     <Trash2 className="size-4" />
@@ -284,13 +284,13 @@ export function MultiImageGalleryField({
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="group relative aspect-4/3 rounded-xl border border-dashed border-slate-300 bg-white hover:border-dd-forest hover:bg-dd-forest/5 flex flex-col items-center justify-center gap-1.5 p-3 text-slate-500 hover:text-dd-forest transition"
+            className="group relative aspect-4/3 rounded-dd-lg border border-dashed border-dd-line bg-white hover:border-dd-forest hover:bg-dd-forest/5 flex flex-col items-center justify-center gap-1.5 p-3 text-dd-muted hover:text-dd-forest transition"
           >
-            <div className="size-8 rounded-full bg-slate-100 group-hover:bg-dd-forest/10 flex items-center justify-center transition">
-              <Plus className="size-4 text-slate-600 group-hover:text-dd-forest" />
+            <div className="size-8 rounded-full bg-dd-surface-muted group-hover:bg-dd-forest/10 flex items-center justify-center transition">
+              <Plus className="size-4 text-dd-muted group-hover:text-dd-forest" />
             </div>
             <span className="text-xs font-semibold">Tambah Foto</span>
-            <span className="text-[10px] text-slate-400 text-center leading-tight">
+            <span className="text-[10px] text-dd-muted text-center leading-tight">
               Pilih berkas atau seret ke sini
             </span>
           </button>

@@ -192,7 +192,7 @@ export function RoleDialog({
             guard.setDirty(true);
           }}
         />
-        <div className="rounded-dd-md border border-amber-200 bg-dd-warning-soft p-3.5 text-xs font-semibold text-dd-warning">
+        <div className="rounded-dd-md border border-dd-warning/30 bg-dd-warning-soft p-3.5 text-xs font-semibold text-dd-warning">
           Perubahan role berlaku segera dan seluruh sesi aktif pengguna akan diperbarui saat login berikutnya.
         </div>
       </form>
@@ -349,7 +349,7 @@ export function PasswordDialog({
           />
         </div>
 
-        {error && <p className="text-xs font-bold text-red-600">{error}</p>}
+        {error && <p className="text-xs font-bold text-dd-danger">{error}</p>}
       </form>
     </Modal>
   );

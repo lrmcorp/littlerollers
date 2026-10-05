@@ -424,7 +424,7 @@ export function InstructorsView() {
                     key={b.id}
                     className={`flex items-center gap-2.5 rounded-dd-md border p-3 cursor-pointer transition text-sm ${
                       checked
-                        ? 'border-dd-forest bg-emerald-50/50 font-semibold text-dd-forest'
+                        ? 'border-dd-forest bg-dd-success-soft/50 font-semibold text-dd-forest'
                         : 'border-dd-line hover:bg-dd-surface'
                     }`}
                   >

@@ -170,8 +170,8 @@ export function InstructorDetailView({ id }: { id: string }) {
                 size="sm"
                 className={
                   data.status === 'ACTIVE'
-                    ? 'text-dd-danger hover:bg-red-50 hover:text-red-700'
-                    : 'text-dd-forest hover:bg-emerald-50'
+                    ? 'text-dd-danger hover:bg-dd-danger-soft hover:text-dd-danger'
+                    : 'text-dd-forest hover:bg-dd-success-soft'
                 }
                 leadingIcon={
                   data.status === 'ACTIVE' ? (
@@ -207,7 +207,7 @@ export function InstructorDetailView({ id }: { id: string }) {
               data.assignments.map((a) => (
                 <span
                   key={a.id}
-                  className="inline-flex items-center gap-1.5 rounded-dd-md bg-stone-100 px-3 py-1 text-xs font-semibold text-stone-800"
+                  className="inline-flex items-center gap-1.5 rounded-dd-md bg-dd-surface-muted px-3 py-1 text-xs font-semibold text-dd-ink"
                 >
                   <Building2 className="size-3.5 text-dd-forest" />
                   {a.branch.name}

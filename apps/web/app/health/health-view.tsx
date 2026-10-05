@@ -53,7 +53,7 @@ const statusMeta = {
     description: 'Layanan siap digunakan.',
     tone: 'success' as const,
     icon: CheckCircle2,
-    cardClass: 'border-emerald-200 bg-dd-success-soft/35',
+    cardClass: 'border-dd-success/30 bg-dd-success-soft/35',
     iconClass: 'text-dd-success',
   },
   DEGRADED: {
@@ -61,7 +61,7 @@ const statusMeta = {
     description: 'Layanan utama tersedia, tetapi ada komponen yang perlu diperiksa.',
     tone: 'warning' as const,
     icon: AlertTriangle,
-    cardClass: 'border-amber-200 bg-dd-warning-soft/40',
+    cardClass: 'border-dd-warning/30 bg-dd-warning-soft/40',
     iconClass: 'text-dd-warning',
   },
   NOT_READY: {
@@ -69,7 +69,7 @@ const statusMeta = {
     description: 'Layanan penting tidak siap menerima pekerjaan.',
     tone: 'danger' as const,
     icon: XCircle,
-    cardClass: 'border-red-200 bg-dd-danger-soft/35',
+    cardClass: 'border-dd-danger/30 bg-dd-danger-soft/35',
     iconClass: 'text-dd-danger',
   },
 };

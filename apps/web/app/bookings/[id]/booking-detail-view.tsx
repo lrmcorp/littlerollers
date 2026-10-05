@@ -380,7 +380,7 @@ export function BookingDetailView({
                 </div>
               )}
               {qrError && !qrPayload && (
-                <p className="mt-3 text-xs text-amber-700 bg-amber-50 rounded-dd-md p-2 border border-amber-200">
+                <p className="mt-3 text-xs text-dd-warning bg-dd-warning-soft rounded-dd-md p-2 border border-dd-warning/30">
                   {qrError}
                 </p>
               )}
@@ -503,15 +503,15 @@ export function BookingDetailView({
           </div>
 
           {cancelDialogOpen && (
-            <div className="mt-5 space-y-3 rounded-dd-lg border border-red-200 bg-red-50/60 p-4">
-              <h3 className="text-sm font-semibold text-red-900">
+            <div className="mt-5 space-y-3 rounded-dd-lg border border-dd-danger/30 bg-dd-danger-soft/60 p-4">
+              <h3 className="text-sm font-semibold text-dd-danger">
                 Konfirmasi Pembatalan Booking
               </h3>
-              <p className="text-xs leading-relaxed text-red-700 sm:text-sm">
+              <p className="text-xs leading-relaxed text-dd-danger/90 sm:text-sm">
                 Apakah Anda yakin ingin membatalkan booking kelas ini? Kuota sesi paket Anda akan otomatis dikembalikan secara utuh.
               </p>
               {cancelError && (
-                <p className="text-xs font-semibold text-red-600 bg-red-100 p-2.5 rounded-dd-md">
+                <p className="text-xs font-semibold text-dd-danger bg-dd-danger-soft p-2.5 rounded-dd-md border border-dd-danger/30">
                   {cancelError}
                 </p>
               )}

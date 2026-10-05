@@ -721,7 +721,7 @@ export function GuideView() {
                         ))}
                       </dl>
                       <div className="mt-5 flex items-center justify-center gap-1.5 rounded-dd-sm border border-dashed border-dd-line bg-white p-3 text-center text-[11px] text-dd-muted">
-                        <CheckCircle2 className="size-3.5 text-emerald-600 shrink-0" />
+                        <CheckCircle2 className="size-3.5 text-dd-success shrink-0" />
                         <span>Terhubung secara otomatis ke database pusat Daily Dose</span>
                       </div>
                     </div>

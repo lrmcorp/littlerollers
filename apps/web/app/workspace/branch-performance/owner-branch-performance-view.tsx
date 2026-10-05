@@ -132,7 +132,7 @@ export function OwnerBranchPerformanceView() {
       </div>
 
       {error && (
-        <div className="rounded-dd-lg border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700">
+        <div className="rounded-dd-lg border border-dd-danger/30 bg-dd-danger-soft p-4 text-sm font-medium text-dd-danger">
           {error}
         </div>
       )}

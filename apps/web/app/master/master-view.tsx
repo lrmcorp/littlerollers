@@ -401,7 +401,7 @@ export function MasterView({
         <div className="relative">
           <Feedback kind="status">{message}</Feedback>
           <button
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-emerald-800 hover:text-emerald-950"
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-dd-success hover:text-dd-forest-dark"
             type="button"
             onClick={() => setMessage(undefined)}
             aria-label="Tutup notifikasi"
@@ -414,7 +414,7 @@ export function MasterView({
         <div className="relative">
           <Feedback kind="error">{failure}</Feedback>
           <button
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-red-800 hover:text-red-950"
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-dd-danger hover:text-dd-ink"
             type="button"
             onClick={() => setFailure(undefined)}
             aria-label="Tutup pesan kesalahan"

@@ -1563,7 +1563,7 @@ export function RolePermissionsView({
                       key={capability.key}
                       className={`flex gap-3 rounded-dd-lg border p-3 ${
                         protectedCapability || invalidScope
-                          ? 'border-dd-line bg-stone-50 opacity-60'
+                          ? 'border-dd-line bg-dd-surface-muted opacity-60'
                           : 'border-dd-line bg-white hover:border-dd-forest/40'
                       }`}
                     >

@@ -15,7 +15,7 @@ import {
 } from 'react';
 
 export const controlClassName =
-  'min-h-11 w-full rounded-dd-md border border-dd-line bg-white px-3 py-2 font-sans text-sm text-dd-ink shadow-sm outline-none transition placeholder:text-dd-muted/75 hover:border-dd-forest/40 focus:border-dd-forest focus:ring-2 focus:ring-dd-forest/15 disabled:cursor-not-allowed disabled:bg-stone-100 disabled:text-dd-muted aria-[invalid=true]:border-dd-danger aria-[invalid=true]:ring-2 aria-[invalid=true]:ring-red-100';
+  'min-h-11 w-full rounded-dd-md border border-dd-line bg-white px-3 py-2 font-sans text-sm text-dd-ink shadow-sm outline-none transition placeholder:text-dd-muted/75 hover:border-dd-forest/40 focus:border-dd-forest focus:ring-2 focus:ring-dd-forest/15 disabled:cursor-not-allowed disabled:bg-dd-surface-muted disabled:text-dd-muted aria-[invalid=true]:border-dd-danger aria-[invalid=true]:ring-2 aria-[invalid=true]:ring-dd-danger/20';
 
 /** Chevron kustom agar `<select>` bawaan terlihat sama dengan `SearchSelect`. */
 const selectChevronClassName =

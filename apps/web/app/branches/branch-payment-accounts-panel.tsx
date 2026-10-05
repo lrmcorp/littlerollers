@@ -271,9 +271,9 @@ export function BranchPaymentAccountsPanel({
       </div>
 
       {message && (
-        <div className="mt-3 rounded-dd-md bg-dd-success-soft p-3 text-sm text-dd-success border border-emerald-200 flex items-center justify-between">
+        <div className="mt-3 rounded-dd-md bg-dd-success-soft p-3 text-sm text-dd-success border border-dd-success/30 flex items-center justify-between">
           <span className="flex items-center gap-2">
-            <CheckCircle2 className="size-4 text-emerald-600" aria-hidden="true" />
+            <CheckCircle2 className="size-4 text-dd-success" aria-hidden="true" />
             {message}
           </span>
           <Button type="button" variant="ghost" size="sm" onClick={() => setMessage('')} aria-label="Tutup notifikasi">
@@ -283,7 +283,7 @@ export function BranchPaymentAccountsPanel({
       )}
 
       {error && (
-        <div className="mt-3 rounded-dd-md bg-dd-danger-soft p-3 text-sm text-dd-danger border border-red-200 flex items-center justify-between">
+        <div className="mt-3 rounded-dd-md bg-dd-danger-soft p-3 text-sm text-dd-danger border border-dd-danger/30 flex items-center justify-between">
           <span>{error}</span>
           <Button type="button" variant="ghost" size="sm" onClick={() => setError('')} aria-label="Tutup error">
             <X className="size-4" />
@@ -373,9 +373,9 @@ export function BranchPaymentAccountsPanel({
           </div>
         </div>
       ) : (
-        <div className="mt-4 rounded-dd-lg border border-dashed border-amber-300 bg-dd-warning-soft/50 p-5 text-center sm:p-6">
-          <p className="font-semibold text-amber-900">Belum ada rekening pembayaran aktif</p>
-          <p className="mt-1 text-xs text-amber-700 max-w-lg mx-auto">
+        <div className="mt-4 rounded-dd-lg border border-dashed border-dd-warning/40 bg-dd-warning-soft/50 p-5 text-center sm:p-6">
+          <p className="font-semibold text-dd-warning">Belum ada rekening pembayaran aktif</p>
+          <p className="mt-1 text-xs text-dd-warning/80 max-w-lg mx-auto">
             Pelanggan tidak dapat melakukan transfer pembayaran paket untuk cabang ini sampai ada
             rekening bank aktif yang dikonfigurasi.
           </p>
@@ -587,15 +587,15 @@ export function BranchPaymentAccountsPanel({
           onSubmit={handleSwitchSubmit}
         >
           {activeAccount && (
-            <div className="rounded-dd-md border border-amber-200 bg-dd-warning-soft p-3.5 text-xs text-amber-900">
-              <strong className="block text-sm font-bold text-amber-950 mb-1">
+            <div className="rounded-dd-md border border-dd-warning/30 bg-dd-warning-soft p-3.5 text-xs text-dd-warning">
+              <strong className="block text-sm font-bold text-dd-warning mb-1">
                 Rekening Aktif Saat Ini (Akan Digantikan):
               </strong>
               <p className="font-semibold">
                 {activeAccount.bankName} ({activeAccount.bankCode}) • {activeAccount.maskedAccountNumber}
               </p>
-              <p className="text-amber-800">a.n. {activeAccount.accountHolderName}</p>
-              <p className="mt-1 text-amber-700/80 italic">
+              <p className="text-dd-warning">a.n. {activeAccount.accountHolderName}</p>
+              <p className="mt-1 text-dd-warning/80 italic">
                 Rekening di atas akan otomatis dinonaktifkan dan dipindahkan ke riwayat histori cabang.
               </p>
             </div>

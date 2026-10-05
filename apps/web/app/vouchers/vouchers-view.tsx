@@ -308,7 +308,7 @@ export function VouchersView() {
                       variant="ghost"
                       size="sm"
                       disabled={busy}
-                      className="text-amber-700 hover:bg-amber-50"
+                      className="text-dd-warning hover:bg-dd-warning-soft"
                       onClick={(event) => {
                         event.stopPropagation();
                         void handleTransition(item, 'pause');
@@ -322,7 +322,7 @@ export function VouchersView() {
                       variant="ghost"
                       size="sm"
                       disabled={busy}
-                      className="text-dd-forest hover:bg-emerald-50"
+                      className="text-dd-forest hover:bg-dd-success-soft"
                       onClick={(event) => {
                         event.stopPropagation();
                         void handleTransition(item, 'activate');
@@ -336,7 +336,7 @@ export function VouchersView() {
                       variant="ghost"
                       size="sm"
                       disabled={busy}
-                      className="text-dd-muted hover:text-dd-danger hover:bg-red-50"
+                      className="text-dd-muted hover:text-dd-danger hover:bg-dd-danger-soft"
                       onClick={(event) => {
                         event.stopPropagation();
                         void handleTransition(item, 'archive');
@@ -383,7 +383,7 @@ export function VouchersView() {
                     variant="ghost"
                     size="sm"
                     disabled={busy}
-                    className="text-amber-700"
+                    className="text-dd-warning hover:bg-dd-warning-soft"
                     onClick={(event) => {
                       event.stopPropagation();
                       void handleTransition(item, 'pause');

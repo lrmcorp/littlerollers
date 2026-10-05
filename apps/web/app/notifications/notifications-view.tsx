@@ -26,24 +26,24 @@ import { Button } from '../components/actions';
 
 // ── Tone helpers ─────────────────────────────────────────────────────────────
 const toneDot: Record<string, string> = {
-  success: 'bg-emerald-500',
-  info: 'bg-sky-500',
-  warning: 'bg-amber-500',
-  danger: 'bg-red-500',
+  success: 'bg-dd-success',
+  info: 'bg-dd-info',
+  warning: 'bg-dd-warning',
+  danger: 'bg-dd-danger',
 };
 
 const toneIcon: Record<string, React.ReactNode> = {
-  success: <CheckCircle className="size-4 text-emerald-500" aria-hidden="true" />,
-  info: <Info className="size-4 text-sky-500" aria-hidden="true" />,
-  warning: <AlertTriangle className="size-4 text-amber-500" aria-hidden="true" />,
-  danger: <XCircle className="size-4 text-red-500" aria-hidden="true" />,
+  success: <CheckCircle className="size-4 text-dd-success" aria-hidden="true" />,
+  info: <Info className="size-4 text-dd-info" aria-hidden="true" />,
+  warning: <AlertTriangle className="size-4 text-dd-warning" aria-hidden="true" />,
+  danger: <XCircle className="size-4 text-dd-danger" aria-hidden="true" />,
 };
 
 const toneBg: Record<string, string> = {
-  success: 'bg-emerald-50 border-emerald-100',
-  info: 'bg-sky-50 border-sky-100',
-  warning: 'bg-amber-50 border-amber-100',
-  danger: 'bg-red-50 border-red-100',
+  success: 'bg-dd-success-soft border-dd-success/20',
+  info: 'bg-dd-info-soft border-dd-info/20',
+  warning: 'bg-dd-warning-soft border-dd-warning/20',
+  danger: 'bg-dd-danger-soft border-dd-danger/20',
 };
 
 // ── Category helpers ──────────────────────────────────────────────────────────
@@ -70,13 +70,13 @@ const categoryIcon: Record<string, React.ReactNode> = {
 };
 
 const categoryColors: Record<string, string> = {
-  VERIFICATION: 'bg-violet-100 text-violet-700',
-  PAYMENT: 'bg-green-100 text-green-700',
-  BOOKING: 'bg-blue-100 text-blue-700',
-  PACKAGE: 'bg-indigo-100 text-indigo-700',
-  SYSTEM: 'bg-slate-100 text-slate-600',
-  OPERATIONS: 'bg-orange-100 text-orange-700',
-  APPROVAL: 'bg-amber-100 text-amber-700',
+  VERIFICATION: 'bg-dd-brass-soft text-dd-brass-dark',
+  PAYMENT: 'bg-dd-success-soft text-dd-success',
+  BOOKING: 'bg-dd-forest/10 text-dd-forest',
+  PACKAGE: 'bg-dd-info-soft text-dd-info',
+  SYSTEM: 'bg-dd-surface-muted text-dd-muted',
+  OPERATIONS: 'bg-dd-warning-soft text-dd-warning',
+  APPROVAL: 'bg-dd-brass-soft text-dd-brass-dark',
 };
 
 function formatRelativeTime(dateString: string): string {
@@ -270,7 +270,7 @@ export function NotificationsView() {
       {actionError && (
         <p
           role="alert"
-          className="mb-4 rounded-dd-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+          className="mb-4 rounded-dd-md border border-dd-danger/30 bg-dd-danger-soft px-4 py-3 text-sm text-dd-danger"
         >
           {actionError}
         </p>
@@ -321,20 +321,20 @@ export function NotificationsView() {
           <ul role="list">
             {visibleItems.map((item) => {
               const isUnread = !item.readAt;
-              const catColor = categoryColors[item.category] ?? 'bg-slate-100 text-slate-600';
+              const catColor = categoryColors[item.category] ?? 'bg-dd-surface-muted text-dd-muted';
               const catIcon = categoryIcon[item.category];
               const catLabel = categoryLabel[item.category] ?? item.category;
 
               const content = (
                 <div
                   className={`grid grid-cols-[auto_minmax(0,1fr)] gap-3 border-b border-dd-line px-4 py-4 transition-colors last:border-0 hover:bg-dd-surface-muted ${
-                    isUnread ? 'bg-sky-50/40' : 'bg-white'
+                    isUnread ? 'bg-dd-info-soft/40' : 'bg-white'
                   }`}
                 >
                   {/* Tone indicator dot */}
                   <div className="flex flex-col items-center pt-1.5 gap-1.5">
                     <span
-                      className={`size-2.5 rounded-full ${toneDot[item.tone] ?? 'bg-slate-400'}`}
+                      className={`size-2.5 rounded-full ${toneDot[item.tone] ?? 'bg-dd-muted/40'}`}
                       aria-hidden="true"
                     />
                   </div>

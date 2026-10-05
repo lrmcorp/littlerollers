@@ -525,8 +525,8 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
                       Rincian Finansial & Transaksi
                     </span>
                     {overview.financial.completeness === 'INCOMPLETE' && (
-                      <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200/80 bg-amber-50 px-2.5 py-0.5 text-[11px] font-semibold text-amber-800 shadow-sm">
-                        <span className="size-1.5 rounded-full bg-amber-500" />
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-dd-warning/30 bg-dd-warning-soft px-2.5 py-0.5 text-[11px] font-semibold text-dd-warning shadow-xs">
+                        <span className="size-1.5 rounded-full bg-dd-warning" />
                         {overview.financial.anomalyCount} anomali data migrasi tercatat
                       </span>
                     )}

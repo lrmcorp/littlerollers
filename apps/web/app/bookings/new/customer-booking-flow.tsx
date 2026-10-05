@@ -90,10 +90,10 @@ function ClassSessionDetailCard({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-dd-forest border border-emerald-200">
+            <span className="inline-flex items-center rounded-full bg-dd-success-soft px-2.5 py-0.5 text-xs font-semibold text-dd-forest border border-dd-success/30">
               {modalityLabel}
             </span>
-            <span className="inline-flex items-center gap-1 rounded-full bg-stone-100 px-2.5 py-0.5 text-xs font-medium text-dd-muted">
+            <span className="inline-flex items-center gap-1 rounded-full bg-dd-surface-muted px-2.5 py-0.5 text-xs font-medium text-dd-muted">
               <Building2 className="size-3 text-dd-muted" />
               {roomName}
             </span>
@@ -369,7 +369,7 @@ export function CustomerBookingFlow({ client = browserBookingClient }: { client?
       {/* Booking Result (Success View) */}
       {booking ? (
         <section
-          className="rounded-dd-xl border border-emerald-200 bg-dd-success-soft p-6 shadow-dd-card"
+          className="rounded-dd-xl border border-dd-success/30 bg-dd-success-soft p-6 shadow-dd-card"
           aria-live="polite"
         >
           <div className="flex items-center gap-3">
@@ -425,14 +425,14 @@ export function CustomerBookingFlow({ client = browserBookingClient }: { client?
             durationMinutes={durationMinutes}
           />
 
-          <section className="rounded-dd-xl border border-amber-200 bg-amber-50/40 p-6 shadow-dd-card space-y-4">
+          <section className="rounded-dd-xl border border-dd-warning/30 bg-dd-warning-soft/40 p-6 shadow-dd-card space-y-4">
             <AlertBanner
               tone="warning"
               title={eligibilityMessage.title}
               message={eligibilityMessage.description}
             />
 
-            <div className="rounded-dd-lg bg-white/90 p-4 border border-amber-200/60 text-xs sm:text-sm text-dd-muted leading-relaxed">
+            <div className="rounded-dd-lg bg-white/90 p-4 border border-dd-warning/30 text-xs sm:text-sm text-dd-muted leading-relaxed">
               {eligibility.reasonCode === 'MATCHING_PACKAGE_REQUIRED' && (
                 <p>
                   Untuk mengikuti sesi <strong>{slot.classType.name}</strong> di{' '}
@@ -484,7 +484,7 @@ export function CustomerBookingFlow({ client = browserBookingClient }: { client?
                   href={whatsappUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  leadingIcon={<MessageCircle className="size-4 text-emerald-600" />}
+                  leadingIcon={<MessageCircle className="size-4 text-dd-success" />}
                 >
                   Tanya admin studio via WhatsApp
                 </ButtonLink>
@@ -574,8 +574,8 @@ export function CustomerBookingFlow({ client = browserBookingClient }: { client?
                           key={item.id}
                           className={`block rounded-dd-lg border p-4 cursor-pointer transition-colors ${
                             isSelected
-                              ? 'border-dd-forest bg-emerald-50/25 ring-1 ring-dd-forest'
-                              : 'border-dd-line bg-white hover:border-stone-400'
+                              ? 'border-dd-forest bg-dd-forest/5 ring-1 ring-dd-forest'
+                              : 'border-dd-line bg-white hover:border-dd-forest/40'
                           }`}
                         >
                           <div className="flex items-start gap-3">
@@ -595,7 +595,7 @@ export function CustomerBookingFlow({ client = browserBookingClient }: { client?
                                 <strong className="text-base font-semibold text-dd-ink">
                                   {item.name}
                                 </strong>
-                                <span className="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-800">
+                                <span className="inline-flex items-center rounded-full bg-dd-success-soft px-2.5 py-0.5 text-xs font-semibold text-dd-success">
                                   {item.available} sesi tersedia
                                 </span>
                               </div>

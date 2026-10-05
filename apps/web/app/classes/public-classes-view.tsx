@@ -301,23 +301,23 @@ export function PublicClassesView({
             />
 
             {isCustomer && session?.identityVerificationStatus && session.identityVerificationStatus !== 'APPROVED' && (
-              <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-dd-lg border border-amber-200 bg-amber-50 p-4 text-xs sm:text-sm text-amber-900">
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-dd-lg border border-dd-warning/30 bg-dd-warning-soft p-4 text-xs sm:text-sm text-dd-warning">
                 <div className="flex items-center gap-2.5">
-                  <AlertCircle className="size-4 text-amber-700 shrink-0" />
+                  <AlertCircle className="size-4 text-dd-warning shrink-0" />
                   <span>
                     Verifikasi identitas (KTP &amp; Selfie) Anda sedang ditinjau atau perlu dilengkapi sebelum sesi dapat direservasi mandiri.
                   </span>
                 </div>
-                <Link href="/account/verification" className="font-semibold text-amber-800 underline shrink-0 hover:text-amber-950">
+                <Link href="/account/verification" className="font-semibold text-dd-warning underline shrink-0 hover:text-dd-ink">
                   Cek Status Verifikasi →
                 </Link>
               </div>
             )}
 
             {isCustomer && customerPackages.length > 0 && (
-              <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-dd-xl border border-emerald-200 bg-emerald-50/70 p-4 text-xs sm:text-sm shadow-xs">
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-dd-xl border border-dd-success/30 bg-dd-success-soft/70 p-4 text-xs sm:text-sm shadow-xs">
                 <div className="flex items-center gap-2.5">
-                  <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-dd-forest">
+                  <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-dd-success/20 text-dd-forest">
                     <Ticket className="size-3.5" aria-hidden="true" />
                   </div>
                   <div>
@@ -325,7 +325,7 @@ export function PublicClassesView({
                     <strong className="text-dd-ink">{customerPackages[0]!.packageName}</strong>
                     <span className="text-dd-muted"> · {customerPackages[0]!.branchName}</span>
                     <span className="text-dd-muted"> · Sisa </span>
-                    <strong className="text-emerald-800 font-semibold">{customerPackages[0]!.available} sesi</strong>
+                    <strong className="text-dd-success font-semibold">{customerPackages[0]!.available} sesi</strong>
                     <span className="text-dd-muted">
                       {' '}(Berlaku s/d{' '}
                       {new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium' }).format(new Date(customerPackages[0]!.expiryAt))})
@@ -580,12 +580,12 @@ export function PublicClassesView({
                                 : `Penuh · 0/${slot.capacity}`}
                             </strong>
                             {isCustomer && slot.canBook && findMatchingPackage(slot) && (
-                              <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-800 border border-emerald-200">
+                              <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-dd-success-soft px-2 py-0.5 text-[11px] font-semibold text-dd-success border border-dd-success/30">
                                 <Check className="size-3" /> Paket Sesuai ({findMatchingPackage(slot)!.available} sesi)
                               </span>
                             )}
                             {isCustomer && slot.canBook && !findMatchingPackage(slot) && customerPackages.length > 0 && (
-                              <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-800 border border-amber-200">
+                              <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-dd-warning-soft px-2 py-0.5 text-[11px] font-medium text-dd-warning border border-dd-warning/30">
                                 Perlu paket studio/kelas ini
                               </span>
                             )}
@@ -594,7 +594,7 @@ export function PublicClassesView({
                             className={`${
                               isActionable(slot)
                                 ? isCustomer && !findMatchingPackage(slot)
-                                  ? `${publicSecondaryButton} border-dd-forest text-dd-forest hover:bg-emerald-50`
+                                   ? `${publicSecondaryButton} border-dd-forest text-dd-forest hover:bg-dd-success-soft`
                                   : publicPrimaryButton
                                 : `${publicSecondaryButton} pointer-events-none opacity-50`
                             } w-full sm:w-auto`}

@@ -450,7 +450,7 @@ export function PaymentReviewDetailView({
               {timeline.map(([label, value], index) => (
                 <li key={label} className="flex gap-3">
                   <span
-                    className={`mt-1 grid size-7 shrink-0 place-items-center rounded-full text-xs font-bold ${value ? 'bg-dd-success-soft text-dd-success' : 'bg-stone-100 text-dd-muted'}`}
+                    className={`mt-1 grid size-7 shrink-0 place-items-center rounded-full text-xs font-bold ${value ? 'bg-dd-success-soft text-dd-success' : 'bg-dd-surface-muted text-dd-muted'}`}
                   >
                     {value ? <CheckCircle2 className="size-4" /> : index + 1}
                   </span>
@@ -525,7 +525,7 @@ export function PaymentReviewDetailView({
           </Panel>
 
           {detail.activation && (
-            <Panel className="border-emerald-200 bg-dd-success-soft/35 p-5 sm:p-6">
+            <Panel className="border-dd-success/30 bg-dd-success-soft/35 p-5 sm:p-6">
               <div className="flex items-center gap-3">
                 <CheckCircle2 className="size-6 text-dd-success" />
                 <div>
@@ -743,7 +743,7 @@ export function PaymentReviewDetailView({
               return (
                 <div className="mt-5 space-y-4">
                   {separationOfDutiesBlocked && (
-                    <div className="rounded-dd-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 leading-relaxed">
+                    <div className="rounded-dd-md border border-dd-warning/30 bg-dd-warning-soft p-3 text-xs text-dd-warning leading-relaxed">
                       <strong className="block font-semibold">Pemisahan Tugas (Maker-Checker):</strong>
                       {isRecorder
                         ? 'Anda mencatat transaksi ini. Sesuai prinsip pemisahan tugas, persetujuan pembayaran harus dilakukan oleh staf/manager lain.'
