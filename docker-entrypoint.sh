@@ -46,13 +46,13 @@ p.cabang.count().then(async c => {
 });
 " || true
 
-echo "==> [DailyDose] Starting NestJS API on 127.0.0.1:32121..."
-PORT=32121 node apps/api/dist/main.js &
+echo "==> [DailyDose] Starting NestJS API on 127.0.0.1:32121 (heap limit: 256MB)..."
+PORT=32121 node --max-old-space-size=256 apps/api/dist/main.js &
 API_PID=$!
 
-echo "==> [DailyDose] Starting Next.js Web on 0.0.0.0:32120..."
+echo "==> [DailyDose] Starting Next.js Web on 0.0.0.0:32120 (heap limit: 256MB)..."
 cd /app/apps/web
-PORT=32120 HOSTNAME=0.0.0.0 API_BASE_URL=http://127.0.0.1:32121 node .next/standalone/apps/web/server.js &
+PORT=32120 HOSTNAME=0.0.0.0 API_BASE_URL=http://127.0.0.1:32121 node --max-old-space-size=256 .next/standalone/apps/web/server.js &
 WEB_PID=$!
 
 cleanup() {

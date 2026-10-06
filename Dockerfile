@@ -34,6 +34,7 @@ ARG API_BASE_URL="http://127.0.0.1:32121"
 ENV NEXT_PUBLIC_GOOGLE_CLIENT_ID=$NEXT_PUBLIC_GOOGLE_CLIENT_ID
 ENV NEXT_PUBLIC_AUTH_SYNTHETIC_ENABLED=false
 ENV API_BASE_URL=$API_BASE_URL
+ENV NODE_OPTIONS="--max-old-space-size=2048"
 
 RUN pnpm build \
     && install -d apps/web/.next/standalone/apps/web/.next/static \
@@ -49,7 +50,7 @@ ENV NODE_ENV=production
 WORKDIR /app
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends openssl ca-certificates \
+    && apt-get install -y --no-install-recommends openssl ca-certificates wget \
     && rm -rf /var/lib/apt/lists/* \
     && groupadd --system --gid 1001 dailydose \
     && useradd --system --uid 1001 --gid dailydose dailydose

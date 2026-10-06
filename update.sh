@@ -42,6 +42,17 @@ if command -v apt-get >/dev/null 2>&1; then
   apt-get clean 2>/dev/null || true
 fi
 
+# Periksa ketersediaan Swap Memory di VPS (sangat krusial untuk KVM VPS multi-container)
+if [ -f /proc/swaps ] && command -v free >/dev/null 2>&1; then
+  TOTAL_SWAP="$(free -m 2>/dev/null | awk '/Swap:/ {print $2}' || echo '0')"
+  if [ "${TOTAL_SWAP:-0}" -lt 1024 ]; then
+    echo -e "   ${YELLOW}! PERHATIAN RESOURCE: Swap memory VPS terdeteksi kurang dari 1 GB (${TOTAL_SWAP:-0} MB).${NC}"
+    echo -e "   ${YELLOW}  Rekomendasi: Tambahkan swapfile minimal 2–4 GB di VPS untuk mencegah RAM shock saat build.${NC}"
+  else
+    echo -e "   ${GREEN}✓ Swap memory aktif: ${TOTAL_SWAP} MB.${NC}"
+  fi
+fi
+
 echo -e "\n   Status Disk Setelah Pembersihan:"
 df -h / | awk 'NR==1 || NR==2 {print "   " $0}'
 echo -e "   ${GREEN}✓ Pembersihan cache selesai.${NC}\n"
