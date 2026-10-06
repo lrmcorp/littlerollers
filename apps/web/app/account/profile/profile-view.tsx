@@ -218,18 +218,29 @@ export function ProfileView() {
             <div>
               <span className="flex items-center justify-between text-xs font-semibold text-dd-forest uppercase tracking-wider">
                 <span>Nomor WhatsApp</span>
-                <span className="flex items-center gap-1 text-[11px] font-normal text-dd-muted">
-                  <Lock className="size-3" /> Terverifikasi
-                </span>
+                {profile.phoneMasked ? (
+                  <span className="flex items-center gap-1 text-[11px] font-normal text-dd-muted">
+                    <Lock className="size-3" /> Terverifikasi
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1 text-[11px] font-semibold text-dd-warning">
+                    Belum terdaftar
+                  </span>
+                )}
               </span>
               <div className="relative mt-1.5 flex items-center">
                 <input
-                  value={profile.phoneMasked ?? 'Belum tersedia'}
+                  value={profile.phoneMasked ?? 'Belum terdaftar (Akun Google)'}
                   readOnly
                   disabled
                   className="w-full rounded-dd-md border border-dd-line bg-dd-surface-muted px-3.5 py-2.5 text-sm text-dd-muted cursor-not-allowed"
                 />
               </div>
+              {!profile.phoneMasked && (
+                <p className="mt-1.5 text-[11px] text-dd-warning font-medium">
+                  Nomor WhatsApp digunakan untuk pengiriman e-tiket QR check-in studio.
+                </p>
+              )}
             </div>
           </div>
 

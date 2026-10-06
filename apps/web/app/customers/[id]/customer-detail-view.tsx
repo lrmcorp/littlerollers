@@ -44,20 +44,31 @@ function CustomerDocumentCard({
   doc,
   onZoom,
   onUpload,
+  onError,
   uploading,
   canWrite,
+  refreshKey,
 }: {
   title: string;
   kind: 'KTP_FRONT' | 'SELFIE';
   doc?: CustomerDetailDocument;
   onZoom: (title: string, blobUrl: string) => void;
   onUpload?: (kind: 'KTP_FRONT' | 'SELFIE', base64: string, fileName: string) => Promise<void>;
+  onError?: (msg: string) => void;
   uploading?: boolean;
   canWrite?: boolean;
+  refreshKey?: number;
 }) {
   const [blobUrl, setBlobUrl] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
+  const [cardSuccess, setCardSuccess] = useState<string>('');
+
+  useEffect(() => {
+    if (!cardSuccess) return;
+    const timer = setTimeout(() => setCardSuccess(''), 4000);
+    return () => clearTimeout(timer);
+  }, [cardSuccess]);
 
   useEffect(() => {
     if (!doc?.id) {
@@ -67,6 +78,7 @@ function CustomerDocumentCard({
     let active = true;
     let createdUrl = '';
     setLoading(true);
+    setError(false);
     verificationClient
       .authorizeView(doc.id)
       .then(({ url }) => verificationClient.readPrivateFile(url))
@@ -86,7 +98,7 @@ function CustomerDocumentCard({
       active = false;
       if (createdUrl) URL.revokeObjectURL(createdUrl);
     };
-  }, [doc?.id]);
+  }, [doc?.id, doc?.uploadedAt, refreshKey]);
 
   return (
     <div className="flex flex-col overflow-hidden rounded-dd-lg border border-dd-line bg-white shadow-xs transition hover:shadow-md">
@@ -95,17 +107,27 @@ function CustomerDocumentCard({
           <FileText className="size-4 text-dd-forest" />
           <strong className="text-sm font-semibold text-dd-ink">{title}</strong>
         </div>
-        {doc ? (
-          <StatusBadge tone="success">Tersedia</StatusBadge>
-        ) : (
-          <StatusBadge tone="neutral">Belum Diunggah</StatusBadge>
-        )}
+        <div>
+          {cardSuccess ? (
+            <StatusBadge tone="success">✓ Berhasil Diperbarui</StatusBadge>
+          ) : doc || blobUrl ? (
+            <StatusBadge tone="success">Tersedia</StatusBadge>
+          ) : (
+            <StatusBadge tone="neutral">Belum Diunggah</StatusBadge>
+          )}
+        </div>
       </div>
       <div className="relative flex aspect-[16/10] w-full items-center justify-center bg-dd-surface-muted/40 p-2">
-        {loading || uploading ? (
+        {uploading && blobUrl && (
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/40 backdrop-blur-xs text-white rounded-dd-md">
+            <Loader2 className="size-6 animate-spin text-white" />
+            <span className="mt-1 text-xs font-semibold">Mengunggah &amp; memproses…</span>
+          </div>
+        )}
+        {loading && !blobUrl ? (
           <div className="flex flex-col items-center gap-2 text-xs text-dd-muted animate-pulse">
             <Loader2 className="size-6 animate-spin text-dd-forest" />
-            <span>{uploading ? 'Mengunggah dokumen…' : 'Memuat pratinjau aman…'}</span>
+            <span>Memuat pratinjau aman…</span>
           </div>
         ) : blobUrl ? (
           <div className="group relative h-full w-full overflow-hidden rounded-dd-md">
@@ -132,6 +154,11 @@ function CustomerDocumentCard({
       <div className="flex items-center justify-between p-3 text-xs text-dd-muted border-t border-dd-line/60 bg-white">
         <span>Format: {kind === 'KTP_FRONT' ? 'KTP Depan' : 'Foto Selfie'}</span>
         <div className="flex items-center gap-3">
+          {cardSuccess && (
+            <span className="text-xs font-semibold text-dd-forest inline-flex items-center gap-1">
+              <CheckCircle2 className="size-3.5" /> Berhasil diunggah!
+            </span>
+          )}
           {blobUrl && (
             <button
               type="button"
@@ -144,7 +171,7 @@ function CustomerDocumentCard({
           {canWrite && (
             <label className="font-semibold text-dd-forest hover:underline inline-flex items-center gap-1 cursor-pointer">
               <Upload className="size-3.5" />
-              <span>{doc ? 'Ganti Foto' : 'Unggah Foto'}</span>
+              <span>{doc || blobUrl ? 'Ganti Foto' : 'Unggah Foto'}</span>
               <input
                 id={kind === 'KTP_FRONT' ? 'upload-ktp-front' : 'upload-selfie'}
                 type="file"
@@ -154,10 +181,29 @@ function CustomerDocumentCard({
                 onChange={async (e) => {
                   const file = e.target.files?.[0];
                   if (!file || !onUpload) return;
+                  if (file.size > 8 * 1024 * 1024) {
+                    onError?.('Ukuran berkas maksimal 8 MB. Silakan pilih foto dengan resolusi lebih rendah.');
+                    e.target.value = '';
+                    return;
+                  }
+
+                  // Tampilkan pratinjau lokal seketika
+                  const localPreview = URL.createObjectURL(file);
+                  const prevUrl = blobUrl;
+                  setBlobUrl(localPreview);
+                  setError(false);
+                  setCardSuccess('');
+
                   const reader = new FileReader();
                   reader.onload = async () => {
-                    const base64 = reader.result as string;
-                    await onUpload(kind, base64, file.name);
+                    try {
+                      const base64 = reader.result as string;
+                      await onUpload(kind, base64, file.name);
+                      setCardSuccess('Foto berhasil diunggah!');
+                    } catch {
+                      setBlobUrl(prevUrl);
+                      onError?.(`Gagal mengunggah dokumen ${title}. Silakan coba kembali.`);
+                    }
                   };
                   reader.readAsDataURL(file);
                   e.target.value = '';
@@ -174,8 +220,11 @@ function CustomerDocumentCard({
 export function CustomerDetailView({ id }: { id: string }) {
   const sessionContext = useSessionContext();
   const session = sessionContext?.session;
-  // Ubah profil, nonaktifkan, dan tandai berhenti dicek API dengan `customer:write`.
-  const canWrite = Boolean(sessionContext?.hasCapability('customer:write'));
+  // Ubah profil, nonaktifkan, dan unggah dokumen dicek dengan `customer:write` atau `customer:manage`.
+  const canWrite = Boolean(
+    sessionContext?.hasCapability('customer:write') ||
+    sessionContext?.hasCapability('customer:manage'),
+  );
   const canSell = Boolean(sessionContext?.hasCapability('purchase:record'));
   const saleBranch = sessionContext?.activeBranch ?? null;
   const saleBranches = (session?.branches ?? []).map((item) => ({ id: item.id, name: item.name }));
@@ -195,6 +244,7 @@ export function CustomerDetailView({ id }: { id: string }) {
 
   // Document Upload State
   const [uploadingDoc, setUploadingDoc] = useState<string | null>(null);
+  const [docRefreshKey, setDocRefreshKey] = useState(0);
 
   // Edit Profile Drawer & Status Modal State
   const [editDrawerOpen, setEditDrawerOpen] = useState(false);
@@ -244,9 +294,11 @@ export function CustomerDetailView({ id }: { id: string }) {
     try {
       await customerClient.uploadDocument(id, kind, { base64, fileName });
       setSuccess(`Dokumen ${kind === 'KTP_FRONT' ? 'KTP' : 'Foto Selfie'} berhasil diunggah.`);
+      setDocRefreshKey((k) => k + 1);
       await load();
-    } catch {
+    } catch (err) {
       setError(`Gagal mengunggah dokumen ${kind === 'KTP_FRONT' ? 'KTP' : 'Foto Selfie'}.`);
+      throw err;
     } finally {
       setUploadingDoc(null);
     }
@@ -592,8 +644,10 @@ export function CustomerDetailView({ id }: { id: string }) {
                 doc={ktpDoc}
                 onZoom={(title, src) => setZoomImage({ title, src })}
                 onUpload={handleUploadDocument}
+                onError={(msg) => setError(msg)}
                 uploading={uploadingDoc === 'KTP_FRONT'}
                 canWrite={canWrite}
+                refreshKey={docRefreshKey}
               />
               <CustomerDocumentCard
                 title="Foto Selfie Pelanggan"
@@ -601,8 +655,10 @@ export function CustomerDetailView({ id }: { id: string }) {
                 doc={selfieDoc}
                 onZoom={(title, src) => setZoomImage({ title, src })}
                 onUpload={handleUploadDocument}
+                onError={(msg) => setError(msg)}
                 uploading={uploadingDoc === 'SELFIE'}
                 canWrite={canWrite}
+                refreshKey={docRefreshKey}
               />
             </div>
           </div>

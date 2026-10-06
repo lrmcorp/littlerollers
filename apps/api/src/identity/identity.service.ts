@@ -182,7 +182,9 @@ export class IdentityService {
     const isCustomerOnly = projection.roles.every((r) => r === 'CUSTOMER' || r === 'MEMBER');
     let identityVerificationStatus = 'APPROVED';
     if (isCustomerOnly) {
-      const profile = await this.db.profilPengguna.findUnique({ where: { userId } });
+      const profile = (this.db as any).profilPengguna?.findUnique
+        ? await (this.db as any).profilPengguna.findUnique({ where: { userId } })
+        : null;
       const isApproved = Boolean(profile?.notes?.includes('KYC_APPROVED'));
       const hasDocs = Boolean(profile?.ktpUrl || profile?.selfieUrl);
       identityVerificationStatus = isApproved ? 'APPROVED' : hasDocs ? 'PENDING' : 'ACTION_REQUIRED';
@@ -509,25 +511,31 @@ export class IdentityService {
     _correlationId: string,
   ) {
     const verified = await this.google.verify(input.idToken, input.nonce);
-    let user = verified.email && this.db.user?.findUnique
-      ? await this.db.user.findUnique({ where: { email: verified.email } })
+    const cleanEmail = verified.email ? verified.email.trim().toLowerCase().slice(0, 191) : null;
+    let user = cleanEmail && this.db.user?.findUnique
+      ? await this.db.user.findUnique({ where: { email: cleanEmail } })
       : null;
 
-    if (!user && (this.db as any).userInvitation?.findFirst) {
+    if (!user && (this.db as any).userInvitation?.findFirst && cleanEmail) {
       const invitation = await (this.db as any).userInvitation.findFirst({
-        where: { email: verified.email, status: 'PENDING' },
+        where: { email: cleanEmail, status: 'PENDING' },
       });
-      if (!invitation) {
+      if (!invitation && input.channel !== 'WEB') {
         throw new ApiProblem('AUTHENTICATION_REQUIRED', HttpStatus.UNAUTHORIZED);
       }
     }
 
-    if (!user && verified.email) {
+    if (!user && cleanEmail) {
+      const cleanDisplayName = (
+        verified.displayName?.trim() ||
+        cleanEmail.split('@')[0] ||
+        'User'
+      ).slice(0, 128);
       user = await this.db.user.create({
         data: {
           id: newId(),
-          email: verified.email,
-          displayName: verified.email.split('@')[0] || 'User',
+          email: cleanEmail,
+          displayName: cleanDisplayName,
           role: 'MEMBER',
           status: 'ACTIVE',
         },

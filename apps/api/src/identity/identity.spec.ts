@@ -1,4 +1,5 @@
 import { HttpStatus } from '@nestjs/common';
+import { OAuth2Client } from 'google-auth-library';
 import { PolicyService } from './policy.service';
 import {
   ConfigGatedGoogleProvider,
@@ -259,6 +260,98 @@ describe('identity security foundation', () => {
       ),
     ).rejects.toMatchObject({ code: 'AUTHENTICATION_REQUIRED' });
     expect(tx.userInvitation.findFirst).toHaveBeenCalled();
+  });
+
+  it('automatically registers public customer via Google when channel is WEB', async () => {
+    process.env = {
+      ...original,
+      NODE_ENV: 'test',
+      AUTH_SYNTHETIC_ENABLED: 'true',
+    };
+    const createdUser = {
+      id: 'new-user-1',
+      email: 'new-customer@example.test',
+      displayName: 'new-customer',
+      role: 'MEMBER',
+      status: 'ACTIVE',
+    };
+    const tx = {
+      user: {
+        findUnique: jest.fn().mockImplementation(({ where }: { where: { email?: string; id?: string } }) => {
+          if (where.email) return Promise.resolve(null);
+          if (where.id) return Promise.resolve(createdUser);
+          return Promise.resolve(null);
+        }),
+        create: jest.fn().mockResolvedValue(createdUser),
+      },
+      userInvitation: { findFirst: jest.fn().mockResolvedValue(null) },
+      userSession: {
+        create: jest.fn().mockResolvedValue({ id: 'session-1' }),
+      },
+      cabang: { findMany: jest.fn().mockResolvedValue([]) },
+      profilPengguna: { findUnique: jest.fn().mockResolvedValue(null) },
+    };
+    const service = new IdentityService(
+      {
+        user: tx.user,
+        userInvitation: tx.userInvitation,
+        userSession: tx.userSession,
+        cabang: tx.cabang,
+        profilPengguna: tx.profilPengguna,
+        $transaction: (callback: (client: typeof tx) => unknown) => callback(tx),
+      } as never,
+      new PolicyService(),
+      new ConfigGatedGoogleProvider(),
+      new ConfigGatedOtpProvider(),
+      new ConfigGatedProofProvider(),
+      { consume: jest.fn() } as never,
+      { sendAction: jest.fn() } as never,
+    );
+    const session = await service.authenticateGoogle(
+      { idToken: 'new-customer@example.test', nonce: 'nonce', channel: 'WEB' },
+      'correlation',
+    );
+    expect(session).toBeDefined();
+    expect(tx.user.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          email: 'new-customer@example.test',
+          role: 'MEMBER',
+          status: 'ACTIVE',
+        }),
+      }),
+    );
+  });
+
+  it('verifies real Google JWT idToken via OAuth2Client and extracts legitimate email even when synthetic is enabled', async () => {
+    process.env = {
+      ...original,
+      NODE_ENV: 'test',
+      AUTH_SYNTHETIC_ENABLED: 'true',
+      GOOGLE_CLIENT_ID: 'test-google-client-id',
+    };
+    const spy = jest.spyOn(OAuth2Client.prototype, 'verifyIdToken').mockResolvedValue({
+      getPayload: () => ({
+        sub: 'google-sub-12345',
+        email: 'real.user@gmail.com',
+        email_verified: true,
+        name: 'Real User',
+        nonce: 'valid-nonce',
+      }),
+    } as never);
+
+    const provider = new ConfigGatedGoogleProvider();
+    const fakeJwt = 'eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiIxMjM0NSJ9.valid-signature';
+    const verified = await provider.verify(fakeJwt, 'valid-nonce');
+
+    expect(verified.email).toBe('real.user@gmail.com');
+    expect(verified.displayName).toBe('Real User');
+    expect(verified.subjectHash).toBe(digest('google:google-sub-12345'));
+    expect(spy).toHaveBeenCalledWith({
+      idToken: fakeJwt,
+      audience: 'test-google-client-id',
+    });
+    spy.mockRestore();
   });
 
   it('updates permitted staff profile fields with versioning and without revoking sessions', async () => {

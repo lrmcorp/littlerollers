@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, Eye, KeyRound, RefreshCw, ShieldCheck, UserRoundCog } from 'lucide-react';
+import { ArrowLeft, Eye, KeyRound, RefreshCw, ShieldCheck, Upload, UserRoundCog } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import {
   browserIdentityClient,
@@ -240,6 +240,15 @@ export function UserDetailView({
               {user.status === 'ACTIVE' ? 'Nonaktifkan' : 'Aktifkan kembali'}
             </Button>
           )}
+          {user.audience === 'CUSTOMER' && (
+            <ButtonLink
+              variant="secondary"
+              href={`/customers/${encodeURIComponent(user.id)}`}
+              leadingIcon={<Upload className="size-4" aria-hidden="true" />}
+            >
+              Profil Pelanggan
+            </ButtonLink>
+          )}
             </>
           }
         />
@@ -400,13 +409,29 @@ export function UserDetailView({
                 )}
               </div>
               {!canReadIdentity ? (
-                <p className="mt-4 text-sm text-dd-muted">
-                  Hak akses global verifikasi identitas diperlukan untuk melihat status dokumen.
-                </p>
+                <div className="mt-4 space-y-3">
+                  <p className="text-sm text-dd-muted">
+                    Hak akses global verifikasi identitas diperlukan untuk memeriksa riwayat review. Anda dapat mengunggah dan mengelola dokumen langsung melalui profil pelanggan.
+                  </p>
+                  <ButtonLink
+                    href={`/customers/${encodeURIComponent(user.id)}`}
+                    leadingIcon={<Upload className="size-4" aria-hidden="true" />}
+                  >
+                    Kelola Dokumen di Profil Pelanggan
+                  </ButtonLink>
+                </div>
               ) : !verification ? (
-                <p className="mt-4 text-sm text-dd-muted">
-                  Dokumen verifikasi belum tersedia atau fitur review belum diaktifkan.
-                </p>
+                <div className="mt-4 space-y-3">
+                  <p className="text-sm text-dd-muted">
+                    Dokumen verifikasi belum tersedia atau fitur review belum diaktifkan. Anda dapat mengunggah berkas KTP dan Selfie di profil pelanggan.
+                  </p>
+                  <ButtonLink
+                    href={`/customers/${encodeURIComponent(user.id)}`}
+                    leadingIcon={<Upload className="size-4" aria-hidden="true" />}
+                  >
+                    Unggah Dokumen Pelanggan
+                  </ButtonLink>
+                </div>
               ) : (
                 <>
                   <div className="mt-5 grid gap-3 sm:grid-cols-2">
@@ -429,13 +454,21 @@ export function UserDetailView({
                       );
                     })}
                   </div>
-                  <ButtonLink
-                    className="mt-5"
-                    href={`/identity-verifications?customerUserId=${encodeURIComponent(user.id)}`}
-                    leadingIcon={<Eye className="size-4" aria-hidden="true" />}
-                  >
-                    Periksa dokumen
-                  </ButtonLink>
+                  <div className="mt-5 flex flex-wrap gap-3">
+                    <ButtonLink
+                      href={`/identity-verifications?customerUserId=${encodeURIComponent(user.id)}`}
+                      leadingIcon={<Eye className="size-4" aria-hidden="true" />}
+                    >
+                      Periksa dokumen
+                    </ButtonLink>
+                    <ButtonLink
+                      variant="ghost"
+                      href={`/customers/${encodeURIComponent(user.id)}`}
+                      leadingIcon={<Upload className="size-4" aria-hidden="true" />}
+                    >
+                      Kelola Dokumen Pelanggan
+                    </ButtonLink>
+                  </div>
                 </>
               )}
             </Panel>

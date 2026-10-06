@@ -467,7 +467,7 @@ export class CustomerManagementService {
     _stepUpToken?: string,
     _correlationId = 'unknown',
   ) {
-    this.require(principal, 'customer:write');
+    this.policy.requireAnyCapability(principal.capabilities, ['customer:write', 'customer:manage']);
     const displayName = input.displayName?.trim();
     if (!displayName || displayName.length < 2)
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
@@ -584,7 +584,7 @@ export class CustomerManagementService {
     kind: 'KTP_FRONT' | 'SELFIE',
     file: { buffer?: Buffer; base64?: string; fileName?: string; mimeType?: string },
   ) {
-    this.require(principal, 'customer:write');
+    this.policy.requireAnyCapability(principal.capabilities, ['customer:write', 'customer:manage']);
     const customer = await this.db.user.findUnique({ where: { id: customerId } });
     if (!customer) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
 
@@ -616,6 +616,7 @@ export class CustomerManagementService {
       },
       update: {
         ...(kind === 'KTP_FRONT' ? { ktpUrl: key } : { selfieUrl: key }),
+        updatedAt: new Date(),
       },
     });
 

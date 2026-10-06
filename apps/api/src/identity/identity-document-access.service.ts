@@ -39,7 +39,18 @@ export class IdentityDocumentAccessService {
     documentId: string,
     _correlationId = 'unknown',
   ) {
-    this.policy.requireGlobalCapability(principal, 'identity-verification:read');
+    const isCustomerDoc =
+      documentId.startsWith('doc-ktp-') || documentId.startsWith('doc-selfie-');
+    if (isCustomerDoc) {
+      this.policy.requireAnyCapability(principal.capabilities, [
+        'identity-verification:read',
+        'customer:read',
+        'customer:manage',
+        'customer:write',
+      ]);
+    } else {
+      this.policy.requireGlobalCapability(principal, 'identity-verification:read');
+    }
     this.cleanExpired();
 
     let userId = '';

@@ -26,7 +26,9 @@ import { Button } from '../components/actions';
 import { FieldError, FormField, TextInput, controlClassName } from '../components/forms';
 import { Feedback } from '../ui';
 import { verificationClient } from '@/api-clients/identity-verification-client';
+import { browserIdentityClient } from '@/api-clients/identity-client';
 import { useSessionContext } from '../session-context';
+import { GoogleIdentityButton } from '../components/auth/google-identity-button';
 import {
   type RegisterErrors,
   type RegisterFieldName,
@@ -257,6 +259,20 @@ export function RegisterView() {
   const ktpInputRef = useRef<HTMLInputElement>(null);
   const session = useSessionContext();
   const loading = state === 'loading';
+  const googleEnabled = Boolean(process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID);
+
+  const handleGoogleComplete = async () => {
+    if (session) {
+      const searchParams = new URLSearchParams(window.location.search);
+      const destination = searchParams.get('returnTo') || searchParams.get('returnUrl') || '/account/profile';
+      await session.completeSignIn(destination);
+    }
+  };
+
+  const handleGoogleFailure = () => {
+    setState('error');
+    setMessage('Proses masuk dengan Google belum dapat diselesaikan. Silakan lengkapi formulir pendaftaran di bawah.');
+  };
 
   const clearRequestError = () => {
     if (state === 'error') setState('idle');
@@ -312,6 +328,25 @@ export function RegisterView() {
       visualSrc="/images/public/landing/register-illustration.webp"
       loginLabel="Masuk"
     >
+      {googleEnabled && (
+        <div className="mb-6 space-y-4">
+          <div className="rounded-dd-lg border border-dd-line/80 bg-white p-4 shadow-dd-card">
+            <p className="mb-3 text-center text-xs font-semibold text-dd-muted">
+              Daftar cepat dengan akun Google Anda:
+            </p>
+            <GoogleIdentityButton
+              client={browserIdentityClient}
+              text="signup_with"
+              onComplete={handleGoogleComplete}
+              onFailure={handleGoogleFailure}
+            />
+          </div>
+          <div className="flex items-center gap-4 text-xs font-bold tracking-wider text-dd-muted uppercase before:h-px before:flex-1 before:bg-dd-line after:h-px after:flex-1 after:bg-dd-line">
+            atau isi data akun secara manual
+          </div>
+        </div>
+      )}
+
       <form
         ref={formRef}
         aria-label="Registrasi customer"
