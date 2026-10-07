@@ -200,6 +200,30 @@ export function messageForApiError(error: unknown): {
   const code = response?.data?.code;
   const known: Record<string, [string, string]> = {
     STALE_VERSION: ['Data telah berubah', 'Muat ulang data terbaru sebelum mencoba kembali.'],
+    SLOT_SCHEDULE_COLLISION: [
+      'Jadwal Studio Bentrok',
+      'Ruangan reformer atau instruktur sudah memiliki jadwal lain pada jam tersebut. Silakan pilih ruangan atau jam lain.',
+    ],
+    ADMIN_BACKFILL_WINDOW_CLOSED: [
+      'Waktu Presensi Susulan Habis',
+      'Kelas telah selesai lebih dari 2 jam lalu. Presensi ditutup dan wajib diajukan melalui Tiket Penyesuaian Medis ke Manager.',
+    ],
+    PERIOD_ALREADY_LOCKED: [
+      'Periode Telah Dikunci (Locked)',
+      'Periode bulan ini telah ditutup resmi. Mutasi biaya baru tidak dapat dicatat tanpa Jurnal Koreksi berizin Super Owner.',
+    ],
+    VERIFICATION_LOCKED_APPROVED: [
+      'Dokumen Terverifikasi Resmi',
+      'Dokumen identitas Anda telah disetujui sah oleh Super Owner dan terkunci demi keamanan akun.',
+    ],
+    SEPARATION_OF_DUTIES: [
+      'Pemisahan Wewenang (Maker-Checker)',
+      'Anda dilarang menyetujui tiket pengajuan Anda sendiri demi kepatuhan tata kelola.',
+    ],
+    CUSTOMER_VERIFICATION_REQUIRED: [
+      'Verifikasi Identitas Diperlukan',
+      'Akun Anda belum lolos verifikasi identitas (KYC) resmi. Silakan lengkapi KTP dan selfie terlebih dahulu.',
+    ],
     FORBIDDEN: ['Akses tidak tersedia', 'Akun Anda tidak memiliki izin untuk tindakan ini.'],
     UNAUTHORIZED: ['Sesi telah berakhir', 'Silakan masuk kembali untuk melanjutkan.'],
     VALIDATION_ERROR: [
@@ -223,8 +247,10 @@ export function messageForApiError(error: unknown): {
       : response?.status === 403
         ? known.FORBIDDEN!
         : response?.status === 409
-          ? known.STALE_VERSION!
-          : ['Terjadi kendala', 'Permintaan belum dapat diproses. Silakan coba kembali.'];
+          ? (code === 'SLOT_SCHEDULE_COLLISION' ? known.SLOT_SCHEDULE_COLLISION! : known.STALE_VERSION!)
+          : response?.status === 410
+            ? known.ADMIN_BACKFILL_WINDOW_CLOSED!
+            : ['Terjadi kendala', 'Permintaan belum dapat diproses. Silakan coba kembali.'];
   const [title, message] = (code && known[code]) || fallback;
   return { title, message, correlationReference: response?.correlationId };
 }

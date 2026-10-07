@@ -57,9 +57,14 @@ export class PackageAccessService {
 
   async requireVerifiedCustomer(principal: SessionPrincipal) {
     if (!principal.roles.some(({ role }) => role === 'CUSTOMER')) return;
-    const user = await this.db.user.findUnique({ where: { id: principal.userId } });
+    const user = await this.db.user.findUnique({
+      where: { id: principal.userId },
+      include: { profile: true },
+    });
     if (!user || user.status !== 'ACTIVE')
       throw new ApiProblem('IDENTITY_VERIFICATION_REQUIRED', HttpStatus.FORBIDDEN);
+    if (!user.profile?.notes?.includes('KYC_APPROVED'))
+      throw new ApiProblem('CUSTOMER_VERIFICATION_REQUIRED', HttpStatus.FORBIDDEN);
   }
 
   audit(

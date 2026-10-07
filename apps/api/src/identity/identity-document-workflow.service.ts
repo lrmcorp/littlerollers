@@ -22,6 +22,15 @@ export class IdentityDocumentWorkflowService {
     expectedVersion: number,
     _correlationId: string,
   ) {
+    if (this.db) {
+      const existing = await this.db.profilPengguna.findUnique({
+        where: { userId: principal.userId },
+      });
+      if (existing?.notes?.includes('KYC_APPROVED')) {
+        throw new ApiProblem('VERIFICATION_LOCKED_APPROVED', HttpStatus.FORBIDDEN);
+      }
+    }
+
     let key: string | null = null;
     const ext = upload?.originalName?.split('.').pop() || 'jpg';
     const generatedKey = `identity-documents/${principal.userId}/${kind.toLowerCase()}-${Date.now()}.${ext}`;
@@ -41,9 +50,11 @@ export class IdentityDocumentWorkflowService {
           userId: principal.userId,
           ktpUrl: kind === 'KTP_FRONT' ? key : null,
           selfieUrl: kind === 'SELFIE' ? key : null,
+          notes: 'KYC_PENDING_REVIEW: Dokumen diperbarui, menunggu verifikasi staf',
         },
         update: {
           ...(kind === 'KTP_FRONT' ? { ktpUrl: key } : { selfieUrl: key }),
+          notes: 'KYC_PENDING_REVIEW: Dokumen diperbarui, menunggu verifikasi staf',
         },
       });
     }
@@ -51,7 +62,7 @@ export class IdentityDocumentWorkflowService {
     return {
       id: `doc-${kind.toLowerCase()}-${principal.userId}`,
       kind,
-      status: 'APPROVED',
+      status: 'PENDING',
       uploadStatus: 'FINALIZED',
       scanStatus: 'CLEAN',
       fileName: kind === 'SELFIE' ? 'selfie.jpg' : 'ktp-front.jpg',
@@ -59,7 +70,7 @@ export class IdentityDocumentWorkflowService {
       sizeBytes: upload?.buffer?.byteLength ?? 1024,
       rejectionReasonCode: null,
       rejectionNote: null,
-      reviewedAt: new Date().toISOString(),
+      reviewedAt: null,
       deletedAt: null,
       version: expectedVersion + 1,
     };
@@ -75,6 +86,15 @@ export class IdentityDocumentWorkflowService {
     },
     _correlationId: string,
   ) {
+    if (this.db) {
+      const existing = await this.db.profilPengguna.findUnique({
+        where: { userId: principal.userId },
+      });
+      if (existing?.notes?.includes('KYC_APPROVED')) {
+        throw new ApiProblem('VERIFICATION_LOCKED_APPROVED', HttpStatus.FORBIDDEN);
+      }
+    }
+
     let ktpKey: string | null = null;
     let selfieKey: string | null = null;
 

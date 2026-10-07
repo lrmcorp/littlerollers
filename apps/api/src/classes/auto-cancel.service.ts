@@ -37,8 +37,8 @@ export class AutoCancelService {
    * Membatalkan kelas yang pesertanya kurang dari minQuota (Keputusan Bisnis #4 & #5).
    */
   async evaluateClasses(now = new Date()): Promise<AutoCancelEvaluationResult> {
-    if (process.env.ENABLE_AUTO_CANCEL !== 'true' && process.env.NODE_ENV !== 'production') {
-      this.logger.log('AutoCancel evaluation skipped in development/testing environment');
+    if (process.env.ENABLE_AUTO_CANCEL === 'false') {
+      this.logger.log('AutoCancel evaluation explicitly disabled via ENABLE_AUTO_CANCEL=false');
       return {
         skipped: true,
         skippedReason: 'AUTO_CANCEL_DISABLED',

@@ -75,6 +75,8 @@ export function FinanceCommandsPanel({
     }
   };
 
+  const isPeriodLocked = periodStatus === 'LOCKED' || periodStatus === 'CLOSED';
+
   return (
     <Panel className="space-y-5 p-5">
       <div>
@@ -102,8 +104,11 @@ export function FinanceCommandsPanel({
           onChange={(event) => setReason(event.target.value)}
           placeholder="Minimal 3 karakter"
         />
-        <div className="rounded-dd-md border border-dd-line p-3 text-sm">
-          <strong>Status {periodStatus}</strong>
+        <div className={`rounded-dd-md border p-3 text-sm ${isPeriodLocked ? 'border-amber-500/40 bg-amber-500/10 text-amber-200' : 'border-dd-line'}`}>
+          <strong className="flex items-center gap-1.5">
+            {isPeriodLocked && <span>🔒</span>}
+            Status {periodStatus}
+          </strong>
           <p className="mt-1 truncate text-xs text-dd-muted" title={controlHash}>
             Kode kontrol {controlHash || 'belum tersedia'}
           </p>
@@ -138,7 +143,7 @@ export function FinanceCommandsPanel({
           <Button
             disabled={
               busy ||
-              periodStatus === 'CLOSED' ||
+              isPeriodLocked ||
               description.trim().length === 0 ||
               occurredOn.slice(0, 7) !== period ||
               !/^[A-Z][A-Z0-9_]{1,63}$/u.test(categoryCode) ||
@@ -262,7 +267,7 @@ export function FinanceCommandsPanel({
             variant="danger"
             disabled={
               busy ||
-              periodStatus === 'CLOSED' ||
+              isPeriodLocked ||
               !controlHash ||
               reason.trim().length < 3 ||
               !client.closeMonth

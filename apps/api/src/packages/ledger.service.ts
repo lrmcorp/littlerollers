@@ -784,10 +784,10 @@ export class LedgerService {
         });
         if (!row) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
         this.assertPackageAccess(principal, 'ledger:adjust:decide', row.customerPackage);
-        // Pemisahan tugas: staf kasir/biasa dilarang memutus permintaannya sendiri (Maker-Checker).
-        // Super Owner, Superadmin, dan Manager cabang memiliki wewenang penuh untuk persetujuan mandiri.
+        // Pemisahan tugas: staf kasir dan manajer cabang dilarang memutus permintaannya sendiri (Maker-Checker).
+        // Hanya Super Owner dan Superadmin yang memiliki wewenang persetujuan mandiri.
         const canSelfApprove = principal.roles.some((r) =>
-          ['SUPER_OWNER', 'SUPERADMIN', 'MANAGER'].includes(r.role as string),
+          ['SUPER_OWNER', 'SUPERADMIN'].includes(r.role as string),
         );
         if (!canSelfApprove && row.requestedById === principal.userId)
           throw problem('SEPARATION_OF_DUTIES', HttpStatus.FORBIDDEN);
