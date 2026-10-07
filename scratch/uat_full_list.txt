@@ -1,0 +1,156 @@
+<USER_REQUEST>
+*UAT DAILY DOSE PILATES V2*
+v2.dailydosepilates.com
+Diuji 6-7 Okt 2026: publik, superadmin, instruktur (sebagian)
+Belum diuji: customer setelah login, semua aksi simpan/ubah
+
+*A. KRITIS*
+
+*1. Problem: Nomor WhatsApp masih dummy*
+- Masalah: Semua tombol WhatsApp mengarah ke 6281234567890, customer chat ke nomor orang lain.
+- Solusi: Ganti dengan nomor resmi per studio.
+
+*2. Problem: Kelas terisi melebihi kapasitas*
+- Masalah: Muara Karang 5 Okt 09.00 tertulis 6/4 terisi, PIK 2 tertulis 4/2 terisi.
+- Solusi: Kunci booking saat penuh, dan tandai merah kelas yang sudah lewat kapasitas.
+
+*3. Problem: Angka dashboard salah*
+- Masalah: Booking aktif 0 (aslinya 15.134), pembayaran menunggu 1 (aslinya 895), verifikasi antre 1 (daftarnya 9.254), staf nonaktif 0 (padahal ada).
+- Solusi: Samakan sumber hitungan dashboard dengan halaman detailnya.
+
+*4. Problem: Pembayaran menumpuk tidak terpantau*
+- Masalah: Ada bukti transfer sejak 25 Sept belum diperiksa, tapi penghitung "lebih dari 24 jam" hanya 1.
+- Solusi: Perbaiki penghitung, urutkan dari yang paling lama menunggu.
+
+*5. Problem: Notifikasi WhatsApp belum jalan*
+- Masalah: Penyedia WhatsApp belum dikonfigurasi, pengingat dan pembatalan otomatis hanya dicatat, tidak terkirim.
+- Solusi: Hubungkan penyedia WhatsApp sebelum go-live.
+
+*6. Problem: Saldo sesi tidak masuk akal*
+- Masalah: Ada "Sisa 14 dari 1 sesi", paket kedaluwarsa 2024 masih di tab Aktif, sesi sudah terpakai padahal pembayaran belum disetujui.
+- Solusi: Audit hitungan saldo, blokir pemakaian sesi sebelum pembayaran disetujui.
+
+*7. Problem: Booking masa depan sudah "Sudah hadir"*
+- Masalah: Pada 6 Okt malam, booking 7 Okt sudah berstatus hadir.
+- Solusi: Status hadir hanya boleh setelah check-in pada jam kelas.
+
+*8. Problem: Booking kembar*
+- Masalah: Customer yang sama muncul 2-4 kali di kelas yang sama.
+- Solusi: Cegah booking dobel, atau tampilkan jelas "untuk 4 orang".
+
+*9. Problem: Email customer hasil migrasi tampaknya karangan*
+- Masalah: Contoh rini@gmail.com, tina@gmail.com. Reset password bisa terkirim ke orang lain, customer lama tidak bisa login.
+- Solusi: Login pakai nomor WhatsApp + OTP, minta customer isi email asli saat login pertama.
+
+*10. Problem: Voucher persen tampil sebagai rupiah*
+- Masalah: Voucher diskon 10% tertulis "Rp 10". Voucher JULY2026 masih aktif di Oktober.
+- Solusi: Bedakan tampilan persen dan nominal, matikan voucher lewat periode.
+
+*11. Problem: Profit menyesatkan*
+- Masalah: Honor instruktur dan biaya lain Rp 0, jadi profit = omzet. Performa Cabang Green Garden Rp 0 padahal dashboard Rp 94,9 juta.
+- Solusi: Isi tarif honor instruktur, perbaiki sumber data Performa Cabang.
+
+*12. Problem: Aturan KTP tidak konsisten*
+- Masalah: Ada akun aktif tanpa KTP dan selfie. Status "Perlu perbaikan" di profil tapi "Disetujui" di daftar. Antrean verifikasi tertua 34 hari.
+- Solusi: Tetapkan satu aturan, samakan status di semua halaman.
+
+*13. Problem: Paket admin tidak cocok dengan publik*
+- Masalah: Admin tampilkan 20 paket, publik menjual paket yang tidak ada di daftar admin. Kolom tipe kelas kosong.
+- Solusi: Satu sumber data paket, tampilkan semua paket aktif di admin.
+
+*14. Problem: Data paket berantakan*
+- Masalah: Promo Juli masih dijual, ada paket kembar, harga per sesi paket besar lebih mahal dari paket kecil, 13 sesi hanya berlaku 35 hari.
+- Solusi: Bersihkan katalog, nonaktifkan promo lama.
+
+*15. Problem: Info studio dan kapasitas saling bertentangan*
+- Masalah: "5 studio" vs "Dua studio Jakarta dan BSD". Surabaya dilabeli Jakarta. Kapasitas "6-8 peserta" vs "4 peserta".
+- Solusi: Ambil semua angka dan lokasi dari data cabang, jangan diketik manual.
+
+*16. Problem: Halaman Panduan tidak sesuai sistem*
+- Masalah: Menyebut BSD, Mat, Barre, tanggal lahir. Panduan internal Finance dan Owner terbuka untuk publik.
+- Solusi: Tulis ulang panduan customer, pindahkan panduan internal ke dalam login.
+
+*17. Problem: Lonceng notifikasi superadmin error*
+- Masalah: Server menjawab error 500.
+- Solusi: Perbaiki layanan notifikasi untuk akun superadmin.
+
+*18. Problem: Password lemah diterima*
+- Masalah: 12345678 diterima untuk akun staf, tanpa wajib ganti saat login pertama.
+- Solusi: Tolak password umum, wajibkan ganti password pertama kali.
+
+*19. Problem: Data tes bercampur data asli*
+- Masalah: Instruktur bernama "-" (dummy@example.com, 393 kelas), "admin_test", customer "Test".
+- Solusi: Hapus atau nonaktifkan sebelum go-live.
+
+*B. FLOW CUSTOMER (GAPTEK)*
+
+*20. Problem: Daftar akun terlalu berat*
+- Masalah: KTP dan selfie wajib di awal, sebelum bisa lihat apa pun.
+- Solusi: Daftar cukup nama + WhatsApp, KTP diminta saat beli pertama atau di front desk.
+
+*21. Problem: Login hanya email + password*
+- Masalah: Banyak customer tidak hafal email dan password.
+- Solusi: Login nomor WhatsApp + OTP.
+
+*22. Problem: Halaman salah dilempar ke login*
+- Masalah: Tamu yang buka link salah melihat halaman login, bukan "halaman tidak ditemukan". Halaman syarat dan privasi belum ada.
+- Solusi: Buat halaman 404, tambah halaman Syarat dan Privasi.
+
+*23. Problem: Jadwal terlalu banyak langkah*
+- Masalah: Harus scroll, pilih studio dari dropdown, scroll lagi. Tertulis "dua minggu", yang muncul 3 hari.
+- Solusi: Tombol studio besar, ingat studio terakhir, tampilkan 14 hari penuh.
+
+*24. Problem: Ketersediaan membingungkan*
+- Masalah: "3/4 tempat" bisa dibaca terisi 3 atau sisa 3.
+- Solusi: Tulis "Sisa 3 tempat".
+
+*25. Problem: Tombol menyesatkan*
+- Masalah: "Lanjutkan booking" ternyata membuka login. Menu Kelas dan Jadwal ke halaman sama. "Buka kontak resmi" melempar ke situs lama.
+- Solusi: Tulis "Masuk untuk booking", gabung menu, hapus link ke situs lama.
+
+*26. Problem: Pembayaran manual*
+- Masalah: Transfer lalu unggah bukti, lalu menunggu diperiksa.
+- Solusi: QRIS atau virtual account dengan konfirmasi otomatis.
+
+*C. FLOW STAF DAN INSTRUKTUR*
+
+*27. Problem: Instruktur tidak punya beranda*
+- Masalah: Tombol Beranda melempar ke halaman Kelas yang berisi teks dan tombol admin ("Buat kelas").
+- Solusi: Beranda instruktur: kelas saya hari ini, jam, studio, jumlah peserta.
+
+*28. Problem: Instruktur bisa pilih cabang yang bukan miliknya*
+- Masalah: Semua cabang muncul, error baru keluar setelah dipilih. Label "Cakupan" terbaca seperti penugasan.
+- Solusi: Tampilkan hanya cabang penugasan, pilih otomatis kalau cuma satu.
+
+*29. Problem: Ketersediaan mengajar diisi satu per satu*
+- Masalah: Satu tanggal per pengajuan.
+- Solusi: Pilihan berulang mingguan.
+
+*30. Problem: Buat kelas satu per satu*
+- Masalah: Lebih dari
+
+ada banyak masalah, padahal sebelum nya sudah melakukan UAT dengan lengkap
+coba jelaskan kepada saya kenapa itu bisa terjadi?
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-10-07T08:25:09+07:00.
+
+The user's current state is as follows:
+Active Document: /Users/lrmcorporation/Documents/Website/surau-gemilang/surau-gemilang-web/src/app/admin/siswa/cetak-kartu/page.tsx (LANGUAGE_TSX)
+Cursor is on line: 203
+Other open documents:
+- /Users/lrmcorporation/Documents/Website/surau-gemilang/surau-gemilang-web/src/components/cards/KartuAbsensiSantri.tsx (LANGUAGE_TSX)
+- /Users/lrmcorporation/Documents/Website/surau-gemilang/scratch/run_garin_uat.js (LANGUAGE_JAVASCRIPT)
+- /Users/lrmcorporation/Documents/Website/surau-gemilang/config.json (LANGUAGE_JSON)
+- /Users/lrmcorporation/Documents/Website/surau-gemilang/internal/modules/masjid/models.go (LANGUAGE_GO)
+- /Users/lrmcorporation/Documents/Website/surau-gemilang/docs/Business_Rules_Model_Presensi_Validasi_Anti_Fraud_dan_Keamanan_Identitas_SURAU_GEMILANG.md (LANGUAGE_MARKDOWN)
+Browser State:
+  Page EB5F30F285B854069C87C73669BDBC79 (Masuk · HR Group Enterprise) - http://127.0.0.1:8003/login [ACTIVE]
+    Viewport: 1245x1042, Page Height: 1042
+  Page 6E7A0332B4E0441BE0F261C041FA384F (Data Master Klub & Tim - NextGen Athlete GPT) - http://localhost:8002/master/clubs-teams
+    Viewport: 1737x1043, Page Height: 1043
+Running terminal commands:
+- php artisan serve --port=8003 (in /Users/lrmcorporation/Documents/Website/hrghrd, running for 20h4m55s)
+- npm run dev (in /Users/lrmcorporation/Documents/Website/hrghrd, running for 20h4m26s)
+- npm run dev (in /Users/lrmcorporation/Documents/Website/dailydose_v2, running for 9h17m7s)
+</ADDITIONAL_METADATA>

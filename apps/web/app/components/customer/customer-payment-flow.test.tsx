@@ -95,5 +95,42 @@ describe('customer payment proof preview', () => {
     ).toBeVisible();
     expect(screen.getByText('Estimasi verifikasi: 15–30 menit')).toBeVisible();
   });
+
+  it('renders QRIS tab by default when awaiting payment, displaying QRIS code and WhatsApp link', async () => {
+    const awaitingOrder: CustomerOrder = {
+      ...order,
+      status: 'AWAITING_PAYMENT',
+      paymentProofId: null,
+      paymentProofStatus: null,
+      paymentAccount: {
+        bankName: 'BCA',
+        accountNumber: '1234567890',
+        accountHolderName: 'PT DAILY DOSE INDONESIA',
+      },
+    };
+
+    render(
+      <AppFeedbackProvider>
+        <CustomerPaymentFlow order={awaitingOrder} onUpdated={vi.fn()} />
+      </AppFeedbackProvider>,
+    );
+
+    // Default tab is QRIS (UAT #26)
+    expect(screen.getByText('Scan QRIS Instan')).toBeVisible();
+    expect(screen.getByLabelText('QRIS Code Daily Dose Pilates')).toBeInTheDocument();
+    expect(screen.getByText('Nominal Otomatis Terdeteksi')).toBeVisible();
+    expect(screen.getByRole('link', { name: /Konfirmasi via WhatsApp CS/i })).toHaveAttribute(
+      'href',
+      expect.stringContaining('wa.me'),
+    );
+
+    // Switch to Transfer Bank tab
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('tab', { name: /Transfer Bank/ }));
+    expect(screen.getByText('Tujuan transfer')).toBeVisible();
+    expect(screen.getByText('1234567890')).toBeVisible();
+    expect(screen.getByText(/PT DAILY DOSE INDONESIA/)).toBeVisible();
+  });
 });
+
 

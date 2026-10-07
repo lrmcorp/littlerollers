@@ -741,7 +741,7 @@ export class BookingsService {
         const [customerPackage, customer] = await Promise.all([
           tx.paketPelanggan.findUnique({
             where: { id: input.customerPackageId },
-            include: { package: true },
+            include: { package: true, purchase: true },
           }),
           tx.user.findUnique({ where: { id: customerUserId } }),
         ]);
@@ -750,6 +750,8 @@ export class BookingsService {
           throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
         if (customerPackage.userId !== customerUserId)
           throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+        if (customerPackage.purchase && customerPackage.purchase.status !== 'PAID')
+          throw new ApiProblem('PURCHASE_NOT_PAID', HttpStatus.CONFLICT);
         if (customerPackage.status !== 'ACTIVE' || customerPackage.validUntil <= new Date())
           throw new ApiProblem('INSUFFICIENT_AVAILABLE_SESSIONS', HttpStatus.CONFLICT);
 

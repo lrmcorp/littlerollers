@@ -167,14 +167,15 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
             }}
           >
             <label className="block space-y-1.5 text-xs font-bold text-dd-ink">
-              <span>Email</span>
+              <span>Email atau Nomor WhatsApp</span>
               <div className="relative flex items-center">
                 <input
+                  aria-label="Email"
                   className="w-full min-h-11 rounded-dd-md border border-dd-line bg-white px-3.5 py-2.5 text-sm text-dd-ink outline-none transition focus:border-dd-forest focus:ring-2 focus:ring-dd-forest/15"
                   name="email"
-                  type="email"
+                  type="text"
                   autoComplete="username"
-                  placeholder="nama@email.com"
+                  placeholder="nama@email.com atau 0812 3456 7890"
                   required
                 />
               </div>
@@ -216,13 +217,13 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
               disabled={state === 'loading' || !hydrated}
               type="submit"
             >
-              {state === 'loading' ? 'Memeriksa akses…' : 'Masuk dengan email'}
+              {state === 'loading' ? 'Memeriksa akses…' : 'Masuk dengan email atau WhatsApp'}
             </button>
           </form>
 
           {state === 'invalid' && (
             <div className="mt-4">
-              <Feedback kind="error">Email atau password tidak valid.</Feedback>
+              <Feedback kind="error">Email/nomor WhatsApp atau password tidak valid.</Feedback>
             </div>
           )}
           {state in messages && (
@@ -235,6 +236,26 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
               </Feedback>
             </div>
           )}
+
+          <div className="mt-6 border-t border-dd-line/60 pt-4 text-center space-y-2">
+            <p className="text-xs text-dd-muted">
+              Belum punya akun?{' '}
+              <Link className="font-bold text-dd-forest hover:underline" href="/register">
+                Daftar akun baru
+              </Link>
+            </p>
+            <p className="text-xs text-dd-muted">
+              Lupa akun atau butuh bantuan?{' '}
+              <a
+                href="https://wa.me/62895329736127"
+                target="_blank"
+                rel="noreferrer"
+                className="font-bold text-dd-forest hover:underline"
+              >
+                Chat WhatsApp Admin Studio
+              </a>
+            </p>
+          </div>
           {state === 'success' && (
             <div className="mt-4">
               <Feedback kind="status">Identitas terverifikasi.</Feedback>

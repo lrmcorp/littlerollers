@@ -6,6 +6,7 @@ import { Calendar, CircleDollarSign, RefreshCw, Users } from 'lucide-react';
 import { AdminPageHeader } from '../../components/admin/admin-page-header';
 import { Badge, DataTable, Panel, StatCard } from '../../components/admin/admin-ui';
 import { Button } from '../../components/actions';
+import { SearchSelect } from '../../components/forms';
 import { useSessionContext } from '../../session-context';
 import { formatRupiah } from '../../lib/formatters';
 
@@ -50,7 +51,16 @@ export function OwnerBranchPerformanceView() {
 
   // Cabang mengikuti query URL ?branch=; bila tidak ada, pemilih "Cabang aktif" di topbar; bila "Semua cabang", tampilkan cabang pertama.
   const activeBranchId = context?.activeBranchId ?? '';
-  const selectedBranchId = urlBranch || activeBranchId || branches[0]?.id || '';
+  const [selectedBranchId, setSelectedBranchId] = useState<string>(
+    () => urlBranch || activeBranchId || branches[0]?.id || '',
+  );
+
+  useEffect(() => {
+    if (!selectedBranchId && (urlBranch || activeBranchId || branches[0]?.id)) {
+      setSelectedBranchId(urlBranch || activeBranchId || branches[0]?.id || '');
+    }
+  }, [urlBranch, activeBranchId, branches, selectedBranchId]);
+
   const [selectedPeriod, setSelectedPeriod] = useState<string>(() =>
     new Date().toISOString().slice(0, 7),
   );
@@ -109,17 +119,29 @@ export function OwnerBranchPerformanceView() {
       />
 
       {/* Filter Cabang & Periode */}
-      <div className="flex flex-wrap items-center gap-4 rounded-dd-lg border border-dd-line bg-dd-surface p-4 shadow-dd-card">
-        {!activeBranchId && branches.length > 1 && (
-          <p className="text-xs text-dd-muted">
-            Menampilkan {branches[0]?.name}. Pilih cabang di topbar untuk cabang lain.
-          </p>
+      <div className="flex flex-wrap items-center gap-6 rounded-dd-lg border border-dd-line bg-dd-surface p-4 shadow-dd-card">
+        {branches.length > 0 && (
+          <div className="w-72">
+            <SearchSelect
+              label="Cabang Studio"
+              value={selectedBranchId}
+              onChange={(val) => {
+                if (val) setSelectedBranchId(val);
+              }}
+              options={branches.map((b) => ({
+                id: b.id,
+                label: `${b.name} (${b.code})`,
+              }))}
+              placeholder="Pilih Cabang..."
+              clearable={false}
+              compact
+            />
+          </div>
         )}
 
-        <div className="flex items-center gap-2 pt-5">
-          <Calendar className="size-4 text-dd-muted" />
-          <label htmlFor="period-select" className="text-xs font-semibold text-dd-muted">
-            Periode:
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="period-select" className="text-xs font-semibold text-dd-muted flex items-center gap-1.5">
+            <Calendar className="size-3.5 text-dd-muted" /> Periode Bulan:
           </label>
           <input
             id="period-select"

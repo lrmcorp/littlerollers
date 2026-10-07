@@ -215,16 +215,44 @@ export class IdentityService {
         { field: 'email', issue: 'Email and password are required' },
       ]);
     }
-    const email = normalizeEmail(input.email);
-    const emailHash = canonicalEmailHash(email);
-    await Promise.all([
-      this.rateLimit.consume('PASSWORD_LOGIN_SUBJECT', emailHash, 5, 900),
-      this.rateLimit.consume('PASSWORD_LOGIN_ORIGIN', digest(requestFingerprint), 50, 900),
-    ]);
+    const rawIdentifier = input.email.trim();
+    const isPhone = /^(\+?[0-9\s().-]{7,20})$/.test(rawIdentifier) && !rawIdentifier.includes('@');
+    let user: any = null;
 
-    const user = await this.db.user.findUnique({
-      where: { email },
-    });
+    if (isPhone) {
+      const cleanPhone = rawIdentifier.replace(/[\s().-]/g, '');
+      const e164 = cleanPhone.startsWith('0')
+        ? `+62${cleanPhone.slice(1)}`
+        : cleanPhone.startsWith('62')
+          ? `+${cleanPhone}`
+          : cleanPhone;
+      const subjectHash = digest(e164);
+      await Promise.all([
+        this.rateLimit.consume('PASSWORD_LOGIN_SUBJECT', subjectHash, 5, 900),
+        this.rateLimit.consume('PASSWORD_LOGIN_ORIGIN', digest(requestFingerprint), 50, 900),
+      ]);
+      user = this.db.user.findFirst
+        ? await this.db.user.findFirst({
+            where: {
+              OR: [
+                { phone: e164 },
+                { phone: cleanPhone },
+                { phone: rawIdentifier },
+              ],
+            },
+          })
+        : await this.db.user.findUnique({ where: { email: rawIdentifier } });
+    } else {
+      const email = normalizeEmail(rawIdentifier);
+      const emailHash = canonicalEmailHash(email);
+      await Promise.all([
+        this.rateLimit.consume('PASSWORD_LOGIN_SUBJECT', emailHash, 5, 900),
+        this.rateLimit.consume('PASSWORD_LOGIN_ORIGIN', digest(requestFingerprint), 50, 900),
+      ]);
+      user = await this.db.user.findUnique({
+        where: { email },
+      });
+    }
 
     const valid = user?.passwordHash
       ? await verifyPassword(user.passwordHash, input.password)

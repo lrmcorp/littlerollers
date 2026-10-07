@@ -151,19 +151,36 @@ export class UserAdministrationService {
       ...(filters.cursor ? { id: { gt: filters.cursor } } : {}),
     };
 
-    const users = await this.db.user.findMany({
-      where,
-      include: { profile: true },
-      orderBy: { id: 'asc' },
-      take: 21,
-    });
+    const [users, statusCounts] = await Promise.all([
+      this.db.user.findMany({
+        where,
+        include: { profile: true },
+        orderBy: { id: 'asc' },
+        take: 21,
+      }),
+      this.db.user.groupBy({
+        by: ['status'],
+        where: {
+          role: filters.role
+            ? (filters.role as any)
+            : { notIn: ['CUSTOMER', 'MEMBER'] },
+        },
+        _count: { _all: true },
+      }),
+    ]);
 
     const hasMore = users.length > 20;
     const page = users.slice(0, 20);
 
+    const countsMap = new Map(statusCounts.map((sc) => [sc.status, sc._count._all]));
+    const activeCount = countsMap.get('ACTIVE') ?? 0;
+    const inactiveCount = (countsMap.get('INACTIVE') ?? 0) + (countsMap.get('SUSPENDED') ?? 0);
+    const pendingCount = 0;
+    const totalCount = Array.from(countsMap.values()).reduce((a, b) => a + b, 0);
+
     return {
       items: page.map((u) => this.userView(u)),
-      summary: { total: users.length, active: users.length, pendingActivation: 0, inactive: 0 },
+      summary: { total: totalCount, active: activeCount, pendingActivation: pendingCount, inactive: inactiveCount },
       page: { nextCursor: hasMore ? (page.at(-1)?.id ?? null) : null, hasMore },
     };
   }

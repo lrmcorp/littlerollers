@@ -47,8 +47,8 @@ const studioBenefits = [
   },
   {
     icon: <Building2 className="size-5 text-dd-forest" />,
-    title: 'Dua pilihan studio',
-    description: 'Pilihan studio aktif di Jakarta dan BSD.',
+    title: 'Pilihan studio strategis',
+    description: 'Pilihan studio aktif di Jakarta, Tangerang & Surabaya.',
   },
 ] as const;
 
@@ -323,7 +323,7 @@ export function LocationsView() {
                   aria-hidden="true"
                 />
               ))}
-              <strong className="absolute inset-x-4 bottom-4 text-sm">Jakarta · BSD</strong>
+              <strong className="absolute inset-x-4 bottom-4 text-sm">Jakarta · Tangerang · Surabaya</strong>
             </div>
 
             <div className="rounded-dd-lg bg-white p-5 shadow-dd-card">

@@ -73,6 +73,40 @@ const routeCapabilities: Array<[string, string[]]> = [
   ['/check-in-scanner', ['attendance:manage', 'attendance:self']],
 ];
 
+const protectedPathPrefixes = [
+  '/workspace',
+  '/account',
+  '/checkout',
+  '/orders',
+  '/bookings',
+  '/ledger',
+  '/notifications',
+  '/support-cases',
+  '/assignments',
+  '/check-in-scanner',
+  '/master',
+  '/purchases',
+  '/finance',
+  '/health',
+  '/operations',
+  '/public-content-management',
+  '/package-promotions',
+  '/identity-verifications',
+  '/users',
+  '/audit',
+  '/vouchers',
+  '/customers',
+  '/instructors',
+  '/migrations',
+  '/data-import',
+];
+
+export function isRecognizedProtectedPath(pathname: string): boolean {
+  return protectedPathPrefixes.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
+}
+
 interface SessionContextValue {
   status: SessionStatus;
   session: WebSession | null;
@@ -256,6 +290,7 @@ export function SessionProvider({
   useEffect(() => {
     if (isPublicExperiencePath(pathname) || status === 'loading' || status === 'dependency-error')
       return;
+    if (!isRecognizedProtectedPath(pathname)) return;
     if (status !== 'authenticated') {
       const returnTo = encodeURIComponent(
         `${pathname}${window.location.search}${window.location.hash}`,

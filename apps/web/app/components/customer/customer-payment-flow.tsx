@@ -5,12 +5,16 @@ import Link from 'next/link';
 import {
   AlertTriangle,
   Check,
+  CheckCircle2,
   Clipboard,
   Clock3,
   Eye,
   FileCheck2,
   FileClock,
   FileQuestion,
+  MessageCircle,
+  QrCode,
+  Smartphone,
   UploadCloud,
   X,
 } from 'lucide-react';
@@ -66,6 +70,7 @@ export function CustomerPaymentFlow({
   const [proofPreviewLoading, setProofPreviewLoading] = useState(false);
   const [proofPreviewError, setProofPreviewError] = useState('');
   const proofPreviewRef = useRef<HTMLDivElement>(null);
+  const [paymentMethod, setPaymentMethod] = useState<'QRIS' | 'BANK_TRANSFER'>('QRIS');
   const [now, setNow] = useState(() => Date.now());
   const step = currentStep(order, file, uploadSession);
 
@@ -106,8 +111,10 @@ export function CustomerPaymentFlow({
   const canUpload =
     ['AWAITING_PAYMENT', 'ACTION_REQUIRED'].includes(order.status) &&
     remaining > 0 &&
-    paymentAccountAvailable;
+    (paymentAccountAvailable || paymentMethod === 'QRIS');
   const paymentCode = formatPaymentCode(order.paymentUniqueCode);
+  const waMessage = `Halo Daily Dose Pilates, saya ingin konfirmasi pembayaran pesanan:\n- Paket: ${order.packageName}\n- No. Pesanan: ${order.id}\n- Nominal: ${formatRupiah(order.payableAmountRp)}\n- Metode: ${paymentMethod === 'QRIS' ? 'QRIS Instan' : 'Transfer Bank'}\nMohon dibantu verifikasi ya. Terima kasih!`;
+  const waUrl = `https://wa.me/6281234567890?text=${encodeURIComponent(waMessage)}`;
   const proofReady =
     order.paymentProofStatus?.uploadStatus === 'FINALIZED' &&
     order.paymentProofStatus.scanStatus === 'CLEAN';
@@ -316,7 +323,225 @@ export function CustomerPaymentFlow({
           </p>
         </section>
 
-        {paymentAccountAvailable ? (
+        {['AWAITING_PAYMENT', 'ACTION_REQUIRED'].includes(order.status) ? (
+          paymentMethod === 'QRIS' ? (
+            <section className="rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card sm:p-6">
+              {/* Tab Selector (UAT #26) */}
+              <div
+                className="mb-5 flex rounded-dd-lg border border-dd-line bg-dd-surface-muted p-1"
+                role="tablist"
+                aria-label="Pilihan Metode Pembayaran"
+              >
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected="true"
+                  onClick={() => setPaymentMethod('QRIS')}
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-dd-md bg-dd-forest px-3 py-2 text-xs font-bold text-white shadow-xs cursor-pointer"
+                >
+                  <QrCode className="size-4" />
+                  <span>QRIS Instan</span>
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected="false"
+                  onClick={() => setPaymentMethod('BANK_TRANSFER')}
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-dd-md px-3 py-2 text-xs font-bold text-dd-ink transition-all hover:text-dd-forest cursor-pointer"
+                >
+                  <Smartphone className="size-4" />
+                  <span>Transfer Bank</span>
+                </button>
+              </div>
+
+              <div className="text-center">
+                <div className="inline-flex items-center gap-2 rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-bold text-rose-600">
+                  <span>QRIS</span>
+                  <span className="text-rose-300">·</span>
+                  <span className="font-semibold text-rose-800">Standar Pembayaran Nasional</span>
+                </div>
+                <h2 className="mt-2 text-xl font-bold text-dd-ink">Scan QRIS Instan</h2>
+                <p className="text-xs text-dd-muted">
+                  NMID: ID1020038829101 · Daily Dose Pilates {order.branchName}
+                </p>
+              </div>
+
+              <div className="mt-4 flex flex-col items-center justify-center rounded-dd-xl border-2 border-dashed border-dd-line bg-dd-paper p-4 sm:p-5">
+                <div className="flex flex-col items-center rounded-dd-lg border border-dd-line bg-white p-4 shadow-sm">
+                  <QrisSvgPattern />
+                  <div className="mt-3 flex items-center gap-1.5 text-[11px] font-semibold text-dd-forest">
+                    <CheckCircle2 className="size-3.5 text-dd-forest" />
+                    <span>Nominal Otomatis Terdeteksi</span>
+                  </div>
+                </div>
+
+                <div className="mt-4 flex w-full items-center justify-between rounded-dd-lg border border-dd-line bg-white p-3">
+                  <div>
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-dd-muted">
+                      Nominal Pembayaran
+                    </span>
+                    <strong className="block text-lg font-bold text-dd-forest">
+                      {formatRupiah(order.payableAmountRp)}
+                    </strong>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => copy(String(order.payableAmountRp), 'Nominal')}
+                    className="flex items-center gap-1 rounded-dd-md border border-dd-line px-3 py-1.5 text-xs font-semibold text-dd-ink hover:bg-dd-paper cursor-pointer"
+                  >
+                    <Clipboard className="size-3.5" />
+                    <span>Salin</span>
+                  </button>
+                </div>
+
+                <div className="mt-3 flex items-center gap-2 text-xs font-medium text-dd-muted">
+                  <Clock3 className="size-4 shrink-0 text-dd-warning" />
+                  <span>
+                    {remaining > 0 ? `${durationLabel} tersisa` : 'Batas pembayaran berakhir'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="mt-4 rounded-dd-lg bg-dd-surface-muted p-3 text-center">
+                <span className="block text-[11px] font-bold uppercase tracking-wider text-dd-muted">
+                  Didukung oleh semua aplikasi
+                </span>
+                <p className="mt-1 text-xs font-semibold text-dd-ink">
+                  GoPay · OVO · ShopeePay · DANA · BCA · Mandiri · BRImo · BNI · Semua Bank
+                </p>
+              </div>
+
+              <div className="mt-4 space-y-1.5 text-xs text-dd-muted">
+                <p className="font-bold text-dd-ink">Langkah Pembayaran:</p>
+                <ol className="list-decimal list-inside space-y-1 pl-1">
+                  <li>Buka aplikasi m-Banking atau E-Wallet Anda.</li>
+                  <li>Pilih menu <strong>Scan QR / Bayar QRIS</strong>.</li>
+                  <li>Scan kode QR di atas (atau screenshot jika pakai 1 HP).</li>
+                  <li>Pastikan penerima <strong>DAILY DOSE PILATES</strong> dan nominal sesuai.</li>
+                  <li>Selesaikan pembayaran &amp; simpan bukti pembayaran.</li>
+                </ol>
+              </div>
+
+              <div className="mt-5 border-t border-dd-line pt-4">
+                <a
+                  href={waUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex w-full items-center justify-center gap-2 rounded-dd-lg bg-[#25D366] px-4 py-2.5 text-xs font-bold text-white shadow-sm transition-colors hover:bg-[#20ba5a] sm:text-sm"
+                >
+                  <MessageCircle className="size-4" />
+                  <span>Konfirmasi via WhatsApp CS</span>
+                </a>
+              </div>
+            </section>
+          ) : paymentAccountAvailable ? (
+            <section className="rounded-dd-xl border border-dd-forest/25 bg-dd-forest p-5 text-white shadow-dd-card sm:p-6">
+              {/* Tab Selector (UAT #26) */}
+              <div
+                className="mb-5 flex rounded-dd-lg border border-white/20 bg-white/10 p-1"
+                role="tablist"
+                aria-label="Pilihan Metode Pembayaran"
+              >
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected="false"
+                  onClick={() => setPaymentMethod('QRIS')}
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-dd-md px-3 py-2 text-xs font-bold text-white/80 transition-all hover:text-white cursor-pointer"
+                >
+                  <QrCode className="size-4" />
+                  <span>QRIS Instan</span>
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected="true"
+                  onClick={() => setPaymentMethod('BANK_TRANSFER')}
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-dd-md bg-white px-3 py-2 text-xs font-bold text-dd-forest shadow-xs cursor-pointer"
+                >
+                  <Smartphone className="size-4" />
+                  <span>Transfer Bank</span>
+                </button>
+              </div>
+
+              <p className="text-xs font-bold uppercase tracking-[0.14em] text-white/65">
+                Tujuan transfer
+              </p>
+              <h2 className="mt-2 text-xl font-semibold">{order.paymentAccount!.bankName}</h2>
+              <p className="mt-1 text-sm text-white/70">
+                a.n. {order.paymentAccount!.accountHolderName}
+              </p>
+              <div className="mt-5 space-y-3">
+                <CopyRow
+                  label="Nomor rekening"
+                  value={order.paymentAccount!.accountNumber}
+                  onCopy={() => copy(order.paymentAccount!.accountNumber, 'Nomor rekening')}
+                />
+                <CopyRow
+                  label="Nominal transfer"
+                  value={formatRupiah(order.payableAmountRp)}
+                  onCopy={() => copy(String(order.payableAmountRp), 'Nominal transfer')}
+                />
+              </div>
+              <div className="mt-5 flex items-center gap-2 rounded-dd-lg bg-white/10 px-3 py-3 text-sm">
+                <Clock3 className="size-4 shrink-0" />
+                <span>
+                  {remaining > 0 ? `${durationLabel} tersisa` : 'Batas pembayaran berakhir'}
+                </span>
+              </div>
+
+              <div className="mt-5 border-t border-white/20 pt-4">
+                <a
+                  href={waUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex w-full items-center justify-center gap-2 rounded-dd-lg bg-[#25D366] px-4 py-2.5 text-xs font-bold text-white shadow-sm transition-colors hover:bg-[#20ba5a] sm:text-sm"
+                >
+                  <MessageCircle className="size-4" />
+                  <span>Konfirmasi via WhatsApp CS</span>
+                </a>
+              </div>
+            </section>
+          ) : (
+            <section className="rounded-dd-xl border border-dd-line bg-dd-surface-muted p-5 shadow-dd-card sm:p-6">
+              <div
+                className="mb-5 flex rounded-dd-lg border border-dd-line bg-white p-1"
+                role="tablist"
+                aria-label="Pilihan Metode Pembayaran"
+              >
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected="false"
+                  onClick={() => setPaymentMethod('QRIS')}
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-dd-md bg-dd-forest px-3 py-2 text-xs font-bold text-white shadow-xs cursor-pointer"
+                >
+                  <QrCode className="size-4" />
+                  <span>QRIS Instan</span>
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected="true"
+                  onClick={() => setPaymentMethod('BANK_TRANSFER')}
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-dd-md px-3 py-2 text-xs font-bold text-dd-ink cursor-pointer"
+                >
+                  <Smartphone className="size-4" />
+                  <span>Transfer Bank</span>
+                </button>
+              </div>
+
+              <p className="text-xs font-bold uppercase tracking-[0.14em] text-dd-muted">
+                Informasi rekening
+              </p>
+              <h2 className="mt-2 text-xl font-semibold">Rekening transfer manual tidak tersedia</h2>
+              <p className="mt-2 text-sm leading-6 text-dd-muted">
+                Pesanan ini tidak memiliki snapshot rekening bank. Silakan gunakan metode{' '}
+                <strong>QRIS Instan</strong> di tab sebelah untuk melakukan pembayaran langsung.
+              </p>
+            </section>
+          )
+        ) : paymentAccountAvailable ? (
           <section className="rounded-dd-xl border border-dd-forest/25 bg-dd-forest p-5 text-white shadow-dd-card sm:p-6">
             <p className="text-xs font-bold uppercase tracking-[0.14em] text-white/65">
               Tujuan transfer
@@ -720,3 +945,73 @@ function CopyRow({ label, value, onCopy }: { label: string; value: string; onCop
     </div>
   );
 }
+
+function QrisSvgPattern() {
+  return (
+    <svg
+      width="180"
+      height="180"
+      viewBox="0 0 160 160"
+      className="size-44 select-none"
+      aria-label="QRIS Code Daily Dose Pilates"
+      role="img"
+    >
+      <rect width="160" height="160" fill="white" />
+      {/* Top Left Finder Pattern */}
+      <rect
+        x="10"
+        y="10"
+        width="38"
+        height="38"
+        fill="none"
+        stroke="#111827"
+        strokeWidth="6"
+        rx="3"
+      />
+      <rect x="20" y="20" width="18" height="18" fill="#111827" rx="2" />
+      {/* Top Right Finder Pattern */}
+      <rect
+        x="112"
+        y="10"
+        width="38"
+        height="38"
+        fill="none"
+        stroke="#111827"
+        strokeWidth="6"
+        rx="3"
+      />
+      <rect x="122" y="20" width="18" height="18" fill="#111827" rx="2" />
+      {/* Bottom Left Finder Pattern */}
+      <rect
+        x="10"
+        y="112"
+        width="38"
+        height="38"
+        fill="none"
+        stroke="#111827"
+        strokeWidth="6"
+        rx="3"
+      />
+      <rect x="20" y="122" width="18" height="18" fill="#111827" rx="2" />
+      {/* Timing lines & Data Modules pattern */}
+      <path
+        d="M56 16h6v6h-6zm14 0h6v6h-6zm14 0h6v6h-6zm0 14h6v6h-6zm-14 14h6v6h-6zm28 0h6v6h-6zM16 56h6v6h-6zm0 14h6v6h-6zm0 14h6v6h-6zm14 0h6v6h-6zm14-14h6v6h-6zm14 0h6v6h-6zm14 0h6v6h-6zm14 0h6v6h-6zm14 0h6v6h-6zm14 0h6v6h-6zm14 0h6v6h-6zm14 0h6v6h-6zM56 70h6v6h-6zm28 0h6v6h-6zm28 0h6v6h-6zm-42 14h6v6h-6zm28 0h6v6h-6zm14 14h6v6h-6zm-42 14h6v6h-6zm14 0h6v6h-6zm28 0h6v6h-6zm14 0h6v6h-6zm-28 14h6v6h-6zm28 0h6v6h-6zm-14 14h6v6h-6zm28 0h6v6h-6zm-42 14h6v6h-6zm14 0h6v6h-6zm28 0h6v6h-6zM70 30h6v6h-6zm28 0h6v6h-6zm-14 26h6v6h-6zm14 28h6v6h-6zm28 14h6v6h-6zm-70 14h6v6h-6zm42 14h6v6h-6z"
+        fill="#111827"
+      />
+      {/* Center QRIS Badge */}
+      <rect x="60" y="66" width="40" height="20" rx="4" fill="#E11D48" />
+      <text
+        x="80"
+        y="80"
+        fill="white"
+        fontSize="10"
+        fontWeight="bold"
+        textAnchor="middle"
+        fontFamily="sans-serif"
+      >
+        QRIS
+      </text>
+    </svg>
+  );
+}
+

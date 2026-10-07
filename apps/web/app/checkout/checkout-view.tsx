@@ -42,6 +42,8 @@ export function CheckoutView() {
     packagePromotionDiscountRp: number;
     discountRp: number;
     priceAfterDiscountRp: number;
+    discountType?: 'PERCENTAGE' | 'FIXED_AMOUNT';
+    discountValue?: number;
   } | null>(null);
   const [voucherBusy, setVoucherBusy] = useState(false);
 
@@ -341,6 +343,11 @@ export function CheckoutView() {
               <dt className="text-dd-muted">Diskon</dt>
               <dd className="font-semibold text-dd-forest">
                 -{formatRupiah(voucherPreview.discountRp)}
+                {voucherPreview.discountType === 'PERCENTAGE' && voucherPreview.discountValue ? (
+                  <span className="ml-1 text-xs font-bold text-dd-brass-dark">
+                    ({voucherPreview.discountValue}%)
+                  </span>
+                ) : null}
               </dd>
             </div>
             <div>

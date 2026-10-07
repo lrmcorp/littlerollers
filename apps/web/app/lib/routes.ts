@@ -16,8 +16,7 @@ export const routes = {
 
 export const publicNavigation = [
   { href: '/#about', label: 'Tentang' },
-  { href: routes.classes, label: 'Kelas' },
-  { href: '/classes#schedule', label: 'Jadwal' },
+  { href: '/classes#schedule', label: 'Jadwal Kelas' },
   { href: routes.packages, label: 'Paket' },
   { href: routes.locations, label: 'Studio' },
   { href: routes.contact, label: 'Kontak' },

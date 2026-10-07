@@ -37,29 +37,15 @@ describe('PublicHeader', () => {
     expect((await axe(view.container)).violations).toHaveLength(0);
   });
 
-  it('marks exactly one classes destination active for page and schedule hash', async () => {
+  it('marks Jadwal Kelas destination active for classes page', async () => {
     navigation.pathname = '/classes';
     window.history.replaceState({}, '', '/classes');
     const view = render(<PublicHeader />);
     expect(view.container.querySelectorAll('[aria-current="page"]')).toHaveLength(1);
     const desktop = screen.getByRole('navigation', { name: 'Navigasi publik' });
-    expect(within(desktop).getByRole('link', { name: 'Kelas' })).toHaveAttribute(
+    expect(within(desktop).getByRole('link', { name: 'Jadwal Kelas' })).toHaveAttribute(
       'aria-current',
       'page',
-    );
-    expect(within(desktop).getByRole('link', { name: 'Jadwal' })).not.toHaveAttribute(
-      'aria-current',
-    );
-    window.location.hash = '#schedule';
-    window.dispatchEvent(new HashChangeEvent('hashchange'));
-    await waitFor(() =>
-      expect(within(desktop).getByRole('link', { name: 'Jadwal' })).toHaveAttribute(
-        'aria-current',
-        'page',
-      ),
-    );
-    expect(within(desktop).getByRole('link', { name: 'Kelas' })).not.toHaveAttribute(
-      'aria-current',
     );
   });
 });

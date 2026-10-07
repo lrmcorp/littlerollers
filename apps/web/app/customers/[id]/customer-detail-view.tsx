@@ -794,89 +794,170 @@ export function CustomerDetailView({ id }: { id: string }) {
 
             {/* Tab 1: Paket Aktif & Sisa Sesi */}
             {activeTab === 'packages' && (
-              <div className="p-6">
-                {customer.customerPackages.length === 0 ? (
-                  <div className="rounded-dd-md bg-dd-surface-muted/40 p-8 text-center text-sm text-dd-muted">
-                    Pelanggan belum memiliki paket aktif saat ini.
-                  </div>
-                ) : (
-                  <DataTable
-                    showRowNumbers={false}
-                    items={customer.customerPackages}
-                    rowKey={(cp) => cp.id}
-                    columns={[
-                      {
-                        id: 'name',
-                        header: 'Nama Paket',
-                        cell: (cp) => (
-                          <span className="font-semibold text-dd-ink">
-                            {cp.package?.name ?? 'Paket Pilates'}
-                          </span>
-                        ),
-                      },
-                      {
-                        id: 'total',
-                        header: 'Total Sesi',
-                        cell: (cp) => cp.sessionCountSnapshot ?? cp.package?.sessionCount ?? '—',
-                      },
-                      {
-                        id: 'remaining',
-                        header: 'Sisa Sesi',
-                        cell: (cp) => (
-                          <span className="inline-flex rounded-full bg-dd-success-soft px-2.5 py-0.5 text-xs font-bold text-dd-forest">
-                            {cp.remainingSessions} Sesi
-                          </span>
-                        ),
-                      },
-                      { id: 'used', header: 'Sesi Digunakan', cell: (cp) => `${cp.usedSessions} Sesi` },
-                      {
-                        id: 'expiry',
-                        header: 'Masa Berlaku',
-                        cell: (cp) =>
-                          cp.expiryAt
-                            ? `s.d. ${new Date(cp.expiryAt).toLocaleDateString('id-ID')}`
-                            : 'Permanen',
-                      },
-                      {
-                        id: 'status',
-                        header: 'Status',
-                        cell: (cp) => (
-                          <StatusBadge tone={cp.status === 'ACTIVE' ? 'success' : 'warning'}>
-                            {statusLabel(cp.status)}
-                          </StatusBadge>
-                        ),
-                      },
-                      {
-                        id: 'manage',
-                        header: 'Tindakan',
-                        cell: (cp) => (
-                          <ButtonLink size="sm" variant="secondary" href={`/ledger/${cp.id}`}>
-                            {sessionContext?.hasCapability('customer-package:manage')
-                              ? 'Kelola'
-                              : 'Riwayat sesi'}
-                          </ButtonLink>
-                        ),
-                      },
-                    ]}
-                    mobileCard={(cp) => (
-                      <div className="space-y-1">
-                        <div className="flex items-center justify-between gap-3">
-                          <strong className="text-dd-ink">{cp.package?.name ?? 'Paket Pilates'}</strong>
-                          <StatusBadge tone={cp.status === 'ACTIVE' ? 'success' : 'warning'}>
-                            {statusLabel(cp.status)}
-                          </StatusBadge>
+              <div className="p-6 space-y-6">
+                {(() => {
+                  const now = new Date();
+                  const activePkgs = customer.customerPackages.filter(
+                    (cp) => cp.status === 'ACTIVE' && (!cp.expiryAt || new Date(cp.expiryAt) >= now),
+                  );
+                  const inactivePkgs = customer.customerPackages.filter(
+                    (cp) => cp.status !== 'ACTIVE' || (cp.expiryAt && new Date(cp.expiryAt) < now),
+                  );
+
+                  return (
+                    <>
+                      {activePkgs.length === 0 ? (
+                        <div className="rounded-dd-md bg-dd-surface-muted/40 p-8 text-center text-sm text-dd-muted">
+                          Pelanggan belum memiliki paket aktif saat ini.
                         </div>
-                        <p className="text-sm text-dd-muted">
-                          Sisa {cp.remainingSessions} dari{' '}
-                          {cp.sessionCountSnapshot ?? cp.package?.sessionCount ?? '—'} sesi ·{' '}
-                          {cp.expiryAt
-                            ? `s.d. ${new Date(cp.expiryAt).toLocaleDateString('id-ID')}`
-                            : 'Permanen'}
-                        </p>
-                      </div>
-                    )}
-                  />
-                )}
+                      ) : (
+                        <DataTable
+                          showRowNumbers={false}
+                          items={activePkgs}
+                          rowKey={(cp) => cp.id}
+                          columns={[
+                            {
+                              id: 'name',
+                              header: 'Nama Paket',
+                              cell: (cp) => (
+                                <span className="font-semibold text-dd-ink">
+                                  {cp.package?.name ?? 'Paket Pilates'}
+                                </span>
+                              ),
+                            },
+                            {
+                              id: 'total',
+                              header: 'Total Sesi',
+                              cell: (cp) => {
+                                const base = (cp as any).totalSessions ?? cp.sessionCountSnapshot ?? cp.package?.sessionCount ?? 0;
+                                return `${Math.max(base, cp.remainingSessions + (cp.usedSessions ?? 0))} Sesi`;
+                              },
+                            },
+                            {
+                              id: 'remaining',
+                              header: 'Sisa Sesi',
+                              cell: (cp) => (
+                                <span className="inline-flex rounded-full bg-dd-success-soft px-2.5 py-0.5 text-xs font-bold text-dd-forest">
+                                  {cp.remainingSessions} Sesi
+                                </span>
+                              ),
+                            },
+                            { id: 'used', header: 'Sesi Digunakan', cell: (cp) => `${cp.usedSessions} Sesi` },
+                            {
+                              id: 'expiry',
+                              header: 'Masa Berlaku',
+                              cell: (cp) =>
+                                cp.expiryAt
+                                  ? `s.d. ${new Date(cp.expiryAt).toLocaleDateString('id-ID')}`
+                                  : 'Permanen',
+                            },
+                            {
+                              id: 'status',
+                              header: 'Status',
+                              cell: (cp) => (
+                                <StatusBadge tone="success">
+                                  {statusLabel(cp.status)}
+                                </StatusBadge>
+                              ),
+                            },
+                            {
+                              id: 'manage',
+                              header: 'Tindakan',
+                              cell: (cp) => (
+                                <ButtonLink size="sm" variant="secondary" href={`/ledger/${cp.id}`}>
+                                  {sessionContext?.hasCapability('customer-package:manage')
+                                    ? 'Kelola'
+                                    : 'Riwayat sesi'}
+                                </ButtonLink>
+                              ),
+                            },
+                          ]}
+                          mobileCard={(cp) => (
+                            <div className="space-y-1">
+                              <div className="flex items-center justify-between gap-3">
+                                <strong className="text-dd-ink">{cp.package?.name ?? 'Paket Pilates'}</strong>
+                                <StatusBadge tone="success">
+                                  {statusLabel(cp.status)}
+                                </StatusBadge>
+                              </div>
+                              <p className="text-sm text-dd-muted">
+                                Sisa {cp.remainingSessions} dari{' '}
+                                {Math.max((cp as any).totalSessions ?? cp.sessionCountSnapshot ?? cp.package?.sessionCount ?? 0, cp.remainingSessions + (cp.usedSessions ?? 0))} sesi ·{' '}
+                                {cp.expiryAt
+                                  ? `s.d. ${new Date(cp.expiryAt).toLocaleDateString('id-ID')}`
+                                  : 'Permanen'}
+                              </p>
+                            </div>
+                          )}
+                        />
+                      )}
+
+                      {inactivePkgs.length > 0 && (
+                        <div className="border-t border-dd-line/60 pt-6">
+                          <h4 className="text-sm font-semibold text-dd-muted mb-3">
+                            Paket Kedaluwarsa & Riwayat ({inactivePkgs.length})
+                          </h4>
+                          <DataTable
+                            showRowNumbers={false}
+                            items={inactivePkgs}
+                            rowKey={(cp) => cp.id}
+                            columns={[
+                              {
+                                id: 'name',
+                                header: 'Nama Paket',
+                                cell: (cp) => (
+                                  <span className="text-dd-muted">
+                                    {cp.package?.name ?? 'Paket Pilates'}
+                                  </span>
+                                ),
+                              },
+                              {
+                                id: 'total',
+                                header: 'Total Sesi',
+                                cell: (cp) => {
+                                  const base = (cp as any).totalSessions ?? cp.sessionCountSnapshot ?? cp.package?.sessionCount ?? 0;
+                                  return `${Math.max(base, cp.remainingSessions + (cp.usedSessions ?? 0))} Sesi`;
+                                },
+                              },
+                              {
+                                id: 'remaining',
+                                header: 'Sisa Sesi',
+                                cell: (cp) => `${cp.remainingSessions} Sesi`,
+                              },
+                              { id: 'used', header: 'Sesi Digunakan', cell: (cp) => `${cp.usedSessions} Sesi` },
+                              {
+                                id: 'expiry',
+                                header: 'Masa Berlaku',
+                                cell: (cp) =>
+                                  cp.expiryAt
+                                    ? `s.d. ${new Date(cp.expiryAt).toLocaleDateString('id-ID')}`
+                                    : 'Permanen',
+                              },
+                              {
+                                id: 'status',
+                                header: 'Status',
+                                cell: (cp) => (
+                                  <StatusBadge tone="warning">
+                                    {statusLabel(cp.status)}
+                                  </StatusBadge>
+                                ),
+                              },
+                              {
+                                id: 'manage',
+                                header: 'Tindakan',
+                                cell: (cp) => (
+                                  <ButtonLink size="sm" variant="secondary" href={`/ledger/${cp.id}`}>
+                                    Riwayat sesi
+                                  </ButtonLink>
+                                ),
+                              },
+                            ]}
+                          />
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
             )}
 

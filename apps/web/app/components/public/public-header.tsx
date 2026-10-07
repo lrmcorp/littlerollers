@@ -15,9 +15,7 @@ import { IconButton } from '../actions';
 
 function isCurrent(pathname: string, hash: string, href: string) {
   if (href === '/classes#schedule')
-    return (pathname === '/classes' && hash === '#schedule') || pathname.startsWith('/schedule/');
-  if (href === '/classes')
-    return (pathname === '/classes' && hash !== '#schedule') || pathname.startsWith('/classes/');
+    return pathname === '/classes' || pathname.startsWith('/classes/') || pathname.startsWith('/schedule/');
   const [target, targetHash = ''] = href.split('#');
   const route = target || '/';
   return (

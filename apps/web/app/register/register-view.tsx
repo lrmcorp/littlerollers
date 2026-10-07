@@ -388,21 +388,15 @@ export function RegisterView() {
           }
         }}
       >
-        {/* Stepper Header */}
-        <div className="flex items-center justify-between rounded-dd-md border border-dd-line/80 bg-white p-3 shadow-dd-soft">
-          <div className="flex items-center gap-2">
-            <span className="flex size-6 items-center justify-center rounded-full bg-dd-forest text-xs font-bold text-white">
-              1
-            </span>
-            <span className="text-xs font-bold text-dd-ink">Data Diri &amp; Akun</span>
+        {/* Info Pendaftaran Cepat */}
+        <div className="flex items-center justify-between rounded-dd-md border border-dd-forest/20 bg-dd-forest/5 p-3 text-xs shadow-xs">
+          <div className="flex items-center gap-2 text-dd-forest font-semibold">
+            <User className="size-4 text-dd-forest" />
+            <span>Pendaftaran Akun Baru</span>
           </div>
-          <div className="h-px w-8 bg-dd-line sm:w-16" />
-          <div className="flex items-center gap-2">
-            <span className="flex size-6 items-center justify-center rounded-full bg-dd-forest text-xs font-bold text-white">
-              2
-            </span>
-            <span className="text-xs font-bold text-dd-ink">Verifikasi KTP &amp; Selfie</span>
-          </div>
+          <span className="rounded bg-white px-2.5 py-0.5 font-bold text-dd-forest text-[11px] shadow-xs border border-dd-forest/15">
+            Cepat &amp; Praktis
+          </span>
         </div>
 
         {/* Section 1: Data Diri & Kontak */}
@@ -488,27 +482,27 @@ export function RegisterView() {
           />
         </div>
 
-        {/* Section 3: Verifikasi Identitas (KYC Wajib Studio) */}
+        {/* Section 3: Verifikasi Identitas (Opsional) */}
         <div
           id="register-section-identity"
-          className="space-y-4 rounded-dd-md border border-dd-forest/30 bg-dd-cream/20 p-4"
+          className="space-y-4 rounded-dd-md border border-dd-line/80 bg-white p-4 shadow-xs"
         >
           <div className="flex items-center justify-between border-b border-dd-line/40 pb-2">
             <div className="flex items-center gap-2 text-xs font-bold text-dd-forest uppercase">
-              <ShieldCheck className="size-3.5" /> 2. Dokumen Identitas Resmi
+              <ShieldCheck className="size-3.5" /> 3. Dokumen Identitas (Opsional — Bisa Nanti)
             </div>
-            <span className="rounded bg-dd-forest/10 px-2 py-0.5 text-[10px] font-bold text-dd-forest uppercase">
-              Syarat Studio
+            <span className="rounded bg-dd-surface-muted px-2 py-0.5 text-[10px] font-bold text-dd-muted uppercase">
+              Bisa Dilewati
             </span>
           </div>
-          <div className="rounded-dd-sm bg-white p-3 text-xs leading-relaxed text-dd-muted border border-dd-line/60">
-            Sesuai standar keselamatan &amp; keanggotaan resmi studio <strong>Daily Dose Pilates</strong>, foto KTP dan foto selfie diperlukan untuk verifikasi identitas member.
+          <div className="rounded-dd-sm bg-dd-surface-muted/60 p-3 text-xs leading-relaxed text-dd-muted border border-dd-line/60">
+            Foto KTP dan foto selfie diperlukan saat verifikasi keanggotaan studio atau pembelian paket sesi pertama. Anda dapat mengunggahnya sekarang atau <strong>melewatinya untuk langsung mendaftar</strong>.
           </div>
           <UploadField
             id="register-ktp"
             name="ktp"
             label="Foto KTP bagian depan"
-            hint="Seluruh sisi KTP terlihat jelas · JPG, PNG, atau WebP · maksimal 8 MB."
+            hint="Seluruh sisi KTP terlihat jelas · JPG, PNG, atau WebP · maksimal 8 MB (Opsional)."
             capture="environment"
             file={ktp}
             inputRef={ktpInputRef}
@@ -521,7 +515,7 @@ export function RegisterView() {
             id="register-selfie"
             name="selfie"
             label="Foto selfie"
-            hint="Wajah terlihat jelas · JPG, PNG, atau WebP · maksimal 8 MB."
+            hint="Wajah terlihat jelas · JPG, PNG, atau WebP · maksimal 8 MB (Opsional)."
             capture="user"
             file={selfie}
             inputRef={selfieInputRef}

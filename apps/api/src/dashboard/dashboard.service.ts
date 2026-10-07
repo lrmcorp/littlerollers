@@ -4,6 +4,7 @@ import type { SessionPrincipal } from '../identity/identity.service';
 import { ApiProblem } from '../identity/security';
 import { PrismaService } from '../database/prisma.service';
 import { dateInTimeZone, startOfLocalDateUtc } from '../identity/assignment-boundary';
+import { summarizeInstructorFees } from '../packages/instructor-fee-calculator';
 
 const DAY = 86_400_000;
 
@@ -141,20 +142,54 @@ export class DashboardService {
   }): Promise<FinancialResult> {
     const fromDate = new Date(`${params.from}T00:00:00Z`);
     const untilDate = new Date(`${params.until}T23:59:59.999Z`);
+    const fromPeriod = params.from.slice(0, 7);
+    const untilPeriod = params.until.slice(0, 7);
 
-    const purchases = await this.db.pembelian.findMany({
-      where: {
-        branchId: { in: params.branchIds },
-        status: PurchaseStatus.PAID,
-        createdAt: { gte: fromDate, lte: untilDate },
-      },
-      select: {
-        branchId: true,
-        subtotalRp: true,
-        totalAmountRp: true,
-        createdAt: true,
-      },
-    });
+    const [purchases, otherCosts, completedSlots, fees] = await Promise.all([
+      this.db.pembelian.findMany({
+        where: {
+          branchId: { in: params.branchIds },
+          status: PurchaseStatus.PAID,
+          createdAt: { gte: fromDate, lte: untilDate },
+        },
+        select: {
+          branchId: true,
+          subtotalRp: true,
+          totalAmountRp: true,
+          createdAt: true,
+        },
+      }),
+      this.db.otherCost?.findMany
+        ? this.db.otherCost.findMany({
+            where: {
+              branchId: { in: params.branchIds },
+              period: { gte: fromPeriod, lte: untilPeriod },
+            },
+            select: {
+              branchId: true,
+              amountRp: true,
+            },
+          })
+        : Promise.resolve([]),
+      this.db.slotKelas.findMany({
+        where: {
+          branchId: { in: params.branchIds },
+          startAt: { gte: fromDate, lte: untilDate },
+          status: 'COMPLETED',
+        },
+        include: {
+          instructor: true,
+          classType: true,
+          instructorAttendance: { select: { id: true } },
+        },
+      }),
+      this.db.instructorFee?.findMany
+        ? this.db.instructorFee.findMany({
+            where: { branchId: { in: params.branchIds } },
+            orderBy: { effectiveDate: 'desc' },
+          })
+        : Promise.resolve([]),
+    ]);
 
     let totalGross = 0;
     let totalRevenue = 0;
@@ -188,18 +223,39 @@ export class DashboardService {
       }
     }
 
+    let totalInstructorFee = 0;
+    let totalOtherCost = 0;
+
     const branches = params.branchIds.map((branchId) => {
       const bData = branchMap.get(branchId) ?? { gross: 0, revenue: 0 };
+      const branchSlots = completedSlots.filter((s) => s.branchId === branchId);
+      const branchFees = fees.filter((f) => f.branchId === branchId);
+      const branchInstructorSummary = summarizeInstructorFees(branchSlots as any, branchFees);
+      const branchInstructorFee = branchInstructorSummary.reduce(
+        (sum, item) => sum + item.totalFeeRp,
+        0,
+      );
+      const branchOtherCost = otherCosts
+        .filter((c) => c.branchId === branchId)
+        .reduce((sum, item) => sum + item.amountRp, 0);
+
+      totalInstructorFee += branchInstructorFee;
+      totalOtherCost += branchOtherCost;
+
+      const profit = bData.revenue - branchInstructorFee - branchOtherCost;
+
       return {
         branchId,
         grossSalesRp: bData.gross,
         revenueRp: bData.revenue,
         projectionRp: 0,
-        instructorRealtimeRp: 0,
-        otherCostRp: 0,
-        profitRp: bData.revenue,
+        instructorRealtimeRp: branchInstructorFee,
+        otherCostRp: branchOtherCost,
+        profitRp: profit,
       };
     });
+
+    const totalProfit = totalRevenue - totalInstructorFee - totalOtherCost;
 
     const trend = [...trendMap.entries()].map(([date, data]) => ({
       date,
@@ -212,9 +268,9 @@ export class DashboardService {
         grossSalesRp: totalGross,
         revenueRp: totalRevenue,
         projectionRp: 0,
-        instructorRealtimeRp: 0,
-        otherCostRp: 0,
-        profitRp: totalRevenue,
+        instructorRealtimeRp: totalInstructorFee,
+        otherCostRp: totalOtherCost,
+        profitRp: totalProfit,
         correctionRp: 0,
       },
       completeness: 100,
@@ -302,6 +358,7 @@ export class DashboardService {
       activeCustomers,
       slots,
       pendingPurchases,
+      pendingVerifications,
       pendingReschedules,
       pendingAdjustments,
       trendBookings,
@@ -315,7 +372,9 @@ export class DashboardService {
       }),
       this.db.pemesananKelas.count({
         where: {
-          classSlot: { OR: slotCurrentScopes },
+          classSlot: query.branchId
+            ? { branchId: query.branchId }
+            : { branchId: { in: branchIds } },
           status: 'BOOKED',
         },
       }),
@@ -337,7 +396,31 @@ export class DashboardService {
         },
         select: { capacity: true, bookedCount: true },
       }),
-      this.db.pembelian.count({ where: { ...scoped, status: PurchaseStatus.PENDING } }),
+      this.db.pembelian.count({
+        where: {
+          ...scoped,
+          status: { in: [PurchaseStatus.PENDING, PurchaseStatus.WAITING_VERIFICATION] },
+        },
+      }),
+      this.db.user?.count
+        ? this.db.user.count({
+            where: {
+              role: { in: ['CUSTOMER', 'MEMBER'] },
+              profile: {
+                OR: [
+                  {
+                    ktpUrl: { not: null },
+                    OR: [{ notes: null }, { notes: { not: { contains: 'KYC_APPROVED' } } }],
+                  },
+                  {
+                    selfieUrl: { not: null },
+                    OR: [{ notes: null }, { notes: { not: { contains: 'KYC_APPROVED' } } }],
+                  },
+                ],
+              },
+            },
+          })
+        : Promise.resolve(0),
       this.db.ubahJadwal.count({ where: { status: 'PENDING' } }),
       this.db.sessionAdjustRequest.count({
         where: {
@@ -606,6 +689,13 @@ export class DashboardService {
           count: pendingPurchases,
           href: '/workspace/payments?status=PENDING',
           capabilities: ['payment:review', 'purchase:review'],
+        },
+        {
+          key: 'verifications',
+          label: 'Verifikasi identitas menunggu',
+          count: pendingVerifications,
+          href: '/identity-verifications?status=PENDING',
+          capabilities: ['identity-verification:read'],
         },
         {
           key: 'reschedules',

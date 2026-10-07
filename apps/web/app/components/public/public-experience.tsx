@@ -23,7 +23,7 @@ import { Button } from '../actions';
 import { Modal, useAppFeedback } from '../app-feedback';
 import { RadioCard } from '../forms';
 
-const visiblePaths = new Set(['/', '/classes', '/packages', '/locations', '/contact']);
+const visiblePaths = new Set(['/', '/classes', '/packages', '/locations', '/contact', '/terms', '/privacy', '/guide']);
 const hiddenPathPrefixes = [
   '/sign-in',
   '/register',

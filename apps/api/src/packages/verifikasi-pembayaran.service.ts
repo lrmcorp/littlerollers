@@ -140,7 +140,10 @@ export class PaymentReviewService {
           paymentProof: true,
           customerPackage: true,
         },
-        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        orderBy:
+          statusFilter === PurchaseStatus.WAITING_VERIFICATION || statusFilter === PurchaseStatus.PENDING
+            ? [{ createdAt: 'asc' }, { id: 'asc' }]
+            : [{ createdAt: 'desc' }, { id: 'desc' }],
         take: pageNumber ? limit : limit + 1,
         ...(pageNumber ? { skip: (pageNumber - 1) * limit } : (query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {})),
       }),
@@ -159,7 +162,7 @@ export class PaymentReviewService {
       this.db.pembelian.count({
         where: {
           ...summaryWhere,
-          status: PurchaseStatus.PENDING,
+          status: { in: [PurchaseStatus.PENDING, PurchaseStatus.WAITING_VERIFICATION] },
           createdAt: { lt: new Date(Date.now() - 24 * 60 * 60 * 1000) },
         },
       }),

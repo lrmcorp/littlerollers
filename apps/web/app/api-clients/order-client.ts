@@ -302,6 +302,8 @@ export const browserOrderClient = {
       promotionalPriceRp: number;
       discountRp: number;
       priceAfterDiscountRp: number;
+      discountType?: 'PERCENTAGE' | 'FIXED_AMOUNT';
+      discountValue?: number;
     }>('/checkout/voucher-preview', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

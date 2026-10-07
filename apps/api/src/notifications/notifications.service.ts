@@ -16,14 +16,33 @@ export class NotificationsService {
     }
   }
 
+  private toIsoString(val: unknown): string {
+    if (val instanceof Date) return val.toISOString();
+    if (typeof val === 'string' && val) {
+      const d = new Date(val);
+      return Number.isNaN(d.getTime()) ? val : d.toISOString();
+    }
+    return new Date().toISOString();
+  }
+
+  private toNullableIsoString(val: unknown): string | null {
+    if (!val) return null;
+    if (val instanceof Date) return val.toISOString();
+    if (typeof val === 'string') {
+      const d = new Date(val);
+      return Number.isNaN(d.getTime()) ? val : d.toISOString();
+    }
+    return null;
+  }
+
   private view(item: NotificationItem) {
     return {
       ...item,
       href: this.safeHref(item.href),
-      tone: item.tone.toLowerCase(),
-      readAt: item.readAt?.toISOString() ?? null,
-      expiresAt: item.expiresAt?.toISOString() ?? null,
-      createdAt: item.createdAt.toISOString(),
+      tone: (typeof item.tone === 'string' && item.tone ? item.tone : 'INFO').toLowerCase(),
+      readAt: this.toNullableIsoString(item.readAt),
+      expiresAt: this.toNullableIsoString(item.expiresAt),
+      createdAt: this.toIsoString(item.createdAt),
     };
   }
 
@@ -63,9 +82,7 @@ export class NotificationsService {
     const now = new Date();
     const count = inMemoryNotifications.filter(
       (n) =>
-        n.userId === principal.userId &&
-        n.readAt === null &&
-        (!n.expiresAt || n.expiresAt > now),
+        n.userId === principal.userId && n.readAt === null && (!n.expiresAt || n.expiresAt > now),
     ).length;
 
     return { count };

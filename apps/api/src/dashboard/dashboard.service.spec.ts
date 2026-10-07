@@ -18,6 +18,8 @@ function database() {
     pemesananKelas: { count, findMany },
     paketPelanggan: { findMany },
     slotKelas: { findMany },
+    otherCost: { findMany },
+    instructorFee: { findMany },
     dokumenVerifikasiIdentitas: { count },
     ubahJadwal: { count },
     sessionAdjustRequest: { count: jest.fn().mockResolvedValue(0) },
@@ -30,6 +32,7 @@ function database() {
           { id: 'branch-1', code: 'JKT', name: 'Jakarta', timezone: 'Asia/Jakarta' },
         ]),
     },
+    user: { count, findMany },
     auditLog: { findMany },
   };
 }

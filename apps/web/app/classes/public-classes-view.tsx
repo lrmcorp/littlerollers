@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { AlertCircle, Check, Ticket } from 'lucide-react';
+import { AlertCircle, Check, MapPin, Ticket } from 'lucide-react';
 import {
   browserPublicClassCatalogClient,
   publicCatalogFailure,
@@ -143,8 +143,14 @@ export function PublicClassesView({
             id === requestedBranchId ||
             name.toLocaleLowerCase('id-ID') === requestedStudio?.toLocaleLowerCase('id-ID'),
         );
+        let savedBranchId: string | null = null;
+        try {
+          savedBranchId = window.localStorage.getItem('dd_last_selected_branch');
+        } catch {}
         const preferredBranch =
-          requestedBranch ?? result.branches.find(({ id }) => id === session?.preferredBranch?.id);
+          requestedBranch ??
+          result.branches.find(({ id }) => id === session?.preferredBranch?.id) ??
+          (savedBranchId ? result.branches.find(({ id }) => id === savedBranchId) : undefined);
         if (preferredBranch) {
           setBranchId(preferredBranch.id);
           void load(preferredBranch.id);
@@ -174,8 +180,7 @@ export function PublicClassesView({
       if (!hasActivePkgInCurrentBranch && pkgBranchId) {
         const matchingBranch = branches.find((b) => b.id === pkgBranchId);
         if (matchingBranch && matchingBranch.id !== branchId) {
-          setBranchId(matchingBranch.id);
-          void load(matchingBranch.id);
+          handleSelectBranch(matchingBranch.id);
         }
       }
     }
@@ -199,6 +204,22 @@ export function PublicClassesView({
     }
   };
 
+  const handleSelectBranch = (selectedId: string) => {
+    setBranchId(selectedId);
+    try {
+      if (selectedId) {
+        window.localStorage.setItem('dd_last_selected_branch', selectedId);
+      } else {
+        window.localStorage.removeItem('dd_last_selected_branch');
+      }
+    } catch {}
+    setSlots([]);
+    setDay('');
+    setClassType('');
+    updateQuery({ branch: selectedId, studio: '', date: '', classType: '' });
+    if (selectedId) void load(selectedId);
+  };
+
   const retryCatalog = async () => {
     if (branchId) {
       await load(branchId);
@@ -217,8 +238,14 @@ export function PublicClassesView({
           id === requestedBranchId ||
           name.toLocaleLowerCase('id-ID') === requestedStudio?.toLocaleLowerCase('id-ID'),
       );
+      let savedBranchId: string | null = null;
+      try {
+        savedBranchId = window.localStorage.getItem('dd_last_selected_branch');
+      } catch {}
       const preferredBranch =
-        requestedBranch ?? result.branches.find(({ id }) => id === session?.preferredBranch?.id);
+        requestedBranch ??
+        result.branches.find(({ id }) => id === session?.preferredBranch?.id) ??
+        (savedBranchId ? result.branches.find(({ id }) => id === savedBranchId) : undefined);
       if (preferredBranch) {
         setBranchId(preferredBranch.id);
         await load(preferredBranch.id);
@@ -247,9 +274,54 @@ export function PublicClassesView({
     groups[key] = [...(groups[key] ?? []), slot];
     return groups;
   }, {});
-  const availableDays = [
-    ...new Set(slots.map((slot) => dayKey(slot.startAt, slot.timezone))),
-  ].slice(0, 14);
+
+  const calendarDays = useMemo(() => {
+    if (!branch) return [];
+    const tz = branch.timezone || 'Asia/Jakarta';
+    const now = new Date();
+    let baseDate = now;
+    if (slots.length > 0) {
+      const earliestSlotTime = Math.min(...slots.map((s) => new Date(s.startAt).getTime()));
+      if (Math.abs(earliestSlotTime - now.getTime()) > 14 * 86_400_000) {
+        baseDate = new Date(earliestSlotTime);
+      }
+    }
+
+    const days: {
+      key: string;
+      label: string;
+      weekday: string;
+      dayNum: string;
+      count: number;
+    }[] = [];
+
+    for (let i = 0; i < 14; i++) {
+      const d = new Date(baseDate.getTime() + i * 86_400_000);
+      const key = dayKey(d.toISOString(), tz);
+      const count = slots.filter((slot) => dayKey(slot.startAt, slot.timezone) === key).length;
+      const weekday = new Intl.DateTimeFormat('id-ID', { timeZone: tz, weekday: 'short' }).format(d);
+      const dayNum = new Intl.DateTimeFormat('id-ID', { timeZone: tz, day: 'numeric', month: 'short' }).format(d);
+      const label = dateLabel(d.toISOString(), tz);
+      days.push({ key, label, weekday, dayNum, count });
+    }
+
+    const generatedKeys = new Set(days.map((d) => d.key));
+    slots.forEach((s) => {
+      const key = dayKey(s.startAt, s.timezone);
+      if (!generatedKeys.has(key)) {
+        generatedKeys.add(key);
+        const d = new Date(s.startAt);
+        const count = slots.filter((slot) => dayKey(slot.startAt, slot.timezone) === key).length;
+        const weekday = new Intl.DateTimeFormat('id-ID', { timeZone: tz, weekday: 'short' }).format(d);
+        const dayNum = new Intl.DateTimeFormat('id-ID', { timeZone: tz, day: 'numeric', month: 'short' }).format(d);
+        const label = dateLabel(s.startAt, tz);
+        days.push({ key, label, weekday, dayNum, count });
+      }
+    });
+
+    return days;
+  }, [branch, slots]);
+
   const updateQuery = (updates: Record<string, string>) => {
     const query = new URLSearchParams(window.location.search);
     Object.entries(updates).forEach(([key, value]) => {
@@ -300,19 +372,25 @@ export function PublicClassesView({
               }
             />
 
-            {isCustomer && session?.identityVerificationStatus && session.identityVerificationStatus !== 'APPROVED' && (
-              <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-dd-lg border border-dd-warning/30 bg-dd-warning-soft p-4 text-xs sm:text-sm text-dd-warning">
-                <div className="flex items-center gap-2.5">
-                  <AlertCircle className="size-4 text-dd-warning shrink-0" />
-                  <span>
-                    Verifikasi identitas (KTP &amp; Selfie) Anda sedang ditinjau atau perlu dilengkapi sebelum sesi dapat direservasi mandiri.
-                  </span>
+            {isCustomer &&
+              session?.identityVerificationStatus &&
+              session.identityVerificationStatus !== 'APPROVED' && (
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-dd-lg border border-dd-warning/30 bg-dd-warning-soft p-4 text-xs sm:text-sm text-dd-warning">
+                  <div className="flex items-center gap-2.5">
+                    <AlertCircle className="size-4 text-dd-warning shrink-0" />
+                    <span>
+                      Verifikasi identitas (KTP &amp; Selfie) Anda sedang ditinjau atau perlu
+                      dilengkapi sebelum sesi dapat direservasi mandiri.
+                    </span>
+                  </div>
+                  <Link
+                    href="/account/verification"
+                    className="font-semibold text-dd-warning underline shrink-0 hover:text-dd-ink"
+                  >
+                    Cek Status Verifikasi →
+                  </Link>
                 </div>
-                <Link href="/account/verification" className="font-semibold text-dd-warning underline shrink-0 hover:text-dd-ink">
-                  Cek Status Verifikasi →
-                </Link>
-              </div>
-            )}
+              )}
 
             {isCustomer && customerPackages.length > 0 && (
               <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-dd-xl border border-dd-success/30 bg-dd-success-soft/70 p-4 text-xs sm:text-sm shadow-xs">
@@ -325,22 +403,29 @@ export function PublicClassesView({
                     <strong className="text-dd-ink">{customerPackages[0]!.packageName}</strong>
                     <span className="text-dd-muted"> · {customerPackages[0]!.branchName}</span>
                     <span className="text-dd-muted"> · Sisa </span>
-                    <strong className="text-dd-success font-semibold">{customerPackages[0]!.available} sesi</strong>
+                    <strong className="text-dd-success font-semibold">
+                      {customerPackages[0]!.available} sesi
+                    </strong>
                     <span className="text-dd-muted">
-                      {' '}(Berlaku s/d{' '}
-                      {new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium' }).format(new Date(customerPackages[0]!.expiryAt))})
+                      {' '}
+                      (Berlaku s/d{' '}
+                      {new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium' }).format(
+                        new Date(customerPackages[0]!.expiryAt),
+                      )}
+                      )
                     </span>
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-4">
-                  {branchId !== (customerPackages[0]?.packageBranchId || customerPackages[0]?.branchId) && (
+                  {branchId !==
+                    (customerPackages[0]?.packageBranchId || customerPackages[0]?.branchId) && (
                     <button
                       type="button"
                       onClick={() => {
-                        const targetBranchId = customerPackages[0]?.packageBranchId || customerPackages[0]?.branchId;
+                        const targetBranchId =
+                          customerPackages[0]?.packageBranchId || customerPackages[0]?.branchId;
                         if (targetBranchId) {
-                          setBranchId(targetBranchId);
-                          void load(targetBranchId);
+                          handleSelectBranch(targetBranchId);
                         }
                       }}
                       className="font-semibold text-dd-forest underline hover:text-dd-forest-dark cursor-pointer"
@@ -356,10 +441,10 @@ export function PublicClassesView({
                         const checked = e.target.checked;
                         setOnlyEligible(checked);
                         if (checked) {
-                          const targetBranchId = customerPackages[0]?.packageBranchId || customerPackages[0]?.branchId;
+                          const targetBranchId =
+                            customerPackages[0]?.packageBranchId || customerPackages[0]?.branchId;
                           if (targetBranchId && branchId !== targetBranchId) {
-                            setBranchId(targetBranchId);
-                            void load(targetBranchId);
+                            handleSelectBranch(targetBranchId);
                           }
                         }
                       }}
@@ -367,45 +452,153 @@ export function PublicClassesView({
                     />
                     <span>Hanya kelas sesuai paket saya</span>
                   </label>
-                  <Link href="/account/packages" className="font-semibold text-dd-forest hover:underline">
+                  <Link
+                    href="/account/packages"
+                    className="font-semibold text-dd-forest hover:underline"
+                  >
                     Kelola paket →
                   </Link>
                 </div>
               </div>
             )}
 
-            {branchId && availableDays.length > 0 && (
-              <div
-                className="mb-4 flex gap-2 overflow-x-auto pb-1"
-                role="group"
-                aria-label="Pilih tanggal cepat"
-              >
-                <button
-                  type="button"
-                  className={`${!day ? 'border-dd-forest bg-dd-forest text-white' : 'border-dd-line bg-white text-dd-ink'} min-h-11 shrink-0 rounded-full border px-4 text-sm font-semibold`}
-                  onClick={() => {
-                    setDay('');
-                    updateQuery({ date: '' });
-                  }}
+            {/* Studio Quick Buttons (UAT #23) */}
+            {branches.length > 0 && (
+              <div className="mb-6 rounded-dd-xl border border-dd-line bg-white p-4 shadow-sm sm:p-5">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <span className="text-xs font-bold uppercase tracking-wider text-dd-brass">
+                      Pilih Lokasi Studio
+                    </span>
+                    <h3 className="font-sans text-base font-bold text-dd-ink sm:text-lg">
+                      Mau latihan di studio mana?
+                    </h3>
+                  </div>
+                  {branch && (
+                    <span className="inline-flex items-center gap-1.5 self-start rounded-full bg-dd-forest/10 px-3 py-1 text-xs font-semibold text-dd-forest sm:self-auto">
+                      <MapPin className="size-3.5" /> Studio Aktif: {branch.name}
+                    </span>
+                  )}
+                </div>
+                <div
+                  className="mt-3 flex flex-wrap gap-2.5"
+                  role="group"
+                  aria-label="Pilihan Cepat Studio"
                 >
-                  Semua
-                </button>
-                {availableDays.map((date) => (
+                  {branches.map((b) => {
+                    const isSelected = b.id === branchId;
+                    return (
+                      <button
+                        type="button"
+                        key={b.id}
+                        onClick={() => handleSelectBranch(b.id)}
+                        className={`min-h-[44px] rounded-dd-lg px-4 py-2 text-sm font-bold transition-all cursor-pointer flex items-center gap-2 border ${
+                          isSelected
+                            ? 'border-dd-forest bg-dd-forest text-white shadow-sm ring-2 ring-dd-forest/20'
+                            : 'border-dd-line bg-dd-paper text-dd-ink hover:border-dd-forest/50 hover:bg-white'
+                        }`}
+                      >
+                        <MapPin className={`size-4 ${isSelected ? 'text-white' : 'text-dd-forest'}`} />
+                        <span>{b.name}</span>
+                        <span
+                          className={`text-xs px-1.5 py-0.5 rounded font-mono ${
+                            isSelected ? 'bg-white/20 text-white' : 'bg-dd-line/50 text-dd-muted'
+                          }`}
+                        >
+                          {b.code}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* 14 Days Calendar Strip (UAT #23) */}
+            {branchId && status !== 'loading' && calendarDays.length > 0 && (
+              <div className="mb-6 rounded-dd-xl border border-dd-line bg-white p-4 shadow-sm sm:p-5">
+                <div className="mb-3 flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-bold uppercase tracking-wider text-dd-brass">
+                      Jadwal 14 Hari ke Depan
+                    </span>
+                    <h4 className="font-sans text-sm font-bold text-dd-ink sm:text-base">
+                      Pilih tanggal untuk melihat sesi
+                    </h4>
+                  </div>
+                  {day && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDay('');
+                        updateQuery({ date: '' });
+                      }}
+                      className="text-xs font-semibold text-dd-forest underline hover:text-dd-forest-dark cursor-pointer"
+                    >
+                      Lihat Semua Tanggal
+                    </button>
+                  )}
+                </div>
+                <div
+                  className="flex gap-2 overflow-x-auto pb-2 pt-1"
+                  role="group"
+                  aria-label="Pilih tanggal cepat"
+                >
                   <button
                     type="button"
-                    key={date}
-                    className={`${day === date ? 'border-dd-forest bg-dd-forest text-white' : 'border-dd-line bg-white text-dd-ink'} min-h-11 shrink-0 rounded-full border px-4 text-sm font-semibold`}
+                    className={`${
+                      !day
+                        ? 'border-dd-forest bg-dd-forest text-white shadow-sm ring-2 ring-dd-forest/20'
+                        : 'border-dd-line bg-dd-paper text-dd-ink hover:border-dd-forest/50 hover:bg-white'
+                    } min-h-[50px] shrink-0 rounded-dd-lg border px-4 py-2 text-center text-sm font-semibold transition-all cursor-pointer flex flex-col items-center justify-center`}
                     onClick={() => {
-                      setDay(date);
-                      updateQuery({ date });
+                      setDay('');
+                      updateQuery({ date: '' });
                     }}
                   >
-                    {dateLabel(
-                      slots.find((slot) => dayKey(slot.startAt, slot.timezone) === date)!.startAt,
-                      branch?.timezone ?? 'Asia/Jakarta',
-                    )}
+                    <span>Semua</span>
+                    <span className="text-[10px] opacity-80">{slots.length} sesi</span>
                   </button>
-                ))}
+                  {calendarDays.map((item) => {
+                    const isSelected = day === item.key;
+                    return (
+                      <button
+                        type="button"
+                        key={item.key}
+                        className={`${
+                          isSelected
+                            ? 'border-dd-forest bg-dd-forest text-white shadow-sm ring-2 ring-dd-forest/20'
+                            : 'border-dd-line bg-dd-paper text-dd-ink hover:border-dd-forest/50 hover:bg-white'
+                        } min-h-[50px] min-w-[76px] shrink-0 rounded-dd-lg border px-3 py-1.5 text-center transition-all cursor-pointer flex flex-col items-center justify-center`}
+                        onClick={() => {
+                          setDay(item.key);
+                          updateQuery({ date: item.key });
+                        }}
+                        aria-label={`${item.label}, ${item.count} kelas tersedia`}
+                      >
+                        <span
+                          className={`text-[11px] font-medium uppercase ${
+                            isSelected ? 'text-white/80' : 'text-dd-muted'
+                          }`}
+                        >
+                          {item.weekday}
+                        </span>
+                        <span className="text-sm font-bold leading-tight">{item.dayNum}</span>
+                        <span
+                          className={`mt-0.5 rounded px-1 text-[10px] font-semibold ${
+                            isSelected
+                              ? 'bg-white/20 text-white'
+                              : item.count > 0
+                                ? 'bg-dd-forest/10 text-dd-forest'
+                                : 'text-dd-muted/60'
+                          }`}
+                        >
+                          {item.count > 0 ? `${item.count} sesi` : '0 sesi'}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             )}
 
@@ -420,12 +613,7 @@ export function PublicClassesView({
                   description: item.code,
                 }))}
                 onChange={(value) => {
-                  setBranchId(value);
-                  setSlots([]);
-                  setDay('');
-                  setClassType('');
-                  updateQuery({ branch: value, studio: '', date: '', classType: '' });
-                  if (value) void load(value);
+                  handleSelectBranch(value);
                 }}
               />
               <label className="grid gap-2 text-sm font-semibold">
@@ -502,6 +690,28 @@ export function PublicClassesView({
                 <p className="mt-2 text-dd-muted">
                   Ubah tanggal atau tipe kelas untuk melihat pilihan lain.
                 </p>
+                <div className="mt-4 flex flex-wrap justify-center gap-3">
+                  {day && (
+                    <button
+                      type="button"
+                      className={publicSecondaryButton}
+                      onClick={() => {
+                        setDay('');
+                        updateQuery({ date: '' });
+                      }}
+                    >
+                      Lihat Semua Tanggal
+                    </button>
+                  )}
+                  <a
+                    href="https://wa.me/6281234567890?text=Halo%20Daily%20Dose,%20saya%20ingin%20tanya%20jadwal%20kelas"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`${publicPrimaryButton} inline-flex items-center gap-2`}
+                  >
+                    Bantuan CS WhatsApp
+                  </a>
+                </div>
               </div>
             ) : (
               <div className="mt-8 grid gap-6" aria-live="polite">
@@ -575,27 +785,29 @@ export function PublicClassesView({
                           <div>
                             <span className="block text-xs text-dd-muted">Ketersediaan</span>
                             <strong className="mt-1 block">
-                              {slot.available > 0
-                                ? `${slot.available}/${slot.capacity} tempat`
-                                : `Penuh · 0/${slot.capacity}`}
+                              {slot.available > 0 ? `Sisa ${slot.available} tempat` : 'Kelas penuh'}
                             </strong>
                             {isCustomer && slot.canBook && findMatchingPackage(slot) && (
                               <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-dd-success-soft px-2 py-0.5 text-[11px] font-semibold text-dd-success border border-dd-success/30">
-                                <Check className="size-3" /> Paket Sesuai ({findMatchingPackage(slot)!.available} sesi)
+                                <Check className="size-3" /> Paket Sesuai (
+                                {findMatchingPackage(slot)!.available} sesi)
                               </span>
                             )}
-                            {isCustomer && slot.canBook && !findMatchingPackage(slot) && customerPackages.length > 0 && (
-                              <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-dd-warning-soft px-2 py-0.5 text-[11px] font-medium text-dd-warning border border-dd-warning/30">
-                                Perlu paket studio/kelas ini
-                              </span>
-                            )}
+                            {isCustomer &&
+                              slot.canBook &&
+                              !findMatchingPackage(slot) &&
+                              customerPackages.length > 0 && (
+                                <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-dd-warning-soft px-2 py-0.5 text-[11px] font-medium text-dd-warning border border-dd-warning/30">
+                                  Perlu paket studio/kelas ini
+                                </span>
+                              )}
                           </div>
                           <a
                             className={`${
                               isActionable(slot)
                                 ? isCustomer && !findMatchingPackage(slot)
-                                   ? `${publicSecondaryButton} border-dd-forest text-dd-forest hover:bg-dd-success-soft`
-                                  : publicPrimaryButton
+                                ? `${publicSecondaryButton} border-dd-forest text-dd-forest hover:bg-dd-success-soft`
+                                : publicPrimaryButton
                                 : `${publicSecondaryButton} pointer-events-none opacity-50`
                             } w-full sm:w-auto`}
                             aria-disabled={!isActionable(slot)}
@@ -618,10 +830,12 @@ export function PublicClassesView({
                               : !isActionable(slot)
                                 ? 'Pemesanan ditutup'
                                 : isStaff
-                                ? 'Buka workspace kelas'
-                                : isCustomer && !findMatchingPackage(slot)
-                                ? 'Beli paket untuk kelas ini'
-                                : 'Lanjutkan booking'}
+                                  ? 'Buka workspace kelas'
+                                  : isCustomer && !findMatchingPackage(slot)
+                                    ? 'Beli paket untuk kelas ini'
+                                    : !session
+                                      ? 'Masuk untuk booking'
+                                      : 'Lanjutkan booking'}
                           </a>
                         </article>
                       ))}
@@ -637,3 +851,4 @@ export function PublicClassesView({
     </div>
   );
 }
+

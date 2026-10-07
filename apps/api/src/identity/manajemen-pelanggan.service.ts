@@ -216,12 +216,16 @@ export class CustomerManagementService {
         })
       : null;
 
+    const hasBoth = Boolean(customer.profile?.ktpUrl && customer.profile?.selfieUrl);
+    const hasDocs = Boolean(customer.profile?.ktpUrl || customer.profile?.selfieUrl);
+    const isApproved = hasBoth && Boolean(customer.profile?.notes?.includes('KYC_APPROVED'));
+
     const identityDocuments = [];
     if (customer.profile?.ktpUrl) {
       identityDocuments.push({
         id: `doc-ktp-${customer.id}`,
         kind: 'KTP_FRONT',
-        status: 'APPROVED',
+        status: isApproved ? 'APPROVED' : 'PENDING',
         fileName: 'ktp.jpg',
         url: `/api/v1/identity-verifications/doc-ktp-${customer.id}/view-authorizations`,
         uploadedAt: customer.profile.updatedAt?.toISOString() ?? null,
@@ -232,7 +236,7 @@ export class CustomerManagementService {
       identityDocuments.push({
         id: `doc-selfie-${customer.id}`,
         kind: 'SELFIE',
-        status: 'APPROVED',
+        status: isApproved ? 'APPROVED' : 'PENDING',
         fileName: 'selfie.jpg',
         url: `/api/v1/identity-verifications/doc-selfie-${customer.id}/view-authorizations`,
         uploadedAt: customer.profile.updatedAt?.toISOString() ?? null,
@@ -240,13 +244,11 @@ export class CustomerManagementService {
       });
     }
 
-    const hasDocs = Boolean(customer.profile?.ktpUrl || customer.profile?.selfieUrl);
-    const verificationStatus =
-      customer.profile?.ktpUrl && customer.profile?.selfieUrl
-        ? ('APPROVED' as const)
-        : hasDocs
-          ? ('PENDING' as const)
-          : ('ACTION_REQUIRED' as const);
+    const verificationStatus = isApproved
+      ? ('APPROVED' as const)
+      : hasDocs
+        ? ('PENDING' as const)
+        : ('ACTION_REQUIRED' as const);
 
     return {
       id: customer.id,

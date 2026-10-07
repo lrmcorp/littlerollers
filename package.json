@@ -61,6 +61,7 @@
     "db:seed:volume": "SEED_PROFILE=volume node --env-file=.env --import ./apps/api/node_modules/tsx/dist/loader.mjs apps/api/prisma/seed.ts",
     "db:seed:audit": "node --env-file=.env --import ./apps/api/node_modules/tsx/dist/loader.mjs apps/api/prisma/seed-audit.ts",
     "db:seed:cleanup": "node --env-file=.env --import ./apps/api/node_modules/tsx/dist/loader.mjs apps/api/prisma/seed-audit.ts --deactivate-residual",
+    "db:cleanup:uat": "TSX_TSCONFIG_PATH=apps/api/tsconfig.json NODE_PATH=./apps/api/node_modules node --env-file=.env --import ./apps/api/node_modules/tsx/dist/loader.mjs tools/cleanup-uat-dummy-data.ts",
     "db:packages:audit": "node --env-file=.env --import ./apps/api/node_modules/tsx/dist/loader.mjs apps/api/prisma/package-integrity.ts",
     "db:packages:repair": "node --env-file=.env --import ./apps/api/node_modules/tsx/dist/loader.mjs apps/api/prisma/package-integrity.ts --repair",
     "auth:readiness": "node --env-file=.env --import ./apps/api/node_modules/tsx/dist/loader.mjs apps/api/prisma/auth-readiness.ts",

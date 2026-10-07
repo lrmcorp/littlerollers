@@ -101,21 +101,30 @@ export class IdentityReviewQueryService {
       andConditions.push({ createdAt: { lte: new Date(filters.until) } });
     }
 
-    if (filters.status) {
-      const upperStatus = filters.status.toUpperCase();
-      if (upperStatus === 'PENDING') {
+    const effectiveStatus = filters.status
+      ? filters.status.toUpperCase()
+      : filters.customerUserId
+        ? undefined
+        : 'PENDING';
+
+    if (effectiveStatus && effectiveStatus !== 'ALL') {
+      if (effectiveStatus === 'PENDING') {
         // Dalam antrean: memiliki dokumen yang belum disetujui (atau parsial)
         andConditions.push({
           profile: {
             OR: [
-              { ktpUrl: { not: null }, notes: { not: { contains: 'KYC_APPROVED' } } },
-              { selfieUrl: { not: null }, notes: { not: { contains: 'KYC_APPROVED' } } },
-              { ktpUrl: { not: null }, selfieUrl: null },
-              { ktpUrl: null, selfieUrl: { not: null } },
+              {
+                ktpUrl: { not: null },
+                OR: [{ notes: null }, { notes: { not: { contains: 'KYC_APPROVED' } } }],
+              },
+              {
+                selfieUrl: { not: null },
+                OR: [{ notes: null }, { notes: { not: { contains: 'KYC_APPROVED' } } }],
+              },
             ],
           },
         });
-      } else if (upperStatus === 'APPROVED') {
+      } else if (effectiveStatus === 'APPROVED') {
         // Disetujui: kedua dokumen (KTP & Selfie) lengkap dan KYC_APPROVED
         andConditions.push({
           profile: {
@@ -124,7 +133,7 @@ export class IdentityReviewQueryService {
             notes: { contains: 'KYC_APPROVED' },
           },
         });
-      } else if (upperStatus === 'ACTION_REQUIRED') {
+      } else if (effectiveStatus === 'ACTION_REQUIRED') {
         // Belum mengunggah dokumen apapun
         andConditions.push({
           OR: [
@@ -132,7 +141,7 @@ export class IdentityReviewQueryService {
             { profile: { ktpUrl: null, selfieUrl: null } },
           ],
         });
-      } else if (upperStatus === 'REJECTED' || upperStatus === 'DELETE_FAILED') {
+      } else if (effectiveStatus === 'REJECTED' || effectiveStatus === 'DELETE_FAILED') {
         andConditions.push({ id: '__none__' });
       }
     }

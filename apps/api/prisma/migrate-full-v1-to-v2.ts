@@ -624,7 +624,7 @@ async function main() {
         ? new Date(op.expired_date)
         : new Date(createdAt.getTime() + 90 * 86400000);
 
-    let cpStatus = CustomerPackageStatus.ACTIVE;
+    let cpStatus: CustomerPackageStatus = CustomerPackageStatus.ACTIVE;
     if (remainingSessions <= 0) cpStatus = CustomerPackageStatus.DEPLETED;
     else if (validUntilDate < new Date()) cpStatus = CustomerPackageStatus.EXPIRED;
     else if (op.is_active === 0) cpStatus = CustomerPackageStatus.FROZEN;
@@ -738,7 +738,7 @@ async function main() {
     const startAt = parseStartAt(ka.tanggal, ka.jam_mulai);
     const endAt = new Date(startAt.getTime() + 50 * 60 * 1000);
 
-    let status = ClassSlotStatus.PUBLISHED;
+    let status: ClassSlotStatus = ClassSlotStatus.PUBLISHED;
     if (ka.deleted_at || !ka.id_location_studio) status = ClassSlotStatus.CANCELLED;
     else if (ka.status === 2) status = ClassSlotStatus.COMPLETED;
     else if (ka.status === 1) status = ClassSlotStatus.CONFIRMED;
@@ -762,15 +762,18 @@ async function main() {
   }
 
   // Daftarkan penugasan instruktur unik
-  const assignRows = Array.from(instructorAssignments).map((pair) => {
+  const assignRows: any[] = [];
+  for (const pair of instructorAssignments) {
     const [coachId, branchId] = pair.split('|');
-    return {
-      id: randomUUID(),
-      coachId,
-      branchId,
-      active: true,
-    };
-  });
+    if (coachId && branchId) {
+      assignRows.push({
+        id: randomUUID(),
+        coachId,
+        branchId,
+        active: true,
+      });
+    }
+  }
   await prisma.penugasanInstruktur.createMany({ data: assignRows, skipDuplicates: true });
   console.log(`   ✓ Terdaftar ${assignRows.length} penugasan instruktur cabang.`);
 
@@ -822,12 +825,12 @@ async function main() {
     let matchedCpId: string;
     if (userPackages && userPackages.length > 0) {
       const match = userPackages.find((cp) => cp.validFrom <= createdAt && cp.validUntil >= createdAt);
-      matchedCpId = match ? match.id : userPackages[0].id;
+      matchedCpId = match ? match.id : userPackages[0]!.id;
     } else {
       matchedCpId = `50000000-0000-4000-9000-${uUuid.slice(-12)}`;
     }
 
-    let status = BookingStatus.BOOKED;
+    let status: BookingStatus = BookingStatus.BOOKED;
     if (bk.deleted_at) {
       status = BookingStatus.CANCELLED;
     } else if (bk.status_kehadiran === 1) {

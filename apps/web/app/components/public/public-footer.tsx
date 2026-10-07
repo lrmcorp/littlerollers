@@ -18,6 +18,13 @@ const footerLinks = [
       { href: '/contact', label: 'Hubungi Kami' },
     ],
   },
+  {
+    label: 'Legal & Privasi',
+    links: [
+      { href: '/terms', label: 'Syarat & Ketentuan' },
+      { href: '/privacy', label: 'Kebijakan Privasi' },
+    ],
+  },
 ];
 
 export function PublicFooter() {
@@ -69,7 +76,7 @@ export function PublicFooter() {
                 <span>Jakarta, Tangerang &amp; Surabaya</span>
               </p>
               <a
-                href="https://wa.me/6281234567890"
+                href={`https://wa.me/${process.env.NEXT_PUBLIC_OFFICIAL_WHATSAPP || '62895329736127'}`}
                 className="flex items-center gap-1.5 text-white/65 no-underline transition hover:text-white"
                 target="_blank"
                 rel="noreferrer"

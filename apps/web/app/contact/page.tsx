@@ -64,22 +64,20 @@ export default function ContactPage() {
                 <div className="mt-5 flex flex-col gap-2.5 sm:flex-row sm:items-center">
                   <a
                     className="inline-flex items-center justify-center gap-2 rounded-dd-md bg-[#1f8f5f] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#18754e] shadow-sm"
-                    href="https://wa.me/6281234567890?text=Halo%20Daily%20Dose%20Pilates,%20saya%20ingin%20bertanya%20seputar%20kelas%20dan%20paket%20studio"
+                    href={`https://wa.me/${process.env.NEXT_PUBLIC_OFFICIAL_WHATSAPP || '62895329736127'}?text=Halo%20Daily%20Dose%20Pilates,%20saya%20ingin%20bertanya%20seputar%20kelas%20dan%20paket%20studio`}
                     target="_blank"
                     rel="noopener noreferrer"
                   >
                     <MessageCircle className="size-4" />
                     <span>Chat WhatsApp CS</span>
                   </a>
-                  <a
+                  <Link
                     className="inline-flex items-center gap-1.5 font-bold text-dd-forest hover:underline text-sm"
-                    href="https://dailydosepilates.com/contact-us"
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    href="/locations"
                   >
-                    <span>Buka kontak resmi</span>
-                    <ExternalLink className="size-3.5" />
-                  </a>
+                    <span>Lihat kontak per studio</span>
+                    <ArrowRight className="size-3.5" />
+                  </Link>
                 </div>
               </article>
             </div>

@@ -8,8 +8,10 @@ import type { PublicClassCatalogClient } from '@/api-clients/public-class-catalo
 const branch = { id: 'branch-1', code: 'GG', name: 'Green Garden', timezone: 'Asia/Jakarta' };
 
 describe('public class catalog', () => {
-  // Pilihan studio ditulis ke URL (history.replaceState) dan bocor antar test bila tidak direset.
-  beforeEach(() => window.history.replaceState(null, '', '/'));
+  beforeEach(() => {
+    window.history.replaceState(null, '', '/');
+    window.localStorage.clear();
+  });
 
   it('requires an explicit studio and renders authoritative availability accessibly', async () => {
     const client: PublicClassCatalogClient = {
@@ -41,8 +43,8 @@ describe('public class catalog', () => {
     await userEvent.click(screen.getByRole('combobox', { name: /Studio/ }));
     await userEvent.click(await screen.findByRole('option', { name: /Green Garden/ }));
     expect(await screen.findByRole('heading', { name: 'Private Class' })).toBeVisible();
-    expect(screen.getByText('2/4 tempat')).toBeVisible();
-    expect(screen.getByRole('link', { name: 'Lanjutkan booking' })).toHaveAttribute(
+    expect(screen.getByText('Sisa 2 tempat')).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Masuk untuk booking' })).toHaveAttribute(
       'href',
       '/sign-in?returnTo=%2Fbookings%2Fnew%3Fslot%3Dslot-1',
     );
@@ -82,7 +84,7 @@ describe('public class catalog', () => {
     await userEvent.click(await screen.findByRole('option', { name: /Green Garden/ }));
     await screen.findAllByRole('heading', { name: 'Private Class' });
 
-    const enabled = screen.getAllByRole('link', { name: 'Lanjutkan booking' });
+    const enabled = screen.getAllByRole('link', { name: 'Masuk untuk booking' });
     expect(enabled).toHaveLength(1);
     expect(enabled[0]).toHaveAttribute('href', expect.stringContaining('slot-open'));
 
@@ -102,4 +104,46 @@ describe('public class catalog', () => {
     render(<PublicClassesView client={client} />);
     expect(await screen.findByRole('alert')).toHaveTextContent('Jadwal sedang tidak tersedia');
   });
+
+  it('supports quick studio selection, remembers choice in localStorage, and shows 14-day calendar navigation', async () => {
+    const client: PublicClassCatalogClient = {
+      list: vi
+        .fn()
+        .mockResolvedValueOnce({ branches: [branch], items: [], range: { from: '', until: '' } })
+        .mockResolvedValueOnce({
+          branches: [branch],
+          range: { from: '2026-07-25T00:00:00.000Z', until: '2026-08-08T00:00:00.000Z' },
+          items: [
+            {
+              id: 'slot-1',
+              branchId: branch.id,
+              classType: { id: 'type-1', code: 'REFORMER', name: 'Reformer Flow' },
+              startAt: '2026-07-25T03:00:00.000Z',
+              endAt: '2026-07-25T03:50:00.000Z',
+              timezone: branch.timezone,
+              status: 'PUBLISHED',
+              capacity: 4,
+              available: 3,
+              canBook: true,
+            },
+          ],
+        }),
+    };
+
+    render(<PublicClassesView client={client} />);
+    expect(await screen.findByText('Pilih studio untuk melihat kelas')).toBeInTheDocument();
+
+    // Select studio using Quick Button (UAT #23)
+    const quickStudioBtn = await screen.findByRole('button', { name: /Green Garden/ });
+    await userEvent.click(quickStudioBtn);
+
+    // Schedule loads
+    expect(await screen.findByRole('heading', { name: 'Reformer Flow' })).toBeVisible();
+    expect(window.localStorage.getItem('dd_last_selected_branch')).toBe('branch-1');
+
+    // 14-Day Calendar is rendered
+    expect(screen.getByText('Jadwal 14 Hari ke Depan')).toBeVisible();
+    expect(screen.getByRole('button', { name: /Semua/ })).toBeVisible();
+  });
 });
+

@@ -25,6 +25,8 @@ import {
   Users,
 } from 'lucide-react';
 import { publicContainer } from '../components/public/public-styles';
+import { useSessionContext } from '../session-context';
+import { isCustomerOnlySession } from '../lib/session-audience';
 
 type RoleKey = 'customer' | 'frontdesk' | 'finance' | 'owner';
 
@@ -111,13 +113,13 @@ const roleGuides: Record<
         title: '2. Membeli Paket Kelas Pilates',
         badge: 'Pembelian',
         description:
-          'Beli paket sesi sesuai kebutuhan studio latihan Anda (Jakarta Studio atau BSD Studio).',
+          'Beli paket sesi sesuai kebutuhan studio latihan Anda (Jakarta, Tangerang, atau Surabaya).',
         steps: [
           {
             number: 1,
             title: 'Pilih Lokasi & Paket',
             description:
-              'Kunjungi menu "Paket & Harga" (/packages). Pilih lokasi studio (Jakarta atau BSD) lalu tentukan paket sesi (misal: 10 Sesi Reformer).',
+              'Kunjungi menu "Paket" (/packages). Pilih lokasi studio lalu tentukan paket sesi (misal: 10 Sesi Reformer).',
           },
           {
             number: 2,
@@ -416,7 +418,7 @@ const roleGuides: Record<
         title: '1. Executive Multi-Branch Command Center',
         badge: 'Pengawasan Bisnis',
         description:
-          'Melihat metrik performa seluruh cabang studio (Jakarta & BSD) dalam satu tampilan komprehensif.',
+          'Melihat metrik performa seluruh cabang studio (Jakarta, Tangerang & Surabaya) dalam satu tampilan komprehensif.',
         steps: [
           {
             number: 1,
@@ -495,10 +497,12 @@ const roleGuides: Record<
 };
 
 export function GuideView() {
+  const session = useSessionContext()?.session;
+  const isStaff = Boolean(session && !isCustomerOnlySession(session));
   const [activeRole, setActiveRole] = useState<RoleKey>('customer');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const currentGuide = roleGuides[activeRole];
+  const currentGuide = roleGuides[activeRole] ?? roleGuides.customer;
 
   const filteredSections = currentGuide.sections.filter(
     (sec) =>
@@ -506,6 +510,17 @@ export function GuideView() {
       sec.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
       sec.steps.some((st) => st.title.toLowerCase().includes(searchQuery.toLowerCase())),
   );
+
+  const availableTabs = [
+    { key: 'customer' as const, label: '1. Pelanggan / Member', icon: UserCheck },
+    ...(isStaff
+      ? [
+          { key: 'frontdesk' as const, label: '2. Front Desk & Cabang', icon: ClipboardList },
+          { key: 'finance' as const, label: '3. Finance & Kasir', icon: Receipt },
+          { key: 'owner' as const, label: '4. Super Owner & Eksekutif', icon: LayoutDashboard },
+        ]
+      : []),
+  ];
 
   return (
     <main className="min-h-screen bg-dd-cream font-sans text-dd-ink">
@@ -529,8 +544,9 @@ export function GuideView() {
             Panduan Penggunaan Aplikasi Daily Dose
           </h1>
           <p className="mt-2 max-w-2xl text-base text-dd-muted">
-            Tata cara operasional lengkap langkah-demi-langkah beserta pratinjau antarmuka untuk
-            Pelanggan, Front Desk, Tim Finance, dan Super Owner.
+            {isStaff
+              ? 'Tata cara operasional lengkap langkah-demi-langkah beserta pratinjau antarmuka untuk Pelanggan, Front Desk, Tim Finance, dan Super Owner.'
+              : 'Tata cara penggunaan aplikasi langkah-demi-langkah mulai dari pendaftaran, pembelian paket, pemesanan jadwal kelas, hingga check-in di studio.'}
           </p>
 
           {/* Search Box */}
@@ -550,44 +566,39 @@ export function GuideView() {
       </header>
 
       {/* Role Switcher Tabs */}
-      <nav
-        aria-label="Pilih Peran Pengguna"
-        className="border-b border-dd-line bg-white/80 sticky top-0 z-20 backdrop-blur-md"
-      >
-        <div className={publicContainer}>
-          <div className="flex space-x-2 overflow-x-auto py-3">
-            {(
-              [
-                { key: 'customer', label: '1. Pelanggan / Member', icon: UserCheck },
-                { key: 'frontdesk', label: '2. Front Desk & Cabang', icon: ClipboardList },
-                { key: 'finance', label: '3. Finance & Kasir', icon: Receipt },
-                { key: 'owner', label: '4. Super Owner & Eksekutif', icon: LayoutDashboard },
-              ] as const
-            ).map((tab) => {
-              const Icon = tab.icon;
-              const active = activeRole === tab.key;
-              return (
-                <button
-                  key={tab.key}
-                  type="button"
-                  onClick={() => {
-                    setActiveRole(tab.key);
-                    setSearchQuery('');
-                  }}
-                  className={`flex shrink-0 items-center gap-2 rounded-dd-sm px-4 py-2.5 text-xs font-bold transition ${
-                    active
-                      ? 'bg-dd-forest text-white shadow-dd-soft'
-                      : 'bg-transparent text-dd-muted hover:bg-dd-surface-muted hover:text-dd-ink'
-                  }`}
-                >
-                  <Icon className="size-4" />
-                  {tab.label}
-                </button>
-              );
-            })}
+      {availableTabs.length > 1 && (
+        <nav
+          aria-label="Pilih Peran Pengguna"
+          className="border-b border-dd-line bg-white/80 sticky top-0 z-20 backdrop-blur-md"
+        >
+          <div className={publicContainer}>
+            <div className="flex space-x-2 overflow-x-auto py-3">
+              {availableTabs.map((tab) => {
+                const Icon = tab.icon;
+                const active = activeRole === tab.key;
+                return (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    onClick={() => {
+                      setActiveRole(tab.key);
+                      setSearchQuery('');
+                    }}
+                    className={`flex shrink-0 items-center gap-2 rounded-dd-sm px-4 py-2.5 text-xs font-bold transition ${
+                      active
+                        ? 'bg-dd-forest text-white shadow-dd-soft'
+                        : 'bg-transparent text-dd-muted hover:bg-dd-surface-muted hover:text-dd-ink'
+                    }`}
+                  >
+                    <Icon className="size-4" />
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      </nav>
+        </nav>
+      )}
 
       {/* Content Area */}
       <section className={`${publicContainer} py-10`}>

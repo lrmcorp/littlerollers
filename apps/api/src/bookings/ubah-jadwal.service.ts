@@ -361,6 +361,25 @@ export class ReschedulesService {
         const newStatus: RescheduleStatus = decision === 'approve' ? 'APPROVED' : 'REJECTED';
 
         if (decision === 'approve') {
+          const targetSlot = await tx.slotKelas.findUnique({
+            where: { id: reschedule.targetSlotId },
+            select: { id: true, bookedCount: true, capacity: true },
+          });
+          if (!targetSlot || targetSlot.bookedCount >= targetSlot.capacity) {
+            throw new ApiProblem('CLASS_CAPACITY_FULL', HttpStatus.CONFLICT);
+          }
+
+          const duplicate = await tx.pemesananKelas.findFirst({
+            where: {
+              userId: reschedule.booking.userId,
+              classSlotId: reschedule.targetSlotId,
+              status: 'BOOKED',
+            },
+          });
+          if (duplicate) {
+            throw new ApiProblem('DUPLICATE_ACTIVE_BOOKING', HttpStatus.CONFLICT);
+          }
+
           // Pindahkan booking ke targetSlot
           await tx.pemesananKelas.update({
             where: { id: reschedule.bookingId },

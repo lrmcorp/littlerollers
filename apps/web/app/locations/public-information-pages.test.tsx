@@ -57,7 +57,9 @@ describe('public information pages', () => {
     });
     const view = render(<LocationsPage />);
     expect(await screen.findByRole('heading', { name: 'Daily Dose Green Garden' })).toBeVisible();
-    expect(await screen.findByRole('heading', { name: 'Daily Dose Graha Family Surabaya' })).toBeVisible();
+    expect(
+      await screen.findByRole('heading', { name: 'Daily Dose Graha Family Surabaya' }),
+    ).toBeVisible();
     expect(screen.getByText(/Alamat lengkap, jam operasional/)).toBeVisible();
     expect(screen.getAllByRole('link', { name: /Lihat Jadwal/ }).length).toBeGreaterThanOrEqual(3);
     expect((await axe(view.container)).violations).toHaveLength(0);
@@ -66,9 +68,13 @@ describe('public information pages', () => {
   it('routes support through the official contact channel without collecting PII', async () => {
     const view = render(<ContactPage />);
     expect(screen.getByRole('heading', { name: 'Ada yang ingin Anda tanyakan?' })).toBeVisible();
-    expect(screen.getByRole('link', { name: /Buka kontak resmi/ })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /Chat WhatsApp CS/ })).toHaveAttribute(
       'href',
-      'https://dailydosepilates.com/contact-us',
+      expect.stringContaining('https://wa.me/'),
+    );
+    expect(screen.getByRole('link', { name: /Lihat kontak per studio/ })).toHaveAttribute(
+      'href',
+      '/locations',
     );
     expect(screen.getByText(/tidak meminta atau menyimpan data pribadi/)).toBeVisible();
     expect((await axe(view.container)).violations).toHaveLength(0);

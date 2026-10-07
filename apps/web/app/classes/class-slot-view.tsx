@@ -291,8 +291,20 @@ export function ClassSlotView({
             {branchName(slot.branchId, slot)}
           </div>
         )}
-        <div className="mt-1 pt-1.5 border-t border-dd-line/60 text-[11px] text-dd-muted flex items-center justify-between">
-          <span>{slot.bookedCount}/{slot.capacity} terisi</span>
+        <div className={`mt-1 pt-1.5 border-t border-dd-line/60 text-[11px] flex items-center justify-between ${
+          slot.bookedCount > slot.capacity
+            ? 'text-red-700 font-semibold'
+            : slot.bookedCount >= slot.capacity
+              ? 'text-amber-700 font-medium'
+              : 'text-dd-muted'
+        }`}>
+          {slot.bookedCount > slot.capacity ? (
+            <span className="rounded bg-red-100 text-red-700 px-1 py-0.5 font-bold inline-flex items-center gap-0.5">
+              <span>⚠️</span> {slot.bookedCount}/{slot.capacity} lewat kapasitas
+            </span>
+          ) : (
+            <span>{slot.bookedCount}/{slot.capacity} terisi</span>
+          )}
           <span>min. {slot.minimumQuota}</span>
         </div>
       </button>

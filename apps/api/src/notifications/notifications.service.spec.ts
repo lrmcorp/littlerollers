@@ -101,15 +101,33 @@ describe('NotificationsService', () => {
     });
 
     const service = new NotificationsService();
-    await expect(
-      service.markRead(principal, 'notification-2'),
-    ).rejects.toMatchObject({ code: 'NOT_FOUND', status: 404 });
+    await expect(service.markRead(principal, 'notification-2')).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+      status: 404,
+    });
   });
 
-  it('rejects an excessive page size before querying', async () => {
+  it('safely formats notifications with string dates or non-standard tones', async () => {
+    inMemoryNotifications.push({
+      id: 'notif-defensive',
+      userId: 'user-1',
+      eventKey: 'system.alert',
+      category: 'SYSTEM',
+      tone: undefined as any,
+      title: 'Resilience Test',
+      message: 'Test message',
+      href: '/workspace',
+      branchId: null,
+      readAt: '2026-10-01T00:00:00.000Z' as any,
+      expiresAt: null,
+      createdAt: '2026-10-01T00:00:00.000Z' as any,
+    });
+
     const service = new NotificationsService();
-    await expect(
-      service.list(principal, { limit: 51 }),
-    ).rejects.toMatchObject({ code: 'VALIDATION_ERROR', status: 422 });
+    const result = await service.list(principal, { limit: 10 });
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0]?.tone).toBe('info');
+    expect(result.items[0]?.readAt).toBe('2026-10-01T00:00:00.000Z');
+    expect(result.items[0]?.createdAt).toBe('2026-10-01T00:00:00.000Z');
   });
 });

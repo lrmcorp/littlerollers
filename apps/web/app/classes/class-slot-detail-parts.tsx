@@ -64,10 +64,17 @@ export function CapacityMeter({
   capacity: number;
   minimum: number;
 }) {
+  const isOvercapacity = booked > capacity;
+  const isFull = booked >= capacity;
   const percent = capacity > 0 ? Math.min(100, Math.round((booked / capacity) * 100)) : 0;
   return (
     <div className="grid gap-1.5">
-      <span>
+      <span className={isOvercapacity ? 'font-semibold text-red-600 flex items-center gap-1.5' : ''}>
+        {isOvercapacity && (
+          <span className="rounded bg-red-100 text-red-700 text-xs px-1.5 py-0.5 font-bold">
+            LEWAT KAPASITAS
+          </span>
+        )}
         {booked} dari {capacity} terisi
         <span className="font-normal text-dd-muted"> · minimum {minimum}</span>
       </span>
@@ -79,7 +86,10 @@ export function CapacityMeter({
         aria-valuenow={Math.min(booked, capacity)}
         className="h-1.5 overflow-hidden rounded-full bg-dd-line"
       >
-        <div className="h-full rounded-full bg-dd-forest" style={{ width: `${percent}%` }} />
+        <div
+          className={`h-full rounded-full ${isOvercapacity ? 'bg-red-600' : isFull ? 'bg-amber-600' : 'bg-dd-forest'}`}
+          style={{ width: `${percent}%` }}
+        />
       </div>
     </div>
   );

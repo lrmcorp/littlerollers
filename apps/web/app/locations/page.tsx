@@ -3,7 +3,7 @@ import { LocationsView } from './locations-view';
 
 export const metadata: Metadata = {
   title: 'Our Studios',
-  description: 'Temukan studio Daily Dose Pilates aktif di Jakarta dan BSD.',
+  description: 'Temukan studio Daily Dose Pilates aktif di Jakarta, Tangerang & Surabaya.',
 };
 
 export default function LocationsPage() {
