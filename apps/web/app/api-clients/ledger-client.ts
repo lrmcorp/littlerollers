@@ -373,51 +373,85 @@ export const browserLedgerClient: LedgerClient = {
   },
 };
 
-export async function ledgerFailure(error: unknown) {
+export async function ledgerFailure(error: unknown): Promise<string> {
   notifySessionFailure(error);
-  const typed = error as { response?: Response & { status?: number }; message?: string };
-  const status = typed.response?.status;
-  const known = [
-    'PENDING_ADJUSTMENT_EXISTS',
-    'SEPARATION_OF_DUTIES_VIOLATION',
-    'ADJUSTMENT_ALREADY_DECIDED',
-    'STALE_VERSION',
-    'IDEMPOTENCY_KEY_REUSED',
-    'LEDGER_INVARIANT_VIOLATION',
-    'CONFIGURATION_REQUIRED',
-    'CONFLICT',
-  ];
-  let responseCode: string | undefined;
-  if (typed.response?.clone) {
+  const typed = error as {
+    status?: number;
+    message?: string;
+    data?: {
+      code?: string;
+      error?: { code?: string };
+      message?: string;
+      title?: string;
+      detail?: string;
+    };
+    response?: Response & { status?: number };
+  };
+
+  const status = typed?.status ?? typed?.response?.status;
+  let responseCode =
+    typed?.data?.code ??
+    typed?.data?.error?.code ??
+    (typeof typed?.data?.message === 'string' ? typed.data.message : undefined);
+
+  if (!responseCode && typed?.response?.clone) {
     const body = (await typed.response
       .clone()
       .json()
-      .catch(() => undefined)) as { code?: string; error?: { code?: string } } | undefined;
-    responseCode = body?.error?.code ?? body?.code;
+      .catch(() => undefined)) as { code?: string; error?: { code?: string }; message?: string } | undefined;
+    responseCode = body?.error?.code ?? body?.code ?? body?.message;
   }
-  const fromMessage = known.find((code) => responseCode === code || typed.message?.includes(code));
+
   const messages: Record<string, string> = {
+    ADJUSTMENT_ALREADY_PENDING:
+      'Paket ini sudah memiliki penyesuaian yang menunggu keputusan. Buka antrean sebelum membuat permintaan baru.',
     PENDING_ADJUSTMENT_EXISTS:
       'Paket ini sudah memiliki penyesuaian yang menunggu keputusan. Buka antrean sebelum membuat permintaan baru.',
-    SEPARATION_OF_DUTIES_VIOLATION:
-      'Permintaan harus diputuskan oleh Manager atau Super Admin yang berbeda dari staf yang mengajukan.',
-    ADJUSTMENT_ALREADY_DECIDED:
-      'Permintaan sudah diputuskan. Muat ulang antrean untuk melihat hasil terbaru.',
-    STALE_VERSION: 'Data penyesuaian telah berubah. Perbarui data sebelum mengambil keputusan.',
-    IDEMPOTENCY_KEY_REUSED:
-      'Isi permintaan berubah setelah konfirmasi. Tinjau ulang sebelum mengirim.',
+    INSUFFICIENT_SESSION_BALANCE:
+      'Pengurangan sesi tidak dapat diproses karena melebihi saldo tersedia atau masih ada sesi yang tertahan (direservasi).',
     LEDGER_INVARIANT_VIOLATION:
       'Perubahan akan membuat saldo tidak cukup untuk sesi yang masih tertahan (direservasi).',
-    CONFIGURATION_REQUIRED: 'Penyesuaian sesi sementara tidak tersedia. Saldo tetap dapat dilihat.',
+    SEPARATION_OF_DUTIES:
+      'Permintaan harus diputuskan oleh Manager atau Super Admin yang berbeda dari staf yang mengajukan (Maker-Checker).',
+    SEPARATION_OF_DUTIES_VIOLATION:
+      'Permintaan harus diputuskan oleh Manager atau Super Admin yang berbeda dari staf yang mengajukan (Maker-Checker).',
+    ADJUSTMENT_VERSION_CONFLICT:
+      'Data penyesuaian telah berubah atau baru saja diputuskan oleh pengguna lain. Perbarui antrean sebelum mencoba lagi.',
+    STALE_VERSION:
+      'Data penyesuaian telah berubah. Perbarui data sebelum mengambil keputusan.',
+    ADJUSTMENT_ALREADY_DECIDED:
+      'Permintaan sudah diputuskan. Muat ulang antrean untuk melihat hasil terbaru.',
+    IDEMPOTENCY_KEY_REUSED:
+      'Isi permintaan berubah setelah konfirmasi. Tinjau ulang sebelum mengirim.',
+    CONFIGURATION_REQUIRED:
+      'Penyesuaian sesi sementara tidak tersedia. Saldo tetap dapat dilihat.',
     CONFLICT: 'Data berubah. Perbarui saldo dan antrean sebelum mencoba lagi.',
   };
-  if (fromMessage) return messages[fromMessage] ?? fromMessage;
+
+  if (responseCode && messages[responseCode]) {
+    return messages[responseCode]!;
+  }
+
+  if (typed?.message) {
+    const matchedKey = Object.keys(messages).find((code) => typed.message?.includes(code));
+    if (matchedKey && messages[matchedKey]) {
+      return messages[matchedKey]!;
+    }
+  }
+
   if (status === 409) return messages.CONFLICT!;
   if (status === 404) return 'Data tidak ditemukan atau berada di luar cakupan cabang Anda.';
   if (status === 403) return 'Anda tidak memiliki hak akses atau cakupan cabang yang diperlukan.';
   if (status === 401) return 'Sesi Anda telah berakhir. Silakan masuk kembali.';
-  if (status === 422 || status === 400)
-    return 'Data belum valid. Periksa pilihan paket, jumlah sesi, dan alasan.';
+  if (status === 422 || status === 400) {
+    const customMsg =
+      typeof typed?.data?.message === 'string' &&
+      !Object.keys(messages).includes(typed.data.message)
+        ? typed.data.message
+        : undefined;
+    return customMsg || 'Data belum valid. Periksa pilihan paket, jumlah sesi, dan alasan.';
+  }
+
   return 'Layanan belum dapat dijangkau. Coba kembali dengan permintaan yang sama.';
 }
 

@@ -203,7 +203,13 @@ export function SessionAdjustmentDetailView({ id }: { id: string }) {
               {Boolean(item.requestedBy?.id && session?.session?.id && item.requestedBy.id === session.session.id) && (
                 <div className="rounded-dd-md border border-dd-warning/30 bg-dd-warning-soft p-3 text-xs text-dd-warning mb-2">
                   <strong className="block font-semibold">Pemisahan Tugas (Maker-Checker):</strong>
-                  Anda mengajukan permohonan ini. Sesuai aturan pemisahan tugas, persetujuan harus dilakukan oleh staf/manager lain.
+                  Anda mengajukan permohonan ini. Sesuai aturan pemisahan tugas, persetujuan harus dilakukan oleh staf atau manajer lain.
+                </div>
+              )}
+              {item.status === 'PENDING' && item.eligibleForApproval === false && (
+                <div className="rounded-dd-md border border-dd-danger/30 bg-dd-danger-soft p-3 text-xs text-dd-danger mb-2">
+                  <strong className="block font-semibold">Tidak Dapat Disetujui:</strong>
+                  Saldo paket saat ini tidak mencukupi untuk pengurangan sesi yang diminta (atau masih ada sesi yang tertahan/direservasi).
                 </div>
               )}
               <Button

@@ -155,10 +155,22 @@ export class LedgerService {
           : []),
       ],
     };
-    const where: Prisma.PaketPelangganWhereInput =
-      filters.status && filters.status !== 'ALL'
-        ? { AND: [base, { status: filters.status as never }] }
-        : base;
+    const statusTokens = filters.status
+      ? filters.status
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean)
+      : [];
+    const statusWhere: Prisma.PaketPelangganWhereInput | undefined =
+      statusTokens.length > 0 && !statusTokens.includes('ALL')
+        ? statusTokens.length === 1
+          ? { status: statusTokens[0] as never }
+          : { status: { in: statusTokens as never[] } }
+        : undefined;
+
+    const where: Prisma.PaketPelangganWhereInput = statusWhere
+      ? { AND: [base, statusWhere] }
+      : base;
 
     const limit = filters.pageSize ? Math.min(Number(filters.pageSize), 100) : PAGE_SIZE;
     const pageNumber = filters.page && Number(filters.page) > 0 ? Number(filters.page) : undefined;

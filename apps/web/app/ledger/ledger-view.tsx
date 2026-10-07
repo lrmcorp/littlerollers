@@ -89,6 +89,13 @@ function date(value: Date | string | null | undefined, withTime = false) {
   }).format(parsed);
 }
 
+function safeIsoDate(value?: string | null, endOfDay = false): string | undefined {
+  if (!value || !value.trim()) return undefined;
+  const suffix = endOfDay ? 'T23:59:59.999' : 'T00:00:00.000';
+  const parsed = new Date(`${value.trim()}${suffix}`);
+  return Number.isNaN(parsed.getTime()) ? undefined : parsed.toISOString();
+}
+
 function BalanceValues({ item }: { item: LedgerBalance }) {
   return (
     <div className="grid grid-cols-3 gap-2 text-center">
@@ -292,12 +299,8 @@ export function LedgerView({
         activeAdjustmentCursor || undefined,
         appliedAdjustmentSearch || undefined,
         customerUserId,
-        appliedAdjustmentFrom
-          ? new Date(`${appliedAdjustmentFrom}T00:00:00`).toISOString()
-          : undefined,
-        appliedAdjustmentUntil
-          ? new Date(`${appliedAdjustmentUntil}T00:00:00`).toISOString()
-          : undefined,
+        safeIsoDate(appliedAdjustmentFrom),
+        safeIsoDate(appliedAdjustmentUntil, true),
         undefined,
         adjustmentPage,
         20,
@@ -370,11 +373,11 @@ export function LedgerView({
 
   const searchPackages = useCallback(
     async (query: string) => {
-      const result = await client.list(branchId || undefined, undefined, query, 'ACTIVE');
+      const result = await client.list(branchId || undefined, undefined, query, 'ACTIVE,DEPLETED');
       return result.items.map((item) => ({
         ...item,
         label: `${item.customer?.displayName ?? 'Pelanggan'} · ${item.packageName ?? 'Paket'}`,
-        description: `${item.branchName ?? 'Cabang'} · tersedia ${item.available} sesi · berakhir ${date(item.expiryAt)}`,
+        description: `${item.branchName ?? 'Cabang'} · ${item.status === 'DEPLETED' || item.available <= 0 ? 'saldo 0 sesi (habis)' : `tersedia ${item.available} sesi`} · berakhir ${date(item.expiryAt)}`,
       }));
     },
     [branchId, client],
@@ -484,7 +487,11 @@ export function LedgerView({
       setSelectedPackage(undefined);
       setQuantity('');
       setRequestOpen(false);
-      setAdjustmentMode(isDirect ? 'HISTORY' : 'PENDING');
+      const nextMode = isDirect ? 'HISTORY' : 'PENDING';
+      setAdjustmentMode(nextMode);
+      setActiveAdjustmentCursor('');
+      setAdjustmentPage(1);
+      onAdjustmentModeChange?.(nextMode);
       await refreshOperationalData();
       setMessage(
         isDirect
