@@ -536,7 +536,7 @@ async function main() {
       id: uuid,
       code: v.kode_voucher,
       name: v.nama,
-      discountType: isNominal ? 'NOMINAL' : 'PERCENT',
+      discountType: isNominal ? 'NOMINAL' : 'PERCENTAGE',
       discountValue: isNominal ? Number(v.disc_harga) : Number(v.disc_percent) || 0,
       imageKey: v.image || null,
       description: v.deskripsi || null,

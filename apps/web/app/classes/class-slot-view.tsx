@@ -123,7 +123,8 @@ export function ClassSlotView({
     } finally {
       setBusy(false);
     }
-  }, [branch, branches, canRead, client, displayTimezone, globalMode, statusFilter, week]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [branch?.id, branches.length, canRead, client, displayTimezone, globalMode, statusFilter, week?.start, week?.end]);
 
   useEffect(() => {
     setSlots([]);

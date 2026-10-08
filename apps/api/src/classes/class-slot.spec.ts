@@ -53,7 +53,7 @@ describe('ClassSlotService contract boundaries', () => {
   it('hides foreign branch list access', async () => {
     await expect(
       service.list(principal, { branchId: '00000000-0000-4000-8000-000000000099' }),
-    ).rejects.toMatchObject({ code: 'RESOURCE_NOT_FOUND' });
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' });
   });
   const customer = {
     ...principal,

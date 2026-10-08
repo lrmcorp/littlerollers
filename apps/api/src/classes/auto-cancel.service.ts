@@ -37,8 +37,8 @@ export class AutoCancelService {
    * Membatalkan kelas yang pesertanya kurang dari minQuota (Keputusan Bisnis #4 & #5).
    */
   async evaluateClasses(now = new Date()): Promise<AutoCancelEvaluationResult> {
-    if (process.env.ENABLE_AUTO_CANCEL === 'false') {
-      this.logger.log('AutoCancel evaluation explicitly disabled via ENABLE_AUTO_CANCEL=false');
+    if (process.env.ENABLE_AUTO_CANCEL !== 'true') {
+      this.logger.log('AutoCancel evaluation disabled (ENABLE_AUTO_CANCEL !== "true")');
       return {
         skipped: true,
         skippedReason: 'AUTO_CANCEL_DISABLED',
@@ -163,7 +163,7 @@ export class AutoCancelService {
                   amount: 0, // Saldo tidak terpotong di muka, dicatat untuk audit trail
                   balanceAfter: customerPkg.remainingSessions,
                   referenceId: booking.id,
-                  notes: `Auto-cancel kelas ${slot.classType.name} karena kuota tidak terpenuhi`,
+                  notes: `Auto-cancel kelas ${slot.classType.name} karena kuota tidak terpenuhi (kuota reservasi dilepas, saldo fisik utuh)`,
                 },
               });
             }

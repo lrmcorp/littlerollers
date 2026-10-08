@@ -701,7 +701,28 @@ export class CustomerOrderService {
     return this.attachOrderProof(p, orderId, input, correlationId);
   }
 
-  async ajukanPesanan(p: SessionPrincipal, input: any, key: string, correlationId: string) {
-    return this.submit(p, input, key, correlationId);
+  async expireStaleOrders(principal: SessionPrincipal, olderThanHours = 24) {
+    this.access.review(principal, true);
+    const cutoff = new Date(Date.now() - olderThanHours * 3600 * 1000);
+    const now = new Date();
+
+    const result = await this.db.pembelian.updateMany({
+      where: {
+        status: { in: ['PENDING', 'WAITING_VERIFICATION'] },
+        paymentProof: null,
+        OR: [
+          { paymentExpiresAt: { lt: now } },
+          { AND: [{ paymentExpiresAt: null }, { createdAt: { lt: cutoff } }] },
+        ],
+      },
+      data: {
+        status: 'CANCELLED',
+      },
+    });
+
+    return {
+      expiredCount: result.count,
+      executedAt: now.toISOString(),
+    };
   }
 }

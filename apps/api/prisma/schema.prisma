@@ -552,6 +552,7 @@ model PemesananKelas {
   userId             String        @db.Char(36)
   customerPackageId  String        @db.Char(36)
   status             BookingStatus @default(BOOKED)
+  source             String        @default("SELF") @db.VarChar(20)
   bookedAt           DateTime      @default(now())
   cancelledAt        DateTime?
   cancellationReason String?       @db.Text

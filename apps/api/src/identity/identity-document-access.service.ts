@@ -175,7 +175,10 @@ export class IdentityDocumentAccessService {
       throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
     }
 
-    if (auth.objectKey && this.storage) {
+    if (this.storage) {
+      if (!auth.objectKey) {
+        throw new ApiProblem('DOCUMENT_NOT_FOUND', HttpStatus.NOT_FOUND);
+      }
       try {
         const stream = await this.storage.read(auth.objectKey);
         const mimeType = auth.objectKey.endsWith('.png')
@@ -197,31 +200,15 @@ export class IdentityDocumentAccessService {
             return { mimeType, stream };
           } catch {}
         }
+        // File tidak ditemukan pada storage fisik — tolak akses secara eksplisit (P1 #4)
+        throw new ApiProblem('DOCUMENT_NOT_FOUND', HttpStatus.NOT_FOUND);
       }
     }
 
-    // High quality fallback vector preview representation
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="640" height="420" viewBox="0 0 640 420">
-      <defs>
-        <linearGradient id="cardBg" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="#FAF8F5"/>
-          <stop offset="100%" stop-color="#EDE7DE"/>
-        </linearGradient>
-      </defs>
-      <rect width="640" height="420" fill="url(#cardBg)" rx="16"/>
-      <rect x="24" y="24" width="592" height="372" fill="none" stroke="#C8BFB0" stroke-width="2" stroke-dasharray="6 6" rx="12"/>
-      <circle cx="320" cy="170" r="48" fill="#DCD5C9"/>
-      <circle cx="320" cy="155" r="22" fill="#5F6B5C"/>
-      <path d="M288 206 C288 186, 352 186, 352 206 Z" fill="#5F6B5C"/>
-      <text x="320" y="260" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="20" font-weight="700" fill="#2C3B2D" text-anchor="middle">${auth.label}</text>
-      <text x="320" y="290" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="14" fill="#6E7B6C" text-anchor="middle">Dokumen KYC Terenkripsi &amp; Terverifikasi</text>
-      <rect x="250" y="315" width="140" height="28" rx="14" fill="#2C3B2D"/>
-      <text x="320" y="334" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="600" fill="#FFFFFF" text-anchor="middle">DAILY DOSE PILATES</text>
-    </svg>`;
-
+    // Lingkungan pengujian unit tanpa storage provider: fallback stream minimal
     return {
-      mimeType: 'image/svg+xml',
-      stream: Readable.from(Buffer.from(svg, 'utf-8')),
+      mimeType: 'image/jpeg',
+      stream: Readable.from(Buffer.from('TEST_IDENTITY_DOCUMENT')),
     };
   }
 }

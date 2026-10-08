@@ -175,7 +175,6 @@ function UploadField({
     <FormField
       label={label}
       htmlFor={id}
-      required
       className="space-y-1.5"
       error={error ? <span id={errorId(name)}>{error}</span> : undefined}
     >

@@ -196,6 +196,7 @@ export const ROLE_CAPABILITIES: Record<ApplicationRole, readonly string[]> = {
     'dashboard:read',
     'user:read',
     'audit:read',
+    'assignment:read',
     'finance:read',
     'instructor:fee:read',
     'voucher:read',

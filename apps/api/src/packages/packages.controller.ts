@@ -452,6 +452,13 @@ export class PackagesController {
   ) {
     return this.paymentReview.get(r.principal, id, usageCursor);
   }
+  @Post('purchases/expire-stale') async expireStalePurchases(
+    @Req() r: AuthenticatedRequest,
+    @Query('olderThanHours') olderThanHours?: string,
+  ) {
+    const hours = olderThanHours ? parseInt(olderThanHours, 10) : 24;
+    return this.customerOrders.expireStaleOrders(r.principal, hours);
+  }
   // Penjualan manual di meja (staf mencatat atas nama pelanggan; disetujui penyetuju lain).
   @Post('purchases/assisted') async recordAssistedSale(
     @Req() r: AuthenticatedRequest,

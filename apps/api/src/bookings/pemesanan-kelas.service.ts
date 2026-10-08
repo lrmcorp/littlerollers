@@ -813,6 +813,7 @@ export class BookingsService {
             userId: customerUserId,
             customerPackageId: customerPackage.id,
             status: 'BOOKED',
+            source: input.source,
           },
           include: {
             user: true,

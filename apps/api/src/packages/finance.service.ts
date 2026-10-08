@@ -407,7 +407,9 @@ export class FinanceService {
       costProjectionRp: isLocked ? monthlyCloseRecord.costProjectionRp : costProjectionRp,
       otherCostRp: isLocked ? monthlyCloseRecord.otherCostRp : otherCostRp,
       netProfitRealtimeRp: isLocked ? monthlyCloseRecord.profitRp : netProfitRealtimeRp,
-      netProfitProjectionRp,
+      netProfitProjectionRp: isLocked
+        ? monthlyCloseRecord.omsetRp - monthlyCloseRecord.costProjectionRp - monthlyCloseRecord.otherCostRp
+        : netProfitProjectionRp,
       totalCorrectionAdjustmentRp: totalCorrectionRp,
       adjustedNetProfitRealtimeRp:
         (isLocked ? monthlyCloseRecord.profitRp : netProfitRealtimeRp) + totalCorrectionRp,

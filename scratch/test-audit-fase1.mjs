@@ -1,5 +1,9 @@
 process.env.DATABASE_URL = process.env.DATABASE_URL || 'mysql://dailydose:dailydose_local@127.0.0.1:3306/dailydose_v2_uat';
 import { PrismaClient } from '../apps/api/node_modules/@prisma/client/index.js';
+import { readFileSync } from 'node:fs';
+
+const KTP_BYTES = readFileSync('/private/tmp/claude-501/-Users-lrmcorporation-Documents-Website-dailydose-v2/3b206345-613a-4179-b75b-77761d14db17/scratchpad/test_ktp.jpg');
+const SELFIE_BYTES = readFileSync('/private/tmp/claude-501/-Users-lrmcorporation-Documents-Website-dailydose-v2/3b206345-613a-4179-b75b-77761d14db17/scratchpad/test_selfie.jpg');
 
 const prisma = new PrismaClient();
 const API_BASE = 'http://localhost:32121/api/v1';
@@ -66,7 +70,7 @@ async function main() {
   // SKENARIO 1: COLLISION GUARD
   // ===========================================================================
   console.log('🧪 [SKENARIO 1] Collision Guard (instruktur & ruangan bentrok)');
-  const jitterMinutes = Math.floor(Math.random() * 500);
+  const jitterMinutes = Math.floor(Math.random() * 45);
   const base = new Date();
   base.setDate(base.getDate() + 10);
   base.setHours(10, 0, 0, 0);
@@ -137,26 +141,21 @@ async function main() {
   const claraPkg = await prisma.paketPelanggan.findFirst({ where: { userId: claraUser.id, status: 'ACTIVE' } });
 
   // Ensure a 3rd booker with an active package exists (for minQuota=3 confirm test)
-  let dedi = await prisma.user.findFirst({ where: { email: 'dedi.uat3@dailydose.test' } });
-  if (!dedi) {
-    const reg = await fetch(`${API_BASE}/auth/customer-registrations`, {
-      method: 'POST',
-      body: (() => { const fd = new FormData(); fd.append('displayName', 'Dedi UAT3'); fd.append('phone', '081233330003'); fd.append('email', 'dedi.uat3@dailydose.test'); fd.append('password', 'Customer123!'); fd.append('consent', 'true'); return fd; })(),
-    });
-    await reg.json();
-    dedi = await prisma.user.findFirst({ where: { email: 'dedi.uat3@dailydose.test' } });
-  }
-  let dediPkg = await prisma.paketPelanggan.findFirst({ where: { userId: dedi.id, status: 'ACTIVE' } });
-  if (!dediPkg) {
-    dediPkg = await prisma.paketPelanggan.create({ data: { userId: dedi.id, packageId: amandaPkg.packageId, totalSessions: 10, remainingSessions: 10, usedSessions: 0, status: 'ACTIVE', validUntil: new Date(Date.now() + 30 * 86400000) } });
-  }
-  const dediToken = await login('dedi.uat3@dailydose.test', 'Customer123!');
+  const dediEmail = `dedi.uat.${Date.now()}@dailydose.test`;
+  const regDedi = await fetch(`${API_BASE}/auth/customer-registrations`, {
+    method: 'POST',
+    body: (() => { const fd = new FormData(); fd.append('displayName', 'Dedi UAT3'); fd.append('phone', `0812${String(Date.now()).slice(-8)}`); fd.append('email', dediEmail); fd.append('password', 'Customer123!'); fd.append('consent', 'true'); fd.append('ktp', new Blob([KTP_BYTES], { type: 'image/jpeg' }), 'ktp.jpg'); fd.append('selfie', new Blob([SELFIE_BYTES], { type: 'image/jpeg' }), 'selfie.jpg'); return fd; })(),
+  });
+  console.log(`   * Registrasi Dedi (${dediEmail}) -> HTTP ${regDedi.status}`);
+  const dedi = await prisma.user.findFirst({ where: { email: dediEmail } });
+  const dediPkg = await prisma.paketPelanggan.create({ data: { userId: dedi.id, packageId: amandaPkg.packageId, totalSessions: 10, remainingSessions: 10, usedSessions: 0, status: 'ACTIVE', validUntil: new Date(Date.now() + 30 * 86400000) } });
+  const dediToken = await login(dediEmail, 'Customer123!');
 
   // Approve Clara's & Dedi's pending KYC up front so Skenario 3's self-booking isn't blocked by IDENTITY_VERIFICATION_REQUIRED
   console.log('🧪 [KYC pre-step] Super Owner menyetujui dokumen KYC Clara & Dedi (prasyarat self-booking)');
   const pendingPre = await fetch(`${API_BASE}/identity-verifications?status=PENDING`, { headers: auth(superOwnerToken) }).then(r => r.json());
-  for (const name of ['Clara', 'Dedi']) {
-    const c = pendingPre.items?.find(i => i.user?.displayName?.includes(name));
+  for (const [name, uid] of [['Clara', claraUser.id], ['Dedi', dedi.id]]) {
+    const c = pendingPre.items?.find(i => i.user?.id === uid);
     if (c) {
       for (const doc of c.documents ?? []) {
         const ap = await fetch(`${API_BASE}/identity-verifications/${doc.id}/decisions/approve`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...auth(superOwnerToken) }, body: JSON.stringify({ expectedVersion: doc.version ?? 1, note: 'UAT pre-approval' }) });
@@ -175,10 +174,10 @@ async function main() {
   const near = new Date(Date.now() + (20 * 3600000) + jitterMinutes * 60000); // 20h+jitter from now, within 24h cutoff window
   const nearEnd = new Date(near.getTime() + 50 * 60000);
 
-  async function createPublish(label, startAt, endAt, roomId) {
+  async function createPublish(label, startAt, endAt, roomId, instructorUserId) {
     const cr = await fetch(`${API_BASE}/class-slots`, {
       method: 'POST', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': `${label}-${Date.now()}-${Math.random()}`, ...auth(adminGGToken) },
-      body: JSON.stringify({ branchId: GG, classTypeId: CLASSTYPE_GROUP, studioId: STUDIO1_GG, roomId, instructorUserId: COACH_SARAH, startAt: startAt.toISOString(), endAt: endAt.toISOString() }),
+      body: JSON.stringify({ branchId: GG, classTypeId: CLASSTYPE_GROUP, studioId: STUDIO1_GG, roomId, instructorUserId, startAt: startAt.toISOString(), endAt: endAt.toISOString() }),
     });
     const crJson = await cr.json();
     if (!crJson.id) { console.error(`     ❌ Gagal membuat Kelas ${label}: ${JSON.stringify(crJson)}`); return undefined; }
@@ -186,12 +185,15 @@ async function main() {
       method: 'POST', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': `pub-${label}-${Date.now()}-${Math.random()}`, ...auth(adminGGToken) },
       body: JSON.stringify({ expectedVersion: 1 }),
     });
-    await pub.json();
+    const pubJson = await pub.json();
+    if (pub.status !== 200) console.error(`     ⚠️  Publish Kelas ${label} gagal (HTTP ${pub.status}): ${JSON.stringify(pubJson).slice(0,200)}`);
     return crJson.id;
   }
 
-  const slotUnderQuotaId = await createPublish('E', near, nearEnd, ROOM1_GG);
-  const slotMeetsQuotaId = await createPublish('F', near, nearEnd, ROOM2_GG);
+  const nearF = new Date(near.getTime() + 3 * 3600000);
+  const nearFEnd = new Date(nearF.getTime() + 50 * 60000);
+  const slotUnderQuotaId = await createPublish('E', near, nearEnd, ROOM1_GG, COACH_SARAH);
+  const slotMeetsQuotaId = await createPublish('F', nearF, nearFEnd, ROOM2_GG, COACH_SARAH);
   console.log(`   * Kelas E (under-kuota) id=${slotUnderQuotaId}, Kelas F (kuota-cukup) id=${slotMeetsQuotaId}, minQuota GG/GroupClass=3, mulai dalam 20 jam`);
 
   const amandaBalBeforeE = (await prisma.paketPelanggan.findUnique({ where: { id: amandaPkg.id } })).remainingSessions;
