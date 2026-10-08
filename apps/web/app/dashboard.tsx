@@ -225,7 +225,7 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
       setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [branchId, client, from, session?.userId, until]);
+  }, [branchId, client, from, session?.id, until]);
 
   useEffect(() => {
     void load();
