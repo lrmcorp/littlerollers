@@ -1321,9 +1321,13 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
 
   it('enforces separation of duties, reason codes and decided state', async () => {
     const purchase = await db.pembelian.findFirstOrThrow({ where: { userId: actorId } });
+    const branchStaff = {
+      ...principal,
+      roles: [{ role: 'ADMIN' as const, branchId }],
+    };
     await expect(
       reviews.decide(
-        principal,
+        branchStaff as any,
         purchase.id,
         'REJECTED',
         { reasonCode: 'PROOF_INVALID', expectedVersion: purchase.version },

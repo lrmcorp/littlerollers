@@ -293,6 +293,36 @@ describe('purchase internal review workspace', () => {
     expect(createObjectURL).toHaveBeenCalled();
   });
 
+  it('supports quick approval directly from queue for WAITING_VERIFICATION status', async () => {
+    const waitingItem = {
+      ...reviewPurchase,
+      id: 'purchase-waiting-quick',
+      status: 'WAITING_VERIFICATION' as const,
+    };
+    const client = reviewFake({
+      list: vi.fn().mockResolvedValue({
+        items: [waitingItem],
+        summary: {
+          pending: 1,
+          actionRequired: 0,
+          approved: 0,
+          rejected: 0,
+          expired: 0,
+          totalAmountRp: 2_000_000,
+          agingOver24Hours: 0,
+        },
+        generatedAt: new Date('2026-07-23T03:00:00Z'),
+        page: { nextCursor: null, hasMore: false },
+      }),
+    });
+    render(<PurchaseReviewView client={client} branchOverride={branch} />);
+    const user = userEvent.setup();
+    const approveButtons = await screen.findAllByRole('button', { name: 'Setujui' });
+    expect(approveButtons[0]).toBeVisible();
+    await user.click(approveButtons[0]!);
+    expect(client.approve).toHaveBeenCalledWith('purchase-waiting-quick', 0, expect.any(String));
+  });
+
   it('uses authoritative package state for semantic row color precedence', () => {
     const active = {
       ...reviewPurchase,
@@ -353,6 +383,39 @@ describe('purchase internal review workspace', () => {
       expect.any(String),
       undefined,
     );
+  });
+
+  it('renders decision actions for WAITING_VERIFICATION status', async () => {
+    const waitingPurchase = {
+      ...reviewPurchase,
+      status: 'WAITING_VERIFICATION' as const,
+    };
+    const client = reviewFake({
+      detail: vi.fn().mockResolvedValue({
+        purchase: waitingPurchase,
+        timeline: {
+          submittedAt: waitingPurchase.submittedAt,
+          proofFinalizedAt: new Date('2026-07-23T02:05:00Z'),
+          decidedAt: null,
+        },
+        decisionActorMasked: null,
+        activation: null,
+        balance: null,
+        usageHistory: { items: [], page: { nextCursor: null, hasMore: false } },
+      }),
+    });
+    render(
+      <PaymentReviewDetailView
+        id="purchase-waiting"
+        returnTo="/workspace/payments?status=WAITING_VERIFICATION"
+        client={client}
+        authorityOverride={{ canReview: true, canDecide: true }}
+      />,
+    );
+    expect(await screen.findByRole('heading', { name: 'Detail pembayaran' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Setujui pembayaran' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Minta perbaikan bukti' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Tolak sebagai duplikat' })).toBeVisible();
   });
 
   it('renders a safe configuration failure for the queue', async () => {

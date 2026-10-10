@@ -161,6 +161,11 @@ export function PaymentReviewDetailView({
 
   const decide = async (action: 'APPROVE' | 'ACTION_REQUIRED' | 'DUPLICATE') => {
     const purchase = detail?.purchase;
+    const isSuper = Boolean(
+      sessionContext?.session?.roles?.some((r) =>
+        ['SUPER_OWNER', 'SUPERADMIN'].includes(r),
+      ),
+    );
     const isRecorder = Boolean(
       (purchase?.recordedById || purchase?.recordedBy?.id) &&
         sessionContext?.session?.id &&
@@ -172,8 +177,10 @@ export function PaymentReviewDetailView({
         sessionContext?.session?.id &&
         purchase.customer.id === sessionContext.session.id,
     );
-    const separationOfDutiesBlocked = isRecorder || isSelfCustomer;
-    if (!purchase || !canDecide || purchase.status !== 'PENDING' || separationOfDutiesBlocked) return;
+    const separationOfDutiesBlocked = !isSuper && (isRecorder || isSelfCustomer);
+    const isPending =
+      purchase?.status === 'PENDING' || purchase?.status === 'WAITING_VERIFICATION';
+    if (!purchase || !canDecide || !isPending || separationOfDutiesBlocked) return;
     if (
       action === 'ACTION_REQUIRED' &&
       reasonCode === 'OTHER_REVIEW_REQUIRED' &&
@@ -281,6 +288,8 @@ export function PaymentReviewDetailView({
   }
 
   const purchase = detail.purchase;
+  const isPendingDecision =
+    purchase.status === 'PENDING' || purchase.status === 'WAITING_VERIFICATION';
   const timeline = [
     ['Bukti dikirim', detail.timeline.submittedAt],
     ['Pemeriksaan file selesai', detail.timeline.proofFinalizedAt],
@@ -688,7 +697,7 @@ export function PaymentReviewDetailView({
             )}
           </Panel>
 
-          {purchase.status !== 'PENDING' && (
+          {!isPendingDecision && (
             <Panel className="p-5 sm:p-6">
               <h2 className="text-lg font-semibold">Keputusan pembayaran</h2>
               <dl className="mt-4 grid gap-4 text-sm sm:grid-cols-2">
@@ -727,7 +736,12 @@ export function PaymentReviewDetailView({
             <p className="mt-1 text-sm leading-6 text-dd-muted">
               Setiap tindakan mencatat cakupan cabang, versi data, idempotency key, dan audit.
             </p>
-            {canDecide && purchase.status === 'PENDING' ? (() => {
+            {canDecide && isPendingDecision ? (() => {
+              const isSuper = Boolean(
+                sessionContext?.session?.roles?.some((r) =>
+                  ['SUPER_OWNER', 'SUPERADMIN'].includes(r),
+                ),
+              );
               const isRecorder = Boolean(
                 (purchase.recordedById || purchase.recordedBy?.id) &&
                   sessionContext?.session?.id &&
@@ -739,7 +753,7 @@ export function PaymentReviewDetailView({
                   sessionContext?.session?.id &&
                   purchase.customer.id === sessionContext.session.id,
               );
-              const separationOfDutiesBlocked = isRecorder || isSelfCustomer;
+              const separationOfDutiesBlocked = !isSuper && (isRecorder || isSelfCustomer);
               return (
                 <div className="mt-5 space-y-4">
                   {separationOfDutiesBlocked && (
@@ -795,10 +809,10 @@ export function PaymentReviewDetailView({
               );
             })() : (
               <AlertBanner
-                tone={purchase.status === 'APPROVED' ? 'success' : 'info'}
-                title={purchase.status === 'PENDING' ? 'Mode hanya baca' : 'Keputusan telah dibuat'}
+                tone={purchase.status === 'APPROVED' || purchase.status === 'PAID' ? 'success' : 'info'}
+                title={isPendingDecision ? 'Mode hanya baca' : 'Keputusan telah dibuat'}
                 message={
-                  purchase.status === 'PENDING'
+                  isPendingDecision
                     ? 'Keputusan dilakukan Finance atau Super Admin.'
                     : 'Mutation control ditutup untuk transaksi yang sudah diputus.'
                 }

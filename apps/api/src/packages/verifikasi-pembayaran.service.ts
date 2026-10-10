@@ -613,15 +613,15 @@ export class PaymentReviewService {
           });
           if (!purchase) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
           this.access.scope(principal, purchase.branchId, ['payment:decide', 'purchase:decide']);
-          // Pembeli (pelanggan) dilarang menyetujui transaksinya sendiri.
-          if (purchase.userId === principal.userId) {
-            throw new ApiProblem('SEPARATION_OF_DUTIES_VIOLATION', HttpStatus.FORBIDDEN);
-          }
-          // Super Owner dan Superadmin memiliki wewenang penuh untuk menyetujui transaksi yang dicatatnya sendiri.
-          // Staf cabang biasa tanpa wewenang super tetap mengikuti aturan Maker-Checker.
+          // Super Owner dan Superadmin memiliki wewenang penuh untuk menyetujui transaksi apa pun (God Mode).
+          // Staf cabang biasa tanpa wewenang super tetap mengikuti aturan Maker-Checker (Pemisahan Tugas).
           const isSuper = principal.roles.some((r) =>
             ['SUPER_OWNER', 'SUPERADMIN'].includes(r.role as string),
           );
+          // Pembeli (pelanggan) dilarang menyetujui transaksinya sendiri, kecuali Super Admin / Super Owner.
+          if (!isSuper && purchase.userId === principal.userId) {
+            throw new ApiProblem('SEPARATION_OF_DUTIES_VIOLATION', HttpStatus.FORBIDDEN);
+          }
           if (!isSuper && purchase.recordedById === principal.userId) {
             throw new ApiProblem('SEPARATION_OF_DUTIES_VIOLATION', HttpStatus.FORBIDDEN);
           }

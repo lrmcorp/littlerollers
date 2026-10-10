@@ -358,8 +358,11 @@ export function PurchaseReviewView({
     }
   };
 
+  const isPendingDecision = (status: string) =>
+    status === 'PENDING' || status === 'WAITING_VERIFICATION';
+
   const approve = async (item: ReviewPurchase) => {
-    if (!canDecide || item.status !== 'PENDING') return;
+    if (!canDecide || !isPendingDecision(item.status)) return;
     const confirmed = feedback
       ? await feedback.confirm({
           tone: 'warning',
@@ -369,6 +372,7 @@ export function PurchaseReviewView({
         })
       : testAuthority;
     if (!confirmed) return;
+    setMutatingId(item.id);
     try {
       const latest = await client.detail(item.id).catch(() => null);
       const versionToUse = latest?.purchase?.version ?? item.version;
@@ -441,8 +445,14 @@ export function PurchaseReviewView({
     }
   }, [filters.status, summary, totalAll]);
 
+  const isSuper = Boolean(
+    sessionContext?.session?.roles?.some((r) =>
+      ['SUPER_OWNER', 'SUPERADMIN'].includes(r),
+    ),
+  );
+
   const isOwnRecord = (item: ReviewPurchase) =>
-    Boolean(item.recordedById) && item.recordedById === currentUserId;
+    !isSuper && Boolean(item.recordedById) && item.recordedById === currentUserId;
 
   const actions = (item: ReviewPurchase, compact = false) => (
     <div
@@ -464,13 +474,17 @@ export function PurchaseReviewView({
       >
         Preview bukti
       </Button>
-      {canDecide && item.status === 'PENDING' && isOwnRecord(item) && (
+      {canDecide && isPendingDecision(item.status) && isOwnRecord(item) && (
         <span className="self-center text-xs text-dd-muted">
           Dicatat oleh Anda — disetujui penyetuju lain.
         </span>
       )}
-      {canDecide && item.status === 'PENDING' && !isOwnRecord(item) && (
-        <Button disabled={mutatingId === item.id} onClick={() => void approve(item)}>
+      {canDecide && isPendingDecision(item.status) && !isOwnRecord(item) && (
+        <Button
+          size="sm"
+          disabled={mutatingId === item.id}
+          onClick={() => void approve(item)}
+        >
           <CheckCircle2 className="size-4" /> {mutatingId === item.id ? 'Memproses…' : 'Setujui'}
         </Button>
       )}

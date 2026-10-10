@@ -290,6 +290,20 @@ describe('approving a purchase: separation of duties', () => {
     });
   });
 
+  it('allows a SUPER_OWNER who purchased an order to approve it directly', async () => {
+    const { service, tx } = decideSetup(purchase({ recordedById: null }));
+    const superOwnerReviewer = {
+      ...reviewer(customerId),
+      roles: [{ role: 'SUPER_OWNER' as const, branchId: null }],
+    };
+    await approve(service, superOwnerReviewer as never);
+    expect(tx.pembelian.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ status: 'PAID', verifiedById: customerId }),
+      }),
+    );
+  });
+
   it('lets a different reviewer approve and activates the package with an opening ledger entry', async () => {
     const { service, tx } = decideSetup();
     await approve(service, reviewer(id(200)));
