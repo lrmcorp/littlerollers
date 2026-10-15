@@ -60,7 +60,15 @@ describe('public information pages', () => {
     expect(
       await screen.findByRole('heading', { name: 'Daily Dose Graha Family Surabaya' }),
     ).toBeVisible();
-    expect(screen.getByText(/Alamat lengkap, jam operasional/)).toBeVisible();
+    // Alamat tampil di kartu studio; catatan "belum ditampilkan" sudah tidak ada.
+    expect(
+      screen.getByText('Rukan Green Garden Blok Z2 No. 18-19, Jakarta Barat'),
+    ).toBeVisible();
+    expect(
+      screen.getByText('Komplek Ruko Plaza Graha Family Blok C-23, Surabaya'),
+    ).toBeVisible();
+    expect(screen.queryByText(/belum ditampilkan/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/sumber operasionalnya/)).not.toBeInTheDocument();
     expect(screen.getAllByRole('link', { name: /Lihat Jadwal/ }).length).toBeGreaterThanOrEqual(3);
     expect((await axe(view.container)).violations).toHaveLength(0);
   }, 30_000);

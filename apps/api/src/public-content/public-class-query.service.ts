@@ -1,6 +1,7 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { ApiProblem } from '../identity/security';
+import { branchPublicLocation } from '../master/branch-location';
 
 @Injectable()
 export class PublicClassQueryService {
@@ -75,8 +76,7 @@ export class PublicClassQueryService {
       supportWhatsappE164: b.supportWhatsappE164,
       publicProfile: {
         slug: b.code.toLowerCase(),
-        area: b.name,
-        city: 'Jakarta',
+        ...branchPublicLocation(b.code, b.name, b.address),
         address: b.address ?? '',
         description: `${b.name} Studio Pilates`,
         arrivalInformation: 'Silakan datang 10-15 menit sebelum sesi kelas dimulai.',
@@ -161,8 +161,7 @@ export class PublicClassQueryService {
         supportWhatsappE164: slot.branch.supportWhatsappE164,
         publicProfile: {
           slug: slot.branch.code.toLowerCase(),
-          area: slot.branch.name,
-          city: 'Jakarta',
+          ...branchPublicLocation(slot.branch.code, slot.branch.name, slot.branch.address),
           address: slot.branch.address ?? '',
         },
       },

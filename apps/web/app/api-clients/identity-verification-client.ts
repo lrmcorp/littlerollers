@@ -46,6 +46,9 @@ export interface IdentityVerificationReviewSummary {
   totalDocuments: number;
   pendingDocuments: number;
   approvedDocuments: number;
+  /** Pelanggan menunggu/disetujui, dengan definisi yang sama dengan dashboard dan daftar pelanggan. */
+  pendingCustomers?: number;
+  approvedCustomers?: number;
   rejectedDocuments: number;
   deletionIssues: number;
 }

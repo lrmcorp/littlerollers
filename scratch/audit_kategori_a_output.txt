@@ -1,0 +1,269 @@
+=== HASIL AUDIT KATEGORI A ===
+
+--- POIN 2: Overcapacity Check (5-7 Okt 2026) ---
+Total slot 1-15 Okt: 269
+Total slot overcapacity: 0
+
+Detail Semua Slot Muara Karang 7 Okt: 5 slot
+  Jam: 01:00 - 01:50 | Kelas: Private Group | Kapasitas: 4 | bookedCount: 1 | Real Bookings: 1
+  Jam: 02:00 - 02:50 | Kelas: Private Group | Kapasitas: 4 | bookedCount: 0 | Real Bookings: 0
+  Jam: 10:00 - 10:50 | Kelas: Private Group | Kapasitas: 4 | bookedCount: 2 | Real Bookings: 2
+  Jam: 11:00 - 11:50 | Kelas: Private Group | Kapasitas: 5 | bookedCount: 5 | Real Bookings: 5
+  Jam: 12:00 - 12:50 | Kelas: Private Group | Kapasitas: 5 | bookedCount: 5 | Real Bookings: 5
+
+--- POIN 4: Pembayaran Menunggu & Kode Unik ---
+Total Pembelian PENDING/WAITING_VERIFICATION: 196
+Pembelian dengan kode unik (akhiran bukan 000): 160
+Oldest: 2024-01-27 - INV-V1-00005525 (Rp 230.168)
+Sample 5 pembelian dengan kode unik:
+  Invoice: INV-V1-00005525 | Customer: Vira | Created: 2024-01-27 | Total: Rp 230.168 | Status: WAITING_VERIFICATION
+  Invoice: INV-V1-00005526 | Customer: Nia | Created: 2024-01-27 | Total: Rp 230.963 | Status: WAITING_VERIFICATION
+  Invoice: INV-V1-00005531 | Customer: Tanti | Created: 2024-01-27 | Total: Rp 230.009 | Status: WAITING_VERIFICATION
+  Invoice: INV-V1-00005535 | Customer: Agnes Budianto | Created: 2024-01-28 | Total: Rp 4.256.198 | Status: WAITING_VERIFICATION
+  Invoice: INV-V1-00005536 | Customer: Agnes Budianto | Created: 2024-01-28 | Total: Rp 4.256.487 | Status: WAITING_VERIFICATION
+
+--- POIN 6: Kasus Lusianna ---
+User bernama Lusianna ditemukan: 1
+User: Lusianna (lusianna.liu@gmail.com) ID: 10000000-0000-4000-8000-000000005571
+  Pembelian Paket (3):
+    Invoice: INV-V1-00017176 | Paket: [BEST DEAL 10.10] 8 Sessions Private Group  | Status: WAITING_VERIFICATION | Total: Rp 760581
+    Invoice: INV-V1-00009782 | Paket: Drop In Private Group Class | Status: PAID | Total: Rp 150647
+    Invoice: INV-V1-00017175 | Paket: Double Trouble Deal | Status: CANCELLED | Total: Rp 560255
+  Paket Pelanggan (Customer Packages) (3):
+    ID: 50000000-0000-4000-8000-000000009782 | Paket: Drop In Private Group Class | Sisa: 0/1 | Terpakai: 1 | Status Paket: DEPLETED | Status Pembelian: PAID
+    ID: 50000000-0000-4000-8000-000000017175 | Paket: Double Trouble Deal | Sisa: 6/6 | Terpakai: 0 | Status Paket: FROZEN | Status Pembelian: CANCELLED
+    ID: 50000000-0000-4000-8000-000000017176 | Paket: [BEST DEAL 10.10] 8 Sessions Private Group  | Sisa: 6/8 | Terpakai: 2 | Status Paket: FROZEN | Status Pembelian: WAITING_VERIFICATION
+  Booking Kelas (3):
+    Booking BKG-V1-00054046 | Tanggal: 2024-10-28T12:00:00.000Z | Status: ATTENDED | PaketPelangganId: 50000000-0000-4000-8000-000000009782
+    Booking BKG-V1-00135154 | Tanggal: 2026-10-03T02:00:00.000Z | Status: ATTENDED | PaketPelangganId: 50000000-0000-4000-8000-000000017175
+    Booking BKG-V1-00135155 | Tanggal: 2026-10-03T02:00:00.000Z | Status: ATTENDED | PaketPelangganId: 50000000-0000-4000-8000-000000017175
+
+--- POIN 8: Booking Kembar ---
+User: Fera Julia (ID: 10000000-0000-4000-8000-000000009294) Total booking aktif: 4
+  [KEMBAR 4x] Slot 70000000-0000-4000-8000-000000077827 | 2026-10-05T04:00:00.000Z | Cabang: Daily Dose Untar Kampus 2 | Kelas: Private Group
+    - Booking No: BKG-V1-00135174 | Source: SELF | Created: 2026-10-02T15:39:53.000Z
+    - Booking No: BKG-V1-00135175 | Source: SELF | Created: 2026-10-02T15:40:06.000Z
+    - Booking No: BKG-V1-00135176 | Source: SELF | Created: 2026-10-02T15:43:31.000Z
+    - Booking No: BKG-V1-00135177 | Source: SELF | Created: 2026-10-02T15:43:49.000Z
+User: sherly luciana (ID: 10000000-0000-4000-8000-000000009296) Total booking aktif: 6
+  [KEMBAR 2x] Slot 70000000-0000-4000-8000-000000077668 | 2026-09-30T03:00:00.000Z | Cabang: Daily Dose Untar Kampus 2 | Kelas: Private Group
+    - Booking No: BKG-V1-00134940 | Source: SELF | Created: 2026-09-29T18:39:57.000Z
+    - Booking No: BKG-V1-00134941 | Source: SELF | Created: 2026-09-29T18:40:04.000Z
+  [KEMBAR 2x] Slot 70000000-0000-4000-8000-000000077826 | 2026-10-05T03:00:00.000Z | Cabang: Daily Dose Untar Kampus 2 | Kelas: Private Group
+    - Booking No: BKG-V1-00135172 | Source: SELF | Created: 2026-10-02T15:39:23.000Z
+    - Booking No: BKG-V1-00135173 | Source: SELF | Created: 2026-10-02T15:39:30.000Z
+  [KEMBAR 2x] Slot 70000000-0000-4000-8000-000000077829 | 2026-10-07T04:00:00.000Z | Cabang: Daily Dose Untar Kampus 2 | Kelas: Private Group
+    - Booking No: BKG-V1-00135181 | Source: SELF | Created: 2026-10-02T15:45:48.000Z
+    - Booking No: BKG-V1-00135182 | Source: SELF | Created: 2026-10-02T15:46:08.000Z
+User: hermi subianty (ID: 10000000-0000-4000-8000-000000009325) Total booking aktif: 2
+  [KEMBAR 2x] Slot 70000000-0000-4000-8000-000000077828 | 2026-10-07T02:00:00.000Z | Cabang: Daily Dose Untar Kampus 2 | Kelas: Private Group
+    - Booking No: BKG-V1-00135178 | Source: SELF | Created: 2026-10-02T15:45:16.000Z
+    - Booking No: BKG-V1-00135179 | Source: SELF | Created: 2026-10-02T15:45:22.000Z
+
+--- POIN 9: Voucher ---
+Total voucher: 310
+Voucher July ditemukan: 2
+  Kode: SEMIPVJULY | DiskonType: PERCENTAGE | Nilai: 10 | ValidUntil: 2026-08-31T00:00:00.000Z | Active: true
+  Kode: JULY2026 | DiskonType: PERCENTAGE | Nilai: 10 | ValidUntil: 2026-10-31T00:00:00.000Z | Active: true
+
+--- POIN 10: Perbandingan Angka Dashboard & Verifikasi ---
+Pembelian WAITING_VERIFICATION: 195
+Pembelian PENDING: 1
+Pembelian PAID: 14227
+Total Pembelian Semua Status: 15123
+Cabang: Daily Dose Green Garden (DD-GG) -> Total Slot: 33718, Active Bookings: 8947
+Cabang: Daily Dose Muara Karang (DD-MK) -> Total Slot: 25884, Active Bookings: 5228
+Cabang: Daily Dose Graha Family Surabaya (DD-SBY) -> Total Slot: 14248, Active Bookings: 971
+Cabang: Daily Dose Untar Kampus 2 (DD-UNTAR) -> Total Slot: 2481, Active Bookings: 0
+Cabang: Daily Dose Orange Groves PIK 2 (DD-PIK2) -> Total Slot: 1513, Active Bookings: 0
+
+--- POIN 11: Honor Instruktur & Finansial ---
+Total record InstructorFee: 0
+Total otherCosts in DB: 2
+
+--- POIN 12: Katalog Paket ---
+Total paket di DB: 144
+  Kode: PKG-REF-muua7hsg | Nama: "Paket Khusus Reformer Negatif" | Status: INACTIVE | Harga: Rp 500.000
+  Kode: PKG-REF-muua16wf | Nama: "Paket Khusus Reformer Negatif" | Status: INACTIVE | Harga: Rp 500.000
+  Kode: PKG-REF-muu9tbym | Nama: "Paket Khusus Reformer Negatif" | Status: ACTIVE | Harga: Rp 500.000
+  Kode: 10-SESS-GROUP-REFORMER | Nama: "10 Sessions Group Class Reformer" | Status: ACTIVE | Harga: Rp 2.500.000
+  Kode: PKG-140-PVCPROMO5S | Nama: "[PVC PROMO] 5 Sessions Private Class" | Status: ACTIVE | Harga: Rp 1.900.000
+  Kode: PKG-139-BESTDEAL10 | Nama: "[BEST DEAL 10.10] 10 Sessions Private Group " | Status: ACTIVE | Harga: Rp 950.000
+  Kode: PKG-138-BESTDEAL10 | Nama: "[BEST DEAL 10.10] 8 Sessions Private Group " | Status: ACTIVE | Harga: Rp 760.000
+  Kode: PKG-137-EARLYBIRD2 | Nama: "(Early Bird 2027) 20 Sessions Private Class FREE 4 Sessions" | Status: ACTIVE | Harga: Rp 10.350.000
+  Kode: PKG-136-1010PRIVAT | Nama: "(10.10 PRIVATE DEAL) 10 Sessions Private Class FREE 1 Session" | Status: ACTIVE | Harga: Rp 5.500.000
+  Kode: PKG-135-12SESSIONS | Nama: "12 Sessions Private Class FREE 1 Sessions" | Status: ACTIVE | Harga: Rp 6.750.000
+  Kode: PKG-134-20SESSIONS | Nama: "20 Sessions PVG FREE 3 Sessions " | Status: ACTIVE | Harga: Rp 3.680.000
+  Kode: PKG-133-FLASHSALE1 | Nama: "FLASH SALE 10.10" | Status: ACTIVE | Harga: Rp 850.000
+  Kode: PKG-132-DOUBLETROU | Nama: "Double Trouble Deal" | Status: ACTIVE | Harga: Rp 560.000
+  Kode: PKG-131-SEPTOFFER2 | Nama: "[Sept Offer] 20 SESSIONS GROUP CLASS FREE 2 SESSIONS" | Status: ACTIVE | Harga: Rp 2.299.000
+  Kode: PKG-130-8SESSIONSS | Nama: "8 Sessions Semi Private Class" | Status: ACTIVE | Harga: Rp 4.000.000
+  Kode: PKG-129-STAMPPACKA | Nama: "STAMP PACKAGE BUY 4 + 1 FREE " | Status: ACTIVE | Harga: Rp 350.000
+  Kode: PKG-128-PAYDAYSALE | Nama: "(PAY DAY SALE) 4 Sessions Private Group Class FREE 2 Sessions " | Status: ACTIVE | Harga: Rp 600.000
+  Kode: PKG-127-DOUBLETROU | Nama: "Double Trouble" | Status: ACTIVE | Harga: Rp 680.000
+  Kode: PKG-126-INDEPENDEN | Nama: "[Independence Day Special - HAPPY HOUR] 5 + 2 Sessions Group Class " | Status: ACTIVE | Harga: Rp 480.000
+  Kode: PKG-125-INDEPENDEN | Nama: "[Independence Day Special] 5 Sessions Group Class" | Status: ACTIVE | Harga: Rp 480.000
+  Kode: PKG-124-AUGUSTSPEC | Nama: "(AugustSpec) 22 Sessions Semi Private Class" | Status: ACTIVE | Harga: Rp 14.000.000
+  Kode: PKG-123-AUGUSTSPEC | Nama: "(AugustSpec) 20 + 3 Sessions Private Group" | Status: ACTIVE | Harga: Rp 3.680.000
+  Kode: PKG-122-JULYPVG12S | Nama: "(JULYPVG) 12 Sessions Private Group FREE 1 Sessions" | Status: ACTIVE | Harga: Rp 3.294.000
+  Kode: PKG-121-MOMMETIME | Nama: "Mom Me-Time" | Status: ACTIVE | Harga: Rp 799.000
+  Kode: PKG-120-JULY20SESS | Nama: "[JULY] 20 Sessions Private Class FREE 2 Sessions " | Status: ACTIVE | Harga: Rp 10.350.000
+  Kode: PKG-119-20SESSIONS | Nama: "20 Sessions PVC Free 2 Sessions" | Status: ACTIVE | Harga: Rp 10.350.000
+  Kode: PKG-118-20SESSIONS | Nama: "20 Sessions PVG Free 3 Sessions" | Status: ACTIVE | Harga: Rp 4.000.000
+  Kode: PKG-117-FLASH24 | Nama: "Flash 24" | Status: ACTIVE | Harga: Rp 499.000
+  Kode: PKG-116-HOLIDAYBUN | Nama: "Holiday Bundle " | Status: ACTIVE | Harga: Rp 600.000
+  Kode: PKG-115-HOLIDAYBUN | Nama: "Holiday Bundle " | Status: ACTIVE | Harga: Rp 600.000
+  Kode: PKG-114-FLASHSALE2 | Nama: "FLASH SALE 24" | Status: ACTIVE | Harga: Rp 499.000
+  Kode: PKG-113-DOUBLEPACK | Nama: "Double Package Fun" | Status: ACTIVE | Harga: Rp 1.500.000
+  Kode: PKG-112-CONSISTENC | Nama: "Consistency Challenge " | Status: ACTIVE | Harga: Rp 1.320.000
+  Kode: PKG-111-PAYDAYSALE | Nama: "Payday Sale" | Status: ACTIVE | Harga: Rp 1.250.000
+  Kode: PKG-110-EXCLUSIVEP | Nama: "Exclusive Package" | Status: ACTIVE | Harga: Rp 450.000
+  Kode: PKG-109-TRIALSESSI | Nama: "Trial Session - New Member" | Status: ACTIVE | Harga: Rp 100.000
+  Kode: PKG-108-20SESSIONS | Nama: "20 Sessions Private Class Free 3 Sessions" | Status: ACTIVE | Harga: Rp 9.890.000
+  Kode: PKG-107-APRILONLY1 | Nama: "APRIL ONLY - 12 SESI FREE 2 PRIVATE GROUP CLASS" | Status: ACTIVE | Harga: Rp 3.294.000
+  Kode: PKG-106-APRILONLY2 | Nama: "APRIL ONLY - 20 SESI FREE 1 PRIVATE CLASS" | Status: ACTIVE | Harga: Rp 9.085.000
+  Kode: PKG-105-APRILONLY2 | Nama: "[APRIL ONLY] 20 SESI PRIVATE GROUP FREE 2 SESI - lebih dari 50%!" | Status: ACTIVE | Harga: Rp 5.600.000
+  Kode: PKG-104-APRILSHOWE | Nama: "[APRIL SHOWERS] 20 Sessions Private Group FREE 4 Sessions" | Status: ACTIVE | Harga: Rp 5.600.000
+  Kode: PKG-103-APRILSHOWE | Nama: "[APRIL SHOWERS] 12 Session Private Group Class FREE 2 Sessions" | Status: ACTIVE | Harga: Rp 3.660.000
+  Kode: PKG-102-APRILSHOWE | Nama: "[APRIL SHOWERS] 20 Session Private Group Class FREE 2 Sessions" | Status: ACTIVE | Harga: Rp 5.600.000
+  Kode: PKG-101-APRILSHOWE | Nama: "[APRIL SHOWERS] 20 Sessions Private Class" | Status: ACTIVE | Harga: Rp 11.500.000
+  Kode: PKG-100-APRILSHOWE | Nama: "[APRIL SHOWERS] 12 Sessions Private Class" | Status: ACTIVE | Harga: Rp 7.500.000
+  Kode: PKG-99-APRILSHOWE | Nama: "[APRIL SHOWERS] 8 Session Private Class " | Status: ACTIVE | Harga: Rp 5.200.000
+  Kode: PKG-98-APRILSHOWE | Nama: "[APRIL SHOWERS] 12 Sessions Private Group Class FREE 2 Sessions" | Status: ACTIVE | Harga: Rp 3.660.000
+  Kode: PKG-97-APRILSHOWE | Nama: "[APRIL SHOWERS] 20 Sessions Private Group Class FREE 4 Sessions" | Status: ACTIVE | Harga: Rp 5.600.000
+  Kode: PKG-96-EXCLUSIVEP | Nama: "[EXCLUSIVE PACKAGE] 20 Session Private Group Class FREE 5 Session" | Status: ACTIVE | Harga: Rp 4.000.000
+  Kode: PKG-95-20SESSIONS | Nama: "20 Sessions Private Group Class FREE 4 Sessions" | Status: ACTIVE | Harga: Rp 4.000.000
+  Kode: PKG-94-8SESSIONSP | Nama: "8 Sessions Private Group Class FREE 1 Session" | Status: ACTIVE | Harga: Rp 2.240.000
+  Kode: PKG-93-12SESSIONS | Nama: "12 Sessions Group Class" | Status: ACTIVE | Harga: Rp 1.500.000
+  Kode: PKG-92-8SESSIONSG | Nama: "8 Sessions Group Class" | Status: ACTIVE | Harga: Rp 1.160.000
+  Kode: PKG-91-3SESSIONSG | Nama: "3 Sessions Group Class" | Status: ACTIVE | Harga: Rp 525.000
+  Kode: PKG-90-WELCOMEBAC | Nama: "[WELCOME BACK] 5 Sessions Private Group Class" | Status: ACTIVE | Harga: Rp 700.000
+  Kode: PKG-89-12SESSIONS | Nama: "12 Sessions Private Group Class FREE 2 Sessions" | Status: ACTIVE | Harga: Rp 3.294.000
+  Kode: PKG-88-RAMADHANEX | Nama: "[RAMADHAN EXCLUSIVE] - 20 SESSIONS PRIVATE GROUP FREE 7 SESSION" | Status: INACTIVE | Harga: Rp 5.600.000
+  Kode: PKG-87-FLASHSALE1 | Nama: "[FLASH SALE] - 12 SESSIONS PRIVATE GROUP SHARING" | Status: ACTIVE | Harga: Rp 1.500.000
+  Kode: PKG-86-RAMADHANPA | Nama: "[RAMADHAN PACKAGE] - 20 SESSIONS PRIVATE GROUP" | Status: INACTIVE | Harga: Rp 2.500.000
+  Kode: PKG-85-RAMADHANPA | Nama: "[RAMADHAN PACKAGE] - 12 SESSIONS PRIVATE GROUP" | Status: INACTIVE | Harga: Rp 1.800.000
+  Kode: PKG-84-RAMADHANPA | Nama: "[RAMADHAN PACKAGE] - 8 SESSIONS PRIVATE GROUP" | Status: INACTIVE | Harga: Rp 1.400.000
+  Kode: PKG-83-RAMADHANPA | Nama: "[RAMADHAN PACKAGE] - 8 SESSIONS PRIVATE GROUP" | Status: INACTIVE | Harga: Rp 1.400.000
+  Kode: PKG-82-RAMADHANPA | Nama: "[RAMADHAN PACKAGE] - 3 SESSIONS PRIVATE GROUP" | Status: INACTIVE | Harga: Rp 600.000
+  Kode: PKG-81-PROMO20SES | Nama: "[PROMO] 20 Sessions Private Group Class FREE 3 Ses" | Status: ACTIVE | Harga: Rp 5.600.000
+  Kode: PKG-80-PROMO20SES | Nama: "[PROMO] 20 Session Private Class FREE 3 Session" | Status: ACTIVE | Harga: Rp 11.500.000
+  Kode: PKG-79-PROMO12SES | Nama: "[PROMO] 12 Ses PV FREE 1 Ses Private Class" | Status: ACTIVE | Harga: Rp 7.500.000
+  Kode: PKG-78-PRIVATEGRO | Nama: "Private Group Class 4 Sesi" | Status: ACTIVE | Harga: Rp 849.000
+  Kode: PKG-77-BUY1SESSIO | Nama: "BUY 1 SESSION GET 1 SESSION FREE - PRIVATE GROUP CLASS" | Status: ACTIVE | Harga: Rp 349.000
+  Kode: PKG-76-TRIALPACKA | Nama: "[Trial Package] 1 Private Class" | Status: ACTIVE | Harga: Rp 499.000
+  Kode: PKG-75-UNLIMITED1 | Nama: "Unlimited 1 Bulan" | Status: ACTIVE | Harga: Rp 600.000
+  Kode: PKG-74-TRIALSUPER | Nama: "[Trial Super Hemat] 3 Session Private Group Class" | Status: ACTIVE | Harga: Rp 459.000
+  Kode: PKG-73-TRIALPRIVA | Nama: "Trial Private Group" | Status: ACTIVE | Harga: Rp 179.000
+  Kode: PKG-72-MORNINGCLA | Nama: "[Morning Class] 20 Session Private Group" | Status: ACTIVE | Harga: Rp 2.489.000
+  Kode: PKG-71-CNYPROMO20 | Nama: "[CNY Promo] 20 Sessions Private Group Class GET FREE 5 Session" | Status: INACTIVE | Harga: Rp 3.999.000
+  Kode: PKG-70-VALENTINEP | Nama: "Valentine Promo - 3 Session Semi Private" | Status: INACTIVE | Harga: Rp 2.679.000
+  Kode: PKG-69-PRIVATEGRO | Nama: "Private Group Promo - 10 Sessions" | Status: ACTIVE | Harga: Rp 1.999.000
+  Kode: PKG-68-BLOOMPACKA | Nama: "Bloom Packages - FREE 1 Private Group Class" | Status: ACTIVE | Harga: Rp 525.000
+  Kode: PKG-67-BLOOMPACKA | Nama: "Bloom Packages - 1 Private Class FREE 1 Private Group Class" | Status: ACTIVE | Harga: Rp 525.000
+  Kode: PKG-66-PRIVATEGRO | Nama: "PRIVATE GROUP BOGO PACKAGE" | Status: ACTIVE | Harga: Rp 250.000
+  Kode: PKG-65-COUPLEVALE | Nama: "Couple Valentine Package " | Status: INACTIVE | Harga: Rp 700.000
+  Kode: PKG-64-20SESSIONP | Nama: "20 Session Private Class FREE 1 Session" | Status: ACTIVE | Harga: Rp 8.799.000
+  Kode: PKG-63-MINIPACKAG | Nama: "Mini Package Private Group 5 Session" | Status: ACTIVE | Harga: Rp 999.000
+  Kode: PKG-62-BUNDLINGPA | Nama: "Bundling Package Private Class" | Status: ACTIVE | Harga: Rp 525.000
+  Kode: PKG-61-BUNDLINGPA | Nama: "Bundling Package Private Group Class" | Status: ACTIVE | Harga: Rp 660.000
+  Kode: PKG-60-10SESSIONP | Nama: "10 Session Private Group" | Status: ACTIVE | Harga: Rp 2.000.000
+  Kode: PKG-59-5SESSIONPR | Nama: "5 Session Private Group" | Status: ACTIVE | Harga: Rp 1.050.000
+  Kode: PKG-58-3SESSIONPR | Nama: "3 Session Private Group" | Status: ACTIVE | Harga: Rp 660.000
+  Kode: PKG-57-20SESSIONP | Nama: "20 Session Private Class FREE 5 Session" | Status: ACTIVE | Harga: Rp 14.375.000
+  Kode: PKG-56-20SESSIONS | Nama: "20 Sessions Private Class FREE 5 Sessions" | Status: ACTIVE | Harga: Rp 11.000.000
+  Kode: PKG-55-20SESSIONG | Nama: "20 Session Group Class" | Status: ACTIVE | Harga: Rp 3.738.000
+  Kode: PKG-54-20SESSIONP | Nama: "20 Session Private Class FREE 2 Session" | Status: ACTIVE | Harga: Rp 11.500.000
+  Kode: PKG-53-20SESSIONG | Nama: "20 Session Group Class FREE 4 Session" | Status: ACTIVE | Harga: Rp 3.000.000
+  Kode: PKG-52-8SESSIONGR | Nama: "8 Session Group Class FREE 2 Session" | Status: ACTIVE | Harga: Rp 1.500.000
+  Kode: PKG-51-12SESSIONP | Nama: "12 Session Private Group FREE 2 Session" | Status: ACTIVE | Harga: Rp 3.660.000
+  Kode: PKG-50-GROUPCLASS | Nama: "Group Class - 3 Sesi " | Status: ACTIVE | Harga: Rp 550.000
+  Kode: PKG-49-PRIVATECLA | Nama: "Private Class 5 Sesi" | Status: ACTIVE | Harga: Rp 2.250.000
+  Kode: PKG-48-PRIVATECLA | Nama: "Private Class 3 Sesi" | Status: ACTIVE | Harga: Rp 1.650.000
+  Kode: PKG-47-PRIVATEGRO | Nama: "Private Group Class 5 Sesi" | Status: ACTIVE | Harga: Rp 789.000
+  Kode: PKG-46-PRIVATEGRO | Nama: "Private Group Class 3 Sesi" | Status: ACTIVE | Harga: Rp 489.000
+  Kode: PKG-45-12SESSIONS | Nama: "12 Sessions Private Class GET FREE 4 SESSION" | Status: ACTIVE | Harga: Rp 7.500.000
+  Kode: PKG-44-12PVGFREE2 | Nama: "12 PVG Free 2 Sesi" | Status: ACTIVE | Harga: Rp 3.660.000
+  Kode: PKG-43-12SESSIONS | Nama: "12 Sessions Private Group Class GET FREE 4 SESSION" | Status: ARCHIVED | Harga: Rp 3.660.000
+  Kode: PKG-42-UNLIMITED4 | Nama: "Unlimited 4 Bulan" | Status: ACTIVE | Harga: Rp 2.400.000
+  Kode: PKG-41-12SESSIONP | Nama: "12 Session Private Group FREE 4 SESSION" | Status: ACTIVE | Harga: Rp 3.660.000
+  Kode: PKG-40-DAILYDOSEX | Nama: "Daily Dose x Citilink" | Status: ACTIVE | Harga: Rp 99.000.000
+  Kode: PKG-39-DROPINSP3 | Nama: "Drop in SP - 3" | Status: ACTIVE | Harga: Rp 1.200.000
+  Kode: PKG-38-APRILONLY2 | Nama: "APRIL ONLY - 20 Sessions Private Group class FREE 4 SESSION" | Status: ARCHIVED | Harga: Rp 5.600.000
+  Kode: PKG-37-20SESSIONS | Nama: "20 Sessions Group Class" | Status: ACTIVE | Harga: Rp 3.000.000
+  Kode: PKG-36-12SESSIONS | Nama: "12 Sessions Group Class" | Status: ACTIVE | Harga: Rp 2.160.000
+  Kode: PKG-35-8SESSIONSG | Nama: "8 Sessions Group Class" | Status: ACTIVE | Harga: Rp 1.600.000
+  Kode: PKG-34-DROPINGROU | Nama: "Drop in Group Class" | Status: ACTIVE | Harga: Rp 230.000
+  Kode: PKG-33-PAKET20SES | Nama: "Paket 20 Sesi Private Group Free 4 Sesi Khusus PIK" | Status: ACTIVE | Harga: Rp 5.600.000
+  Kode: PKG-32-DROPINUNTA | Nama: "Drop in Untar" | Status: ACTIVE | Harga: Rp 350.000
+  Kode: PKG-31-UNLIMITED3 | Nama: "Unlimited 3 Bulan" | Status: ACTIVE | Harga: Rp 1.800.000
+  Kode: PKG-30-20SESSIONS | Nama: "20 Sessions Private Group Class FREE 1 Sessions" | Status: ACTIVE | Harga: Rp 5.600.000
+  Kode: PKG-29-12SESIFREE | Nama: "12 Sesi Free 3 Sesi - Untar" | Status: ACTIVE | Harga: Rp 2.000.000
+  Kode: PKG-28-20SESISEMI | Nama: "20 Sesi Semi Private FREE 2 Sesi" | Status: ACTIVE | Harga: Rp 17.200.000
+  Kode: PKG-27-20SESSIONS | Nama: "20 Sessions Private Group Class free 2 Sessions" | Status: ACTIVE | Harga: Rp 5.600.000
+  Kode: PKG-26-PAKETPRIVA | Nama: "Paket Private 11x pertemuan" | Status: ACTIVE | Harga: Rp 12.600.000
+  Kode: PKG-25-20SESIFREE | Nama: "20 Sesi FREE 2 Sesi - SBY" | Status: ACTIVE | Harga: Rp 5.600.000
+  Kode: PKG-24-12SESIFREE | Nama: "12 Sesi FREE 1 Group Class" | Status: ACTIVE | Harga: Rp 3.660.000
+  Kode: PKG-23-8SESSIONSF | Nama: "8 Sessions FREE 1 Group Class " | Status: ACTIVE | Harga: Rp 2.640.000
+  Kode: PKG-22-PAKETGYM | Nama: "Paket Gym" | Status: ARCHIVED | Harga: Rp 1
+  Kode: PKG-21-PAKETGROUP | Nama: "Paket Group Private SBY" | Status: ACTIVE | Harga: Rp 11.200.000
+  Kode: PKG-20-DROPINGROU | Nama: "Drop In Group Class - Gaby" | Status: ACTIVE | Harga: Rp 380.000
+  Kode: PKG-19-DROPINGROU | Nama: "Drop In Group Class  - Fendi" | Status: ACTIVE | Harga: Rp 380.000
+  Kode: PKG-18-DROPINPRIV | Nama: "Drop in Private Class - First Time Package" | Status: ACTIVE | Harga: Rp 1.100.000
+  Kode: PKG-17-DROPINPRIV | Nama: "Drop in Private Group Class - First Time Package" | Status: ACTIVE | Harga: Rp 1.100.000
+  Kode: PKG-16-20SESSIONS | Nama: "20 Sessions Private Group Class free 4 Sessions" | Status: ACTIVE | Harga: Rp 5.600.000
+  Kode: PKG-15-20SESSIONS | Nama: "20 Sessions Private Class" | Status: ACTIVE | Harga: Rp 11.500.000
+  Kode: PKG-14-12SESSIONS | Nama: "12 Sessions Private Class" | Status: ACTIVE | Harga: Rp 7.500.000
+  Kode: PKG-13-8SESSIONSP | Nama: "8 Sessions Private Class" | Status: ACTIVE | Harga: Rp 5.200.000
+  Kode: PKG-12-DROPINPRIV | Nama: "Drop In Private Class" | Status: ACTIVE | Harga: Rp 675.000
+  Kode: PKG-11-20SESSIONS | Nama: "20 Sessions Semi Private Class" | Status: ACTIVE | Harga: Rp 17.200.000
+  Kode: PKG-10-12SESSIONS | Nama: "12 Sessions Semi Private Class" | Status: ACTIVE | Harga: Rp 11.280.000
+  Kode: PKG-9-8SESSIONSS | Nama: "8 Sessions Semi Private Class" | Status: ACTIVE | Harga: Rp 8.000.000
+  Kode: PKG-8-DROPINSEMI | Nama: "Drop In Semi Private" | Status: ACTIVE | Harga: Rp 1.100.000
+  Kode: PKG-7-20SESSIONS | Nama: "20 Sessions Private Group Class" | Status: ACTIVE | Harga: Rp 5.600.000
+  Kode: PKG-6-12SESSIONS | Nama: "12 Sessions Private Group Class" | Status: ACTIVE | Harga: Rp 3.660.000
+  Kode: PKG-5-8SESSIONSP | Nama: "8 Sessions Private Group Class" | Status: ACTIVE | Harga: Rp 2.640.000
+  Kode: PKG-4-DROPINPRIV | Nama: "Drop In Private Group Class" | Status: ACTIVE | Harga: Rp 380.000
+  Kode: PKG-3-PAKET20SES | Nama: "Paket 20 Sesi Group Class" | Status: ACTIVE | Harga: Rp 5.600.000
+  Kode: PKG-2-PAKET8SESI | Nama: "Paket 8 Sesi Private Class" | Status: ACTIVE | Harga: Rp 4.600.000
+  Kode: PKG-1-PAKET8SESI | Nama: "Paket 8 Sesi Group Class" | Status: ACTIVE | Harga: Rp 2.640.000
+
+--- POIN 13: Akun Tes/Dummy ---
+Total user dummy/test di DB: 37
+  User: Super Owner | Email: superowner@dailydose.test | Role: SUPER_OWNER | Status: ACTIVE
+  User: Owner Green Garden | Email: owner.gg@dailydose.test | Role: OWNER | Status: ACTIVE
+  User: Owner Surabaya | Email: owner.sby@dailydose.test | Role: OWNER | Status: ACTIVE
+  User: Malicious Script Tester | Email: malicious_1791145917029@dailydose.test | Role: MEMBER | Status: ACTIVE
+  User: Ridho Instruktur | Email: ridhoinstruktur@example.com | Role: INSTRUCTOR | Status: ACTIVE
+  User: Test | Email: reyner@lrmcorporation.com | Role: CUSTOMER | Status: INACTIVE
+  User: Test | Email: ddose@lrmcorporation.com | Role: CUSTOMER | Status: INACTIVE
+  User: - | Email: dummy@example.com | Role: INSTRUCTOR | Status: INACTIVE
+  User: admin_test | Email: admintest@example.com | Role: ADMIN | Status: INACTIVE
+  User: Testing | Email: testing@gmail.com | Role: CUSTOMER | Status: INACTIVE
+  User: test | Email: naxasov306@deligy.com | Role: CUSTOMER | Status: INACTIVE
+  User: Rival Member Neg | Email: rival_1791146211622@dailydose.test | Role: CUSTOMER | Status: ACTIVE
+  User: Unverified Tester | Email: unverified_1791145001484@dailydose.test | Role: CUSTOMER | Status: ACTIVE
+  User: Admin Frontdesk GG | Email: admin.gg@dailydose.test | Role: ADMIN | Status: ACTIVE
+  User: Clara New Member | Email: clara.new@dailydose.test | Role: MEMBER | Status: ACTIVE
+  User: Manager Green Garden | Email: manager.gg@dailydose.test | Role: MANAGER | Status: ACTIVE
+  User: Guest Instructor Neg | Email: guest_inst_1791145550588@dailydose.test | Role: INSTRUCTOR | Status: ACTIVE
+  User: Finance Corporate | Email: finance@dailydose.test | Role: FINANCE | Status: ACTIVE
+  User: Test Weak Password | Email: weakpass.test@dailydose.test | Role: MEMBER | Status: ACTIVE
+  User: Dedi UAT3 | Email: dedi.uat.1791399141476@dailydose.test | Role: MEMBER | Status: ACTIVE
+  User: Rival Member Neg | Email: rival_1791145917713@dailydose.test | Role: CUSTOMER | Status: ACTIVE
+  User: Unverified Tester | Email: unverified_1791145442152@dailydose.test | Role: CUSTOMER | Status: ACTIVE
+  User: Dedi UAT3 | Email: dedi.uat.1791399114297@dailydose.test | Role: MEMBER | Status: ACTIVE
+  User: Unverified KYC | Email: unverified_test_1791145194945@dailydose.test | Role: CUSTOMER | Status: ACTIVE
+  User: Guest Instructor Neg | Email: guest_inst_1791146211322@dailydose.test | Role: INSTRUCTOR | Status: ACTIVE
+  User: Malicious Script Tester | Email: malicious_1791145001639@dailydose.test | Role: MEMBER | Status: ACTIVE
+  User: Sarah Jenkins | Email: coach.sarah@dailydose.test | Role: INSTRUCTOR | Status: ACTIVE
+  User: Imposter Phone | Email: unique_1791144745128@dailydose.test | Role: MEMBER | Status: ACTIVE
+  User: Dedi UAT3 | Email: dedi.uat3@dailydose.test | Role: MEMBER | Status: ACTIVE
+  User: Hendra Gunawan (Stopped) | Email: hendra.stopped@dailydose.test | Role: CUSTOMER | Status: ACTIVE
+  User: Coach Clara | Email: coach.clara@dailydose.test | Role: INSTRUCTOR | Status: ACTIVE
+  User: Amanda Member | Email: amanda.member@dailydose.test | Role: CUSTOMER | Status: ACTIVE
+  User: Malicious Script Tester | Email: malicious_1791145550374@dailydose.test | Role: MEMBER | Status: ACTIVE
+  User: Finance Manager MK | Email: finance.mk@dailydose.test | Role: FINANCE | Status: ACTIVE
+  User: Rival Member Neg | Email: rival_1791145550794@dailydose.test | Role: CUSTOMER | Status: ACTIVE
+  User: Guest Instructor Neg | Email: guest_inst_1791145917374@dailydose.test | Role: INSTRUCTOR | Status: ACTIVE
+  User: Malicious Script Tester | Email: malicious_1791145442399@dailydose.test | Role: MEMBER | Status: ACTIVE

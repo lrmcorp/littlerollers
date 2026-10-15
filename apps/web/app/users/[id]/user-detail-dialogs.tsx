@@ -247,8 +247,8 @@ export function PasswordDialog({
   return (
     <Modal
       open={open}
-      title="Ubah Kata Sandi Staf Langsung"
-      description="Tetapkan kata sandi baru untuk staf. Pengguna langsung dapat login menggunakan kata sandi ini."
+      title="Reset Kata Sandi Staf Langsung"
+      description="Tetapkan kata sandi baru untuk staf. Pengguna langsung dapat login menggunakan kata sandi ini. Sampaikan kata sandi baru kepada staf secara aman."
       busy={submitting}
       dirty={guard.dirty}
       onDirtyClose={guard.confirmDiscard}

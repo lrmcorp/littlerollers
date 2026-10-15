@@ -15,7 +15,7 @@ import {
   UserRound,
 } from 'lucide-react';
 import { AppNavigation } from './app-navigation';
-import { useSessionContext } from './session-context';
+import { isRecognizedProtectedPath, useSessionContext } from './session-context';
 import { routes } from '@/lib/routes';
 import { roleLabel } from './lib/role-labels';
 import { canReadPage, frontendPages, pageForPath } from '@/lib/frontend-pages';
@@ -166,6 +166,8 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
     Boolean(session) && !customerOnly && !isPublicExperiencePath(pathname),
   );
   if (isPublicExperiencePath(pathname) && !customerCatalog) return children;
+  // Tamu di URL yang tidak dikenal: tampilkan halaman 404 saja, tanpa rangka navigasi internal.
+  if (!session && !isRecognizedProtectedPath(pathname)) return children;
   if (customerOnly) {
     const approved = session?.identityVerificationStatus === 'APPROVED';
     return (

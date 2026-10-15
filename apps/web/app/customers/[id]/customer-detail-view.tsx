@@ -419,6 +419,14 @@ export function CustomerDetailView({ id }: { id: string }) {
   const ktpDoc = customer.identityDocuments.find((d) => d.kind === 'KTP_FRONT');
   const selfieDoc = customer.identityDocuments.find((d) => d.kind === 'SELFIE');
 
+  const nowForPackages = new Date();
+  const activePackageCount = customer.customerPackages.filter(
+    (cp) =>
+      cp.status === 'ACTIVE' &&
+      cp.remainingSessions > 0 &&
+      (!cp.expiryAt || new Date(cp.expiryAt) >= nowForPackages),
+  ).length;
+
   const cards = [
     { label: 'Total Order', value: customer._count.purchases ?? 0, icon: CreditCard },
     { label: 'Paket Dimiliki', value: customer._count.customerPackages ?? 0, icon: Package },
@@ -494,13 +502,16 @@ export function CustomerDetailView({ id }: { id: string }) {
         }
         badges={
           <>
-            <StatusBadge tone={customer.status === 'ACTIVE' ? 'success' : 'warning'}>
-              {customerStatusLabels[customer.status] ?? customer.status}
+            <StatusBadge tone={customer.status === 'ACTIVE' ? 'success' : 'neutral'}>
+              Status Akun: {(customerStatusLabels[customer.status] ?? customer.status).toUpperCase()}
             </StatusBadge>
             <StatusBadge
               tone={customer.verificationStatus === 'APPROVED' ? 'success' : 'warning'}
             >
-              {verificationStatusLabels[customer.verificationStatus] ?? customer.verificationStatus}
+              Verifikasi Identitas:{' '}
+              {(
+                verificationStatusLabels[customer.verificationStatus] ?? customer.verificationStatus
+              ).toUpperCase()}
             </StatusBadge>
             {customer.stoppedAt && (
               <StatusBadge tone="danger">
@@ -633,7 +644,7 @@ export function CustomerDetailView({ id }: { id: string }) {
                 </p>
               </div>
               <StatusBadge tone={customer.verificationStatus === 'APPROVED' ? 'success' : 'warning'}>
-                {customer.verificationStatus === 'APPROVED' ? 'Terverifikasi' : 'Perlu Dokumen'}
+                {verificationStatusLabels[customer.verificationStatus] ?? customer.verificationStatus}
               </StatusBadge>
             </div>
 
@@ -702,7 +713,7 @@ export function CustomerDetailView({ id }: { id: string }) {
             {/* Reminder WhatsApp (Rule #12 & #13) */}
             <div className="space-y-2 p-3 rounded-dd-md border border-dd-line/70 bg-dd-surface-muted/20">
               <div className="flex items-center justify-between gap-2">
-                <strong className="text-sm font-semibold text-dd-ink">Pengingat WhatsApp (Rule #12 &amp; #13)</strong>
+                <strong className="text-sm font-semibold text-dd-ink">Pengingat WhatsApp</strong>
                 {customer.stoppedAt ? (
                   <StatusBadge tone="danger">Berhenti</StatusBadge>
                 ) : (
@@ -764,7 +775,7 @@ export function CustomerDetailView({ id }: { id: string }) {
                 }`}
               >
                 <Package className="size-4" />
-                Paket Aktif &amp; Sesi ({customer.customerPackages.length})
+                Paket &amp; Sesi ({activePackageCount} aktif)
               </button>
               <button
                 type="button"
@@ -798,10 +809,16 @@ export function CustomerDetailView({ id }: { id: string }) {
                 {(() => {
                   const now = new Date();
                   const activePkgs = customer.customerPackages.filter(
-                    (cp) => cp.status === 'ACTIVE' && (!cp.expiryAt || new Date(cp.expiryAt) >= now),
+                    (cp) =>
+                      cp.status === 'ACTIVE' &&
+                      cp.remainingSessions > 0 &&
+                      (!cp.expiryAt || new Date(cp.expiryAt) >= now),
                   );
                   const inactivePkgs = customer.customerPackages.filter(
-                    (cp) => cp.status !== 'ACTIVE' || (cp.expiryAt && new Date(cp.expiryAt) < now),
+                    (cp) =>
+                      cp.status !== 'ACTIVE' ||
+                      cp.remainingSessions <= 0 ||
+                      (cp.expiryAt && new Date(cp.expiryAt) < now),
                   );
 
                   return (
@@ -895,7 +912,7 @@ export function CustomerDetailView({ id }: { id: string }) {
                       {inactivePkgs.length > 0 && (
                         <div className="border-t border-dd-line/60 pt-6">
                           <h4 className="text-sm font-semibold text-dd-muted mb-3">
-                            Paket Kedaluwarsa & Riwayat ({inactivePkgs.length})
+                            Paket Selesai / Habis &amp; Kedaluwarsa ({inactivePkgs.length})
                           </h4>
                           <DataTable
                             showRowNumbers={false}

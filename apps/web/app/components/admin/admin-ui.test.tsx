@@ -111,6 +111,25 @@ describe('admin UI primitives', () => {
     expect((await axe(container)).violations).toHaveLength(0);
   });
 
+  it('does not repeat "dari" when the label already says "X dari Y paket"', () => {
+    const { container } = render(
+      <Pagination
+        currentPage={1}
+        totalPages={1}
+        totalItems={20}
+        pageSize={20}
+        totalLabel="20 dari 20 paket"
+        hasPrevious={false}
+        hasNext={false}
+        onPrevious={() => undefined}
+        onNext={() => undefined}
+      />,
+    );
+    const text = container.textContent ?? '';
+    expect(text).toContain('20 dari 20 paket');
+    expect(text).not.toMatch(/dari 20 dari/);
+  });
+
   it('omits page buttons and formats displayLabel cleanly for cursor-based pagination', async () => {
     const { getByText, queryByRole } = render(
       <Pagination

@@ -91,7 +91,7 @@ export class IdempotencyService {
         }
       }
       return action(tx);
-    });
+    }, { maxWait: 15000, timeout: 30000 });
 
     if ((response as any)?.__replayed) {
       const { __replayed, ...rest } = response as any;

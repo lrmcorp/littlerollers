@@ -55,7 +55,7 @@ export function ClassSlotView({
   bookingClient = browserBookingClient,
 }: {
   client?: ClassSlotClient;
-  branchOverride?: BranchOption;
+  branchOverride?: BranchOption | null;
   branchesOverride?: BranchOption[];
   capabilitiesOverride?: readonly string[];
   bookingClient?: Pick<BookingClient, 'list'> &

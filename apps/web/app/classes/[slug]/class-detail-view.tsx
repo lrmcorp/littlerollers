@@ -32,6 +32,7 @@ import {
 import { PackagePrice } from '../../components/public/package-price';
 import { accountClient, type PublicFaqPayload } from '@/api-clients/account-client';
 import { ClassFaqSection } from './class-faq-section';
+import { classLevelLabel } from '../../lib/class-level';
 
 export function ClassDetailView({
   slug,
@@ -111,7 +112,7 @@ export function ClassDetailView({
               <div className="flex flex-wrap gap-2.5 text-sm">
                 <span className="inline-flex items-center gap-2 rounded-full border border-dd-line bg-white px-3.5 py-2 font-medium text-dd-ink shadow-xs">
                   <Gauge className="size-4 text-dd-forest" />
-                  {item.profile.level}
+                  {classLevelLabel(item.profile.level)}
                 </span>
                 <span className="inline-flex items-center gap-2 rounded-full border border-dd-forest/30 bg-dd-success-soft px-3.5 py-2 font-semibold text-dd-forest shadow-xs">
                   <Timer className="size-4 text-dd-forest" />
@@ -202,11 +203,10 @@ export function ClassDetailView({
               <div className="rounded-dd-lg border border-dd-line bg-white p-6 shadow-dd-card">
                 <h3 className="flex items-center gap-2 text-lg font-bold text-dd-ink">
                   <Info className="size-5 text-dd-forest" />
-                  Perlengkapan Sesi
+                  Peralatan Kelas
                 </h3>
                 <p className="mt-2 text-xs leading-relaxed text-dd-muted">
-                  Studio menyediakan seluruh peralatan utama. Peserta disarankan membawa
-                  perlengkapan pribadi berikut:
+                  Peralatan berikut disediakan oleh studio untuk kelas ini:
                 </p>
                 <ul className="mt-4 space-y-2.5">
                   {item.profile.equipment.map((value) => (
@@ -216,6 +216,10 @@ export function ClassDetailView({
                     </li>
                   ))}
                 </ul>
+                <div className="mt-4 rounded-dd-sm border border-dd-line/80 bg-dd-paper p-3 text-xs leading-relaxed text-dd-muted">
+                  <strong className="block font-semibold text-dd-ink">Perlengkapan Peserta:</strong>
+                  Peralatan reformer dan perlengkapan latihan disediakan lengkap oleh studio. Anda cukup membawa kaus kaki antiselip (<em>grip socks</em>) dan pakaian olahraga yang nyaman.
+                </div>
               </div>
 
               {/* Studio Tersedia */}
@@ -235,7 +239,7 @@ export function ClassDetailView({
                         {studio.name}
                       </strong>
                       <span className="mt-1 block text-xs text-dd-muted">
-                        {studio.publicProfile.area}, {studio.publicProfile.city}
+                        {[studio.publicProfile.area, studio.publicProfile.city].filter(Boolean).join(', ')}
                       </span>
                     </Link>
                   ))}

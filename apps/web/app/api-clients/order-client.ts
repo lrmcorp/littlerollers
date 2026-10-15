@@ -505,6 +505,11 @@ export function orderErrorDetails(error: unknown) {
     VERSION_CONFLICT: 'Pesanan telah berubah. Muat ulang halaman lalu coba kembali.',
     PROMOTION_CHANGED:
       'Harga promo paket berubah sejak halaman ini dimuat. Muat ulang halaman untuk melihat harga terbaru.',
+    VOUCHER_INVALID: 'Kode voucher tidak valid.',
+    VOUCHER_EXPIRED: 'Kode voucher telah kedaluwarsa.',
+    VOUCHER_INACTIVE: 'Kode voucher sudah tidak aktif.',
+    VOUCHER_MINIMUM_NOT_MET: 'Total belanja belum memenuhi syarat minimum voucher.',
+    VOUCHER_EXHAUSTED: 'Kuota penggunaan voucher telah habis.',
   };
   return {
     code,

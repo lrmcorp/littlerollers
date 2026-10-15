@@ -3,7 +3,11 @@ import { PrismaService } from '../database/prisma.service';
 import type { SessionPrincipal } from './identity.service';
 import { PolicyService } from './policy.service';
 import { ApiProblem } from './security';
-import { buildPhoneSearchVariants } from './manajemen-pelanggan.service';
+import {
+  buildPhoneSearchVariants,
+  customerVerificationStatus,
+  verificationStatusWhere,
+} from './manajemen-pelanggan.service';
 
 export interface IdentityReviewFilters {
   q?: string;
@@ -110,37 +114,13 @@ export class IdentityReviewQueryService {
     if (effectiveStatus && effectiveStatus !== 'ALL') {
       if (effectiveStatus === 'PENDING') {
         // Dalam antrean: memiliki dokumen yang belum disetujui (atau parsial)
-        andConditions.push({
-          profile: {
-            OR: [
-              {
-                ktpUrl: { not: null },
-                OR: [{ notes: null }, { notes: { not: { contains: 'KYC_APPROVED' } } }],
-              },
-              {
-                selfieUrl: { not: null },
-                OR: [{ notes: null }, { notes: { not: { contains: 'KYC_APPROVED' } } }],
-              },
-            ],
-          },
-        });
+        andConditions.push(verificationStatusWhere('PENDING'));
       } else if (effectiveStatus === 'APPROVED') {
         // Disetujui: kedua dokumen (KTP & Selfie) lengkap dan KYC_APPROVED
-        andConditions.push({
-          profile: {
-            ktpUrl: { not: null },
-            selfieUrl: { not: null },
-            notes: { contains: 'KYC_APPROVED' },
-          },
-        });
+        andConditions.push(verificationStatusWhere('APPROVED'));
       } else if (effectiveStatus === 'ACTION_REQUIRED') {
         // Belum mengunggah dokumen apapun
-        andConditions.push({
-          OR: [
-            { profile: null },
-            { profile: { ktpUrl: null, selfieUrl: null } },
-          ],
-        });
+        andConditions.push(verificationStatusWhere('ACTION_REQUIRED'));
       } else if (effectiveStatus === 'REJECTED' || effectiveStatus === 'DELETE_FAILED') {
         andConditions.push({ id: '__none__' });
       }
@@ -161,6 +141,8 @@ export class IdentityReviewQueryService {
     let totalDocumentsCount = 0;
     let pendingDocumentsCount = 0;
     let approvedDocumentsCount = 0;
+    let pendingCustomersCount = 0;
+    let approvedCustomersCount = 0;
 
     const [users, totalCount] = await Promise.all([
       this.db.user.findMany({
@@ -182,8 +164,10 @@ export class IdentityReviewQueryService {
           SELECT 
             COUNT(DISTINCT u.id) as totalCustomers,
             COUNT(p.ktp_url) + COUNT(p.selfie_url) as totalDocuments,
-            SUM(CASE WHEN (p.ktp_url IS NOT NULL AND p.selfie_url IS NULL) OR (p.ktp_url IS NULL AND p.selfie_url IS NOT NULL) THEN 1 ELSE 0 END) as pendingDocuments,
-            SUM(CASE WHEN p.ktp_url IS NOT NULL AND p.selfie_url IS NOT NULL THEN 2 ELSE 0 END) as approvedDocuments
+            SUM(CASE WHEN (p.ktp_url IS NOT NULL AND p.selfie_url IS NOT NULL AND IFNULL(p.notes, '') LIKE '%KYC_APPROVED%') THEN 0 ELSE (p.ktp_url IS NOT NULL) + (p.selfie_url IS NOT NULL) END) as pendingDocuments,
+            SUM(CASE WHEN (p.ktp_url IS NOT NULL AND p.selfie_url IS NOT NULL AND IFNULL(p.notes, '') LIKE '%KYC_APPROVED%') THEN 2 ELSE 0 END) as approvedDocuments,
+            SUM(CASE WHEN (p.ktp_url IS NOT NULL OR p.selfie_url IS NOT NULL) AND NOT (p.ktp_url IS NOT NULL AND p.selfie_url IS NOT NULL AND IFNULL(p.notes, '') LIKE '%KYC_APPROVED%') THEN 1 ELSE 0 END) as pendingCustomers,
+            SUM(CASE WHEN (p.ktp_url IS NOT NULL AND p.selfie_url IS NOT NULL AND IFNULL(p.notes, '') LIKE '%KYC_APPROVED%') THEN 1 ELSE 0 END) as approvedCustomers
           FROM user u
           LEFT JOIN profil_pengguna p ON u.id = p.userId
           WHERE u.role IN ('CUSTOMER', 'MEMBER')
@@ -193,6 +177,8 @@ export class IdentityReviewQueryService {
           totalDocumentsCount = Number(raw[0].totalDocuments ?? 0);
           pendingDocumentsCount = Number(raw[0].pendingDocuments ?? 0);
           approvedDocumentsCount = Number(raw[0].approvedDocuments ?? 0);
+          pendingCustomersCount = Number(raw[0].pendingCustomers ?? 0);
+          approvedCustomersCount = Number(raw[0].approvedCustomers ?? 0);
         }
       } catch {
         // Fallback default
@@ -277,6 +263,8 @@ export class IdentityReviewQueryService {
         totalDocuments: totalDocumentsCount,
         pendingDocuments: pendingDocumentsCount,
         approvedDocuments: approvedDocumentsCount,
+        pendingCustomers: pendingCustomersCount,
+        approvedCustomers: approvedCustomersCount,
         rejectedDocuments: 0,
         deletionIssues: 0,
       },
@@ -300,14 +288,14 @@ export class IdentityReviewQueryService {
     if (!user) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
 
     const documents: any[] = [];
-    const hasBoth = Boolean(user.profile?.selfieUrl && user.profile?.ktpUrl);
-    const hasAny = Boolean(user.profile?.selfieUrl || user.profile?.ktpUrl);
+    const verificationStatus = customerVerificationStatus(user.profile);
+    const isApproved = verificationStatus === 'APPROVED';
 
     if (user.profile?.selfieUrl) {
       documents.push({
         id: `doc-selfie-${user.id}`,
         kind: 'SELFIE',
-        status: hasBoth ? 'APPROVED' : 'PENDING',
+        status: isApproved ? 'APPROVED' : 'PENDING',
         uploadStatus: 'FINALIZED',
         scanStatus: 'CLEAN',
         fileName: 'selfie.jpg',
@@ -325,7 +313,7 @@ export class IdentityReviewQueryService {
       documents.push({
         id: `doc-ktp-${user.id}`,
         kind: 'KTP_FRONT',
-        status: hasBoth ? 'APPROVED' : 'PENDING',
+        status: isApproved ? 'APPROVED' : 'PENDING',
         uploadStatus: 'FINALIZED',
         scanStatus: 'CLEAN',
         fileName: 'ktp.jpg',
@@ -349,7 +337,7 @@ export class IdentityReviewQueryService {
         preferredBranchId: user.preferredBranchId,
       },
       documents,
-      verificationStatus: hasBoth ? 'APPROVED' : hasAny ? 'PENDING' : 'ACTION_REQUIRED',
+      verificationStatus,
     };
   }
 }

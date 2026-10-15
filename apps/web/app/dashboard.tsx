@@ -25,15 +25,21 @@ import {
 } from '@/api-clients/dashboard-client';
 import { formatRupiah } from './lib/formatters';
 import { iconForPage } from './lib/page-icons';
+import { timezoneLabel } from './classes/class-slot-presenters';
 
 const number = new Intl.NumberFormat('id-ID');
 const compact = new Intl.NumberFormat('id-ID', { notation: 'compact', maximumFractionDigits: 1 });
 const dateInput = (date: Date) => date.toISOString().slice(0, 10);
-/** Tanggal tren bisa berupa Date (klien ter-generate) atau string ISO; selalu tampil YYYY-MM-DD. */
-const trendDate = (value: Date | string) =>
-  (value instanceof Date ? value.toISOString() : String(value)).slice(0, 10);
-const shortDate = (value: string) =>
-  new Date(`${value}T00:00:00`).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+/** Tanggal tren bisa berupa Date (klien ter-generate) atau string ISO; ditampilkan sebagai "14 Sep 2026". */
+const trendDate = (value: Date | string) => {
+  const iso = (value instanceof Date ? value.toISOString() : String(value)).slice(0, 10);
+  return new Date(`${iso}T00:00:00Z`).toLocaleDateString('id-ID', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });
+};
 const financialMetricKeys = new Set([
   'gross-sales',
   'revenue',
@@ -310,7 +316,7 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
           {activeBranch ? (
             <>
               <strong className="text-dd-ink">Cabang operasional: {activeBranch.name}</strong> (
-              {activeBranch.code} · {activeBranch.timezone})
+              {timezoneLabel(activeBranch.timezone)})
             </>
           ) : (
             <strong className="text-dd-ink">Mode Lintas Cabang (Semua Cabang yang Diizinkan)</strong>
@@ -347,6 +353,12 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
       {failure && (
         <Feedback kind="error">
           Ringkasan bisnis belum dapat dimuat. Gunakan pintasan di bawah atau coba segarkan.
+        </Feedback>
+      )}
+      {overview?.financial.instructorFeeMissing && (
+        <Feedback kind="warning">
+          Tarif honor instruktur belum diisi, sehingga biaya instruktur tampil Rp 0 dan laba sama
+          dengan omzet. Isi tarif honor di menu Master Data agar laba akurat.
         </Feedback>
       )}
       {overview?.financial.completeness === 'INCOMPLETE' && (
@@ -636,12 +648,7 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
                   id: 'branch',
                   header: 'Cabang',
                   cell: (branch) => (
-                    <>
-                      <strong className="font-bold text-dd-ink">{branch.name}</strong>
-                      <span className="ml-2 rounded-dd-sm bg-dd-surface-muted px-2 py-0.5 text-[11px] font-semibold text-dd-muted">
-                        {branch.code}
-                      </span>
-                    </>
+                    <strong className="font-bold text-dd-ink">{branch.name}</strong>
                   ),
                 },
                 { id: 'revenue', header: 'Omzet', cell: (branch) => formatRupiah(branch.revenueRp) },
@@ -694,9 +701,6 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
                 <div className="space-y-2">
                   <div className="flex items-center justify-between gap-3">
                     <strong className="text-dd-ink">{branch.name}</strong>
-                    <span className="rounded-dd-sm bg-dd-surface-muted px-2 py-0.5 text-[11px] font-semibold text-dd-muted">
-                      {branch.code}
-                    </span>
                   </div>
                   <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
                     <dt className="text-dd-muted">Omzet</dt>

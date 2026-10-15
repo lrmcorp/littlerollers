@@ -181,6 +181,19 @@ describe('Dashboard', () => {
     expect(within(shortcuts).queryByText('Kelas')).not.toBeInTheDocument();
   });
 
+  it('memberi tahu bila tarif honor instruktur belum diisi, bukan diam-diam Rp 0', async () => {
+    const data = response();
+    data.financial.instructorFeeMissing = true;
+    render(<Dashboard client={{ overview: vi.fn().mockResolvedValue(data) } as never} />);
+    expect(await screen.findByText(/Tarif honor instruktur belum diisi/)).toBeVisible();
+  });
+
+  it('tidak menampilkan peringatan tarif honor bila tarif sudah ada', async () => {
+    render(<Dashboard client={{ overview: vi.fn().mockResolvedValue(response()) } as never} />);
+    await screen.findByRole('img', { name: /Tren pendapatan/ });
+    expect(screen.queryByText(/Tarif honor instruktur belum diisi/)).not.toBeInTheDocument();
+  });
+
   it('labels the trend axis and gives each point a tooltip', async () => {
     const { container } = render(
       <Dashboard client={{ overview: vi.fn().mockResolvedValue(response()) } as never} />,
@@ -191,7 +204,8 @@ describe('Dashboard', () => {
       (node) => node.textContent,
     );
     expect(tooltips).toHaveLength(2);
-    expect(tooltips[0]).toMatch(/2026-08-01/);
+    expect(tooltips[0]).toMatch(/1 Agu 2026/);
+    expect(tooltips[0]).not.toMatch(/2026-08-01/);
   });
 
   it('renders the branch table with a row per branch', async () => {

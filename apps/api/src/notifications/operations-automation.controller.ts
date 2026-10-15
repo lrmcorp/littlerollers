@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Optional,
   Query,
   Req,
   UseGuards,
@@ -12,6 +13,8 @@ import { RolesGuard } from '../identity/roles.guard';
 import { AutoCancelService } from '../classes/auto-cancel.service';
 import { WhatsAppGatewayService } from './whatsapp-gateway.service';
 import { ReminderScheduleService } from './reminder-schedule.service';
+import { PrismaService } from '../database/prisma.service';
+import { newId } from '../identity/security';
 
 @Controller('operations')
 @UseGuards(AuthGuard, RolesGuard)
@@ -20,15 +23,33 @@ export class OperationsAutomationController {
     private readonly autoCancel: AutoCancelService,
     private readonly whatsapp: WhatsAppGatewayService,
     private readonly reminderSchedule: ReminderScheduleService,
+    @Optional() private readonly db?: PrismaService,
   ) {}
 
   /**
    * Memicu evaluasi pembatalan otomatis kelas kurang kuota pada H-24 (Keputusan Bisnis #4 & #5)
    */
   @Post('auto-cancel/evaluate')
-  @Roles('SUPER_OWNER', 'OWNER', 'MANAGER', 'ADMIN')
-  async evaluateAutoCancel(@Req() _req: AuthenticatedRequest) {
+  @Roles('SUPER_OWNER')
+  async evaluateAutoCancel(@Req() req: AuthenticatedRequest) {
     const result = await this.autoCancel.evaluateClasses();
+
+    if (this.db) {
+      await this.db.auditLog.create({
+        data: {
+          id: newId(),
+          action: 'operations.auto_cancel_evaluated',
+          actorId: req.principal?.userId ?? 'system',
+          reason: 'Manual evaluation triggered by Super Owner',
+          detail: {
+            evaluatedSlotsCount: result?.evaluatedSlotsCount ?? 0,
+            cancelledSlotsCount: result?.cancelledSlotsCount ?? 0,
+            confirmedSlotsCount: result?.confirmedSlotsCount ?? 0,
+          },
+        },
+      }).catch(() => null);
+    }
+
     return {
       success: true,
       data: result,
@@ -39,9 +60,22 @@ export class OperationsAutomationController {
    * Memicu evaluasi pengingat berjenjang WhatsApp (Keputusan Bisnis #11, #12, #13)
    */
   @Post('reminders/evaluate-batch')
-  @Roles('SUPER_OWNER', 'MANAGER', 'ADMIN')
-  async evaluateRemindersBatch(@Req() _req: AuthenticatedRequest) {
+  @Roles('SUPER_OWNER')
+  async evaluateRemindersBatch(@Req() req: AuthenticatedRequest) {
     const result = await this.reminderSchedule.runAllReminders();
+
+    if (this.db) {
+      await this.db.auditLog.create({
+        data: {
+          id: newId(),
+          action: 'operations.reminders_batch_evaluated',
+          actorId: req.principal?.userId ?? 'system',
+          reason: 'Manual reminder batch triggered by Super Owner',
+          detail: JSON.parse(JSON.stringify(result)),
+        },
+      }).catch(() => null);
+    }
+
     return {
       success: true,
       data: result,

@@ -210,6 +210,9 @@ export function PurchaseReviewView({
   const [previewUrl, setPreviewUrl] = useState('');
   const [previewType, setPreviewType] = useState('');
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [modalVerified, setModalVerified] = useState(false);
+  // Pembayaran yang buktinya sudah dibuka petugas di sesi ini; persetujuan dari daftar mewajibkannya.
+  const [viewedProofIds, setViewedProofIds] = useState<ReadonlySet<string>>(() => new Set());
   const requestRef = useRef(0);
   const [cursorHistory, setCursorHistory] = useState<string[]>([]);
 
@@ -332,6 +335,7 @@ export function PurchaseReviewView({
     setPreviewUrl('');
     setPreviewType('');
     setPreviewItem(null);
+    setModalVerified(false);
   }, [previewUrl]);
 
   useEffect(
@@ -344,6 +348,7 @@ export function PurchaseReviewView({
   const openPreview = async (item: ReviewPurchase) => {
     if (!item.paymentProof || item.paymentProof.scanStatus !== 'CLEAN') return;
     setPreviewItem(item);
+    setModalVerified(false);
     setPreviewLoading(true);
     setError('');
     try {
@@ -351,6 +356,7 @@ export function PurchaseReviewView({
       if (previewUrl) URL.revokeObjectURL(previewUrl);
       setPreviewType(blob.type || item.paymentProof.mimeType);
       setPreviewUrl(URL.createObjectURL(blob));
+      setViewedProofIds((current) => new Set(current).add(item.id));
     } catch (cause) {
       setError(purchaseFailure(cause));
     } finally {
@@ -482,7 +488,12 @@ export function PurchaseReviewView({
       {canDecide && isPendingDecision(item.status) && !isOwnRecord(item) && (
         <Button
           size="sm"
-          disabled={mutatingId === item.id}
+          disabled={mutatingId === item.id || (Boolean(item.paymentProof) && !viewedProofIds.has(item.id))}
+          title={
+            item.paymentProof && !viewedProofIds.has(item.id)
+              ? 'Buka "Preview bukti" terlebih dahulu sebelum menyetujui.'
+              : undefined
+          }
           onClick={() => void approve(item)}
         >
           <CheckCircle2 className="size-4" /> {mutatingId === item.id ? 'Memproses…' : 'Setujui'}
@@ -915,6 +926,66 @@ export function PurchaseReviewView({
               title="Bukti belum dapat ditampilkan"
               message="Tutup preview lalu coba kembali dari antrean."
             />
+          )}
+
+          {previewItem && (
+            <div className="mt-4 space-y-4 border-t border-dd-line pt-4">
+              <div className="grid grid-cols-2 gap-3 rounded-dd-lg bg-dd-surface-muted p-4 text-xs sm:grid-cols-4">
+                <div>
+                  <p className="text-dd-muted">ID Transaksi</p>
+                  <p className="font-semibold text-dd-forest">{previewItem.id}</p>
+                </div>
+                <div>
+                  <p className="text-dd-muted">Pelanggan</p>
+                  <p className="font-semibold">{previewItem.customer.displayName}</p>
+                  <p className="text-dd-muted">{previewItem.customer.phoneMasked || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-dd-muted">Paket & Cabang</p>
+                  <p className="font-semibold">{previewItem.packageNameSnapshot}</p>
+                  <p className="text-dd-muted">{previewItem.branch.name}</p>
+                </div>
+                <div>
+                  <p className="text-dd-muted">Nominal Transfer</p>
+                  <p className="text-sm font-bold text-dd-forest">
+                    {formatRupiah(previewItem.payableAmountRpSnapshot ?? previewItem.priceRpSnapshot)}
+                  </p>
+                </div>
+              </div>
+
+              {canDecide && isPendingDecision(previewItem.status) && !isOwnRecord(previewItem) && (
+                <div className="space-y-3">
+                  <label className="flex cursor-pointer select-none items-start gap-3 rounded-dd-lg border border-dd-line p-3 hover:bg-dd-surface-muted/50">
+                    <input
+                      type="checkbox"
+                      id="verify-transfer-proof-checkbox"
+                      checked={modalVerified}
+                      onChange={(e) => setModalVerified(e.target.checked)}
+                      className="mt-0.5 size-4 rounded border-dd-line text-dd-forest focus:ring-dd-forest"
+                    />
+                    <span className="text-xs text-dd-charcoal">
+                      <strong>Konfirmasi Pemeriksaan:</strong> Saya telah memeriksa mutasi rekening / foto bukti transfer di atas dan memvalidasi keabsahan serta nominal transfer sesuai dengan tagihan.
+                    </span>
+                  </label>
+
+                  <div className="flex justify-end gap-3">
+                    <Button variant="secondary" onClick={closePreview}>
+                      Tutup
+                    </Button>
+                    <Button
+                      disabled={!modalVerified || mutatingId === previewItem.id}
+                      loading={mutatingId === previewItem.id}
+                      onClick={async () => {
+                        await approve(previewItem);
+                        closePreview();
+                      }}
+                    >
+                      <CheckCircle2 className="size-4" /> Setujui dan Aktifkan Paket
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
           )}
         </div>
       </PreviewModal>

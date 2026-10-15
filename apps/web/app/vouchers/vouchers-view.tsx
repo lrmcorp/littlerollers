@@ -250,10 +250,15 @@ export function VouchersView() {
             {
               id: 'discount',
               header: 'Diskon',
-              cell: (item) =>
-                item.discountType === 'PERCENTAGE'
+              cell: (item) => {
+                const isPercent =
+                  String(item.discountType).toUpperCase() === 'PERCENTAGE' ||
+                  String(item.discountType).toUpperCase() === 'PERCENT' ||
+                  String(item.discountType) === '%';
+                return isPercent
                   ? `${item.discountValue ?? 0}%`
-                  : `Rp ${(item.discountValue ?? 0).toLocaleString('id-ID')}`,
+                  : `Rp ${(item.discountValue ?? 0).toLocaleString('id-ID')}`;
+              },
             },
             { id: 'scope', header: 'Cakupan', cell: (item) => item.branch?.name ?? 'Semua cabang' },
             {
@@ -359,7 +364,9 @@ export function VouchersView() {
               </div>
               <span className="text-sm text-dd-muted">{item.name}</span>
               <span className="text-sm">
-                {item.discountType === 'PERCENTAGE'
+                {(String(item.discountType).toUpperCase() === 'PERCENTAGE' ||
+                String(item.discountType).toUpperCase() === 'PERCENT' ||
+                String(item.discountType) === '%')
                   ? `${item.discountValue}%`
                   : `Rp ${item.discountValue.toLocaleString('id-ID')}`}{' '}
                 · {item.branch?.name ?? 'Semua cabang'}

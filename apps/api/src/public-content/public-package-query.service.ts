@@ -3,6 +3,7 @@ import { PrismaService } from '../database/prisma.service';
 import { ApiProblem } from '../identity/security';
 import { assertPublicUuid } from './public-query.validation';
 import { PackagePricingService } from '../packages/kalkulasi-harga-paket.service';
+import { branchPublicLocation } from '../master/branch-location';
 
 type Priced = ReturnType<PackagePricingService['calculate']>;
 
@@ -61,8 +62,7 @@ export class PublicPackageQueryService {
       supportWhatsappE164: b.supportWhatsappE164,
       publicProfile: b.publicProfile ?? {
         slug: b.code.toLowerCase(),
-        area: b.name,
-        city: 'Jakarta',
+        ...branchPublicLocation(b.code, b.name, b.address),
         address: b.address ?? '',
         openingHours: ['Senin - Minggu: 06:00 - 21:00'],
       },
@@ -188,8 +188,7 @@ export class PublicPackageQueryService {
       ...branchData,
       publicProfile: {
         slug: branchData.code.toLowerCase(),
-        area: branchData.name,
-        city: 'Jakarta',
+        ...branchPublicLocation(branchData.code, branchData.name, branchData.address),
         address: branchData.address ?? '',
         heroImageKey: null,
         openingHours: ['Senin - Minggu: 06:00 - 21:00'],
@@ -233,7 +232,9 @@ export class PublicPackageQueryService {
       effectiveUntil: null,
       publicProfile: {
         summary: `${item.sessionCount} Sesi Pilates - Berlaku ${item.validityDays} Hari`,
-        description: `Paket latihan pilates ${item.name} dengan total ${item.sessionCount} sesi kelas.`,
+        description:
+          item.description?.trim() ||
+          `Paket latihan pilates ${item.name} dengan total ${item.sessionCount} sesi kelas.`,
         highlights: ['Akses instruktur bersertifikat', 'Fasilitas studio lengkap', 'Jadwal fleksibel'],
         usageGuidance: 'Pemesanan kelas dapat dilakukan melalui aplikasi kapan saja.',
         terms: [

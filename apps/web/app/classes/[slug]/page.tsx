@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
 import { ClassDetailView } from './class-detail-view';
 import { publicMetadataValue } from '@/lib/public-detail-metadata';
 import type { PublicClassDetail } from '@/api-clients/public-detail-client';
@@ -13,8 +14,13 @@ export async function generateMetadata({
   const item = await publicMetadataValue<PublicClassDetail>(
     `/public/class-types/${encodeURIComponent(slug)}`,
   );
-  const titleName = item
-    ? item.profile.code === 'GROUP_CLASS'
+  if (!item) {
+    return {
+      title: 'Kelas Tidak Ditemukan · Daily Dose',
+    };
+  }
+  const titleName =
+    item.profile.code === 'GROUP_CLASS'
       ? 'Group Class'
       : item.profile.code === 'PRIVATE_CLASS'
         ? 'Private Class'
@@ -25,11 +31,10 @@ export async function generateMetadata({
             : item.profile.slug
                 .split('-')
                 .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-                .join(' ')
-    : 'Detail Kelas';
+                .join(' ');
   const title = `${titleName} · Daily Dose`;
   const description =
-    item?.profile.summary ?? 'Manfaat, perlengkapan, paket, dan jadwal kelas Daily Dose.';
+    item.profile.summary ?? 'Manfaat, perlengkapan, paket, dan jadwal kelas Daily Dose.';
   return {
     title,
     description,
@@ -43,6 +48,9 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ sl
   const initialData = await publicMetadataValue<PublicClassDetail>(
     `/public/class-types/${encodeURIComponent(slug)}`,
   );
+  if (!initialData) {
+    notFound();
+  }
   const siteConfig = await publicMetadataValue<PublicSiteConfig>('/public/site-config');
   return (
     <ClassDetailView slug={slug} initialData={initialData} initialFaq={siteConfig?.faq ?? null} />

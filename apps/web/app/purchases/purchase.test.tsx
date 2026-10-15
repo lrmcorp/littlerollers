@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -319,8 +319,72 @@ describe('purchase internal review workspace', () => {
     const user = userEvent.setup();
     const approveButtons = await screen.findAllByRole('button', { name: 'Setujui' });
     expect(approveButtons[0]).toBeVisible();
+    // Bukti transfer wajib dibuka dulu: tombol terkunci sampai Preview bukti dibuka.
+    expect(approveButtons[0]).toBeDisabled();
     await user.click(approveButtons[0]!);
+    expect(client.approve).not.toHaveBeenCalled();
+    await user.click((await screen.findAllByRole('button', { name: 'Preview bukti' }))[0]!);
+    expect(client.loadProof).toHaveBeenCalledWith('proof-1');
+    await waitFor(() => expect(screen.getAllByRole('button', { name: 'Setujui' })[0]).toBeEnabled());
+    await user.click(screen.getAllByRole('button', { name: 'Setujui' })[0]!);
     expect(client.approve).toHaveBeenCalledWith('purchase-waiting-quick', 0, expect.any(String));
+  });
+
+  it('displays transaction summary and enables in-modal approval only after checking the verification checkbox', async () => {
+    const waitingItem = {
+      ...reviewPurchase,
+      id: 'purchase-modal-test',
+      status: 'WAITING_VERIFICATION' as const,
+    };
+    const client = reviewFake({
+      list: vi.fn().mockResolvedValue({
+        items: [waitingItem],
+        summary: {
+          pending: 1,
+          actionRequired: 0,
+          approved: 0,
+          rejected: 0,
+          expired: 0,
+          totalAmountRp: 2_000_000,
+          agingOver24Hours: 0,
+        },
+        generatedAt: new Date('2026-07-23T03:00:00Z'),
+        page: { nextCursor: null, hasMore: false },
+      }),
+    });
+    render(<PurchaseReviewView client={client} branchOverride={branch} />);
+    const user = userEvent.setup();
+    await user.click((await screen.findAllByRole('button', { name: 'Preview bukti' }))[0]!);
+    expect(await screen.findByText('Konfirmasi Pemeriksaan:')).toBeVisible();
+    const modalApproveBtn = screen.getByRole('button', { name: /Setujui dan Aktifkan Paket/i });
+    expect(modalApproveBtn).toBeDisabled();
+    const checkbox = screen.getByRole('checkbox');
+    await user.click(checkbox);
+    expect(modalApproveBtn).toBeEnabled();
+    await user.click(modalApproveBtn);
+    expect(client.approve).toHaveBeenCalledWith('purchase-modal-test', 0, expect.any(String));
+  });
+
+  it('keeps approval enabled for purchases without a transfer proof', async () => {
+    const noProof = { ...reviewPurchase, id: 'purchase-no-proof', paymentProof: null };
+    const client = reviewFake({
+      list: vi.fn().mockResolvedValue({
+        items: [noProof],
+        summary: {
+          pending: 1,
+          actionRequired: 0,
+          approved: 0,
+          rejected: 0,
+          expired: 0,
+          totalAmountRp: 2_000_000,
+          agingOver24Hours: 0,
+        },
+        generatedAt: new Date('2026-07-23T03:00:00Z'),
+        page: { nextCursor: null, hasMore: false },
+      }),
+    });
+    render(<PurchaseReviewView client={client} branchOverride={branch} />);
+    expect((await screen.findAllByRole('button', { name: 'Setujui' }))[0]).toBeEnabled();
   });
 
   it('uses authoritative package state for semantic row color precedence', () => {

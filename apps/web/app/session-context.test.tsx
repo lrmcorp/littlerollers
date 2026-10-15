@@ -268,6 +268,47 @@ describe('capability-aware session shell', () => {
     expect(screen.queryByText('Protected')).not.toBeInTheDocument();
   });
 
+  it('shows the not-found content instead of a stuck skeleton for a guest on an unknown URL', async () => {
+    navigation.pathname = '/halaman-yang-tidak-ada';
+    const client: SessionClient = {
+      me: vi.fn().mockRejectedValue({ response: { status: 401 } }),
+      logout: vi.fn(),
+    };
+    render(
+      <SessionProvider client={client}>
+        <ApplicationShell>
+          <div>Konten 404</div>
+        </ApplicationShell>
+      </SessionProvider>,
+    );
+    expect(await screen.findByText('Konten 404')).toBeVisible();
+    expect(screen.queryByText('Mengarahkan ke halaman masuk')).not.toBeInTheDocument();
+    expect(document.querySelector('[data-admin-shell]')).toBeNull();
+    expect(navigation.replace).not.toHaveBeenCalled();
+  });
+
+  it.each(['/notification-management', '/users'])(
+    'still redirects a guest from the protected route %s to sign-in',
+    async (path) => {
+      navigation.pathname = path;
+      const client: SessionClient = {
+        me: vi.fn().mockRejectedValue({ response: { status: 401 } }),
+        logout: vi.fn(),
+      };
+      render(
+        <SessionProvider client={client}>
+          <div>Protected</div>
+        </SessionProvider>,
+      );
+      await waitFor(() =>
+        expect(navigation.replace).toHaveBeenCalledWith(
+          `/sign-in?returnTo=${encodeURIComponent(path)}`,
+        ),
+      );
+      expect(screen.queryByText('Protected')).not.toBeInTheDocument();
+    },
+  );
+
   it('renders consistent recovery actions when the session dependency fails', async () => {
     const client: SessionClient = {
       me: vi

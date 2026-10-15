@@ -1,0 +1,94 @@
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { axe } from 'vitest-axe';
+import { describe, expect, it, vi } from 'vitest';
+import { SignInView } from './sign-in-view';
+import type { IdentityClient } from '@/api-clients/identity-client';
+
+function createMockClient(): IdentityClient {
+  return {
+    signIn: vi.fn(),
+    signInWithPassword: vi.fn(),
+    signInWithGoogleToken: vi.fn(),
+    activatePassword: vi.fn(),
+    requestPasswordReset: vi.fn(),
+    resetPassword: vi.fn(),
+    securityStatus: vi.fn(),
+    changePassword: vi.fn(),
+    listUsers: vi.fn(),
+    getUser: vi.fn(),
+    createInternalUser: vi.fn(),
+    updateUserProfile: vi.fn(),
+    updateUserRoles: vi.fn(),
+    suspendUser: vi.fn(),
+    reactivateUser: vi.fn(),
+    deactivateUser: vi.fn(),
+    generateActivationLink: vi.fn(),
+    generatePasswordResetLink: vi.fn(),
+    listRoleCatalog: vi.fn(),
+    listAuditTrail: vi.fn(),
+  } as unknown as IdentityClient;
+}
+
+describe('SignInView (Poin 15)', () => {
+  it('renders login form with clean labels, single register link, and passes axe', async () => {
+    const client = createMockClient();
+    const view = render(<SignInView client={client} />);
+
+    expect(screen.getByRole('heading', { name: 'Masuk ke Daily Dose' })).toBeVisible();
+    expect(screen.getByLabelText('Email atau Nomor WhatsApp')).toBeRequired();
+    expect(screen.getByLabelText('Email atau Nomor WhatsApp')).toHaveAttribute(
+      'placeholder',
+      'nama@email.com atau 0812 3456 7890',
+    );
+    expect(screen.getByLabelText('Password')).toBeRequired();
+
+    // Verify single clear registration link
+    const registerLinks = screen.getAllByRole('link', { name: /Daftar/i });
+    expect(registerLinks).toHaveLength(1);
+    expect(registerLinks[0]).toHaveAttribute('href', '/register');
+
+    // Verify WhatsApp support link
+    const waLink = screen.getByRole('link', { name: /Chat WhatsApp Admin Studio/i });
+    expect(waLink).toHaveAttribute('href', expect.stringContaining('https://wa.me/'));
+
+    // Verify accessibility
+    expect((await axe(view.container)).violations).toHaveLength(0);
+  });
+
+  it('allows password visibility to be toggled', async () => {
+    const user = userEvent.setup();
+    const client = createMockClient();
+    render(<SignInView client={client} />);
+
+    const passwordInput = screen.getByLabelText('Password');
+    const toggleButton = screen.getByRole('button', { name: /Lihat/i });
+
+    expect(passwordInput).toHaveAttribute('type', 'password');
+    await user.click(toggleButton);
+
+    expect(passwordInput).toHaveAttribute('type', 'text');
+    expect(screen.getByRole('button', { name: /Sembunyikan/i })).toBeVisible();
+
+    await user.click(screen.getByRole('button', { name: /Sembunyikan/i }));
+    expect(passwordInput).toHaveAttribute('type', 'password');
+  });
+
+  it('shows error message when login fails', async () => {
+    const user = userEvent.setup();
+    const client = createMockClient();
+    (client.signInWithPassword as any).mockRejectedValue({
+      response: { status: 401 },
+    });
+
+    render(<SignInView client={client} />);
+
+    await user.type(screen.getByLabelText('Email atau Nomor WhatsApp'), 'user@test.com');
+    await user.type(screen.getByLabelText('Password'), 'wrongpassword');
+    await user.click(screen.getByRole('button', { name: /Masuk dengan email atau WhatsApp/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Email/nomor WhatsApp atau password tidak valid.')).toBeVisible();
+    });
+  });
+});

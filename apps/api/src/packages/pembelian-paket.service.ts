@@ -9,7 +9,12 @@ import type { SessionPrincipal } from '../identity/identity.service';
 import { ApiProblem, ENTITY_ID_REGEX } from '../identity/security';
 import { PackageAccessService } from './package-access.service';
 import { PackagePricingService } from './kalkulasi-harga-paket.service';
-import { VoucherService, calculateVoucherDiscount, normalizeVoucherCode } from './voucher.service';
+import {
+  VoucherService,
+  calculateVoucherDiscount,
+  isPercentageVoucherType,
+  normalizeVoucherCode,
+} from './voucher.service';
 
 const PAGE_SIZE = 20;
 const UUID = ENTITY_ID_REGEX;
@@ -76,7 +81,7 @@ export class CustomerOrderService {
         ? {
             id: voucher.id,
             code: voucher.code,
-            discountType: voucher.discountType === 'PERCENTAGE' ? 'PERCENTAGE' : 'FIXED_AMOUNT',
+            discountType: isPercentageVoucherType(voucher.discountType) ? 'PERCENTAGE' : 'FIXED_AMOUNT',
             discountValue: voucher.discountValue,
             discountRp: Math.max(0, order.discountRp - (order.promotionDiscountRp ?? 0)),
           }
@@ -495,21 +500,26 @@ export class CustomerOrderService {
     if (voucherCode?.trim()) {
       const code = normalizeVoucherCode(voucherCode);
       const v = await tx.voucher.findFirst({
-        where: {
-          code,
-          active: true,
-          OR: [{ validUntil: null }, { validUntil: { gt: new Date() } }],
-        },
+        where: { code },
       });
-      if (v && basisRp >= v.minSpendRp && (v.quota === null || v.usedCount < v.quota)) {
-        voucher = v;
-        voucherDiscountRp = calculateVoucherDiscount({
-          priceRp: basisRp,
-          discountType: v.discountType,
-          discountValue: v.discountValue,
-          maxDiscountRp: v.maxDiscountRp,
-        });
+      if (
+        !v ||
+        !v.active ||
+        (v.validUntil && v.validUntil <= new Date()) ||
+        basisRp < v.minSpendRp ||
+        (v.quota !== null && v.usedCount >= v.quota)
+      ) {
+        throw new ApiProblem('VOUCHER_NOT_APPLICABLE', HttpStatus.UNPROCESSABLE_ENTITY, false, [
+          { field: 'voucherCode', issue: 'NOT_APPLICABLE' },
+        ]);
       }
+      voucher = v;
+      voucherDiscountRp = calculateVoucherDiscount({
+        priceRp: basisRp,
+        discountType: v.discountType,
+        discountValue: v.discountValue,
+        maxDiscountRp: v.maxDiscountRp,
+      });
     }
     const subtotalRp = pkg.priceRp;
     const discountRp = promotionDiscountRp + voucherDiscountRp;

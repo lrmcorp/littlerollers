@@ -236,6 +236,7 @@ export function CustomerBookingFlow({ client = browserBookingClient }: { client?
   const [status, setStatus] = useState<'loading' | 'ready' | 'submitting' | 'error'>('loading');
   const [message, setMessage] = useState('');
   const intent = useRef(createIntent());
+  const isSubmittingRef = useRef(false);
 
   useEffect(() => {
     const slot = new URLSearchParams(window.location.search).get('slot');
@@ -514,6 +515,8 @@ export function CustomerBookingFlow({ client = browserBookingClient }: { client?
               setStep('review');
               return;
             }
+            if (isSubmittingRef.current || status === 'submitting') return;
+            isSubmittingRef.current = true;
             setStatus('submitting');
             setMessage('');
             const signature = `${slot.id}:${selectedPackageId}`;
@@ -541,6 +544,9 @@ export function CustomerBookingFlow({ client = browserBookingClient }: { client?
               .catch(async (error) => {
                 setMessage(await bookingFailure(error));
                 setStatus('error');
+              })
+              .finally(() => {
+                isSubmittingRef.current = false;
               });
           }}
         >

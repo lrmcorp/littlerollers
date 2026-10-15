@@ -577,7 +577,7 @@ function UserActions({ user, canAdmin }: { user: UserSummary; canAdmin: boolean 
                 className="rounded-dd-md px-3 py-2 text-sm font-semibold text-dd-ink no-underline hover:bg-dd-surface-muted"
                 href={`/users/${user.id}?action=password`}
               >
-                Kirim setup password
+                Reset kata sandi
               </Link>
             )}
             {user.status !== 'PENDING_ACTIVATION' && (

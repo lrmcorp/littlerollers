@@ -29,6 +29,7 @@ import {
   publicContainer,
   publicSecondaryButton,
 } from '../../components/public/public-detail-shared';
+import { classLevelLabel } from '../../lib/class-level';
 
 export function ScheduleDetailView({
   id,
@@ -152,7 +153,7 @@ export function ScheduleDetailView({
                 {item.classProfile.level && (
                   <span className="inline-flex items-center gap-2 rounded-full border border-dd-line bg-white px-3.5 py-2 font-medium text-dd-ink shadow-xs">
                     <Gauge className="size-4 text-dd-forest" />
-                    {item.classProfile.level}
+                    {classLevelLabel(item.classProfile.level)}
                   </span>
                 )}
               </div>

@@ -105,7 +105,7 @@ export function OwnerBranchPerformanceView() {
     <div className="space-y-6">
       <AdminPageHeader
         title="Performa Cabang Privat"
-        description="Laporan Omset, Estimasi Profit, dan Rincian Biaya Mengajar Instruktur untuk Owner Cabang (Keputusan Bisnis #7 & #10)"
+        description="Laporan Omset, Estimasi Profit, dan Rincian Biaya Mengajar Instruktur untuk Owner Cabang"
         actions={
           <Button
             variant="secondary"
@@ -167,7 +167,7 @@ export function OwnerBranchPerformanceView() {
           tone="success"
         />
         <StatCard
-          label="Biaya Instruktur (Realtime)"
+          label="Biaya Instruktur (Aktual)"
           value={formatRupiah(data?.totalInstructorFeeRp ?? 0)}
           helper={
             data && data.unverifiedClassCount > 0
@@ -177,7 +177,7 @@ export function OwnerBranchPerformanceView() {
           tone={data && data.unverifiedClassCount > 0 ? 'warning' : 'neutral'}
         />
         <StatCard
-          label="Biaya Operasional (Other Cost)"
+          label="Biaya Operasional Lain"
           value={formatRupiah(data?.otherCostRp ?? 0)}
           tone="warning"
         />
@@ -188,13 +188,13 @@ export function OwnerBranchPerformanceView() {
         />
       </div>
 
-      {/* Tabel Rincian Biaya Mengajar Instruktur (Rule #10) */}
+      {/* Tabel Rincian Biaya Mengajar Instruktur */}
       <Panel>
         <div className="border-b border-dd-line p-4">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-base font-bold text-dd-ink">
-                Detail Biaya Mengajar Instruktur (Rule #10)
+                Detail Biaya Mengajar Instruktur
               </h3>
               <p className="text-xs text-dd-muted">
                 Daftar jam mengajar dan akumulasi honor instruktur per tipe kelas di cabang ini.

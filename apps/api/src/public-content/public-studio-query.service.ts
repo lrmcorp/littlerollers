@@ -1,6 +1,7 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { ApiProblem } from '../identity/security';
+import { branchPublicLocation } from '../master/branch-location';
 
 @Injectable()
 export class PublicStudioQueryService {
@@ -87,8 +88,7 @@ export class PublicStudioQueryService {
     const meta = branchMetadata[branch.code];
     const publicProfile = {
       slug: branch.code.toLowerCase(),
-      area: meta?.area ?? branch.name,
-      city: meta?.city ?? 'Jakarta',
+      ...branchPublicLocation(branch.code, branch.name, branch.address),
       address: branch.address ?? '',
       description: `${branch.name} Studio Pilates`,
       arrivalInformation: 'Silakan datang 10-15 menit sebelum sesi kelas dimulai.',

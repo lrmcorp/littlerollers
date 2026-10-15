@@ -59,6 +59,18 @@ describe('voucher display status', () => {
     expect(deriveVoucherStatus({ ...base, quota: 1, usedCount: 1 }, now)).toBe('EXHAUSTED');
     expect(deriveVoucherStatus({ ...base, quota: 2, usedCount: 1 }, now)).toBe('ACTIVE');
   });
+
+  it('identifies JULY2026 as EXPIRED after July 31st 2026', () => {
+    const july2026Voucher = {
+      code: 'JULY2026',
+      active: true,
+      validUntil: new Date('2026-07-31T23:59:59.999Z'),
+      quota: null,
+      usedCount: 0,
+    };
+    const octoberNow = new Date('2026-10-13T00:00:00.000Z');
+    expect(deriveVoucherStatus(july2026Voucher, octoberNow)).toBe('EXPIRED');
+  });
 });
 
 describe('voucher list pagination and summary', () => {

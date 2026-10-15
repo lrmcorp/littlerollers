@@ -78,27 +78,44 @@ export class PackageCatalogService {
     this.access.catalog(principal);
     const limit = query.limit ? Math.min(Number(query.limit), 100) : PAGE_SIZE;
 
-    const where: Prisma.PaketWhereInput = {
-      ...(query.status ? { status: query.status as PackageStatus } : {}),
+    // Filter di luar status dipakai bersama untuk daftar dan ringkasan, sehingga angka ringkasan
+    // mencerminkan seluruh katalog yang cocok, bukan hanya satu halaman.
+    const baseWhere: Prisma.PaketWhereInput = {
       ...(query.classTypeId ? { classTypeId: query.classTypeId } : {}),
+      // Paket tanpa cabang berlaku untuk semua cabang, jadi ikut tampil pada filter cabang mana pun.
+      ...(query.branchId ? { OR: [{ branchId: query.branchId }, { branchId: null }] } : {}),
       ...(query.q?.trim()
         ? {
-            OR: [
-              { name: { contains: query.q.trim() } },
-              { code: { contains: query.q.trim() } },
+            AND: [
+              {
+                OR: [
+                  { name: { contains: query.q.trim() } },
+                  { code: { contains: query.q.trim() } },
+                ],
+              },
             ],
           }
         : {}),
     };
+    const where: Prisma.PaketWhereInput = {
+      ...baseWhere,
+      ...(query.status ? { status: query.status as PackageStatus } : {}),
+    };
 
-    const items = await this.db.paket.findMany({
-      where,
-      include: {
-        classType: { select: { id: true, code: true, name: true } },
-      },
-      take: limit + 1,
-      orderBy: { createdAt: 'desc' },
-    });
+    const [items, activeCount, inactiveCount, archivedCount] = await Promise.all([
+      this.db.paket.findMany({
+        where,
+        include: {
+          classType: { select: { id: true, code: true, name: true } },
+        },
+        take: limit + 1,
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
+      }),
+      this.db.paket.count({ where: { ...baseWhere, status: 'ACTIVE' } }),
+      this.db.paket.count({ where: { ...baseWhere, status: 'INACTIVE' } }),
+      this.db.paket.count({ where: { ...baseWhere, status: 'ARCHIVED' } }),
+    ]);
 
     const hasNext = items.length > limit;
     const pageItems = hasNext ? items.slice(0, limit) : items;
@@ -121,10 +138,10 @@ export class PackageCatalogService {
         livePromotion: livePackageIds.has(item.id),
       })),
       summary: {
-        ACTIVE: pageItems.filter((i) => i.status === 'ACTIVE').length,
+        ACTIVE: activeCount,
         SCHEDULED: 0,
         EXPIRED: 0,
-        INACTIVE: pageItems.filter((i) => i.status !== 'ACTIVE').length,
+        INACTIVE: inactiveCount + archivedCount,
       },
       nextCursor: hasNext ? pageItems[pageItems.length - 1]?.id ?? null : null,
       page: {

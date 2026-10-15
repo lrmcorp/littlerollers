@@ -60,6 +60,8 @@ export interface DashboardFinancialSummary {
   correctionRp: number;
   profitRp: number;
   completeness: 'COMPLETE' | 'INCOMPLETE' | 'ESTIMATED' | string;
+  /** Ada kelas selesai tetapi tarif honor instruktur belum diisi (biaya instruktur tampil Rp 0). */
+  instructorFeeMissing?: boolean;
   anomalyCount: number;
   sourceCutoffAt: Date | string;
   controlHash: string;

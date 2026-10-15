@@ -27,6 +27,7 @@ import {
 import { useSessionContext } from '../session-context';
 import { SearchSelect } from '../components/forms';
 import { isCustomerOnlySession } from '@/lib/session-audience';
+import { timezoneLabel } from './class-slot-presenters';
 
 function dayKey(value: string, timezone: string) {
   return new Intl.DateTimeFormat('en-CA', {
@@ -364,10 +365,10 @@ export function PublicClassesView({
                 inCustomerShell ? undefined : branch ? (
                   <p className="rounded-dd-md border border-dd-line bg-white px-4 py-3 text-sm shadow-sm">
                     <strong className="block">{branch.name}</strong>
-                    <span className="text-dd-muted">{branch.timezone}</span>
+                    <span className="text-dd-muted">{timezoneLabel(branch.timezone)}</span>
                   </p>
                 ) : (
-                  <p className="text-sm text-dd-muted">Pilih studio tanpa pilihan otomatis.</p>
+                  <p className="text-sm text-dd-muted">Pilih studio untuk melihat jadwal kelas.</p>
                 )
               }
             />

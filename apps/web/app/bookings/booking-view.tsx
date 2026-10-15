@@ -18,7 +18,7 @@ import { AdminPageHeader } from '../components/admin/admin-page-header';
 import { useActiveBranchState, useSessionContext } from '../session-context';
 import { DateInput, SearchInput, SearchSelect, SelectInput } from '../components/forms';
 import { Button, actionClasses } from '../components/actions';
-import { Drawer, useAppFeedback } from '../components/app-feedback';
+import { Drawer, Modal, useAppFeedback } from '../components/app-feedback';
 import { ReasonDialog } from '../components/admin/reason-dialog';
 import {
   Badge,
@@ -30,6 +30,7 @@ import {
   Tabs,
 } from '../components/admin/admin-ui';
 import { pageOffset } from '../lib/pagination';
+import { timezoneLabel } from '../classes/class-slot-presenters';
 
 const newIntentKey = () => crypto.randomUUID();
 const shortId = (id: string) => id.slice(0, 8);
@@ -79,9 +80,11 @@ export function BookingView({
   initialRescheduleCursor?: string;
   onRescheduleCursorChange?(cursor?: string): void;
 }) {
-  const [contextBranchId] = useActiveBranchState();
+  const [contextBranchId, setContextBranchId] = useActiveBranchState();
   const branchId = activeBranchId ?? contextBranchId;
   const sessionContext = useSessionContext();
+  const [pickBranchOpen, setPickBranchOpen] = useState(false);
+  const [pickedBranchId, setPickedBranchId] = useState('');
   const feedback = useAppFeedback();
   const fixtureClient = client !== browserBookingClient;
   const injectedAccess =
@@ -575,9 +578,7 @@ export function BookingView({
               <Button
                 type="button"
                 leadingIcon={<Plus className="size-4" aria-hidden="true" />}
-                disabled={!branchId}
-                title={!branchId ? 'Pilih cabang dari topbar untuk membuat booking' : undefined}
-                onClick={() => setCreateOpen(true)}
+                onClick={() => (branchId ? setCreateOpen(true) : setPickBranchOpen(true))}
               >
                 Buat booking manual
               </Button>
@@ -587,7 +588,7 @@ export function BookingView({
       />
       {!branchId && canCreate && (
         <Panel className="border-dd-brass/40 bg-dd-brass-soft/35 p-4 text-sm text-dd-warning">
-          Mode semua cabang bersifat baca saja. Pilih studio cabang Anda pada pemilih cabang di bagian atas halaman (pojok kanan atas) untuk membuat booking, memproses reschedule, atau menerbitkan QR check-in.
+          Anda sedang melihat semua cabang. Saat membuat booking, Anda akan diminta memilih cabang terlebih dahulu. Untuk memproses reschedule atau menerbitkan QR check-in, pilih cabang pada pemilih di bagian atas halaman.
         </Panel>
       )}
       {!canRead && (
@@ -694,6 +695,43 @@ export function BookingView({
         onCancel={() => setCancelTarget(null)}
         onConfirm={(reason) => void cancelBooking(reason)}
       />
+      <Modal
+        open={pickBranchOpen}
+        title="Pilih cabang"
+        description="Booking manual dibuat untuk satu cabang. Pilih cabang tempat kelas berlangsung."
+        onClose={() => setPickBranchOpen(false)}
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="secondary" onClick={() => setPickBranchOpen(false)}>
+              Batal
+            </Button>
+            <Button
+              type="button"
+              disabled={!pickedBranchId}
+              onClick={() => {
+                setContextBranchId(pickedBranchId);
+                setPickBranchOpen(false);
+                setCreateOpen(true);
+              }}
+            >
+              Lanjutkan
+            </Button>
+          </div>
+        }
+      >
+        <SelectInput
+          label="Cabang"
+          value={pickedBranchId}
+          onChange={(event) => setPickedBranchId(event.target.value)}
+        >
+          <option value="">Pilih cabang</option>
+          {(sessionContext?.session?.branches ?? []).map((item) => (
+            <option key={item.id} value={item.id}>
+              {item.name}
+            </option>
+          ))}
+        </SelectInput>
+      </Modal>
       <Drawer
         open={createOpen && canCreate && Boolean(branchId)}
         title="Buat booking manual"
@@ -838,7 +876,7 @@ export function BookingView({
                 timeStyle: 'short',
                 timeZone: selectedSlot.timezone,
               }).format(selectedSlot.startAt)}{' '}
-              ({selectedSlot.timezone}). Saldo tersedia berubah dari {selectedPackage.available}{' '}
+              ({timezoneLabel(selectedSlot.timezone)}). Saldo tersedia berubah dari {selectedPackage.available}{' '}
               menjadi {selectedPackage.available - 1}; kapasitas menjadi{' '}
               {selectedSlot.bookedCount + 1}/{selectedSlot.capacity}. Tidak ada pemotongan saldo sesi permanen pada tahap booking (sesi hanya direservasi sementara).
             </Panel>

@@ -45,6 +45,15 @@ describe('customer self-registration', () => {
     expect((await axe(view.container)).violations).toHaveLength(0);
   });
 
+  it('numbers the form sections 1 to 3 in order and states what is needed before booking', () => {
+    render(<RegisterView />);
+    expect(screen.getByText(/1\. Data Diri/)).toBeVisible();
+    expect(screen.getByText(/2\. Keamanan Akun/)).toBeVisible();
+    expect(screen.getByText(/3\. Dokumen Identitas/)).toBeVisible();
+    expect(screen.queryByText(/siap digunakan untuk memilih paket dan memesan jadwal/)).toBeNull();
+    expect(screen.getByText(/lengkapi verifikasi identitas/i)).toBeVisible();
+  });
+
   it('allows both password fields to be revealed independently', async () => {
     const user = userEvent.setup();
     render(<RegisterView />);

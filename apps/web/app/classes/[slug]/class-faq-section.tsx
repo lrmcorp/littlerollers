@@ -16,7 +16,7 @@ export const DEFAULT_CLASS_FAQ: PublicFaqItem[] = [
     order: 2,
     question: 'Apa yang harus saya siapkan sebelum kelas dimulai?',
     answer:
-      'Kenakan pakaian olahraga yang nyaman dan grip socks (kaos kaki antiselip). Datang 15 menit lebih awal untuk persiapan check-in dan pengenalan studio.',
+      'Seluruh mesin reformer dan perlengkapan latihan disediakan lengkap oleh studio. Anda cukup mengenakan pakaian olahraga yang nyaman dan wajib memakai grip socks (kaus kaki antiselip), serta datang 15 menit lebih awal untuk persiapan check-in.',
   },
   {
     id: 'default-3',

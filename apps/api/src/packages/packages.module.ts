@@ -22,6 +22,8 @@ import { LedgerService } from './ledger.service';
 import { FinanceController } from './finance.controller';
 import { FinanceService } from './finance.service';
 
+import { PaymentExpirationWorkerService } from './payment-expiration-worker';
+
 @Module({
   imports: [DatabaseModule, FoundationModule, IdentityModule],
   controllers: [PackagesController, LedgerController, FinanceController],
@@ -39,7 +41,8 @@ import { FinanceService } from './finance.service';
     PackagePromotionService,
     LedgerService,
     FinanceService,
+    PaymentExpirationWorkerService,
   ],
-  exports: [LedgerService, FinanceService],
+  exports: [LedgerService, FinanceService, PaymentExpirationWorkerService],
 })
 export class PackagesModule {}

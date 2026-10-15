@@ -84,6 +84,20 @@ export class OfficialWhatsAppProvider implements WhatsAppProvider {
   }
 }
 
+/**
+ * Membaca konfigurasi penyedia WhatsApp dari environment. Menerima kedua nama token yang dipakai
+ * dokumentasi (`WHATSAPP_ACCESS_TOKEN`) dan kode lama (`WHATSAPP_API_TOKEN`); `WHATSAPP_PROVIDER=mock`
+ * memaksa mode uji. Mengembalikan null bila belum lengkap (gateway jatuh ke mode uji).
+ */
+export function resolveWhatsAppConfig(env: NodeJS.ProcessEnv) {
+  if (env.WHATSAPP_PROVIDER?.trim().toLowerCase() === 'mock') return null;
+  const token = (env.WHATSAPP_API_TOKEN || env.WHATSAPP_ACCESS_TOKEN)?.trim();
+  const phoneNumberId = env.WHATSAPP_PHONE_NUMBER_ID?.trim();
+  if (!token || !phoneNumberId) return null;
+  const version = env.WHATSAPP_API_VERSION?.trim() || 'v21.0';
+  return { token, phoneNumberId, apiUrl: `https://graph.facebook.com/${version}` };
+}
+
 @Injectable()
 export class WhatsAppGatewayService {
   private readonly logger = new Logger(WhatsAppGatewayService.name);
@@ -92,11 +106,10 @@ export class WhatsAppGatewayService {
   public readonly mockProvider = new MockWhatsAppProvider();
 
   constructor(private readonly db: PrismaService) {
-    const token = process.env.WHATSAPP_API_TOKEN;
-    const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+    const config = resolveWhatsAppConfig(process.env);
 
-    if (token && phoneId) {
-      this.provider = new OfficialWhatsAppProvider(token, phoneId);
+    if (config) {
+      this.provider = new OfficialWhatsAppProvider(config.token, config.phoneNumberId, config.apiUrl);
       this.logger.log(`WhatsApp Gateway aktif menggunakan Official Provider: ${this.provider.name}`);
     } else {
       this.provider = this.mockProvider;

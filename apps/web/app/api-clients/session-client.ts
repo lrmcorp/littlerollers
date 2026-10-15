@@ -84,11 +84,28 @@ export function clearSessionHint(): void {
 
 export const browserSessionClient: SessionClient = {
   async me() {
+    const fetchMe = async (): Promise<any> => {
+      let attempts = 0;
+      while (true) {
+        try {
+          return await appLoading.track(sessionFetch<any>('/me'), {
+            label: 'Memuat sesi…',
+          });
+        } catch (err: any) {
+          const status = err?.response?.status;
+          if (status === 500 && attempts < 2) {
+            attempts++;
+            await new Promise((r) => setTimeout(r, attempts * 300));
+            continue;
+          }
+          throw err;
+        }
+      }
+    };
+
     let value: Omit<WebSession, 'sessionExpiresAt'> & { sessionExpiresAt: Date | string };
     try {
-      value = (await appLoading.track(sessionFetch<any>('/me'), {
-        label: 'Memuat sesi…',
-      })) as unknown as typeof value;
+      value = (await fetchMe()) as unknown as typeof value;
     } catch (error) {
       const status = (error as { response?: { status?: number } })?.response?.status;
       if (status !== 401) throw error;
@@ -108,9 +125,7 @@ export const browserSessionClient: SessionClient = {
         throw refreshError;
       }
 
-      value = (await appLoading.track(sessionFetch<any>('/me'), {
-        label: 'Memuat sesi…',
-      })) as unknown as typeof value;
+      value = (await fetchMe()) as unknown as typeof value;
     }
     setSessionHint();
     return { ...value, sessionExpiresAt: new Date(value.sessionExpiresAt) };

@@ -122,13 +122,21 @@ export function normalizeVoucherCode(code: string) {
   return (code ?? '').trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '');
 }
 
+/**
+ * `Voucher.discountType` adalah kolom teks bebas (data impor bisa berisi "PERCENT", "percentage", dsb).
+ * Satu pengenal untuk perhitungan dan tampilan agar voucher persen tidak pernah dianggap nominal.
+ */
+export function isPercentageVoucherType(type: string | null | undefined): boolean {
+  return ['PERCENTAGE', 'PERCENT', 'PERSEN', '%'].includes((type ?? '').trim().toUpperCase());
+}
+
 export function calculateVoucherDiscount(input: {
   priceRp: number;
   discountType: string;
   discountValue: number;
   maxDiscountRp?: number | null;
 }) {
-  const isPercent = input.discountType === 'PERCENTAGE';
+  const isPercent = isPercentageVoucherType(input.discountType);
   const raw = isPercent
     ? Math.floor((input.priceRp * input.discountValue) / 100)
     : input.discountValue;
@@ -163,7 +171,7 @@ export class VoucherService {
   }
 
   private view(voucher: any) {
-    const isPercent = voucher.discountType === 'PERCENTAGE';
+    const isPercent = isPercentageVoucherType(voucher.discountType);
     const status = deriveVoucherStatus(voucher);
     return {
       id: voucher.id,
@@ -510,16 +518,16 @@ export class VoucherService {
 
     const code = normalizeVoucherCode(input.code);
     const now = new Date();
-
-    const voucher = await this.db.voucher.findFirst({
-      where: {
-        code,
-        active: true,
-        OR: [{ validUntil: null }, { validUntil: { gt: now } }],
-      },
+    const existing = await this.db.voucher.findFirst({
+      where: { code },
     });
 
-    if (!voucher) throw new ApiProblem('VOUCHER_INVALID', HttpStatus.UNPROCESSABLE_ENTITY);
+    if (!existing) throw new ApiProblem('VOUCHER_INVALID', HttpStatus.UNPROCESSABLE_ENTITY);
+    if (!existing.active) throw new ApiProblem('VOUCHER_INACTIVE', HttpStatus.UNPROCESSABLE_ENTITY);
+    if (existing.validUntil && existing.validUntil <= now)
+      throw new ApiProblem('VOUCHER_EXPIRED', HttpStatus.UNPROCESSABLE_ENTITY);
+
+    const voucher = existing;
     // Voucher dihitung dari harga setelah promosi paket, sama seperti saat pesanan dibuat.
     const promoted = this.pricing.calculate(pkg.priceRp, await this.pricing.activePromotion(this.db, pkg.id));
     const baseRp = promoted.effectivePriceRp;
@@ -535,17 +543,24 @@ export class VoucherService {
       maxDiscountRp: voucher.maxDiscountRp,
     });
 
+    const effectiveDiscountType = isPercentageVoucherType(voucher.discountType)
+      ? 'PERCENTAGE'
+      : 'FIXED_AMOUNT';
+
     return {
       valid: true,
       voucherId: voucher.id,
       code: voucher.code,
       name: voucher.name,
-      discountType: voucher.discountType === 'PERCENTAGE' ? 'PERCENTAGE' : 'FIXED_AMOUNT',
+      discountType: effectiveDiscountType,
       discountValue: voucher.discountValue,
       discountRp,
       packagePriceRp: pkg.priceRp,
+      packagePromotionDiscountRp: Math.max(0, pkg.priceRp - baseRp),
+      promotionalPriceRp: baseRp,
       baseAmountRp: baseRp,
       finalPriceRp: baseRp - discountRp,
+      priceAfterDiscountRp: baseRp - discountRp,
       packageId: pkg.id,
       voucher: this.view(voucher),
     };

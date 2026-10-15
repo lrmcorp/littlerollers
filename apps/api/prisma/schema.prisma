@@ -54,6 +54,12 @@ enum CorrectionStatus {
   REJECTED
 }
 
+enum BankMutationStatus {
+  UNMATCHED
+  MATCHED
+  MANUAL_REVIEW
+}
+
 enum ClassModality {
   GROUP
   PRIVATE
@@ -421,6 +427,7 @@ model Pembelian {
   verifiedBy      User?            @relation("PurchaseVerifier", fields: [verifiedById], references: [id], onDelete: SetNull)
   paymentProof    BuktiPembayaran?
   customerPackage PaketPelanggan?
+  bankMutations   MutasiBank[]
 
   @@index([userId, status])
   @@index([branchId, status, createdAt])
@@ -440,6 +447,28 @@ model BuktiPembayaran {
   purchase Pembelian @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
 
   @@map("bukti_pembayaran")
+}
+
+model MutasiBank {
+  id                String             @id @default(uuid()) @db.Char(36)
+  bankName          String             @db.VarChar(64)
+  accountNumber     String?            @db.VarChar(64)
+  transactionDate   DateTime
+  amountRp          Int
+  description       String             @db.Text
+  referenceNumber   String?            @unique @db.VarChar(128)
+  status            BankMutationStatus @default(UNMATCHED)
+  matchedPurchaseId String?            @db.Char(36)
+  matchedAt         DateTime?
+  notes             String?            @db.Text
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  matchedPurchase   Pembelian?         @relation(fields: [matchedPurchaseId], references: [id], onDelete: SetNull)
+
+  @@index([transactionDate, amountRp])
+  @@index([status])
+  @@map("mutasi_bank")
 }
 
 model PaketPelanggan {
@@ -890,6 +919,25 @@ model LaravelMigration {
   batch     Int
 
   @@map("migrations")
+}
+
+/// Jejak audit perubahan akun dan akses staf. Sengaja tanpa relasi FK agar riwayat tetap ada
+/// walau pengguna dihapus; `detail` tidak boleh memuat kata sandi atau data pribadi sensitif.
+model AuditLog {
+  id            String   @id @default(uuid()) @db.Char(36)
+  action        String   @db.VarChar(80)
+  actorId       String?  @db.Char(36)
+  targetUserId  String?  @db.Char(36)
+  branchId      String?  @db.Char(36)
+  correlationId String?  @db.VarChar(64)
+  reason        String?  @db.Text
+  detail        Json?
+  createdAt     DateTime @default(now())
+
+  @@index([targetUserId, createdAt])
+  @@index([actorId, createdAt])
+  @@index([createdAt])
+  @@map("audit_log")
 }
 
 /// Kasus bantuan pelanggan yang ditangani staf. `version` dipakai klaim optimistik saat ubah.

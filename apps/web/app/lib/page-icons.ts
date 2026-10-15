@@ -1,6 +1,7 @@
 import {
   Activity,
   Bell,
+  BookOpen,
   BookOpenCheck,
   Building2,
   CalendarClock,
@@ -41,6 +42,7 @@ export const pageIcons: Record<string, LucideIcon> = {
   '/check-in-scanner': QrCode,
   '/support-cases': LifeBuoy,
   '/workspace/reminders': MessageSquare,
+  '/workspace/guide': BookOpen,
   '/customers': Users,
   '/ledger': CircleDollarSign,
   '/identity-verifications': ShieldCheck,

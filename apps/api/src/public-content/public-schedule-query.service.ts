@@ -3,6 +3,7 @@ import { PrismaService } from '../database/prisma.service';
 import { RuntimeConfigService } from '../configuration/runtime-config.service';
 import { ApiProblem } from '../identity/security';
 import { assertPublicUuid, publicScheduleRange } from './public-query.validation';
+import { branchPublicLocation } from '../master/branch-location';
 
 @Injectable()
 export class PublicScheduleQueryService {
@@ -43,8 +44,7 @@ export class PublicScheduleQueryService {
       supportWhatsappE164: b.supportWhatsappE164,
       publicProfile: {
         slug: b.code.toLowerCase(),
-        area: b.name,
-        city: 'Jakarta',
+        ...branchPublicLocation(b.code, b.name, b.address),
         address: b.address ?? '',
         openingHours: ['Senin - Minggu: 06:00 - 21:00'],
       },
@@ -115,8 +115,7 @@ export class PublicScheduleQueryService {
 
     const publicProfile = {
       slug: slot.branch.code.toLowerCase(),
-      area: slot.branch.name,
-      city: 'Jakarta',
+      ...branchPublicLocation(slot.branch.code, slot.branch.name, slot.branch.address),
       address: slot.branch.address ?? '',
     };
 

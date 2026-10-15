@@ -3,6 +3,7 @@ import { RuntimeConfigService } from '../configuration/runtime-config.service';
 import { PrismaService } from '../database/prisma.service';
 import { FAQ_CONTENT_KEY } from './faq.validation';
 import { HERO_CONTENT_KEY } from './hero-carousel.validation';
+import { branchPublicLocation } from '../master/branch-location';
 
 @Injectable()
 export class PublicSiteConfigService {
@@ -65,8 +66,7 @@ export class PublicSiteConfigService {
         supportWhatsappE164: b.supportWhatsappE164,
         publicProfile: {
           slug: b.code.toLowerCase(),
-          area: meta?.area ?? b.name,
-          city: meta?.city ?? 'Jakarta',
+          ...branchPublicLocation(b.code, b.name, b.address),
           address: b.address ?? '',
           description: `${b.name} Studio Pilates`,
           arrivalInformation: 'Silakan datang 10-15 menit sebelum sesi kelas dimulai.',

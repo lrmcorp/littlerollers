@@ -444,11 +444,16 @@ export function Pagination({
       displayLabel = 'Navigasi halaman';
     }
   } else if (currentPage != null && totalItems != null && pageSize != null && !displayLabel.startsWith('Menampilkan')) {
-    const startItem = totalItems === 0 ? 0 : Math.min((currentPage - 1) * pageSize + 1, totalItems);
-    const endItem = Math.min(currentPage * pageSize, totalItems);
-    const suffix = displayLabel.replace(/^\d+[\s.,]?\d*\s*/, '').trim();
-    const entity = suffix || 'data';
-    displayLabel = `Menampilkan ${startItem.toLocaleString('id-ID')}–${endItem.toLocaleString('id-ID')} dari ${totalItems.toLocaleString('id-ID')} ${entity}`;
+    if (/\bdari\b/.test(displayLabel)) {
+      // Label sudah berbentuk "X dari Y paket": jangan dirangkai ulang agar tidak menjadi "dari 20 dari 20".
+      if (!/ditampilkan/.test(displayLabel)) displayLabel = `Menampilkan ${displayLabel}`;
+    } else {
+      const startItem = totalItems === 0 ? 0 : Math.min((currentPage - 1) * pageSize + 1, totalItems);
+      const endItem = Math.min(currentPage * pageSize, totalItems);
+      const suffix = displayLabel.replace(/^\d+[\s.,]?\d*\s*/, '').trim();
+      const entity = suffix || 'data';
+      displayLabel = `Menampilkan ${startItem.toLocaleString('id-ID')}–${endItem.toLocaleString('id-ID')} dari ${totalItems.toLocaleString('id-ID')} ${entity}`;
+    }
   }
 
   const showPagePrefix =

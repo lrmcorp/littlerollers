@@ -543,7 +543,7 @@ export function LedgerView({
         description={
           adjustmentsOnly
             ? 'Permintaan tidak langsung mengubah saldo dan harus diputuskan pihak berizin yang berbeda dari pemohon. Tinjau sesuai hak akses dan cakupan cabang.'
-            : 'Pantau saldo paket, sesi terpakai, tertahan, dan tersedia berdasarkan ledger authoritative.'
+            : 'Pantau saldo paket, sesi terpakai, tertahan, dan tersedia berdasarkan catatan sesi resmi.'
         }
         actions={
           <Button
@@ -842,7 +842,7 @@ export function LedgerView({
             <div className={adjustmentsOnly ? '' : 'mt-3'}>
               <Feedback kind="status">
                 Sebagai Manager/Owner, Anda memiliki wewenang untuk langsung menyesuaikan saldo sesi
-                paket pelanggan secara instan tanpa perlu persetujuan berbelit.
+                paket pelanggan secara langsung tanpa menunggu persetujuan pihak lain.
               </Feedback>
             </div>
           )}

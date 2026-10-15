@@ -1,4 +1,4 @@
-import { HttpStatus, Injectable, Optional } from '@nestjs/common';
+import { HttpStatus, Injectable, Logger, Optional } from '@nestjs/common';
 import { Prisma, type Role, type UserStatus } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { IdempotencyService } from '../foundation/idempotency.service';
@@ -51,6 +51,39 @@ export class UserAdministrationService {
     private readonly rateLimit: RateLimitService,
     @Optional() private readonly idempotency?: IdempotencyService,
   ) {}
+
+  private readonly logger = new Logger(UserAdministrationService.name);
+
+  /**
+   * Mencatat perubahan akun ke `audit_log`. `detail` hanya berisi nama kolom/peran, tidak pernah
+   * kata sandi. Kegagalan mencatat tidak menggagalkan perubahan yang sudah tersimpan, tetapi dilaporkan di log.
+   */
+  private async recordAudit(entry: {
+    action: string;
+    principal: SessionPrincipal;
+    targetUserId: string | null;
+    correlationId?: string | null;
+    reason?: string | null;
+    branchId?: string | null;
+    detail?: Prisma.InputJsonValue;
+  }) {
+    try {
+      await this.db.auditLog.create({
+        data: {
+          id: newId(),
+          action: entry.action,
+          actorId: entry.principal.userId,
+          targetUserId: entry.targetUserId,
+          branchId: entry.branchId ?? null,
+          correlationId: entry.correlationId?.slice(0, 64) ?? null,
+          reason: entry.reason?.trim() || null,
+          detail: entry.detail,
+        },
+      });
+    } catch (error) {
+      this.logger.error(`Audit gagal dicatat (${entry.action}): ${(error as Error).message}`);
+    }
+  }
 
   private userView(user: any) {
     const role: ApplicationRole = user.role as ApplicationRole;
@@ -382,17 +415,14 @@ export class UserAdministrationService {
       include: { profile: true },
     });
 
-    if ((this.db as any).auditLog?.create) {
-      await (this.db as any).auditLog.create({
-        data: {
-          action: 'security.user_profile_updated',
-          actorId: principal.userId,
-          targetUserId: targetId,
-          correlationId: _correlationId,
-          reason: input.reason ?? null,
-        },
-      });
-    }
+    await this.recordAudit({
+      action: 'security.user_profile_updated',
+      principal,
+      targetUserId: targetId,
+      correlationId: _correlationId,
+      reason: input.reason,
+      detail: { fields: ['displayName', ...(phone !== undefined ? ['phone'] : [])] },
+    });
 
     return this.userView(updated ?? existing);
   }
@@ -459,6 +489,15 @@ export class UserAdministrationService {
       include: { profile: true },
     });
 
+    await this.recordAudit({
+      action: 'security.user_created',
+      principal,
+      targetUserId: user.id,
+      correlationId: _correlationId,
+      branchId,
+      detail: { role },
+    });
+
     return { id: user.id, status: 'CREATED', user: this.userView(user) };
   }
 
@@ -489,6 +528,13 @@ export class UserAdministrationService {
       });
     });
 
+    await this.recordAudit({
+      action: 'security.user_password_reset',
+      principal,
+      targetUserId: targetId,
+      correlationId: _correlationId,
+    });
+
     return { id: targetId, status: 'PASSWORD_RESET_SUCCESS' };
   }
 
@@ -517,15 +563,25 @@ export class UserAdministrationService {
       include: { profile: true },
     });
 
+    await this.recordAudit({
+      action: 'security.user_roles_updated',
+      principal,
+      targetUserId: targetId,
+      correlationId: _correlationId,
+      reason: input.reason,
+      branchId,
+      detail: { from: undefined, role },
+    });
+
     return this.userView(updated);
   }
 
   async deactivate(
     principal: SessionPrincipal,
     targetId: string,
-    _reason?: string,
+    reason?: string,
     _expectedVersion?: number,
-    _correlationId?: string,
+    correlationId?: string,
   ) {
     this.policy.requireCapability(principal.capabilities, 'user:admin');
     if (targetId === principal.userId)
@@ -536,15 +592,23 @@ export class UserAdministrationService {
       data: { status: 'INACTIVE' },
     });
 
+    await this.recordAudit({
+      action: 'security.user_deactivated',
+      principal,
+      targetUserId: targetId,
+      correlationId,
+      reason,
+    });
+
     return { id: user.id, status: user.status };
   }
 
   async reactivate(
     principal: SessionPrincipal,
     targetId: string,
-    _reason?: string,
+    reason?: string,
     _expectedVersion?: number,
-    _correlationId?: string,
+    correlationId?: string,
   ) {
     this.policy.requireCapability(principal.capabilities, 'user:admin');
 
@@ -553,22 +617,34 @@ export class UserAdministrationService {
       data: { status: 'ACTIVE' },
     });
 
+    await this.recordAudit({
+      action: 'security.user_reactivated',
+      principal,
+      targetUserId: targetId,
+      correlationId,
+      reason,
+    });
+
     return { id: user.id, status: user.status, version: 1 };
   }
 
   async listUserAudit(
     principal: SessionPrincipal,
-    _targetId: string,
-    _cursor?: string | { cursor?: string; limit?: number },
+    targetId: string,
+    cursor?: string | { cursor?: string; limit?: number },
     _includeHistorical?: boolean,
   ) {
-    this.policy.requireCapability(principal.capabilities, 'audit:read');
-    return { items: [], page: { hasMore: false, nextCursor: null } };
+    const options = typeof cursor === 'object' && cursor !== null ? cursor : { cursor };
+    return this.listAuditLogs(principal, {
+      targetUserId: targetId,
+      cursor: options.cursor,
+      limit: options.limit,
+    });
   }
 
   async listAuditLogs(
     principal: SessionPrincipal,
-    _filters: {
+    filters: {
       actorId?: string;
       targetUserId?: string;
       action?: string;
@@ -582,7 +658,60 @@ export class UserAdministrationService {
     } = {},
   ) {
     this.policy.requireCapability(principal.capabilities, 'audit:read');
-    return { items: [], summary: { total: 0 }, page: { hasMore: false, nextCursor: null } };
+    const limit = Math.min(Math.max(filters.limit ?? 50, 1), 100);
+    const createdAt: Prisma.DateTimeFilter = {};
+    if (filters.from) createdAt.gte = new Date(filters.from);
+    if (filters.until) createdAt.lte = new Date(filters.until);
+    const where: Prisma.AuditLogWhereInput = {
+      ...(filters.actorId ? { actorId: filters.actorId } : {}),
+      ...(filters.targetUserId ? { targetUserId: filters.targetUserId } : {}),
+      ...(filters.action ? { action: { contains: filters.action } } : {}),
+      ...(filters.branchId ? { branchId: filters.branchId } : {}),
+      ...(filters.correlationId ? { correlationId: filters.correlationId } : {}),
+      ...(Object.keys(createdAt).length ? { createdAt } : {}),
+    };
+    const [rows, total] = await Promise.all([
+      this.db.auditLog.findMany({
+        where,
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        take: limit + 1,
+        ...(filters.cursor ? { cursor: { id: filters.cursor }, skip: 1 } : {}),
+      }),
+      this.db.auditLog.count({ where }),
+    ]);
+    const hasMore = rows.length > limit;
+    const page = rows.slice(0, limit);
+    const userIds = [
+      ...new Set(page.flatMap((row) => [row.actorId, row.targetUserId]).filter(Boolean) as string[]),
+    ];
+    const users = userIds.length
+      ? await this.db.user.findMany({
+          where: { id: { in: userIds } },
+          select: { id: true, displayName: true },
+        })
+      : [];
+    const names = new Map(users.map((user) => [user.id, user.displayName]));
+    const person = (id: string | null) =>
+      id ? { id, displayName: names.get(id) ?? 'Pengguna dihapus' } : null;
+    return {
+      items: page.map((row) => ({
+        id: row.id,
+        occurredAt: row.createdAt.toISOString(),
+        action: row.action,
+        actorId: row.actorId,
+        targetUserId: row.targetUserId,
+        branchId: row.branchId,
+        correlationId: row.correlationId ?? '',
+        objectType: 'USER',
+        objectId: row.targetUserId ?? undefined,
+        reason: row.reason,
+        afterMasked: row.detail ?? undefined,
+        actor: person(row.actorId),
+        target: person(row.targetUserId),
+      })),
+      summary: { total },
+      page: { hasMore, nextCursor: hasMore ? (page.at(-1)?.id ?? null) : null },
+    };
   }
 
   // --- Indonesian Domain Aliases ---

@@ -71,6 +71,7 @@ const routeCapabilities: Array<[string, string[]]> = [
   ['/operations', ['operations:read']],
   ['/bookings', ['booking:self:read']],
   ['/check-in-scanner', ['attendance:manage', 'attendance:self']],
+  ['/workspace/guide', []],
 ];
 
 const protectedPathPrefixes = [
@@ -81,6 +82,7 @@ const protectedPathPrefixes = [
   '/bookings',
   '/ledger',
   '/notifications',
+  '/notification-management',
   '/support-cases',
   '/assignments',
   '/check-in-scanner',
@@ -370,9 +372,11 @@ export function SessionProvider({
         </main>
       ) : !publicRoute && status === 'dependency-error' ? (
         <main className="mx-auto w-full max-w-3xl space-y-4 px-4 py-10 sm:px-6">
-          <Feedback kind="error">Konteks sesi tidak dapat dimuat.</Feedback>
+          <Feedback kind="error">
+            Konteks sesi tidak dapat dimuat. Layanan sedang mengalami gangguan sementara atau pembaruan sistem.
+          </Feedback>
           <ActionGroup>
-            <Button onClick={() => void refresh()}>Coba lagi</Button>
+            <Button id="retry-session-load-btn" onClick={() => void refresh()}>Coba lagi</Button>
             <ButtonLink variant="secondary" href="/">
               Kunjungi situs utama
             </ButtonLink>
@@ -391,7 +395,7 @@ export function SessionProvider({
             </ButtonLink>
           </ActionGroup>
         </main>
-      ) : !publicRoute && status !== 'authenticated' ? (
+      ) : !publicRoute && status !== 'authenticated' && isRecognizedProtectedPath(pathname) ? (
         <main className="mx-auto w-full max-w-3xl px-4 py-10 sm:px-6">
           <Skeleton label="Mengarahkan ke halaman masuk" />
         </main>

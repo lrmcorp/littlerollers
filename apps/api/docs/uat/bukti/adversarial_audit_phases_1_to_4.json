@@ -1,0 +1,161 @@
+{
+  "executedAt": "2026-10-14T13:04:41.215Z",
+  "database": "dailydose_v2_uat (127.0.0.1:3306)",
+  "totalTests": 19,
+  "passedTests": 17,
+  "failedTests": 2,
+  "results": [
+    {
+      "code": "ADV-1.1",
+      "name": "Concurrency Stampede pada Kuota Sisa 1 (Tepat 1 Lolos, 2 Ditolak)",
+      "phase": "FASE 1",
+      "passed": true,
+      "message": "Sukses: 1, Gagal: 2, DB Booked: 2/2",
+      "durationMs": 369
+    },
+    {
+      "code": "ADV-1.2",
+      "name": "Rapid Double-Click Booking Customer Sama (Tolak Duplikat Kedua)",
+      "phase": "FASE 1",
+      "passed": true,
+      "message": "Fulfilled: 1, Rejected: 1, Error: DUPLICATE_ACTIVE_BOOKING",
+      "durationMs": 32
+    },
+    {
+      "code": "ADV-1.3",
+      "name": "Eksploitasi Paket Belum Lunas & Saldo 0 Sesi (Keduanya Diblokir)",
+      "phase": "FASE 1",
+      "passed": true,
+      "message": "Unpaid Blocked: true, Zero Session Blocked: true",
+      "durationMs": 27
+    },
+    {
+      "code": "ADV-1.4",
+      "name": "Konflik Mutasi Bank Nominal Kembar (Diarahkan ke MANUAL_REVIEW)",
+      "phase": "FASE 1",
+      "passed": true,
+      "message": "Matched: 0, ManualReview: 1, Status: MANUAL_REVIEW",
+      "durationMs": 261
+    },
+    {
+      "code": "ADV-1.5",
+      "name": "Maker-Checker Separation of Duties (Pelanggan/Pencatat Dilarang Approve Sendiri)",
+      "phase": "FASE 1",
+      "passed": true,
+      "message": "Pencegahan SoD Berhasil: true, Status DB: PENDING",
+      "durationMs": 16
+    },
+    {
+      "code": "ADV-1.6",
+      "name": "Resiliensi Agregasi Finansial & Deadlock Guard (Dashboard Overview Sukses)",
+      "phase": "FASE 1",
+      "passed": true,
+      "message": "Dashboard Terkalkulasi: Omzet Rp0, Laba Bersih Rp-500.000",
+      "durationMs": 97
+    },
+    {
+      "code": "ADV-2.1",
+      "name": "Unauthorized Trigger Otomasi Auto-Cancel (Peran Non-Super Owner Dicegat)",
+      "phase": "FASE 2",
+      "passed": true,
+      "message": "MEMBER, INSTRUCTOR, ADMIN, MANAGER terbukti tidak memiliki wewenang Super Owner",
+      "durationMs": 0
+    },
+    {
+      "code": "ADV-2.2",
+      "name": "Otentikasi Akun Non-Aktif (INACTIVE Ditolak HTTP 401)",
+      "phase": "FASE 2",
+      "passed": true,
+      "message": "Akun berstatus INACTIVE ditolak otentikasinya dengan AUTHENTICATION_REQUIRED (HTTP 401)",
+      "durationMs": 383
+    },
+    {
+      "code": "ADV-2.3",
+      "name": "Mutasi Akun Staf Menghasilkan Audit Trail Permanen di MySQL",
+      "phase": "FASE 2",
+      "passed": true,
+      "message": "Audit log bertambah: 1 (Aksi: security.user_profile_updated)",
+      "durationMs": 125
+    },
+    {
+      "code": "ADV-2.4",
+      "name": "Penyusupan Cabang Silang (Admin Cabang A Ditolak Akses Cabang B)",
+      "phase": "FASE 2",
+      "passed": true,
+      "message": "Akses admin dibatasi ketat ke cabang penugasan (Akses slot cabang lain ditolak 404/403)",
+      "durationMs": 21
+    },
+    {
+      "code": "ADV-3.1",
+      "name": "Pemanfaatan Voucher Kedaluwarsa (Ditolak Sistem HTTP 422)",
+      "phase": "FASE 3",
+      "passed": true,
+      "message": "Voucher kedaluwarsa diblokir dari preview dan kalkulasi diskon",
+      "durationMs": 5
+    },
+    {
+      "code": "ADV-3.2",
+      "name": "Deteksi Tarif Honor Instruktur Kosong (Mencegah Laba = Omzet Semu)",
+      "phase": "FASE 3",
+      "passed": true,
+      "message": "Sistem mendeteksi kelas tanpa tarif honor dan tidak mencampuradukkan omzet sebagai laba",
+      "durationMs": 2
+    },
+    {
+      "code": "ADV-3.3",
+      "name": "Percobaan Pembelian Paket Arsip / Usang (Ditolak HTTP 404)",
+      "phase": "FASE 3",
+      "passed": true,
+      "message": "Paket berstatus ARCHIVED tidak dapat diakses untuk checkout",
+      "durationMs": 5
+    },
+    {
+      "code": "ADV-3.4",
+      "name": "Booking Menggunakan Paket Kedaluwarsa (Ditolak Sistem)",
+      "phase": "FASE 3",
+      "passed": true,
+      "message": "Paket kedaluwarsa diblokir dari pemesanan jadwal",
+      "durationMs": 14
+    },
+    {
+      "code": "ADV-4.1",
+      "name": "Normalisasi Nomor E.164 & Ketahanan Provider Mock WhatsApp",
+      "phase": "FASE 4",
+      "passed": true,
+      "message": "Normalisasi: +6281234567890, Provider: MOCK, Status: SENT",
+      "durationMs": 6
+    },
+    {
+      "code": "ADV-4.2",
+      "name": "Pemindaian Panduan Member Bebas Istilah Teknis",
+      "phase": "FASE 4",
+      "passed": false,
+      "message": "ENOENT: no such file or directory, open '/Users/lrmcorporation/Documents/Website/dailydose_v2/apps/api/apps/web/app/guide/guide-view.tsx'",
+      "durationMs": 0
+    },
+    {
+      "code": "ADV-4.3",
+      "name": "Injeksi Dokumen Selfie Raksasa (> 8 MB) pada Registrasi (Ditolak Sistem)",
+      "phase": "FASE 4",
+      "passed": true,
+      "message": "Upload 9 MB ditolak oleh UPLOAD_REJECTED (HTTP 422)",
+      "durationMs": 0
+    },
+    {
+      "code": "ADV-4.4",
+      "name": "Injeksi Ekstensi Terlarang (.exe) pada Dokumen KYC (Ditolak Sistem)",
+      "phase": "FASE 4",
+      "passed": true,
+      "message": "Ekstensi .exe berhasil ditolak dengan UPLOAD_REJECTED (HTTP 422)",
+      "durationMs": 0
+    },
+    {
+      "code": "ADV-4.5",
+      "name": "Pemindaian Menyeluruh Jargon Developer",
+      "phase": "FASE 4",
+      "passed": false,
+      "message": "ENOENT: no such file or directory, scandir '/Users/lrmcorporation/Documents/Website/dailydose_v2/apps/api/apps/web/app'",
+      "durationMs": 0
+    }
+  ]
+}

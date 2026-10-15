@@ -322,7 +322,7 @@ export function RegisterView() {
     <AuthPageShell
       eyebrow="Registrasi customer"
       title="Buat akun Daily Dose"
-      description="Akun Anda langsung aktif dan siap digunakan untuk memilih paket dan memesan jadwal latihan."
+      description="Akun Anda langsung aktif setelah mendaftar. Untuk memesan kelas, lengkapi verifikasi identitas (KTP dan selfie) lalu pilih paket sesi."
       compactMobileVisual
       visualSrc="/images/public/landing/register-illustration.webp"
       loginLabel="Masuk"
@@ -457,7 +457,7 @@ export function RegisterView() {
         {/* Section 2: Keamanan Akun */}
         <div className="space-y-4 rounded-dd-md border border-dd-line/60 bg-dd-surface-muted/20 p-4">
           <div className="flex items-center gap-2 border-b border-dd-line/40 pb-2 text-xs font-bold text-dd-forest uppercase">
-            <Lock className="size-3.5" /> Keamanan Akun
+            <Lock className="size-3.5" /> 2. Keamanan Akun
           </div>
           <PasswordField
             id="register-password"

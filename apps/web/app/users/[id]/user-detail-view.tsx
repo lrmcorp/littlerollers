@@ -26,6 +26,7 @@ import { AdminPageHeader } from '../../components/admin/admin-page-header';
 import { useSessionContext } from '../../session-context';
 import { roleSummary, statusLabels } from '../user-admin-controls';
 import { PasswordDialog, ProfileDialog, RoleDialog, StatusDialog } from './user-detail-dialogs';
+import { auditActionLabel } from '../../lib/audit-labels';
 
 type DetailAction = 'profile' | 'roles' | 'password' | 'status' | null;
 
@@ -279,7 +280,7 @@ export function UserDetailView({
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h2 id="roles-heading" className="text-lg font-bold text-dd-ink">
-                  Role &amp; Scope
+                  Peran &amp; Cabang
                 </h2>
                 <p className="mt-1 text-sm text-dd-muted">
                   Role langsung dapat dikelola; role assignment mengikuti periode penugasan.
@@ -479,14 +480,14 @@ export function UserDetailView({
               Keamanan akun
             </h2>
             <p className="mt-2 text-sm leading-6 text-dd-muted">
-              Perubahan role dan deaktivasi mencabut sesi aktif. Tautan setup password dikirim
-              melalui workflow aman dan tidak pernah ditampilkan di panel.
+              Perubahan role dan deaktivasi mencabut sesi aktif. Reset kata sandi langsung
+              mengganti kata sandi pengguna; sampaikan kata sandi baru kepada pengguna secara aman.
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
               <Badge tone={user.status === 'ACTIVE' ? 'success' : 'neutral'}>
                 {user.status === 'ACTIVE' ? 'Login diizinkan' : 'Login tidak aktif'}
               </Badge>
-              <Badge tone="info">Optimistic locking v{user.version}</Badge>
+              <Badge tone="info">Versi data {user.version}</Badge>
             </div>
           </Panel>
         </div>
@@ -507,7 +508,7 @@ export function UserDetailView({
             <ol className="mt-5 grid gap-4">
               {audit.map((item) => (
                 <li key={item.id} className="border-l-2 border-dd-brass pl-4">
-                  <strong className="block text-sm text-dd-ink">{item.action}</strong>
+                  <strong className="block text-sm text-dd-ink">{auditActionLabel(item.action)}</strong>
                   <span className="mt-1 block text-xs text-dd-muted">
                     {new Date(item.occurredAt).toLocaleString('id-ID')}
                   </span>

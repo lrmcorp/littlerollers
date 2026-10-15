@@ -1,0 +1,82 @@
+{
+  "executedAt": "2026-10-13T13:58:28.565Z",
+  "mode": "DRY_RUN",
+  "totalDummyUsersFound": 6,
+  "deactivatedUsersCount": 0,
+  "deactivatedAssignmentsCount": 0,
+  "cancelledSlotsCount": 0,
+  "items": [
+    {
+      "id": "10000000-0000-4000-8000-000000000005",
+      "displayName": "Ridho Instruktur",
+      "email": "ridhoinstruktur@example.com",
+      "role": "INSTRUCTOR",
+      "status": "ACTIVE",
+      "totalPurchases": 0,
+      "totalBookings": 0,
+      "emptySlotsTaught": 0,
+      "activeSlotsTaught": 0,
+      "activeAssignments": 0
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000010",
+      "displayName": "Test",
+      "email": "reyner@lrmcorporation.com",
+      "role": "CUSTOMER",
+      "status": "INACTIVE",
+      "totalPurchases": 0,
+      "totalBookings": 0,
+      "emptySlotsTaught": 0,
+      "activeSlotsTaught": 0,
+      "activeAssignments": 0
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000017",
+      "displayName": "Test",
+      "email": "ddose@lrmcorporation.com",
+      "role": "CUSTOMER",
+      "status": "INACTIVE",
+      "totalPurchases": 0,
+      "totalBookings": 0,
+      "emptySlotsTaught": 0,
+      "activeSlotsTaught": 0,
+      "activeAssignments": 0
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000001098",
+      "displayName": "-",
+      "email": "dummy@example.com",
+      "role": "INSTRUCTOR",
+      "status": "INACTIVE",
+      "totalPurchases": 0,
+      "totalBookings": 0,
+      "emptySlotsTaught": 0,
+      "activeSlotsTaught": 379,
+      "activeAssignments": 1
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000001195",
+      "displayName": "admin_test",
+      "email": "admintest@example.com",
+      "role": "ADMIN",
+      "status": "INACTIVE",
+      "totalPurchases": 0,
+      "totalBookings": 0,
+      "emptySlotsTaught": 0,
+      "activeSlotsTaught": 0,
+      "activeAssignments": 0
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000003769",
+      "displayName": "test",
+      "email": "naxasov306@deligy.com",
+      "role": "CUSTOMER",
+      "status": "INACTIVE",
+      "totalPurchases": 0,
+      "totalBookings": 0,
+      "emptySlotsTaught": 0,
+      "activeSlotsTaught": 0,
+      "activeAssignments": 0
+    }
+  ]
+}

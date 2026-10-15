@@ -195,7 +195,7 @@ export function RemindersView() {
     <div className="space-y-6">
       <AdminPageHeader
         title="Otomasi & Log Pengingat WhatsApp"
-        description="Monitoring sistem pembatalan kelas otomatis pada H-24 (Rules #4 & #5) dan antrean perpesanan WhatsApp berjenjang (Rules #11, #12, #13)."
+        description="Monitoring sistem pembatalan kelas otomatis pada H-24 dan antrean pengingat WhatsApp berjenjang."
         actions={
           <div className="flex flex-wrap items-center gap-3">
             <Button

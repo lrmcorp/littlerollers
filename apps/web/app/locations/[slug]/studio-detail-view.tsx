@@ -21,6 +21,7 @@ import {
 } from '../../components/public/public-detail-shared';
 import { PackagePrice } from '../../components/public/package-price';
 import { resolvePublicImageUrl } from '../../lib/public-image-url';
+import { classLevelLabel } from '../../lib/class-level';
 
 export function StudioDetailView({
   slug,
@@ -59,7 +60,7 @@ export function StudioDetailView({
       {item && (
         <>
           <DetailHero
-            eyebrow={`${item.publicProfile.area} · ${item.publicProfile.city}`}
+            eyebrow={[item.publicProfile.area, item.publicProfile.city].filter(Boolean).join(' · ')}
             title={item.name}
             summary={item.publicProfile.description ?? ''}
             imageKey={item.publicProfile.heroImageKey}
@@ -149,7 +150,7 @@ export function StudioDetailView({
                     key={entry.code}
                   >
                     <p className="text-xs font-bold text-dd-forest uppercase">
-                      {entry.profile.level}
+                      {classLevelLabel(entry.profile.level)}
                     </p>
                     <h3 className="mt-2 text-xl font-semibold">{entry.name}</h3>
                     <p className="mt-2 text-sm leading-6 text-dd-muted">{entry.profile.summary}</p>

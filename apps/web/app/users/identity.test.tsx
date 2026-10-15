@@ -147,6 +147,14 @@ describe('identity UI', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Terlalu banyak');
   });
 
+  it('describes sign-in as email or WhatsApp number and offers a single register link', () => {
+    render(<SignInView client={client()} />);
+    expect(screen.getByText(/email atau nomor WhatsApp yang terdaftar/i)).toBeVisible();
+    expect(screen.queryByText(/Gunakan email dan password/)).not.toBeInTheDocument();
+    expect(screen.getAllByText(/Belum punya akun\?/)).toHaveLength(1);
+    expect(screen.getAllByRole('link', { name: /Daftar akun/ })).toHaveLength(1);
+  });
+
   it('holds the sign-in submit until hydration so credentials can never be posted into the URL', async () => {
     const { renderToString } = await import('react-dom/server');
     const html = renderToString(<SignInView client={client()} />);

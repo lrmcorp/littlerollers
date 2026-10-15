@@ -16,6 +16,7 @@ import { controlClassName } from '../components/forms';
 import { Button } from '../components/actions';
 import { Panel } from '../components/admin/admin-ui';
 import { formatRupiah } from '../lib/formatters';
+import { timezoneLabel } from '../classes/class-slot-presenters';
 const scanLabels: Record<string, string> = {
   PENDING: 'Sedang dipindai',
   CLEAN: 'Bersih',
@@ -167,7 +168,7 @@ export function PurchaseView({
   return (
     <section className="rounded-dd-xl border border-dd-line bg-dd-surface p-6 shadow-dd-card" aria-labelledby="purchase-title">
       <PageHeader
-        eyebrow={`${branch.name} · ${branch.timezone}`}
+        eyebrow={`${branch.name} · ${timezoneLabel(branch.timezone)}`}
         title="Beli paket"
         titleId="purchase-title"
         description="Pilih paket, periksa bukti pembayaran secara privat, lalu kirim pengajuan."

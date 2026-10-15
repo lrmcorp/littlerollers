@@ -36,6 +36,44 @@ export function buildPhoneSearchVariants(query: string): string[] {
   return Array.from(variants);
 }
 
+type ProfileDocs = { ktpUrl?: string | null; selfieUrl?: string | null; notes?: string | null } | null | undefined;
+
+/** Satu sumber status verifikasi: dipakai daftar dan detail agar keduanya tidak bertentangan. */
+export function customerVerificationStatus(profile: ProfileDocs): VerificationStatus {
+  const hasBoth = Boolean(profile?.ktpUrl && profile?.selfieUrl);
+  const hasDocs = Boolean(profile?.ktpUrl || profile?.selfieUrl);
+  if (hasBoth && Boolean(profile?.notes?.includes('KYC_APPROVED'))) return 'APPROVED';
+  return hasDocs ? 'PENDING' : 'ACTION_REQUIRED';
+}
+
+export function verificationStatusWhere(status: VerificationStatus): Prisma.UserWhereInput {
+  const approved: Prisma.ProfilPenggunaWhereInput = {
+    ktpUrl: { not: null },
+    selfieUrl: { not: null },
+    notes: { contains: 'KYC_APPROVED' },
+  };
+  if (status === 'APPROVED') return { profile: approved };
+  if (status === 'PENDING')
+    // Eksplisit aman-NULL: "NOT (notes LIKE ...)" bernilai NULL (bukan benar) saat notes kosong,
+    // sehingga baris tanpa catatan akan hilang dari hasil.
+    return {
+      profile: {
+        AND: [
+          { OR: [{ ktpUrl: { not: null } }, { selfieUrl: { not: null } }] },
+          {
+            OR: [
+              { ktpUrl: null },
+              { selfieUrl: null },
+              { notes: null },
+              { notes: { not: { contains: 'KYC_APPROVED' } } },
+            ],
+          },
+        ],
+      },
+    };
+  return { OR: [{ profile: null }, { profile: { ktpUrl: null, selfieUrl: null } }] };
+}
+
 function normalizePhone(value: string): string {
   const compact = value.replace(/[\s().-]/gu, '');
   const normalized = compact.startsWith('0') ? `+62${compact.slice(1)}` : compact;
@@ -93,6 +131,7 @@ export class CustomerManagementService {
       ...(filters.status ? { status: filters.status as any } : {}),
       ...(filters.preferredBranchId ? { preferredBranchId: filters.preferredBranchId } : {}),
       ...(searchClause ? searchClause : {}),
+      ...(filters.verificationStatus ? verificationStatusWhere(filters.verificationStatus) : {}),
       ...(pageNumber ? {} : (filters.cursor ? { id: { gt: filters.cursor } } : {})),
     };
 
@@ -101,6 +140,7 @@ export class CustomerManagementService {
       ...(filters.status ? { status: filters.status as any } : {}),
       ...(filters.preferredBranchId ? { preferredBranchId: filters.preferredBranchId } : {}),
       ...(searchClause ? searchClause : {}),
+      ...(filters.verificationStatus ? verificationStatusWhere(filters.verificationStatus) : {}),
     };
 
     const [users, totalCount] = await Promise.all([
@@ -139,7 +179,7 @@ export class CustomerManagementService {
         phoneE164: u.phone,
         status: u.status,
         preferredBranchId: u.preferredBranchId,
-        verificationStatus: 'APPROVED' as const,
+        verificationStatus: customerVerificationStatus(u.profile),
         activePackageCount: u.customerPackages.length,
         totalBookings: u._count.bookings,
         _count: {
@@ -244,11 +284,7 @@ export class CustomerManagementService {
       });
     }
 
-    const verificationStatus = isApproved
-      ? ('APPROVED' as const)
-      : hasDocs
-        ? ('PENDING' as const)
-        : ('ACTION_REQUIRED' as const);
+    const verificationStatus = customerVerificationStatus(customer.profile);
 
     return {
       id: customer.id,

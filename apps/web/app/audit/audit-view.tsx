@@ -17,6 +17,7 @@ import { Badge, DataTable, FilterBar, Pagination, Panel } from '../components/ad
 import { Button } from '../components/actions';
 import { AsyncSearchSelect, DateInput, SelectInput, TextInput } from '../components/forms';
 import { pageOffset } from '../lib/pagination';
+import { auditActionLabel } from '../lib/audit-labels';
 
 const failureCopy: Record<UiFailure, string> = {
   AUTHENTICATION_REQUIRED: 'Sesi berakhir. Silakan masuk kembali.',
@@ -46,9 +47,7 @@ const actionLabels: Record<string, string> = {
   'security.user_profile_updated': 'Profil pengguna diperbarui',
 };
 
-const humanizeAction = (action: string) =>
-  actionLabels[action] ??
-  action.replace(/[._-]+/gu, ' ').replace(/\b\w/gu, (character) => character.toUpperCase());
+const humanizeAction = (action: string) => actionLabels[action] ?? auditActionLabel(action);
 
 export function AuditView({
   client = browserIdentityClient,

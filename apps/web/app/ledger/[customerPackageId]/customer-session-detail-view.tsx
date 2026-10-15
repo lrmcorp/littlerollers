@@ -255,7 +255,7 @@ export function CustomerSessionDetailView({ id }: { id: string }) {
         <div className="border-b border-dd-line px-5 py-4">
           <h2 className="font-semibold text-dd-ink">Histori penggunaan sesi</h2>
           <p className="mt-1 text-sm text-dd-muted">
-            Urutan terbaru berdasarkan ledger authoritative.
+            Urutan terbaru berdasarkan catatan sesi resmi.
           </p>
         </div>
         {history.entries.length === 0 ? (

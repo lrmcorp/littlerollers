@@ -147,6 +147,21 @@ describe('DashboardService', () => {
     expect(result.sections.branchOperations).toBe(false);
   });
 
+  it('menghitung booking dari kelas yang sudah dihadiri, bukan hanya yang masih BOOKED', async () => {
+    const db = database();
+    db.pemesananKelas.count = jest.fn().mockResolvedValue(0);
+    const service = new DashboardService(db as never);
+    await service.overview(principal({ capabilities: ['dashboard:read'] }), {
+      from: '2026-09-01',
+      until: '2026-09-30',
+    });
+    const bookingWheres = db.pemesananKelas.count.mock.calls.map(
+      ([arg]: [{ where: { status: unknown } }]) => arg.where.status,
+    );
+    expect(bookingWheres.length).toBeGreaterThanOrEqual(3);
+    for (const status of bookingWheres) expect(status).toEqual({ in: ['BOOKED', 'ATTENDED'] });
+  });
+
   it('validates date order before querying the database', async () => {
     const db = database();
     const service = new DashboardService(db as never);

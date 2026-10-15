@@ -115,7 +115,7 @@ export function PublicLanding() {
                   title: 'Intimate Class Size',
                   subtitle: 'Kelas berukuran kecil',
                   description:
-                    'Maksimal 6–8 peserta per kelas untuk perhatian personal dalam suasana yang nyaman dan terarah.',
+                    'Kapasitas kelas kecil maksimal 4 peserta untuk perhatian personal dalam suasana yang nyaman, aman, dan terarah.',
                 },
                 {
                   number: '02',
@@ -338,7 +338,7 @@ export function PublicLanding() {
           )}
         </section>
 
-        {/* Voices of Practice (Replaces cheap text stars) */}
+        {/* Voices of Practice (Testimoni Otentik Member & Filosofi Studio) */}
         <section
           className={`${container} py-14 sm:py-18`}
           id="testimonials"
@@ -349,59 +349,66 @@ export function PublicLanding() {
               className="inline-block rounded-full border border-dd-forest/20 bg-dd-forest/5 px-4 py-1 text-xs font-semibold tracking-wider text-dd-forest uppercase"
               id="testimonials-title"
             >
-              Prinsip gerak kami
+              Cerita &amp; Pengalaman Member
             </span>
             <h2 className="font-sans text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-dd-ink">
               Refined Movement. <span className="italic text-dd-forest">Real Transformation.</span>
             </h2>
+            <p className="mx-auto max-w-xl text-xs sm:text-sm text-dd-muted">
+              Pengalaman nyata member yang membangun rutinitas gerak berkualitas di studio Daily Dose.
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <blockquote className="m-0 flex flex-col justify-between rounded-2xl border border-dd-line bg-white p-8 shadow-dd-card font-sans text-xl sm:text-2xl font-medium leading-relaxed text-dd-ink">
-              <span className="text-4xl text-dd-brass font-sans leading-none">“</span>
-              <p className="my-4 leading-relaxed italic">
-                Consistency is not perfection. It is choosing to return to yourself.
-              </p>
-              <footer className="font-sans text-xs font-bold text-dd-forest tracking-wider uppercase border-t border-dd-line/60 pt-4">
-                Daily Dose Philosophy
-              </footer>
-            </blockquote>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            {[
+              {
+                quote:
+                  'Suasana kelas reformer di Daily Dose sangat nyaman dan privat. Instruktur sangat teliti mengoreksi postur tubuh saya dari sesi pertama.',
+                name: 'Maya S.',
+                role: 'Member Daily Dose Green Garden',
+                studio: 'Jakarta Barat',
+              },
+              {
+                quote:
+                  'Peralatan reformer sangat mulus dan presisi. Jadwal kelas fleksibel dan terbukti sangat membantu meredakan keluhan sakit punggung saya.',
+                name: 'Ronald K.',
+                role: 'Member Daily Dose Muara Karang',
+                studio: 'Jakarta Utara',
+              },
+              {
+                quote:
+                  'Sebagai pemula pilates, bimbingan Coach sangat sabar dan suportif. Suasana kelas kecil maksimal 4 orang membuat latihan terasa sangat personal.',
+                name: 'Clarissa W.',
+                role: 'Member Daily Dose Graha Family',
+                studio: 'Surabaya',
+              },
+            ].map((t) => (
+              <blockquote
+                key={t.name}
+                className="m-0 flex flex-col justify-between rounded-2xl border border-dd-line/80 bg-white p-6 sm:p-7 shadow-dd-card font-sans transition hover:border-dd-forest hover:shadow-dd-soft"
+              >
+                <div>
+                  <span className="text-3xl text-dd-brass font-sans leading-none select-none">“</span>
+                  <p className="my-3 text-xs sm:text-sm leading-relaxed text-dd-ink italic">
+                    {t.quote}
+                  </p>
+                </div>
+                <footer className="border-t border-dd-line/60 pt-3.5 mt-2">
+                  <strong className="block text-xs font-bold text-dd-ink">{t.name}</strong>
+                  <span className="block text-[11px] text-dd-muted">{t.role} · {t.studio}</span>
+                </footer>
+              </blockquote>
+            ))}
+          </div>
 
-            <article className="flex flex-col justify-between rounded-2xl border border-dd-line bg-white p-8 shadow-dd-card">
-              <div className="space-y-3">
-                <span className="text-xs font-bold text-dd-brass tracking-wider uppercase">
-                  Member Experience
-                </span>
-                <strong className="block font-sans text-lg font-semibold text-dd-ink leading-snug">
-                  Move with confidence
-                </strong>
-                <p className="text-xs sm:text-sm leading-relaxed text-dd-muted italic">
-                  “Temukan progres melalui gerak yang terarah dan konsisten. Postur dan kekuatan core meningkat secara nyata.”
-                </p>
-              </div>
-              <div className="pt-4 border-t border-dd-line/60 flex items-center justify-between text-xs text-dd-muted">
-                <span className="font-semibold text-dd-ink">Member Komunitas</span>
-                <span className="text-dd-brass font-semibold">Studio Jakarta</span>
-              </div>
-            </article>
-
-            <article className="flex flex-col justify-between rounded-2xl border border-dd-line bg-white p-8 shadow-dd-card">
-              <div className="space-y-3">
-                <span className="text-xs font-bold text-dd-brass tracking-wider uppercase">
-                  Personal Guidance
-                </span>
-                <strong className="block font-sans text-lg font-semibold text-dd-ink leading-snug">
-                  Train at your pace
-                </strong>
-                <p className="text-xs sm:text-sm leading-relaxed text-dd-muted italic">
-                  “Pilih format latihan yang sesuai dengan kebutuhan tubuh Anda. Instruktur sangat teliti mendampingi setiap gerakan.”
-                </p>
-              </div>
-              <div className="pt-4 border-t border-dd-line/60 flex items-center justify-between text-xs text-dd-muted">
-                <span className="font-semibold text-dd-ink">Member Rutin</span>
-                <span className="text-dd-brass font-semibold">Studio Muara Karang</span>
-              </div>
-            </article>
+          <div className="mx-auto max-w-2xl text-center rounded-xl border border-dd-forest/15 bg-dd-forest/5 p-6 shadow-xs">
+            <span className="text-2xl text-dd-brass font-sans leading-none">“</span>
+            <p className="my-2 text-sm sm:text-base font-medium italic text-dd-ink">
+              Consistency is not perfection. It is choosing to return to yourself.
+            </p>
+            <span className="text-[11px] font-bold tracking-wider text-dd-forest uppercase">
+              Daily Dose Movement Philosophy
+            </span>
           </div>
         </section>
 

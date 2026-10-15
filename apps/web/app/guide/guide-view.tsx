@@ -60,182 +60,179 @@ const roleGuides: Record<
 > = {
   customer: {
     roleName: 'Pelanggan / Member',
-    tagline: 'Panduan lengkap mulai dari pendaftaran, beli paket, booking kelas hingga check-in',
+    tagline: 'Panduan dari daftar akun, beli paket, pesan kelas, sampai hadir di studio',
     icon: UserCheck,
     sections: [
       {
         id: 'cust-register',
-        title: '1. Registrasi & Verifikasi Identitas (KYC)',
+        title: '1. Daftar Akun & Verifikasi Identitas',
         badge: 'Langkah Awal',
         description:
-          'Setiap member baru wajib mendaftar dengan email aktif dan mengunggah foto KTP serta selfie untuk verifikasi keamanan.',
+          'Daftar dengan email dan nomor WhatsApp aktif. Sebelum bisa memesan kelas, identitas Anda perlu diverifikasi oleh tim studio.',
         steps: [
           {
             number: 1,
-            title: 'Buka Halaman Pendaftaran',
-            description:
-              'Klik tombol "Daftar" di sudut kanan atas halaman utama atau kunjungi /register.',
+            title: 'Buka halaman daftar',
+            description: 'Klik tombol "Daftar" di bagian atas halaman utama.',
           },
           {
             number: 2,
-            title: 'Isi Data Pribadi & Kontak',
+            title: 'Isi data diri dan buat password',
             description:
-              'Masukkan nama lengkap, email, nomor WhatsApp (format Indonesia), tanggal lahir, dan password minimal 8 karakter.',
+              'Masukkan nama lengkap, email, nomor WhatsApp, dan password minimal 8 karakter. Akun Anda langsung aktif setelah mendaftar.',
           },
           {
             number: 3,
-            title: 'Unggah Foto KTP & Foto Selfie',
+            title: 'Unggah foto KTP dan selfie',
             description:
-              'Unggah foto e-KTP yang jelas dan foto selfie wajah Anda. Data ini dienkripsi dan hanya digunakan untuk verifikasi identitas member studio.',
-            tips: 'Pastikan foto tidak buram dan teks KTP dapat terbaca dengan jelas.',
+              'Foto KTP dan selfie dapat diunggah saat mendaftar atau nanti lewat menu "Verifikasi" di akun Anda. Data disimpan secara privat dan hanya dipakai untuk verifikasi.',
+            tips: 'Pastikan foto tidak buram dan seluruh teks pada KTP terbaca jelas.',
           },
           {
             number: 4,
-            title: 'Verifikasi & Aktivasi Akun',
+            title: 'Tunggu hasil verifikasi',
             description:
-              'Tim verifikator akan memvalidasi data Anda. Anda akan menerima notifikasi WhatsApp/Email saat akun telah disetujui (APPROVED).',
+              'Tim studio akan memeriksa data Anda. Pantau statusnya di menu "Verifikasi". Setelah disetujui, Anda dapat memesan kelas.',
           },
         ],
         mockup: {
           type: 'form',
-          title: 'Status Verifikasi Identitas Member',
+          title: 'Status Verifikasi Identitas',
           items: [
-            { label: 'Status Akun', value: 'APPROVED', tone: 'success' },
-            { label: 'Dokumen KTP', value: 'Tervalidasi (e-KTP Terbaca)', tone: 'success' },
-            { label: 'Foto Selfie', value: 'Cocok dengan KTP', tone: 'success' },
-            { label: 'Akses Booking', value: 'Aktif Penuh', tone: 'info' },
+            { label: 'Status akun', value: 'Terverifikasi', tone: 'success' },
+            { label: 'Foto KTP', value: 'Sudah diperiksa', tone: 'success' },
+            { label: 'Foto selfie', value: 'Sesuai dengan KTP', tone: 'success' },
+            { label: 'Pesan kelas', value: 'Sudah bisa', tone: 'info' },
           ],
           statusBadge: { text: 'Terverifikasi', tone: 'success' },
         },
       },
       {
         id: 'cust-package',
-        title: '2. Membeli Paket Kelas Pilates',
+        title: '2. Membeli Paket Sesi',
         badge: 'Pembelian',
         description:
-          'Beli paket sesi sesuai kebutuhan studio latihan Anda (Jakarta, Tangerang, atau Surabaya).',
+          'Pilih paket sesi sesuai kebutuhan latihan dan cabang studio yang Anda tuju.',
         steps: [
           {
             number: 1,
-            title: 'Pilih Lokasi & Paket',
+            title: 'Pilih paket',
             description:
-              'Kunjungi menu "Paket" (/packages). Pilih lokasi studio lalu tentukan paket sesi (misal: 10 Sesi Reformer).',
+              'Buka menu "Paket", pilih cabang lalu pilih paket sesi yang sesuai, misalnya Group Class, Private Class, Semi Private Class, atau Private Group.',
           },
           {
             number: 2,
-            title: 'Gunakan Voucher Diskon (Opsional)',
+            title: 'Masukkan kode voucher (jika ada)',
             description:
-              'Jika memiliki kode promo/voucher, masukkan pada kolom voucher saat checkout untuk mendapatkan potongan harga.',
+              'Jika punya kode voucher, masukkan pada kolom voucher saat checkout untuk mendapat potongan harga.',
           },
           {
             number: 3,
-            title: 'Lakukan Pembayaran Transfer Bank',
+            title: 'Transfer sesuai jumlah yang tertera',
             description:
-              'Transfer total tagihan sesuai rekening bank resmi Daily Dose yang tertera di halaman checkout.',
+              'Transfer sesuai total tagihan ke rekening resmi Daily Dose yang tampil di halaman pembayaran.',
           },
           {
             number: 4,
-            title: 'Unggah Bukti Transfer',
+            title: 'Unggah bukti transfer',
             description:
-              'Unggah screenshot/foto struk bukti transfer. Tim Finance akan mereview bukti pembayaran dalam waktu singkat dan saldo kuota sesi otomatis bertambah.',
-            tips: 'Format bukti bayar yang didukung: JPG, PNG, PDF hingga 5 MB.',
+              'Unggah foto atau tangkapan layar bukti transfer. Tim studio akan memeriksa pembayaran Anda, lalu sesi pada paket aktif setelah pembayaran disetujui.',
+            tips: 'Format bukti yang diterima: JPEG, PNG, atau PDF, maksimal 10 MB.',
           },
         ],
         mockup: {
           type: 'card',
-          title: 'Rincian Pesanan Paket Aktif',
+          title: 'Contoh Rincian Pesanan',
           items: [
-            { label: 'Nama Paket', value: '10x Group Reformer Pilates' },
-            { label: 'Lokasi Berlaku', value: 'Daily Dose Jakarta' },
-            { label: 'Total Pembayaran', value: 'Rp 3.500.000' },
-            { label: 'Status Pembayaran', value: 'LUNAS (Verified)', tone: 'success' },
-            { label: 'Sisa Kuota Sesi', value: '10 Sesi Tersedia', tone: 'info' },
+            { label: 'Nama paket', value: '10 Sesi Group Class' },
+            { label: 'Cabang', value: 'Daily Dose Green Garden' },
+            { label: 'Total pembayaran', value: 'Rp 3.500.000' },
+            { label: 'Status pembayaran', value: 'Sudah dibayar', tone: 'success' },
+            { label: 'Sisa sesi', value: '10 sesi tersedia', tone: 'info' },
           ],
-          statusBadge: { text: 'Paket Aktif', tone: 'success' },
+          statusBadge: { text: 'Paket aktif', tone: 'success' },
         },
       },
       {
         id: 'cust-booking',
-        title: '3. Memilih Jadwal & Booking Kelas',
-        badge: 'Reservasi',
+        title: '3. Memilih Jadwal & Memesan Kelas',
+        badge: 'Pemesanan',
         description:
-          'Pilih jadwal kelas Pilates harian sesuai instruktur dan waktu luang yang Anda inginkan.',
+          'Pilih jadwal kelas sesuai cabang, instruktur, dan waktu yang cocok untuk Anda.',
         steps: [
           {
             number: 1,
-            title: 'Buka Jadwal Kelas',
+            title: 'Buka jadwal kelas',
             description:
-              'Kunjungi menu "Jadwal" (/classes). Pilih tanggal dan filter jenis kelas (Reformer, Mat, Barre).',
+              'Buka menu "Jadwal", lalu pilih cabang, tanggal, dan jenis kelas yang Anda inginkan.',
           },
           {
             number: 2,
-            title: 'Pilih Slot yang Tersedia',
+            title: 'Pilih kelas yang masih ada tempat',
             description:
-              'Klik pada slot kelas yang masih memiliki kuota kosong. Anda dapat melihat nama instruktur dan detail ruangan.',
+              'Pilih kelas yang masih memiliki tempat kosong. Anda dapat melihat instruktur, jam, dan lokasi studio.',
           },
           {
             number: 3,
-            title: 'Konfirmasi Booking',
+            title: 'Konfirmasi pemesanan',
             description:
-              'Pilih paket aktif Anda sebagai metode pembayaran kuota, lalu klik "Konfirmasi Booking".',
+              'Pilih paket yang akan dipakai, lalu klik "Konfirmasi Booking". Satu pemesanan memakai satu sesi dari paket Anda.',
           },
           {
             number: 4,
-            title: 'Tiket & QR Pass Diterbitkan',
+            title: 'Cek pemesanan Anda',
             description:
-              'Booking berhasil tercatat! Anda akan menerima konfirmasi via WhatsApp dan tiket QR Code muncul di menu "Booking Saya".',
+              'Pemesanan yang berhasil tampil di menu "Booking". Anda dapat melihat detailnya atau mengubah jadwal dari sana.',
           },
         ],
         mockup: {
           type: 'card',
-          title: 'Tiket Booking Sesi Terkonfirmasi',
+          title: 'Contoh Pemesanan Terkonfirmasi',
           items: [
-            { label: 'Kelas', value: 'Reformer Flow - All Levels' },
-            { label: 'Jadwal', value: 'Senin, 09:00 - 09:50 WIB' },
+            { label: 'Kelas', value: 'Private Group' },
+            { label: 'Jadwal', value: 'Senin, 09.00 - 09.50 WIB' },
             { label: 'Instruktur', value: 'Coach Sarah' },
-            { label: 'Studio', value: 'Studio Reformer A - Jakarta' },
-            { label: 'Kode Booking', value: 'BKG-202608-0042' },
+            { label: 'Cabang', value: 'Daily Dose Muara Karang' },
           ],
-          statusBadge: { text: 'BOOKED', tone: 'success' },
+          statusBadge: { text: 'Terpesan', tone: 'success' },
         },
       },
       {
         id: 'cust-checkin',
-        title: '4. Reschedule & Check-in QR di Studio',
+        title: '4. Ubah Jadwal & Hadir di Studio',
         badge: 'Kehadiran',
         description:
-          'Aturan perubahan jadwal kelas dan tata cara check-in saat tiba di lokasi studio.',
+          'Aturan ubah jadwal, serta cara mengonfirmasi kehadiran saat Anda tiba di studio.',
         steps: [
           {
             number: 1,
-            title: 'Ketentuan Reschedule (Aturan H-24)',
+            title: 'Ubah jadwal paling lambat 24 jam sebelum kelas',
             description:
-              'Member dapat melakukan reschedule jadwal kelas mandiri maksimal 24 jam sebelum kelas dimulai (Cutoff H-24) tanpa pemotongan sesi.',
-            tips: 'Reschedule kurang dari 24 jam tidak dapat dilakukan untuk menjaga kepastian slot member lain.',
+              'Anda dapat mengajukan perubahan jadwal sampai 24 jam sebelum kelas dimulai, tanpa mengurangi sesi. Pengajuan ditinjau oleh studio.',
+            tips: 'Kurang dari 24 jam sebelum kelas, hubungi admin studio.',
           },
           {
             number: 2,
-            title: 'Buka QR Code Pass',
+            title: 'Konfirmasi kehadiran lewat tautan',
             description:
-              'Saat tiba di studio Daily Dose, buka menu "Booking Saya" lalu klik "Lihat QR Pass".',
+              'Untuk kelas Anda, buka tautan konfirmasi kehadiran yang diberikan sistem. Tautan dapat dipakai mulai 60 menit sebelum kelas dimulai.',
           },
           {
             number: 3,
-            title: 'Tunjukkan ke Front Desk',
+            title: 'Atau tunjukkan QR kepada admin studio',
             description:
-              'Tunjukkan layar QR Code kepada staf resepsionis studio untuk di-scan. Status kehadiran Anda langsung tercatat "ATTENDED".',
+              'Jika memakai QR, tunjukkan kepada admin studio saat tiba. QR berlaku mulai 30 menit sebelum kelas sampai kelas selesai.',
           },
         ],
         mockup: {
           type: 'card',
-          title: 'QR Code Pass Digital Member',
+          title: 'Contoh Kehadiran Terkonfirmasi',
           items: [
-            { label: 'Nama Member', value: 'Budi Santoso' },
-            { label: 'Status Kehadiran', value: 'ATTENDED (Hadir)', tone: 'success' },
-            { label: 'Waktu Check-In', value: '08:48 WIB' },
-            { label: 'Ruangan', value: 'Studio A - Reformer #04' },
+            { label: 'Kelas', value: 'Group Class' },
+            { label: 'Status kehadiran', value: 'Hadir', tone: 'success' },
+            { label: 'Waktu konfirmasi', value: '08.48 WIB' },
           ],
-          statusBadge: { text: 'Verified Pass', tone: 'success' },
+          statusBadge: { text: 'Hadir', tone: 'success' },
         },
       },
     ],
@@ -424,7 +421,7 @@ const roleGuides: Record<
             number: 1,
             title: 'Buka Workspace Dashboard',
             description:
-              'Masuk sebagai Super Owner untuk mengakses metrik Gross Sales, Pendapatan Bersih, Okupansi Kursi, dan Anomali.',
+              'Masuk sebagai Super Owner untuk mengakses metrik Penjualan Kotor, Pendapatan Bersih, Okupansi Kursi, dan Anomali.',
           },
           {
             number: 2,

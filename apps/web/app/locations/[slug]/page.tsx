@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
 import { StudioDetailView } from './studio-detail-view';
 import { publicMetadataValue } from '@/lib/public-detail-metadata';
 import type { PublicStudioDetail } from '@/api-clients/public-detail-client';
@@ -12,12 +13,17 @@ export async function generateMetadata({
   const item = await publicMetadataValue<PublicStudioDetail>(
     `/public/studios/${encodeURIComponent(slug)}`,
   );
-  const title = item?.name ?? 'Detail Studio';
+  if (!item) {
+    return {
+      title: 'Studio Tidak Ditemukan · Daily Dose',
+    };
+  }
+  const title = item.name;
   const description =
-    item?.publicProfile.description ??
+    item.publicProfile.description ??
     'Alamat, fasilitas, kelas, paket, dan jadwal studio Daily Dose.';
   return {
-    title,
+    title: `${title} · Daily Dose`,
     description,
     alternates: { canonical: `/locations/${slug}` },
     openGraph: { title, description, type: 'website' },
@@ -29,5 +35,8 @@ export default async function StudioDetailPage({ params }: { params: Promise<{ s
   const initialData = await publicMetadataValue<PublicStudioDetail>(
     `/public/studios/${encodeURIComponent(slug)}`,
   );
+  if (!initialData) {
+    notFound();
+  }
   return <StudioDetailView slug={slug} initialData={initialData} />;
 }

@@ -134,6 +134,19 @@ export const frontendPages: FrontendPageDefinition[] = [
     roleRelevance: ['SUPER_OWNER', 'OWNER', 'MANAGER'],
     isAdvanced: true,
   },
+  {
+    href: '/workspace/guide',
+    label: 'Panduan Operasional Staf',
+    shortLabel: 'SOP Studio',
+    description: 'Tata cara operasional Front Desk, Finance, dan Super Owner mengelola studio.',
+    group: 'Operasional Studio',
+    capabilities: [],
+    priority: 8,
+    branchScope: 'topbar',
+    accent: 'brand',
+    icon: 'book-open',
+    roleRelevance: ['SUPER_OWNER', 'OWNER', 'MANAGER', 'ADMIN', 'FINANCE', 'INSTRUCTOR'],
+  },
 
   // ==========================================
   // 2. MEMBER & PELANGGAN (Membership)
@@ -348,7 +361,7 @@ export const frontendPages: FrontendPageDefinition[] = [
     href: '/master',
     label: 'Data Master',
     shortLabel: 'Data Master',
-    description: 'Katalog tipe kelas global, cakupan, fee, projection rate, quota, dan capacity.',
+    description: 'Katalog tipe kelas global, cakupan, fee, tarif proyeksi, quota, dan capacity.',
     group: 'Pengaturan & Sistem',
     capabilities: ['master:read'],
     mutationCapabilities: ['master:manage'],
@@ -403,7 +416,7 @@ export const frontendPages: FrontendPageDefinition[] = [
     isAdvanced: true,
     maturity: 'preview',
     previewNote:
-      'Riwayat audit belum disimpan di database, sehingga daftar ini selalu kosong. Aktivitas saat ini hanya tercatat di log server.',
+      'Saat ini yang tercatat: perubahan akun staf (dibuat, profil, peran, kata sandi, status). Aktivitas lain belum muncul di sini.',
   },
   {
     href: '/notification-management',

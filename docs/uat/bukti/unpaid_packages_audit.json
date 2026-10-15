@@ -1,0 +1,4127 @@
+[
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000003706",
+    "usedSessions": 20,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00003706",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 4500000,
+    "displayName": "Karla Grace",
+    "email": "karla.grace.3@gmail.com",
+    "phone": "+6287885181091",
+    "packageName": "20 Sessions Private Group Class",
+    "activeBookingsCount": 17,
+    "bookings": [
+      {
+        "bookingId": "80000000-0000-4000-8000-000000004534",
+        "bookingNumber": "BKG-V1-00004534",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-08-23T12:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000004809",
+        "bookingNumber": "BKG-V1-00004809",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-08-30T12:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000005008",
+        "bookingNumber": "BKG-V1-00005008",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-08-31T12:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000005221",
+        "bookingNumber": "BKG-V1-00005221",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-09-06T12:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000005498",
+        "bookingNumber": "BKG-V1-00005498",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-09-13T12:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000005742",
+        "bookingNumber": "BKG-V1-00005742",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-09-20T12:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000006020",
+        "bookingNumber": "BKG-V1-00006020",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-09-27T12:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000007142",
+        "bookingNumber": "BKG-V1-00007142",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-05T12:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000007650",
+        "bookingNumber": "BKG-V1-00007650",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-12T12:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000008162",
+        "bookingNumber": "BKG-V1-00008162",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-20T10:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000008331",
+        "bookingNumber": "BKG-V1-00008331",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-26T12:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000008413",
+        "bookingNumber": "BKG-V1-00008413",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-11-01T12:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000009273",
+        "bookingNumber": "BKG-V1-00009273",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-11-15T12:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000009816",
+        "bookingNumber": "BKG-V1-00009816",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-11-09T12:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000010606",
+        "bookingNumber": "BKG-V1-00010606",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-11-29T12:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000011901",
+        "bookingNumber": "BKG-V1-00011901",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-12-05T12:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000011963",
+        "bookingNumber": "BKG-V1-00011963",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-12-06T12:00:00.000Z"
+      }
+    ]
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000003716",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00003716",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 625000,
+    "displayName": "Fransiska Djauhari",
+    "email": "fransiskadjauhari@yahoo.com",
+    "phone": "+6281284011267",
+    "packageName": "Drop In Private Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000003721",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00003721",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 350000,
+    "displayName": "Yesslin",
+    "email": "yesslinaurel17@gmail.com",
+    "phone": "+6281273914282",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000003722",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00003722",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 350000,
+    "displayName": "Yesslin",
+    "email": "yesslinaurel17@gmail.com",
+    "phone": "+6281273914282",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000003730",
+    "usedSessions": 12,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00003730",
+    "purchaseStatus": "WAITING_VERIFICATION",
+    "totalAmountRp": 6600000,
+    "displayName": "Nita",
+    "email": "nita@gmail.com",
+    "phone": "+628562788373",
+    "packageName": "12 Sessions Private Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000003750",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00003750",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 350000,
+    "displayName": "Winnie Lim",
+    "email": "winnielim89@gmail.com",
+    "phone": "+6281119233322",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000003751",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00003751",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 350000,
+    "displayName": "Winnie Lim",
+    "email": "winnielim89@gmail.com",
+    "phone": "+6281119233322",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000003754",
+    "usedSessions": 24,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00003754",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 4500000,
+    "displayName": "Lucia",
+    "email": "lucia@gmail.com",
+    "phone": "+628129070624",
+    "packageName": "20 Sessions Private Group Class free 4 Sessions",
+    "activeBookingsCount": 23,
+    "bookings": [
+      {
+        "bookingId": "80000000-0000-4000-8000-000000004969",
+        "bookingNumber": "BKG-V1-00004969",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-08-30T02:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000005005",
+        "bookingNumber": "BKG-V1-00005005",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-09-01T02:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000005163",
+        "bookingNumber": "BKG-V1-00005163",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-09-06T02:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000005455",
+        "bookingNumber": "BKG-V1-00005455",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-09-13T02:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000006196",
+        "bookingNumber": "BKG-V1-00006196",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-09-17T00:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000007098",
+        "bookingNumber": "BKG-V1-00007098",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-08T00:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000007136",
+        "bookingNumber": "BKG-V1-00007136",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-04T02:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000007800",
+        "bookingNumber": "BKG-V1-00007800",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-13T02:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000007802",
+        "bookingNumber": "BKG-V1-00007802",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-17T02:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000008397",
+        "bookingNumber": "BKG-V1-00008397",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-11-01T02:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000008589",
+        "bookingNumber": "BKG-V1-00008589",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-29T00:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000008963",
+        "bookingNumber": "BKG-V1-00008963",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-11-05T00:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000010346",
+        "bookingNumber": "BKG-V1-00010346",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-11-17T02:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000010364",
+        "bookingNumber": "BKG-V1-00010364",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-11-19T00:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000010614",
+        "bookingNumber": "BKG-V1-00010614",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-11-23T02:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000010739",
+        "bookingNumber": "BKG-V1-00010739",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-11-26T00:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000011040",
+        "bookingNumber": "BKG-V1-00011040",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-12-03T00:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000011711",
+        "bookingNumber": "BKG-V1-00011711",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-12-06T02:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000011886",
+        "bookingNumber": "BKG-V1-00011886",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-12-09T00:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000011921",
+        "bookingNumber": "BKG-V1-00011921",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-12-10T00:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000011983",
+        "bookingNumber": "BKG-V1-00011983",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-12-14T00:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000012547",
+        "bookingNumber": "BKG-V1-00012547",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-12-27T01:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000012579",
+        "bookingNumber": "BKG-V1-00012579",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-12-25T01:00:00.000Z"
+      }
+    ]
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000003759",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00003759",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 900000,
+    "displayName": "Regina Florencia Lingga",
+    "email": "reginalingga@yahoo.com",
+    "phone": "+62817188886",
+    "packageName": "Drop In Semi Private",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000003765",
+    "usedSessions": 20,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00003765",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 4500000,
+    "displayName": "Jesslyn Kusuma,,",
+    "email": "jesslyn-kusuma@gmail.com",
+    "phone": "+6281281881352",
+    "packageName": "20 Sessions Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000003766",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00003766",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 350000,
+    "displayName": "Ferna",
+    "email": "fernavventura@gmail.com",
+    "phone": "+62819800083",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 1,
+    "bookings": [
+      {
+        "bookingId": "80000000-0000-4000-8000-000000005006",
+        "bookingNumber": "BKG-V1-00005006",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-09-01T02:00:00.000Z"
+      }
+    ]
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000003775",
+    "usedSessions": 24,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00003775",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 4500000,
+    "displayName": "Michelle Wijaya",
+    "email": "onlyonemichy@gmail.com",
+    "phone": "+6287781605529",
+    "packageName": "20 Sessions Private Group Class free 4 Sessions",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000003777",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00003777",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 350000,
+    "displayName": "Sheila Gonzales",
+    "email": "sheilagonz543@gmail.com",
+    "phone": "+6287886179666",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000003778",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00003778",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 350000,
+    "displayName": "Sheila Gonzales",
+    "email": "sheilagonz543@gmail.com",
+    "phone": "+6287886179666",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000003781",
+    "usedSessions": 24,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00003781",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 4500000,
+    "displayName": "Farica MK",
+    "email": "farica_xoxo@yahoo.com",
+    "phone": "+6281294648962",
+    "packageName": "20 Sessions Private Group Class free 4 Sessions",
+    "activeBookingsCount": 18,
+    "bookings": [
+      {
+        "bookingId": "80000000-0000-4000-8000-000000005137",
+        "bookingNumber": "BKG-V1-00005137",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-09-04T12:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000005271",
+        "bookingNumber": "BKG-V1-00005271",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-09-07T12:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000005549",
+        "bookingNumber": "BKG-V1-00005549",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-09-14T12:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000005633",
+        "bookingNumber": "BKG-V1-00005633",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-09-17T02:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000005945",
+        "bookingNumber": "BKG-V1-00005945",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-09-25T12:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000006241",
+        "bookingNumber": "BKG-V1-00006241",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-09-21T12:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000007473",
+        "bookingNumber": "BKG-V1-00007473",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-06T09:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000007519",
+        "bookingNumber": "BKG-V1-00007519",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-08T02:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000007761",
+        "bookingNumber": "BKG-V1-00007761",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-14T02:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000008264",
+        "bookingNumber": "BKG-V1-00008264",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-22T04:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000008671",
+        "bookingNumber": "BKG-V1-00008671",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-28T09:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000009504",
+        "bookingNumber": "BKG-V1-00009504",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-11-05T01:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000010408",
+        "bookingNumber": "BKG-V1-00010408",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-11-17T11:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000010534",
+        "bookingNumber": "BKG-V1-00010534",
+        "status": "ATTENDED",
+        "className": "Daily Dose Muara Karang · Group Class",
+        "startAt": "2023-11-20T12:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000011541",
+        "bookingNumber": "BKG-V1-00011541",
+        "status": "ATTENDED",
+        "className": "Daily Dose Muara Karang · Group Class",
+        "startAt": "2023-12-02T02:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000012095",
+        "bookingNumber": "BKG-V1-00012095",
+        "status": "ATTENDED",
+        "className": "Daily Dose Muara Karang · Group Class",
+        "startAt": "2023-12-08T12:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000012375",
+        "bookingNumber": "BKG-V1-00012375",
+        "status": "ATTENDED",
+        "className": "Daily Dose Muara Karang · Group Class",
+        "startAt": "2023-12-11T12:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000012697",
+        "bookingNumber": "BKG-V1-00012697",
+        "status": "ATTENDED",
+        "className": "Daily Dose Muara Karang · Group Class",
+        "startAt": "2023-12-15T12:00:00.000Z"
+      }
+    ]
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000003784",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00003784",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 350000,
+    "displayName": "Catherine",
+    "email": "tinntinn19@live.com",
+    "phone": "+6281290720062",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000003785",
+    "usedSessions": 24,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00003785",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 4500000,
+    "displayName": "Farica MK",
+    "email": "farica_xoxo@yahoo.com",
+    "phone": "+6281294648962",
+    "packageName": "20 Sessions Private Group Class free 4 Sessions",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000003790",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00003790",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 350000,
+    "displayName": "Theresia",
+    "email": "rachelltheresia@gmail.com",
+    "phone": "+6285959037258",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000003792",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00003792",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 350000,
+    "displayName": "Annis Nistasya",
+    "email": "nistasya87@gmail.com",
+    "phone": "+6287802888800",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000003793",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00003793",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 350000,
+    "displayName": "Annis Nistasya",
+    "email": "nistasya87@gmail.com",
+    "phone": "+6287802888800",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000003794",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00003794",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 350000,
+    "displayName": "Priscilla",
+    "email": "priscillamhrni@gmail.com",
+    "phone": "+6281807215895",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000003801",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00003801",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 350000,
+    "displayName": "Natasha",
+    "email": "nanatashahaha@gmail.com",
+    "phone": "+6281213211800",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000003805",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00003805",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 350000,
+    "displayName": "Christie",
+    "email": "christiehutauruk@gmail.com",
+    "phone": "+6282165463428",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000003822",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00003822",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 350000,
+    "displayName": "Chelin",
+    "email": "chelin@tntmedia.live",
+    "phone": null,
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000003827",
+    "usedSessions": 24,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00003827",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 4500000,
+    "displayName": "Josephine",
+    "email": "josephinenathaniaa@icloud.com",
+    "phone": null,
+    "packageName": "20 Sessions Private Group Class free 4 Sessions",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000003833",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00003833",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 350000,
+    "displayName": "mery",
+    "email": "creameryriee@gmail.com",
+    "phone": "+628176969438",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000003834",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00003834",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 350000,
+    "displayName": "mery",
+    "email": "creameryriee@gmail.com",
+    "phone": "+628176969438",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000003869",
+    "usedSessions": 24,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00003869",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 4500000,
+    "displayName": "Rut",
+    "email": "rut.fuad@yahoo.com",
+    "phone": "+628128000545",
+    "packageName": "20 Sessions Private Group Class free 4 Sessions",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000003874",
+    "usedSessions": 8,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00003874",
+    "purchaseStatus": "WAITING_VERIFICATION",
+    "totalAmountRp": 2160000,
+    "displayName": "Putri Chyntia Wibowo",
+    "email": "chyntiawibowo0@gmail.com",
+    "phone": "+6285693701794",
+    "packageName": "8 Sessions Private Group Class",
+    "activeBookingsCount": 7,
+    "bookings": [
+      {
+        "bookingId": "80000000-0000-4000-8000-000000006323",
+        "bookingNumber": "BKG-V1-00006323",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-09-20T04:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000006434",
+        "bookingNumber": "BKG-V1-00006434",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-09-24T03:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000006658",
+        "bookingNumber": "BKG-V1-00006658",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-09-27T05:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000008029",
+        "bookingNumber": "BKG-V1-00008029",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-17T05:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000008794",
+        "bookingNumber": "BKG-V1-00008794",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-30T08:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000008994",
+        "bookingNumber": "BKG-V1-00008994",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-11-01T09:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000009361",
+        "bookingNumber": "BKG-V1-00009361",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-11-03T10:00:00.000Z"
+      }
+    ]
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000003879",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00003879",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 625000,
+    "displayName": "Raeesha Purnama Nayla Firmansyah",
+    "email": "mahanifirmansyah@gmail.com",
+    "phone": "+628129915632",
+    "packageName": "Drop In Private Class",
+    "activeBookingsCount": 1,
+    "bookings": [
+      {
+        "bookingId": "80000000-0000-4000-8000-000000006243",
+        "bookingNumber": "BKG-V1-00006243",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Private Class",
+        "startAt": "2023-09-24T00:00:00.000Z"
+      }
+    ]
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000003884",
+    "usedSessions": 12,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00003884",
+    "purchaseStatus": "WAITING_VERIFICATION",
+    "totalAmountRp": 2970000,
+    "displayName": "Freya Chiquita GG",
+    "email": "freyachiquitak@gmail.com",
+    "phone": "+6281218171960",
+    "packageName": "12 Sessions Private Group Class",
+    "activeBookingsCount": 11,
+    "bookings": [
+      {
+        "bookingId": "80000000-0000-4000-8000-000000006236",
+        "bookingNumber": "BKG-V1-00006236",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-09-18T11:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000006801",
+        "bookingNumber": "BKG-V1-00006801",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-09-30T03:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000007087",
+        "bookingNumber": "BKG-V1-00007087",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-02T10:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000007429",
+        "bookingNumber": "BKG-V1-00007429",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-06T11:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000007657",
+        "bookingNumber": "BKG-V1-00007657",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-09T11:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000008125",
+        "bookingNumber": "BKG-V1-00008125",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-19T12:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000008337",
+        "bookingNumber": "BKG-V1-00008337",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-23T11:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000008753",
+        "bookingNumber": "BKG-V1-00008753",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-30T11:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000010345",
+        "bookingNumber": "BKG-V1-00010345",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-11-16T12:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000012099",
+        "bookingNumber": "BKG-V1-00012099",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-12-08T11:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000012650",
+        "bookingNumber": "BKG-V1-00012650",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-12-14T12:00:00.000Z"
+      }
+    ]
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000003885",
+    "usedSessions": 12,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00003885",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 6600000,
+    "displayName": "Freya Chiquita GG",
+    "email": "freyachiquitak@gmail.com",
+    "phone": "+6281218171960",
+    "packageName": "12 Sessions Private Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000003892",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00003892",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 625000,
+    "displayName": "Raeesha Purnama Nayla Firmansyah",
+    "email": "mahanifirmansyah@gmail.com",
+    "phone": "+628129915632",
+    "packageName": "Drop In Private Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000003897",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00003897",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 350000,
+    "displayName": "Wenny",
+    "email": "wennykal88@gmail.com",
+    "phone": "+628118128892",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 1,
+    "bookings": [
+      {
+        "bookingId": "80000000-0000-4000-8000-000000007182",
+        "bookingNumber": "BKG-V1-00007182",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-08T04:00:00.000Z"
+      }
+    ]
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000003903",
+    "usedSessions": 24,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00003903",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 4500000,
+    "displayName": "reska",
+    "email": "reskaaryani93@gmail.com",
+    "phone": "+6281260000528",
+    "packageName": "20 Sessions Private Group Class free 4 Sessions",
+    "activeBookingsCount": 14,
+    "bookings": [
+      {
+        "bookingId": "80000000-0000-4000-8000-000000006322",
+        "bookingNumber": "BKG-V1-00006322",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-09-20T04:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000006329",
+        "bookingNumber": "BKG-V1-00006329",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-09-21T02:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000006379",
+        "bookingNumber": "BKG-V1-00006379",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-09-22T01:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000006630",
+        "bookingNumber": "BKG-V1-00006630",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-09-27T04:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000006752",
+        "bookingNumber": "BKG-V1-00006752",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-09-28T02:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000007781",
+        "bookingNumber": "BKG-V1-00007781",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-12T02:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000007849",
+        "bookingNumber": "BKG-V1-00007849",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-13T02:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000008085",
+        "bookingNumber": "BKG-V1-00008085",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-18T10:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000008287",
+        "bookingNumber": "BKG-V1-00008287",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-23T02:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000008361",
+        "bookingNumber": "BKG-V1-00008361",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-24T02:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000009668",
+        "bookingNumber": "BKG-V1-00009668",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-11-07T03:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000012046",
+        "bookingNumber": "BKG-V1-00012046",
+        "status": "BOOKED",
+        "className": "Daily Dose Muara Karang · Group Class",
+        "startAt": "2023-12-07T03:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000012911",
+        "bookingNumber": "BKG-V1-00012911",
+        "status": "BOOKED",
+        "className": "Daily Dose Muara Karang · Group Class",
+        "startAt": "2023-12-19T09:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000014707",
+        "bookingNumber": "BKG-V1-00014707",
+        "status": "BOOKED",
+        "className": "Daily Dose Muara Karang · Group Class",
+        "startAt": "2024-01-11T04:00:00.000Z"
+      }
+    ]
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000003905",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00003905",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 625000,
+    "displayName": "Cicilia",
+    "email": "pinontoan32@gmail.com",
+    "phone": "+6281342758409",
+    "packageName": "Drop In Private Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000003908",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00003908",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 350000,
+    "displayName": "Wiwi Niarti",
+    "email": "wiwi.niarti283805@gmail.com",
+    "phone": "+6282213051133",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 9,
+    "bookings": [
+      {
+        "bookingId": "80000000-0000-4000-8000-000000006326",
+        "bookingNumber": "BKG-V1-00006326",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-09-21T02:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000006444",
+        "bookingNumber": "BKG-V1-00006444",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-09-28T02:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000007220",
+        "bookingNumber": "BKG-V1-00007220",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-05T02:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000007619",
+        "bookingNumber": "BKG-V1-00007619",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-09T01:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000007739",
+        "bookingNumber": "BKG-V1-00007739",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-11T02:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000007794",
+        "bookingNumber": "BKG-V1-00007794",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-12T01:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000007891",
+        "bookingNumber": "BKG-V1-00007891",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-13T11:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000007952",
+        "bookingNumber": "BKG-V1-00007952",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-18T09:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000007953",
+        "bookingNumber": "BKG-V1-00007953",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-19T09:00:00.000Z"
+      }
+    ]
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000003919",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00003919",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 350000,
+    "displayName": "Tia Tamara Anugrah",
+    "email": "tiatamaraanugrah86@gmail.com",
+    "phone": "+6285778345600",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000003920",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00003920",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 350000,
+    "displayName": "Tia Tamara Anugrah",
+    "email": "tiatamaraanugrah86@gmail.com",
+    "phone": "+6285778345600",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000003930",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00003930",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 350000,
+    "displayName": "Irani Ratnasari",
+    "email": "irani.ratnasari@gmail.com",
+    "phone": "+6281291133157",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000003932",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00003932",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 350000,
+    "displayName": "Sucliany",
+    "email": "sucliany@gmail.com",
+    "phone": "+6285276013628",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000003934",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00003934",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 625000,
+    "displayName": "De Villa Olimdo",
+    "email": "olimdodevilla@gmail.com",
+    "phone": "+6281280892398",
+    "packageName": "Drop In Private Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000003937",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00003937",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 350000,
+    "displayName": "mega",
+    "email": "liumega1606@gmail.com",
+    "phone": "+6281703302991",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000003938",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00003938",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 350000,
+    "displayName": "mega",
+    "email": "liumega1606@gmail.com",
+    "phone": "+6281703302991",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000003940",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00003940",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 350000,
+    "displayName": "Mila",
+    "email": "mila.susanti0991@gmail.com",
+    "phone": "+62818657760",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000003941",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00003941",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 350000,
+    "displayName": "Venny Liani",
+    "email": "email.to.plum@gmail.com",
+    "phone": "+6282166910988",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000003946",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00003946",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 350000,
+    "displayName": "Fasya",
+    "email": "fasyaauliah@gmail.com",
+    "phone": "+6289636766639",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000003953",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00003953",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 350000,
+    "displayName": "Raisa",
+    "email": "rosemary.garden89@gmail.com",
+    "phone": null,
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 1,
+    "bookings": [
+      {
+        "bookingId": "80000000-0000-4000-8000-000000006520",
+        "bookingNumber": "BKG-V1-00006520",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-09-26T10:00:00.000Z"
+      }
+    ]
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000003954",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00003954",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 350000,
+    "displayName": "Caroline Febrilla",
+    "email": "caroline.febrilla@gmail.com",
+    "phone": "+6289651596066",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 5,
+    "bookings": [
+      {
+        "bookingId": "80000000-0000-4000-8000-000000006509",
+        "bookingNumber": "BKG-V1-00006509",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-09-29T03:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000006831",
+        "bookingNumber": "BKG-V1-00006831",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-06T02:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000007774",
+        "bookingNumber": "BKG-V1-00007774",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-12T03:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000007817",
+        "bookingNumber": "BKG-V1-00007817",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-19T03:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000008294",
+        "bookingNumber": "BKG-V1-00008294",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-26T04:00:00.000Z"
+      }
+    ]
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000003955",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00003955",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 350000,
+    "displayName": "livia GG",
+    "email": "beluang98@yahoo.com",
+    "phone": "+6285883322587",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 5,
+    "bookings": [
+      {
+        "bookingId": "80000000-0000-4000-8000-000000006510",
+        "bookingNumber": "BKG-V1-00006510",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-09-29T03:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000006829",
+        "bookingNumber": "BKG-V1-00006829",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-06T02:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000007776",
+        "bookingNumber": "BKG-V1-00007776",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-12T03:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000007816",
+        "bookingNumber": "BKG-V1-00007816",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-19T03:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000008295",
+        "bookingNumber": "BKG-V1-00008295",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-26T04:00:00.000Z"
+      }
+    ]
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000003956",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00003956",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 350000,
+    "displayName": "Andrea Hamdan",
+    "email": "andreahamdan@gmail.com",
+    "phone": "+6281295229614",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000003964",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00003964",
+    "purchaseStatus": "WAITING_VERIFICATION",
+    "totalAmountRp": 350000,
+    "displayName": "Andrea Hamdan",
+    "email": "andreahamdan@gmail.com",
+    "phone": "+6281295229614",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000003965",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00003965",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 350000,
+    "displayName": "livia GG",
+    "email": "beluang98@yahoo.com",
+    "phone": "+6285883322587",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000003966",
+    "usedSessions": 24,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00003966",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 4500000,
+    "displayName": "Novia,,",
+    "email": "noviac21@gmail.com",
+    "phone": "+6281909655757",
+    "packageName": "20 Sessions Private Group Class free 4 Sessions",
+    "activeBookingsCount": 11,
+    "bookings": [
+      {
+        "bookingId": "80000000-0000-4000-8000-000000010134",
+        "bookingNumber": "BKG-V1-00010134",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-11-14T10:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000010761",
+        "bookingNumber": "BKG-V1-00010761",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-11-24T02:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000010946",
+        "bookingNumber": "BKG-V1-00010946",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-11-29T01:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000010947",
+        "bookingNumber": "BKG-V1-00010947",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-11-27T01:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000011103",
+        "bookingNumber": "BKG-V1-00011103",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-11-30T01:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000012416",
+        "bookingNumber": "BKG-V1-00012416",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-12-12T10:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000012566",
+        "bookingNumber": "BKG-V1-00012566",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-12-14T01:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000013229",
+        "bookingNumber": "BKG-V1-00013229",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-12-27T01:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000013439",
+        "bookingNumber": "BKG-V1-00013439",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-12-30T01:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000013606",
+        "bookingNumber": "BKG-V1-00013606",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2024-01-02T09:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000015107",
+        "bookingNumber": "BKG-V1-00015107",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2024-01-16T02:00:00.000Z"
+      }
+    ]
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000003967",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00003967",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 350000,
+    "displayName": "Irene Tjan",
+    "email": "irenetjan55@gmail.com",
+    "phone": "+6289603611158",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 1,
+    "bookings": [
+      {
+        "bookingId": "80000000-0000-4000-8000-000000008230",
+        "bookingNumber": "BKG-V1-00008230",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-22T06:00:00.000Z"
+      }
+    ]
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000003969",
+    "usedSessions": 20,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00003969",
+    "purchaseStatus": "WAITING_VERIFICATION",
+    "totalAmountRp": 4500000,
+    "displayName": "Rini GG",
+    "email": "rini@gmail.com",
+    "phone": null,
+    "packageName": "20 Sessions Private Group Class",
+    "activeBookingsCount": 21,
+    "bookings": [
+      {
+        "bookingId": "80000000-0000-4000-8000-000000006570",
+        "bookingNumber": "BKG-V1-00006570",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-03T01:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000006709",
+        "bookingNumber": "BKG-V1-00006709",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-12T01:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000006721",
+        "bookingNumber": "BKG-V1-00006721",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-19T01:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000006733",
+        "bookingNumber": "BKG-V1-00006733",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-26T01:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000006736",
+        "bookingNumber": "BKG-V1-00006736",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-31T01:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000007119",
+        "bookingNumber": "BKG-V1-00007119",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-05T01:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000007558",
+        "bookingNumber": "BKG-V1-00007558",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-24T01:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000008385",
+        "bookingNumber": "BKG-V1-00008385",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-11-02T01:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000009024",
+        "bookingNumber": "BKG-V1-00009024",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-11-07T01:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000009070",
+        "bookingNumber": "BKG-V1-00009070",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-11-09T01:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000009189",
+        "bookingNumber": "BKG-V1-00009189",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-11-14T01:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000009476",
+        "bookingNumber": "BKG-V1-00009476",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-11-21T01:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000011125",
+        "bookingNumber": "BKG-V1-00011125",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-12-05T01:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000011127",
+        "bookingNumber": "BKG-V1-00011127",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-12-07T01:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000013662",
+        "bookingNumber": "BKG-V1-00013662",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2024-01-16T01:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000013671",
+        "bookingNumber": "BKG-V1-00013671",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2024-01-11T01:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000013677",
+        "bookingNumber": "BKG-V1-00013677",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2024-01-18T01:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000013682",
+        "bookingNumber": "BKG-V1-00013682",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2024-01-23T01:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000013695",
+        "bookingNumber": "BKG-V1-00013695",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2024-01-30T01:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000015222",
+        "bookingNumber": "BKG-V1-00015222",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2024-02-06T01:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000015226",
+        "bookingNumber": "BKG-V1-00015226",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2024-02-01T01:00:00.000Z"
+      }
+    ]
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000003975",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00003975",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 350000,
+    "displayName": "Iva Darman",
+    "email": "iva.darman@gmail.com",
+    "phone": "+628161358473",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000003976",
+    "usedSessions": 24,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00003976",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 4500000,
+    "displayName": "Yanti",
+    "email": "oas9701@yahoo.com",
+    "phone": null,
+    "packageName": "20 Sessions Private Group Class free 4 Sessions",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000003982",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00003982",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 350000,
+    "displayName": "Juliana",
+    "email": "juliana@gmail.com",
+    "phone": null,
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000003998",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00003998",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 350000,
+    "displayName": "Fasya",
+    "email": "fasyaauliah@gmail.com",
+    "phone": "+6289636766639",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000004003",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00004003",
+    "purchaseStatus": "WAITING_VERIFICATION",
+    "totalAmountRp": 350000,
+    "displayName": "kelenlim",
+    "email": "kelenlim1@gmail.com",
+    "phone": "+6282268158822",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000004006",
+    "usedSessions": 24,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00004006",
+    "purchaseStatus": "WAITING_VERIFICATION",
+    "totalAmountRp": 4500000,
+    "displayName": "Jo / Josephine",
+    "email": "jo-josephine@gmail.com",
+    "phone": null,
+    "packageName": "20 Sessions Private Group Class free 4 Sessions",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000004008",
+    "usedSessions": 24,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00004008",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 4500000,
+    "displayName": "Dini Setiany",
+    "email": "dinisetiany7@gmail.com",
+    "phone": null,
+    "packageName": "20 Sessions Private Group Class free 4 Sessions",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000004018",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00004018",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 350000,
+    "displayName": "Kun",
+    "email": "kun.kayloo@gmail.com",
+    "phone": "+6281212798887",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 12,
+    "bookings": [
+      {
+        "bookingId": "80000000-0000-4000-8000-000000006855",
+        "bookingNumber": "BKG-V1-00006855",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-09-30T07:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000006916",
+        "bookingNumber": "BKG-V1-00006916",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-09-30T08:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000007005",
+        "bookingNumber": "BKG-V1-00007005",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-02T05:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000007374",
+        "bookingNumber": "BKG-V1-00007374",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-09T05:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000007718",
+        "bookingNumber": "BKG-V1-00007718",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-12T04:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000007885",
+        "bookingNumber": "BKG-V1-00007885",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-14T06:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000007965",
+        "bookingNumber": "BKG-V1-00007965",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-19T04:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000008004",
+        "bookingNumber": "BKG-V1-00008004",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-17T05:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000008049",
+        "bookingNumber": "BKG-V1-00008049",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-20T04:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000008373",
+        "bookingNumber": "BKG-V1-00008373",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-24T05:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000008560",
+        "bookingNumber": "BKG-V1-00008560",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-27T05:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000008723",
+        "bookingNumber": "BKG-V1-00008723",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-30T04:00:00.000Z"
+      }
+    ]
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000004019",
+    "usedSessions": 24,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00004019",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 4500000,
+    "displayName": "Angie,,,",
+    "email": "angie@gmail.com",
+    "phone": "+6285779959708",
+    "packageName": "20 Sessions Private Group Class free 4 Sessions",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000004020",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00004020",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 350000,
+    "displayName": "Kun",
+    "email": "kun.kayloo@gmail.com",
+    "phone": "+6281212798887",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000004034",
+    "usedSessions": 24,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00004034",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 4500000,
+    "displayName": "Kun",
+    "email": "kun.kayloo@gmail.com",
+    "phone": "+6281212798887",
+    "packageName": "20 Sessions Private Group Class free 4 Sessions",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000004040",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00004040",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 350000,
+    "displayName": "Sherly GG",
+    "email": "sherlyastari@outlook.com",
+    "phone": "+6281321768873",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000004045",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00004045",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 350000,
+    "displayName": "Jennifer",
+    "email": "jryang880@gmail.com",
+    "phone": "+6287889981700",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000004047",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00004047",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 625000,
+    "displayName": "Althesia",
+    "email": "althesia.silvia@gmail.com",
+    "phone": "+6287788136759",
+    "packageName": "Drop In Private Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000004049",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00004049",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 350000,
+    "displayName": "Kian",
+    "email": "tatianayang99@gmail.com",
+    "phone": null,
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000004064",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00004064",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 350000,
+    "displayName": "Michelle Valencia",
+    "email": "miselfalensia@gmail.com",
+    "phone": "+6281807379724",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 1,
+    "bookings": [
+      {
+        "bookingId": "80000000-0000-4000-8000-000000007207",
+        "bookingNumber": "BKG-V1-00007207",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-05T04:00:00.000Z"
+      }
+    ]
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000004065",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00004065",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 350000,
+    "displayName": "Michelle Valencia",
+    "email": "miselfalensia@gmail.com",
+    "phone": "+6281807379724",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000004083",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00004083",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 350000,
+    "displayName": "Shinta",
+    "email": "shintarembulan@gmail.com",
+    "phone": "+6282120844423",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000004088",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00004088",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 625000,
+    "displayName": "Hiru",
+    "email": "irubelanja@yahoo.com",
+    "phone": "+62818218565",
+    "packageName": "Drop In Private Class",
+    "activeBookingsCount": 1,
+    "bookings": [
+      {
+        "bookingId": "80000000-0000-4000-8000-000000007706",
+        "bookingNumber": "BKG-V1-00007706",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Private Class",
+        "startAt": "2023-10-11T09:00:00.000Z"
+      }
+    ]
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000004089",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00004089",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 350000,
+    "displayName": "Febrina",
+    "email": "febrina741@gmail.com",
+    "phone": "+6285745682099",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 1,
+    "bookings": [
+      {
+        "bookingId": "80000000-0000-4000-8000-000000007397",
+        "bookingNumber": "BKG-V1-00007397",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-05T09:00:00.000Z"
+      }
+    ]
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000004091",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00004091",
+    "purchaseStatus": "WAITING_VERIFICATION",
+    "totalAmountRp": 350000,
+    "displayName": "Febrina",
+    "email": "febrina741@gmail.com",
+    "phone": "+6285745682099",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000004097",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00004097",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 350000,
+    "displayName": "Christina2604",
+    "email": "ch_tina@live.com",
+    "phone": "+6289682954356",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000004115",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00004115",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 350000,
+    "displayName": "Allisia",
+    "email": "titiallisia4@gmail.com",
+    "phone": "+6285815275185",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 1,
+    "bookings": [
+      {
+        "bookingId": "80000000-0000-4000-8000-000000007504",
+        "bookingNumber": "BKG-V1-00007504",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-08T06:00:00.000Z"
+      }
+    ]
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000004116",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00004116",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 350000,
+    "displayName": "Allisia",
+    "email": "titiallisia4@gmail.com",
+    "phone": "+6285815275185",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000004117",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00004117",
+    "purchaseStatus": "WAITING_VERIFICATION",
+    "totalAmountRp": 350000,
+    "displayName": "Rachelita",
+    "email": "rachelitaas7@gmail.com",
+    "phone": "+6285814518854",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 1,
+    "bookings": [
+      {
+        "bookingId": "80000000-0000-4000-8000-000000007503",
+        "bookingNumber": "BKG-V1-00007503",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-08T06:00:00.000Z"
+      }
+    ]
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000004120",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00004120",
+    "purchaseStatus": "WAITING_VERIFICATION",
+    "totalAmountRp": 350000,
+    "displayName": "Allisia",
+    "email": "titiallisia4@gmail.com",
+    "phone": "+6285815275185",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000004122",
+    "usedSessions": 24,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00004122",
+    "purchaseStatus": "WAITING_VERIFICATION",
+    "totalAmountRp": 4500000,
+    "displayName": "Fenny Gunawan Cantik",
+    "email": "f3nn15@gmail.com",
+    "phone": "+6281280005110",
+    "packageName": "20 Sessions Private Group Class free 4 Sessions",
+    "activeBookingsCount": 15,
+    "bookings": [
+      {
+        "bookingId": "80000000-0000-4000-8000-000000007745",
+        "bookingNumber": "BKG-V1-00007745",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-14T06:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000008639",
+        "bookingNumber": "BKG-V1-00008639",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-28T03:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000009455",
+        "bookingNumber": "BKG-V1-00009455",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-11-11T03:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000010780",
+        "bookingNumber": "BKG-V1-00010780",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-11-25T01:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000010860",
+        "bookingNumber": "BKG-V1-00010860",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-12-02T02:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000010863",
+        "bookingNumber": "BKG-V1-00010863",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-11-25T02:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000010875",
+        "bookingNumber": "BKG-V1-00010875",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-12-02T01:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000011726",
+        "bookingNumber": "BKG-V1-00011726",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-12-09T01:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000011732",
+        "bookingNumber": "BKG-V1-00011732",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-12-09T02:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000012744",
+        "bookingNumber": "BKG-V1-00012744",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-12-23T02:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000014718",
+        "bookingNumber": "BKG-V1-00014718",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2024-01-11T02:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000014856",
+        "bookingNumber": "BKG-V1-00014856",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2024-01-11T03:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000016778",
+        "bookingNumber": "BKG-V1-00016778",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2024-01-30T08:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000016914",
+        "bookingNumber": "BKG-V1-00016914",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2024-02-03T02:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000017399",
+        "bookingNumber": "BKG-V1-00017399",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2024-02-03T03:00:00.000Z"
+      }
+    ]
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000004126",
+    "usedSessions": 24,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00004126",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 4500000,
+    "displayName": "Cynthia Bunjamin",
+    "email": "cynthiabunjamin@gmail.com",
+    "phone": "+6281319542755",
+    "packageName": "20 Sessions Private Group Class free 4 Sessions",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000004137",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00004137",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 350000,
+    "displayName": "Eriwati",
+    "email": "eriwati@ustravel.co.id",
+    "phone": "+628170051606",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000004143",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00004143",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 625000,
+    "displayName": "Carine Yang",
+    "email": "maheswari.rini@yahoo.com",
+    "phone": "+628158872722",
+    "packageName": "Drop In Private Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000004144",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00004144",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 625000,
+    "displayName": "Carine Yang",
+    "email": "maheswari.rini@yahoo.com",
+    "phone": "+628158872722",
+    "packageName": "Drop In Private Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000004149",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00004149",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 625000,
+    "displayName": "Leony Tany",
+    "email": "franviena.leta@gmail.com",
+    "phone": "+6281287007727",
+    "packageName": "Drop In Private Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000004151",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00004151",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 350000,
+    "displayName": "Sally",
+    "email": "casalielie@gmail.com",
+    "phone": "+6287788773579",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000004157",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00004157",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 625000,
+    "displayName": "vivi mandasari",
+    "email": "vivi.mandasari10@gmail.com",
+    "phone": "+6281380803851",
+    "packageName": "Drop In Private Class",
+    "activeBookingsCount": 1,
+    "bookings": [
+      {
+        "bookingId": "80000000-0000-4000-8000-000000007803",
+        "bookingNumber": "BKG-V1-00007803",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Private Class",
+        "startAt": "2023-10-13T08:00:00.000Z"
+      }
+    ]
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000004197",
+    "usedSessions": 24,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00004197",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 4500000,
+    "displayName": "Christina Yaori",
+    "email": "christina-yaori@gmail.com",
+    "phone": null,
+    "packageName": "20 Sessions Private Group Class free 4 Sessions",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000004198",
+    "usedSessions": 24,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00004198",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 4500000,
+    "displayName": "Christina Yaori",
+    "email": "christina-yaori@gmail.com",
+    "phone": null,
+    "packageName": "20 Sessions Private Group Class free 4 Sessions",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000004199",
+    "usedSessions": 24,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00004199",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 4500000,
+    "displayName": "Christina Yaori",
+    "email": "christina-yaori@gmail.com",
+    "phone": null,
+    "packageName": "20 Sessions Private Group Class free 4 Sessions",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000004200",
+    "usedSessions": 24,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00004200",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 4500000,
+    "displayName": "Christina Yaori",
+    "email": "christina-yaori@gmail.com",
+    "phone": null,
+    "packageName": "20 Sessions Private Group Class free 4 Sessions",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000004202",
+    "usedSessions": 20,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00004202",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 4500000,
+    "displayName": "Michelle Valencia",
+    "email": "miselfalensia@gmail.com",
+    "phone": "+6281807379724",
+    "packageName": "20 Sessions Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000004211",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00004211",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 350000,
+    "displayName": "Elvina Jesslyn",
+    "email": "elvinaajh@gmail.com",
+    "phone": "+6285885932689",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 1,
+    "bookings": [
+      {
+        "bookingId": "80000000-0000-4000-8000-000000008094",
+        "bookingNumber": "BKG-V1-00008094",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-21T08:00:00.000Z"
+      }
+    ]
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000004224",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00004224",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 350000,
+    "displayName": "Natasya",
+    "email": "nata.widjaja@hotmail.com",
+    "phone": "+6281295373950",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000004226",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00004226",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 625000,
+    "displayName": "rindawati",
+    "email": "rinda.np.333@gmail.com",
+    "phone": "+6282288320888",
+    "packageName": "Drop In Private Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000004227",
+    "usedSessions": 8,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00004227",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 2160000,
+    "displayName": "Melissa",
+    "email": "harlan_melissa@yahoo.com",
+    "phone": "+6281212840888",
+    "packageName": "8 Sessions Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000004230",
+    "usedSessions": 24,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00004230",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 4500000,
+    "displayName": "Evelyn Oktavia",
+    "email": "evelynoktavia@gmail.com",
+    "phone": "+628777444323",
+    "packageName": "20 Sessions Private Group Class free 4 Sessions",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000004231",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00004231",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 350000,
+    "displayName": "Super Admin",
+    "email": "super@dailydosepilates.com",
+    "phone": null,
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000004236",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00004236",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 625000,
+    "displayName": "Cen Cen Yuliana ",
+    "email": "c.djunaidi@gmail.com",
+    "phone": "+628117251888",
+    "packageName": "Drop In Private Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000004238",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00004238",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 625000,
+    "displayName": "Cen Cen Yuliana ",
+    "email": "c.djunaidi@gmail.com",
+    "phone": "+628117251888",
+    "packageName": "Drop In Private Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000004240",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00004240",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 380000,
+    "displayName": "quinna",
+    "email": "15652080220@163.com",
+    "phone": null,
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 1,
+    "bookings": [
+      {
+        "bookingId": "80000000-0000-4000-8000-000000008243",
+        "bookingNumber": "BKG-V1-00008243",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2023-10-21T09:00:00.000Z"
+      }
+    ]
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000004251",
+    "usedSessions": 8,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00004251",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 2640000,
+    "displayName": "Budi Suhada",
+    "email": "lrmcorporation@gmail.com",
+    "phone": null,
+    "packageName": "8 Sessions Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000004255",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00004255",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 380000,
+    "displayName": "Rachel Octavia",
+    "email": "racheloctavia21@gmail.com",
+    "phone": "+6285186888758",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000004398",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00004398",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 380000,
+    "displayName": "Fey",
+    "email": "julitafyb@gmail.com",
+    "phone": "+6281249787434",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000004487",
+    "usedSessions": 0,
+    "remainingSessions": 1,
+    "packageStatus": "EXPIRED",
+    "invoiceNumber": "INV-V1-00004487",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 1100000,
+    "displayName": "Lenny swn",
+    "email": "lennyswn@yahoo.com",
+    "phone": "+628129588897",
+    "packageName": "Drop in Private Class - First Time Package",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000004713",
+    "usedSessions": 0,
+    "remainingSessions": 1,
+    "packageStatus": "EXPIRED",
+    "invoiceNumber": "INV-V1-00004713",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 1100000,
+    "displayName": "Suarti Purnamawati MK",
+    "email": "purnamawati.ias@gmail.com",
+    "phone": "+6281511228989",
+    "packageName": "Drop in Private Group Class - First Time Package",
+    "activeBookingsCount": 7,
+    "bookings": [
+      {
+        "bookingId": "80000000-0000-4000-8000-000000011020",
+        "bookingNumber": "BKG-V1-00011020",
+        "status": "BOOKED",
+        "className": "Daily Dose Muara Karang · Group Class",
+        "startAt": "2023-11-29T01:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000011099",
+        "bookingNumber": "BKG-V1-00011099",
+        "status": "BOOKED",
+        "className": "Daily Dose Muara Karang · Group Class",
+        "startAt": "2023-12-04T01:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000011908",
+        "bookingNumber": "BKG-V1-00011908",
+        "status": "BOOKED",
+        "className": "Daily Dose Muara Karang · Group Class",
+        "startAt": "2023-12-06T10:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000012393",
+        "bookingNumber": "BKG-V1-00012393",
+        "status": "ATTENDED",
+        "className": "Daily Dose Muara Karang · Group Class",
+        "startAt": "2023-12-12T01:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000012423",
+        "bookingNumber": "BKG-V1-00012423",
+        "status": "BOOKED",
+        "className": "Daily Dose Muara Karang · Group Class",
+        "startAt": "2023-12-16T02:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000012738",
+        "bookingNumber": "BKG-V1-00012738",
+        "status": "BOOKED",
+        "className": "Daily Dose Muara Karang · Group Class",
+        "startAt": "2023-12-19T01:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000012739",
+        "bookingNumber": "BKG-V1-00012739",
+        "status": "BOOKED",
+        "className": "Daily Dose Muara Karang · Group Class",
+        "startAt": "2023-12-21T01:00:00.000Z"
+      }
+    ]
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000004714",
+    "usedSessions": 0,
+    "remainingSessions": 1,
+    "packageStatus": "EXPIRED",
+    "invoiceNumber": "INV-V1-00004714",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 1100000,
+    "displayName": "Suarti Purnamawati MK",
+    "email": "purnamawati.ias@gmail.com",
+    "phone": "+6281511228989",
+    "packageName": "Drop in Private Class - First Time Package",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000004718",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00004718",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 230000,
+    "displayName": "Ibu Cindy ",
+    "email": "ibucindy@gmail.com",
+    "phone": null,
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000004720",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00004720",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 230000,
+    "displayName": "raymond",
+    "email": "raymond@gmail.com",
+    "phone": null,
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000004721",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00004721",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 230000,
+    "displayName": "immanuela",
+    "email": "immanuela@gmail.com",
+    "phone": null,
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000004782",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00004782",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 380000,
+    "displayName": "Caren MK",
+    "email": "eleanorblue84@gmail.com",
+    "phone": "+628111686123",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 1,
+    "bookings": [
+      {
+        "bookingId": "80000000-0000-4000-8000-000000011626",
+        "bookingNumber": "BKG-V1-00011626",
+        "status": "BOOKED",
+        "className": "Daily Dose Muara Karang · Group Class",
+        "startAt": "2023-12-02T02:00:00.000Z"
+      }
+    ]
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000004787",
+    "usedSessions": 1,
+    "remainingSessions": 7,
+    "packageStatus": "EXPIRED",
+    "invoiceNumber": "INV-V1-00004787",
+    "purchaseStatus": "WAITING_VERIFICATION",
+    "totalAmountRp": 2376000,
+    "displayName": "Sisilia Augustine",
+    "email": "sisilia.augustine@gmail.com",
+    "phone": "+628111905880",
+    "packageName": "8 Sessions Private Group Class",
+    "activeBookingsCount": 2,
+    "bookings": [
+      {
+        "bookingId": "80000000-0000-4000-8000-000000013828",
+        "bookingNumber": "BKG-V1-00013828",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Group Class",
+        "startAt": "2024-01-03T12:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000015585",
+        "bookingNumber": "BKG-V1-00015585",
+        "status": "BOOKED",
+        "className": "Daily Dose Muara Karang · Group Class",
+        "startAt": "2024-01-19T12:00:00.000Z"
+      }
+    ]
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000005359",
+    "usedSessions": 1,
+    "remainingSessions": 7,
+    "packageStatus": "EXPIRED",
+    "invoiceNumber": "INV-V1-00005359",
+    "purchaseStatus": "WAITING_VERIFICATION",
+    "totalAmountRp": 4140000,
+    "displayName": "Citra Nurmarani PV,",
+    "email": "citranurmarani@gmail.com",
+    "phone": "+6287776279277",
+    "packageName": "8 Sessions Private Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000005760",
+    "usedSessions": 1,
+    "remainingSessions": 11,
+    "packageStatus": "EXPIRED",
+    "invoiceNumber": "INV-V1-00005760",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 6600653,
+    "displayName": "Desyanne",
+    "email": "desyannewnrd@yahoo.com",
+    "phone": "+6281808383551",
+    "packageName": "12 Sessions Private Class",
+    "activeBookingsCount": 9,
+    "bookings": [
+      {
+        "bookingId": "80000000-0000-4000-8000-000000020435",
+        "bookingNumber": "BKG-V1-00020435",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Private Class",
+        "startAt": "2024-03-20T00:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000022717",
+        "bookingNumber": "BKG-V1-00022717",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Private Class",
+        "startAt": "2024-04-03T00:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000024188",
+        "bookingNumber": "BKG-V1-00024188",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Private Class",
+        "startAt": "2024-04-26T00:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000024546",
+        "bookingNumber": "BKG-V1-00024546",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Private Class",
+        "startAt": "2024-05-01T00:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000024589",
+        "bookingNumber": "BKG-V1-00024589",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Private Class",
+        "startAt": "2024-05-03T00:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000024749",
+        "bookingNumber": "BKG-V1-00024749",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Private Class",
+        "startAt": "2024-04-24T00:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000027681",
+        "bookingNumber": "BKG-V1-00027681",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Private Class",
+        "startAt": "2024-05-22T00:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000028206",
+        "bookingNumber": "BKG-V1-00028206",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Private Class",
+        "startAt": "2024-05-31T00:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000028273",
+        "bookingNumber": "BKG-V1-00028273",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Private Class",
+        "startAt": "2024-05-29T00:00:00.000Z"
+      }
+    ]
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000005977",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00005977",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 380761,
+    "displayName": "Jessica Nathalie",
+    "email": "j.n.widjanarko@gmail.com",
+    "phone": "+6281340708121",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000006172",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00006172",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 380474,
+    "displayName": "intan permata MK",
+    "email": "permataintan1996@gmail.com",
+    "phone": "+6287781158380",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 1,
+    "bookings": [
+      {
+        "bookingId": "80000000-0000-4000-8000-000000021233",
+        "bookingNumber": "BKG-V1-00021233",
+        "status": "BOOKED",
+        "className": "Daily Dose Muara Karang · Group Class",
+        "startAt": "2024-03-07T11:00:00.000Z"
+      }
+    ]
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000006288",
+    "usedSessions": 2,
+    "remainingSessions": 6,
+    "packageStatus": "EXPIRED",
+    "invoiceNumber": "INV-V1-00006288",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 2640723,
+    "displayName": "Felita budiman",
+    "email": "valentinefelita15@gmail.com",
+    "phone": "+6281296248914",
+    "packageName": "8 Sessions Private Group Class",
+    "activeBookingsCount": 7,
+    "bookings": [
+      {
+        "bookingId": "80000000-0000-4000-8000-000000022438",
+        "bookingNumber": "BKG-V1-00022438",
+        "status": "BOOKED",
+        "className": "Daily Dose Graha Family Surabaya · Group Class",
+        "startAt": "2024-03-20T11:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000023248",
+        "bookingNumber": "BKG-V1-00023248",
+        "status": "BOOKED",
+        "className": "Daily Dose Graha Family Surabaya · Group Class",
+        "startAt": "2024-03-25T11:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000023896",
+        "bookingNumber": "BKG-V1-00023896",
+        "status": "ATTENDED",
+        "className": "Daily Dose Graha Family Surabaya · Group Class",
+        "startAt": "2024-04-03T11:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000024934",
+        "bookingNumber": "BKG-V1-00024934",
+        "status": "ATTENDED",
+        "className": "Daily Dose Graha Family Surabaya · Group Class",
+        "startAt": "2024-04-12T02:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000025186",
+        "bookingNumber": "BKG-V1-00025186",
+        "status": "BOOKED",
+        "className": "Daily Dose Graha Family Surabaya · Group Class",
+        "startAt": "2024-04-15T02:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000025926",
+        "bookingNumber": "BKG-V1-00025926",
+        "status": "ATTENDED",
+        "className": "Daily Dose Graha Family Surabaya · Group Class",
+        "startAt": "2024-04-22T11:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000028953",
+        "bookingNumber": "BKG-V1-00028953",
+        "status": "ATTENDED",
+        "className": "Daily Dose Graha Family Surabaya · Group Class",
+        "startAt": "2024-05-15T11:00:00.000Z"
+      }
+    ]
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000006323",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00006323",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 380779,
+    "displayName": "Jovina",
+    "email": "jovinamichelle297@gmail.com",
+    "phone": "+6287751097292",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 1,
+    "bookings": [
+      {
+        "bookingId": "80000000-0000-4000-8000-000000023024",
+        "bookingNumber": "BKG-V1-00023024",
+        "status": "BOOKED",
+        "className": "Daily Dose Graha Family Surabaya · Group Class",
+        "startAt": "2024-03-22T12:00:00.000Z"
+      }
+    ]
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000006821",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00006821",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 150257,
+    "displayName": "Ann",
+    "email": "dyna_ln@yahoo.com",
+    "phone": "+6285156823515",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 1,
+    "bookings": [
+      {
+        "bookingId": "80000000-0000-4000-8000-000000026294",
+        "bookingNumber": "BKG-V1-00026294",
+        "status": "BOOKED",
+        "className": "Daily Dose Graha Family Surabaya · Group Class",
+        "startAt": "2024-04-26T12:00:00.000Z"
+      }
+    ]
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000006847",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00006847",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 150499,
+    "displayName": "Elysia Wilhelmina",
+    "email": "elyswrengkung@gmail.com",
+    "phone": "+628128019004",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000007199",
+    "usedSessions": 1,
+    "remainingSessions": 7,
+    "packageStatus": "EXPIRED",
+    "invoiceNumber": "INV-V1-00007199",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 5200119,
+    "displayName": "Jennifer Faizal",
+    "email": "jenniferfaizal.cvc@gmail.com",
+    "phone": "+6281287800800",
+    "packageName": "8 Sessions Private Class",
+    "activeBookingsCount": 4,
+    "bookings": [
+      {
+        "bookingId": "80000000-0000-4000-8000-000000029133",
+        "bookingNumber": "BKG-V1-00029133",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Private Class",
+        "startAt": "2024-05-14T10:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000029190",
+        "bookingNumber": "BKG-V1-00029190",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Private Class",
+        "startAt": "2024-05-15T09:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000029835",
+        "bookingNumber": "BKG-V1-00029835",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Private Class",
+        "startAt": "2024-05-22T11:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000035771",
+        "bookingNumber": "BKG-V1-00035771",
+        "status": "BOOKED",
+        "className": "Daily Dose Green Garden · Private Class",
+        "startAt": "2024-07-02T04:00:00.000Z"
+      }
+    ]
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000007463",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00007463",
+    "purchaseStatus": "WAITING_VERIFICATION",
+    "totalAmountRp": 230194,
+    "displayName": "Alisya Dania Karim",
+    "email": "alisya.dania@ymail.com",
+    "phone": "+6281938806552",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000007682",
+    "usedSessions": 1,
+    "remainingSessions": 89,
+    "packageStatus": "EXPIRED",
+    "invoiceNumber": "INV-V1-00007682",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 635,
+    "displayName": "Kayla Naulibasa",
+    "email": "kaylanaulibasa@gmail.com",
+    "phone": "+6282188025220",
+    "packageName": "Paket Gym",
+    "activeBookingsCount": 1,
+    "bookings": [
+      {
+        "bookingId": "80000000-0000-4000-8000-000000033000",
+        "bookingNumber": "BKG-V1-00033000",
+        "status": "BOOKED",
+        "className": "Daily Dose Graha Family Surabaya · Group Class",
+        "startAt": "2024-06-12T12:00:00.000Z"
+      }
+    ]
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000008523",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00008523",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 380771,
+    "displayName": "Rini chandra",
+    "email": "rini_chandra@gmail.com",
+    "phone": "+6281316791679",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000008732",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00008732",
+    "purchaseStatus": "WAITING_VERIFICATION",
+    "totalAmountRp": 120811,
+    "displayName": "Elga",
+    "email": "elgakindangen7@gmail.com",
+    "phone": "+6281995466662",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 1,
+    "bookings": [
+      {
+        "bookingId": "80000000-0000-4000-8000-000000043932",
+        "bookingNumber": "BKG-V1-00043932",
+        "status": "ATTENDED",
+        "className": "Daily Dose Graha Family Surabaya · Group Class",
+        "startAt": "2024-08-28T10:00:00.000Z"
+      }
+    ]
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000009626",
+    "usedSessions": 0,
+    "remainingSessions": 14,
+    "packageStatus": "EXPIRED",
+    "invoiceNumber": "INV-V1-00009626",
+    "purchaseStatus": "WAITING_VERIFICATION",
+    "totalAmountRp": 3660805,
+    "displayName": "dhina adriana",
+    "email": "adrianachai91@yahoo.com",
+    "phone": "+6285882179037",
+    "packageName": "12 Sesi Free 3 Sesi - Untar",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000011413",
+    "usedSessions": 1,
+    "remainingSessions": 7,
+    "packageStatus": "EXPIRED",
+    "invoiceNumber": "INV-V1-00011413",
+    "purchaseStatus": "WAITING_VERIFICATION",
+    "totalAmountRp": 4680744,
+    "displayName": "Navelya",
+    "email": "navelya@gmail.com",
+    "phone": null,
+    "packageName": "8 Sessions Private Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000011630",
+    "usedSessions": 1,
+    "remainingSessions": 7,
+    "packageStatus": "EXPIRED",
+    "invoiceNumber": "INV-V1-00011630",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 2640000,
+    "displayName": "Jane Elviani",
+    "email": "jane.elviani@gmail.com",
+    "phone": "+62817817608",
+    "packageName": "8 Sessions Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000011952",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00011952",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 675283,
+    "displayName": "anjani rhehan",
+    "email": "anjanirhsurya@gmail.com",
+    "phone": "+6282113025568",
+    "packageName": "Drop In Private Class",
+    "activeBookingsCount": 1,
+    "bookings": [
+      {
+        "bookingId": "80000000-0000-4000-8000-000000077396",
+        "bookingNumber": "BKG-V1-00077396",
+        "status": "ATTENDED",
+        "className": "Daily Dose Graha Family Surabaya · Private Class",
+        "startAt": "2025-04-16T10:00:00.000Z"
+      }
+    ]
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000013340",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00013340",
+    "purchaseStatus": "WAITING_VERIFICATION",
+    "totalAmountRp": 230289,
+    "displayName": "Calvin",
+    "email": "calvin_drop@gmail.com",
+    "phone": "+6281311068605",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000013861",
+    "usedSessions": 1,
+    "remainingSessions": 19,
+    "packageStatus": "EXPIRED",
+    "invoiceNumber": "INV-V1-00013861",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 9775644,
+    "displayName": "Eni Pv",
+    "email": "ennythoeng@gmail.com",
+    "phone": "+62817699996",
+    "packageName": "20 Sessions Private Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000014192",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00014192",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 675251,
+    "displayName": "Flora Satyania Candrakirani",
+    "email": "florakirani@gmail.com",
+    "phone": "+6281385823280",
+    "packageName": "Drop In Private Class",
+    "activeBookingsCount": 1,
+    "bookings": [
+      {
+        "bookingId": "80000000-0000-4000-8000-000000107335",
+        "bookingNumber": "BKG-V1-00107335",
+        "status": "ATTENDED",
+        "className": "Daily Dose Graha Family Surabaya · Private Class",
+        "startAt": "2025-11-09T04:00:00.000Z"
+      }
+    ]
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000014299",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00014299",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 380691,
+    "displayName": "Ivana Gonzales",
+    "email": "ivana_gonzales@gmail.com",
+    "phone": "+6287829081994",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000014300",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00014300",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 380368,
+    "displayName": "Sujatmiko Goenawan",
+    "email": "sujatmiko_goenawan@gmail.com",
+    "phone": null,
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000014733",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00014733",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 380445,
+    "displayName": "Margareth Felicia Alice Lie",
+    "email": "feliciaalicelie@gmail.com",
+    "phone": "+6282273992006",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 1,
+    "bookings": [
+      {
+        "bookingId": "80000000-0000-4000-8000-000000116740",
+        "bookingNumber": "BKG-V1-00116740",
+        "status": "ATTENDED",
+        "className": "Daily Dose Muara Karang · Private Group",
+        "startAt": "2026-01-30T11:00:00.000Z"
+      }
+    ]
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000014808",
+    "usedSessions": 22,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00014808",
+    "purchaseStatus": "WAITING_VERIFICATION",
+    "totalAmountRp": 3920453,
+    "displayName": "Monita Tjhan",
+    "email": "tjhan.monita@gmail.com",
+    "phone": "+628129688905",
+    "packageName": "20 Sessions Private Group Class free 2 Sessions",
+    "activeBookingsCount": 12,
+    "bookings": [
+      {
+        "bookingId": "80000000-0000-4000-8000-000000118925",
+        "bookingNumber": "BKG-V1-00118925",
+        "status": "ATTENDED",
+        "className": "Daily Dose Muara Karang · Private Group",
+        "startAt": "2026-03-04T02:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000118991",
+        "bookingNumber": "BKG-V1-00118991",
+        "status": "ATTENDED",
+        "className": "Daily Dose Muara Karang · Private Group",
+        "startAt": "2026-02-25T03:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000119666",
+        "bookingNumber": "BKG-V1-00119666",
+        "status": "ATTENDED",
+        "className": "Daily Dose Muara Karang · Private Group",
+        "startAt": "2026-03-09T02:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000119790",
+        "bookingNumber": "BKG-V1-00119790",
+        "status": "ATTENDED",
+        "className": "Daily Dose Muara Karang · Private Group",
+        "startAt": "2026-03-11T02:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000121046",
+        "bookingNumber": "BKG-V1-00121046",
+        "status": "ATTENDED",
+        "className": "Daily Dose Muara Karang · Private Group",
+        "startAt": "2026-03-30T02:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000121301",
+        "bookingNumber": "BKG-V1-00121301",
+        "status": "ATTENDED",
+        "className": "Daily Dose Muara Karang · Private Group",
+        "startAt": "2026-03-25T03:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000121864",
+        "bookingNumber": "BKG-V1-00121864",
+        "status": "ATTENDED",
+        "className": "Daily Dose Muara Karang · Private Group",
+        "startAt": "2026-04-06T02:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000122166",
+        "bookingNumber": "BKG-V1-00122166",
+        "status": "ATTENDED",
+        "className": "Daily Dose Muara Karang · Private Group",
+        "startAt": "2026-04-01T03:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000122886",
+        "bookingNumber": "BKG-V1-00122886",
+        "status": "ATTENDED",
+        "className": "Daily Dose Muara Karang · Private Group",
+        "startAt": "2026-04-13T02:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000122925",
+        "bookingNumber": "BKG-V1-00122925",
+        "status": "ATTENDED",
+        "className": "Daily Dose Muara Karang · Private Group",
+        "startAt": "2026-04-08T03:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000127487",
+        "bookingNumber": "BKG-V1-00127487",
+        "status": "ATTENDED",
+        "className": "Daily Dose Muara Karang · Private Group",
+        "startAt": "2026-06-01T02:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000127674",
+        "bookingNumber": "BKG-V1-00127674",
+        "status": "ATTENDED",
+        "className": "Daily Dose Muara Karang · Private Group",
+        "startAt": "2026-06-03T02:00:00.000Z"
+      }
+    ]
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000014870",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00014870",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 675330,
+    "displayName": " Herman Susastro",
+    "email": "hsusastro@gmail.com",
+    "phone": "+62816856647",
+    "packageName": "Drop In Private Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000015361",
+    "usedSessions": 1,
+    "remainingSessions": 23,
+    "packageStatus": "FROZEN",
+    "invoiceNumber": "INV-V1-00015361",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 3920860,
+    "displayName": "Juli (Jacelyn) FT",
+    "email": "july@gmail.com",
+    "phone": null,
+    "packageName": "[APRIL SHOWERS] 20 Sessions Private Group Class FREE 4 Sessions",
+    "activeBookingsCount": 17,
+    "bookings": [
+      {
+        "bookingId": "80000000-0000-4000-8000-000000125434",
+        "bookingNumber": "BKG-V1-00125434",
+        "status": "ATTENDED",
+        "className": "Daily Dose Muara Karang · Private Group",
+        "startAt": "2026-05-05T10:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000125746",
+        "bookingNumber": "BKG-V1-00125746",
+        "status": "ATTENDED",
+        "className": "Daily Dose Muara Karang · Private Group",
+        "startAt": "2026-05-08T04:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000126214",
+        "bookingNumber": "BKG-V1-00126214",
+        "status": "ATTENDED",
+        "className": "Daily Dose Muara Karang · Private Group",
+        "startAt": "2026-05-15T04:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000126790",
+        "bookingNumber": "BKG-V1-00126790",
+        "status": "ATTENDED",
+        "className": "Daily Dose Muara Karang · Private Group",
+        "startAt": "2026-05-22T03:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000127132",
+        "bookingNumber": "BKG-V1-00127132",
+        "status": "ATTENDED",
+        "className": "Daily Dose Muara Karang · Private Group",
+        "startAt": "2026-05-26T05:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000127267",
+        "bookingNumber": "BKG-V1-00127267",
+        "status": "ATTENDED",
+        "className": "Daily Dose Muara Karang · Private Group",
+        "startAt": "2026-05-29T03:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000127886",
+        "bookingNumber": "BKG-V1-00127886",
+        "status": "ATTENDED",
+        "className": "Daily Dose Muara Karang · Private Group",
+        "startAt": "2026-06-05T03:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000128329",
+        "bookingNumber": "BKG-V1-00128329",
+        "status": "ATTENDED",
+        "className": "Daily Dose Muara Karang · Private Group",
+        "startAt": "2026-06-12T04:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000129408",
+        "bookingNumber": "BKG-V1-00129408",
+        "status": "ATTENDED",
+        "className": "Daily Dose Muara Karang · Private Group",
+        "startAt": "2026-06-30T04:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000129641",
+        "bookingNumber": "BKG-V1-00129641",
+        "status": "ATTENDED",
+        "className": "Daily Dose Muara Karang · Private Group",
+        "startAt": "2026-07-03T03:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000129948",
+        "bookingNumber": "BKG-V1-00129948",
+        "status": "ATTENDED",
+        "className": "Daily Dose Muara Karang · Private Group",
+        "startAt": "2026-07-07T04:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000131117",
+        "bookingNumber": "BKG-V1-00131117",
+        "status": "ATTENDED",
+        "className": "Daily Dose Muara Karang · Private Group",
+        "startAt": "2026-07-24T04:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000131590",
+        "bookingNumber": "BKG-V1-00131590",
+        "status": "ATTENDED",
+        "className": "Daily Dose Muara Karang · Private Group",
+        "startAt": "2026-07-31T04:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000132351",
+        "bookingNumber": "BKG-V1-00132351",
+        "status": "ATTENDED",
+        "className": "Daily Dose Muara Karang · Private Group",
+        "startAt": "2026-08-14T04:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000133741",
+        "bookingNumber": "BKG-V1-00133741",
+        "status": "ATTENDED",
+        "className": "Daily Dose Muara Karang · Private Group",
+        "startAt": "2026-09-11T04:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000134194",
+        "bookingNumber": "BKG-V1-00134194",
+        "status": "ATTENDED",
+        "className": "Daily Dose Muara Karang · Private Group",
+        "startAt": "2026-09-18T04:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000134632",
+        "bookingNumber": "BKG-V1-00134632",
+        "status": "ATTENDED",
+        "className": "Daily Dose Muara Karang · Private Group",
+        "startAt": "2026-09-25T04:00:00.000Z"
+      }
+    ]
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000015639",
+    "usedSessions": 6,
+    "remainingSessions": 18,
+    "packageStatus": "FROZEN",
+    "invoiceNumber": "INV-V1-00015639",
+    "purchaseStatus": "WAITING_VERIFICATION",
+    "totalAmountRp": 3920736,
+    "displayName": "Robert Mk",
+    "email": "arifinrobert2012@gmail.com",
+    "phone": "+628982734544",
+    "packageName": "[APRIL SHOWERS] 20 Sessions Private Group Class FREE 4 Sessions",
+    "activeBookingsCount": 5,
+    "bookings": [
+      {
+        "bookingId": "80000000-0000-4000-8000-000000131678",
+        "bookingNumber": "BKG-V1-00131678",
+        "status": "ATTENDED",
+        "className": "Daily Dose Muara Karang · Private Group",
+        "startAt": "2026-08-01T03:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000132386",
+        "bookingNumber": "BKG-V1-00132386",
+        "status": "ATTENDED",
+        "className": "Daily Dose Muara Karang · Private Group",
+        "startAt": "2026-08-15T03:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000132589",
+        "bookingNumber": "BKG-V1-00132589",
+        "status": "ATTENDED",
+        "className": "Daily Dose Muara Karang · Private Group",
+        "startAt": "2026-08-19T03:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000133039",
+        "bookingNumber": "BKG-V1-00133039",
+        "status": "ATTENDED",
+        "className": "Daily Dose Muara Karang · Private Group",
+        "startAt": "2026-08-29T03:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000133393",
+        "bookingNumber": "BKG-V1-00133393",
+        "status": "ATTENDED",
+        "className": "Daily Dose Muara Karang · Private Group",
+        "startAt": "2026-09-04T10:00:00.000Z"
+      }
+    ]
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000016942",
+    "usedSessions": 1,
+    "remainingSessions": 21,
+    "packageStatus": "FROZEN",
+    "invoiceNumber": "INV-V1-00016942",
+    "purchaseStatus": "WAITING_VERIFICATION",
+    "totalAmountRp": 10350990,
+    "displayName": "Caroline Febrilla,",
+    "email": "carolinentsh@gmail.com",
+    "phone": null,
+    "packageName": "20 Sessions PVC Free 2 Sessions",
+    "activeBookingsCount": 1,
+    "bookings": [
+      {
+        "bookingId": "80000000-0000-4000-8000-000000133484",
+        "bookingNumber": "BKG-V1-00133484",
+        "status": "ATTENDED",
+        "className": "Daily Dose Green Garden · Private Class",
+        "startAt": "2026-09-07T02:00:00.000Z"
+      }
+    ]
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000016996",
+    "usedSessions": 0,
+    "remainingSessions": 4,
+    "packageStatus": "FROZEN",
+    "invoiceNumber": "INV-V1-00016996",
+    "purchaseStatus": "CANCELLED",
+    "totalAmountRp": 640828,
+    "displayName": "Jeniffer Purnomo",
+    "email": "jeniffer_purnomo@gmail.com",
+    "phone": "+6282122224616",
+    "packageName": "Double Trouble",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000017033",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00017033",
+    "purchaseStatus": "WAITING_VERIFICATION",
+    "totalAmountRp": 380729,
+    "displayName": "Giftania",
+    "email": "jgiftania@gmail.com",
+    "phone": "+6289650723195",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 2,
+    "bookings": [
+      {
+        "bookingId": "80000000-0000-4000-8000-000000134380",
+        "bookingNumber": "BKG-V1-00134380",
+        "status": "ATTENDED",
+        "className": "Daily Dose Untar Kampus 2 · Private Group",
+        "startAt": "2026-09-21T04:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000134381",
+        "bookingNumber": "BKG-V1-00134381",
+        "status": "ATTENDED",
+        "className": "Daily Dose Untar Kampus 2 · Private Group",
+        "startAt": "2026-09-21T04:00:00.000Z"
+      }
+    ]
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000017034",
+    "usedSessions": 1,
+    "remainingSessions": 0,
+    "packageStatus": "DEPLETED",
+    "invoiceNumber": "INV-V1-00017034",
+    "purchaseStatus": "WAITING_VERIFICATION",
+    "totalAmountRp": 380049,
+    "displayName": "Giftania",
+    "email": "jgiftania@gmail.com",
+    "phone": "+6289650723195",
+    "packageName": "Drop In Private Group Class",
+    "activeBookingsCount": 0,
+    "bookings": []
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000017132",
+    "usedSessions": 3,
+    "remainingSessions": 3,
+    "packageStatus": "FROZEN",
+    "invoiceNumber": "INV-V1-00017132",
+    "purchaseStatus": "WAITING_VERIFICATION",
+    "totalAmountRp": 560894,
+    "displayName": "Chrestella Janice",
+    "email": "chrestellajanice@yahoo.com",
+    "phone": "+6281288140752",
+    "packageName": "Double Trouble Deal",
+    "activeBookingsCount": 3,
+    "bookings": [
+      {
+        "bookingId": "80000000-0000-4000-8000-000000134933",
+        "bookingNumber": "BKG-V1-00134933",
+        "status": "ATTENDED",
+        "className": "Daily Dose Untar Kampus 2 · Private Group",
+        "startAt": "2026-09-29T12:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000135144",
+        "bookingNumber": "BKG-V1-00135144",
+        "status": "ATTENDED",
+        "className": "Daily Dose Untar Kampus 2 · Private Group",
+        "startAt": "2026-10-02T10:00:00.000Z"
+      },
+      {
+        "bookingId": "80000000-0000-4000-8000-000000135145",
+        "bookingNumber": "BKG-V1-00135145",
+        "status": "ATTENDED",
+        "className": "Daily Dose Untar Kampus 2 · Private Group",
+        "startAt": "2026-10-02T10:00:00.000Z"
+      }
+    ]
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000017140",
+    "usedSessions": 1,
+    "remainingSessions": 5,
+    "packageStatus": "FROZEN",
+    "invoiceNumber": "INV-V1-00017140",
+    "purchaseStatus": "WAITING_VERIFICATION",
+    "totalAmountRp": 560521,
+    "displayName": "Rita Candy",
+    "email": "candyandita@yahoo.com",
+    "phone": "+628119181823",
+    "packageName": "Double Trouble Deal",
+    "activeBookingsCount": 1,
+    "bookings": [
+      {
+        "bookingId": "80000000-0000-4000-8000-000000135146",
+        "bookingNumber": "BKG-V1-00135146",
+        "status": "ATTENDED",
+        "className": "Daily Dose Untar Kampus 2 · Private Group",
+        "startAt": "2026-10-02T10:00:00.000Z"
+      }
+    ]
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000017144",
+    "usedSessions": 1,
+    "remainingSessions": 5,
+    "packageStatus": "FROZEN",
+    "invoiceNumber": "INV-V1-00017144",
+    "purchaseStatus": "WAITING_VERIFICATION",
+    "totalAmountRp": 560405,
+    "displayName": "Rizka Maharani",
+    "email": "rizkamaharani76@gmail.com",
+    "phone": "+6287707062000",
+    "packageName": "Double Trouble Deal",
+    "activeBookingsCount": 1,
+    "bookings": [
+      {
+        "bookingId": "80000000-0000-4000-8000-000000135170",
+        "bookingNumber": "BKG-V1-00135170",
+        "status": "ATTENDED",
+        "className": "Daily Dose Untar Kampus 2 · Private Group",
+        "startAt": "2026-10-05T02:00:00.000Z"
+      }
+    ]
+  },
+  {
+    "customerPackageId": "50000000-0000-4000-8000-000000017176",
+    "usedSessions": 2,
+    "remainingSessions": 6,
+    "packageStatus": "FROZEN",
+    "invoiceNumber": "INV-V1-00017176",
+    "purchaseStatus": "WAITING_VERIFICATION",
+    "totalAmountRp": 760581,
+    "displayName": "Lusianna",
+    "email": "lusianna.liu@gmail.com",
+    "phone": "+6281288067195",
+    "packageName": "[BEST DEAL 10.10] 8 Sessions Private Group ",
+    "activeBookingsCount": 0,
+    "bookings": []
+  }
+]

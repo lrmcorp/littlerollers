@@ -352,11 +352,34 @@ export class ReschedulesService {
         leaseMs: 30_000,
       },
       async (tx) => {
+        // Semua kunci diambil SEBELUM pembacaan biasa pertama: di MySQL REPEATABLE READ, snapshot
+        // dibuat saat pembacaan biasa pertama, sehingga membaca dulu baru mengunci menghasilkan
+        // bookedCount yang basi.
+        const [locked] = await tx.$queryRaw<{ sourceSlotId: string; targetSlotId: string }[]>`
+          SELECT sourceSlotId, targetSlotId FROM ubah_jadwal WHERE id = ${id} FOR UPDATE`;
+        if (!locked) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+        if (decision === 'approve') {
+          // Urut id agar dua persetujuan silang tidak deadlock.
+          const [lockA, lockB] = [locked.sourceSlotId, locked.targetSlotId].sort();
+          await tx.$queryRaw`SELECT id FROM slot_kelas WHERE id IN (${lockA}, ${lockB}) ORDER BY id FOR UPDATE`;
+        }
+
         const reschedule = await tx.ubahJadwal.findUnique({
           where: { id },
           include: { booking: true, targetSlot: true, sourceSlot: true },
         });
         if (!reschedule) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+
+        // Permintaan yang sudah diputuskan, atau booking yang sudah berubah, tidak boleh memindahkan
+        // kursi lagi: pemindahan ganda menggeser bookedCount kedua slot.
+        if (
+          reschedule.status !== 'PENDING' ||
+          (decision === 'approve' &&
+            (reschedule.booking.status !== 'BOOKED' ||
+              reschedule.booking.classSlotId !== reschedule.sourceSlotId))
+        ) {
+          throw new ApiProblem('RESCHEDULE_ALREADY_DECIDED', HttpStatus.CONFLICT);
+        }
 
         const newStatus: RescheduleStatus = decision === 'approve' ? 'APPROVED' : 'REJECTED';
 
@@ -373,7 +396,7 @@ export class ReschedulesService {
             where: {
               userId: reschedule.booking.userId,
               classSlotId: reschedule.targetSlotId,
-              status: 'BOOKED',
+              status: { in: ['BOOKED', 'ATTENDED'] },
             },
           });
           if (duplicate) {

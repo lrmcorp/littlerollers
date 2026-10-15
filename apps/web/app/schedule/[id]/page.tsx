@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
 import { ScheduleDetailView } from './schedule-detail-view';
 import { publicMetadataValue } from '@/lib/public-detail-metadata';
 import type { PublicScheduleDetail } from '@/api-clients/public-detail-client';
@@ -13,12 +14,15 @@ export async function generateMetadata({
     `/public/class-catalog/${encodeURIComponent(id)}`,
     true,
   );
-  const title = item ? `${item.classType.name} · ${item.branch.name}` : 'Detail Jadwal';
-  const description = item
-    ? `Jadwal dan ketersediaan ${item.classType.name} di ${item.branch.name}.`
-    : 'Waktu, studio, dan ketersediaan kelas Daily Dose.';
+  if (!item) {
+    return {
+      title: 'Jadwal Tidak Ditemukan · Daily Dose',
+    };
+  }
+  const title = `${item.classType.name} · ${item.branch.name}`;
+  const description = `Jadwal dan ketersediaan ${item.classType.name} di ${item.branch.name}.`;
   return {
-    title,
+    title: `${title} · Daily Dose`,
     description,
     alternates: { canonical: `/schedule/${id}` },
     openGraph: { title, description, type: 'website' },
@@ -31,5 +35,8 @@ export default async function ScheduleDetailPage({ params }: { params: Promise<{
     `/public/class-catalog/${encodeURIComponent(id)}`,
     true,
   );
+  if (!initialData) {
+    notFound();
+  }
   return <ScheduleDetailView id={id} initialData={initialData} />;
 }

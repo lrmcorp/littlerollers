@@ -18,7 +18,7 @@ import { BrandMark } from '../components/public/brand-mark';
 import { GoogleIdentityButton } from '../components/auth/google-identity-button';
 
 const messages: Record<UiFailure, string> = {
-  AUTHENTICATION_REQUIRED: 'Email atau password tidak valid.',
+  AUTHENTICATION_REQUIRED: 'Email/nomor WhatsApp atau password tidak valid.',
   CONFIGURATION_REQUIRED: 'Layanan masuk sementara tidak tersedia. Silakan coba kembali nanti.',
   INTERNAL_ERROR: 'Layanan masuk sedang mengalami gangguan.',
   RATE_LIMITED: 'Terlalu banyak percobaan. Coba kembali nanti.',
@@ -147,8 +147,8 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
             </h2>
             <p className="text-sm leading-relaxed text-dd-muted">
               {googleEnabled
-                ? 'Gunakan email yang terdaftar atau lanjutkan dengan identitas Google Anda.'
-                : 'Gunakan email dan password yang terdaftar untuk mengakses akun.'}
+                ? 'Masuk dengan email atau nomor WhatsApp yang terdaftar, atau lanjutkan dengan akun Google Anda.'
+                : 'Masuk dengan email atau nomor WhatsApp yang terdaftar beserta password Anda.'}
             </p>
           </div>
 
@@ -170,7 +170,7 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
               <span>Email atau Nomor WhatsApp</span>
               <div className="relative flex items-center">
                 <input
-                  aria-label="Email"
+                  aria-label="Email atau Nomor WhatsApp"
                   className="w-full min-h-11 rounded-dd-md border border-dd-line bg-white px-3.5 py-2.5 text-sm text-dd-ink outline-none transition focus:border-dd-forest focus:ring-2 focus:ring-dd-forest/15"
                   name="email"
                   type="text"
@@ -278,13 +278,6 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
             Seluruh data dan tindakan dibatasi berdasarkan hak akses peran serta cabang resmi
             terdaftar.
           </div>
-
-          <p className="mt-6 text-center text-xs text-dd-muted">
-            Belum punya akun?{' '}
-            <Link className="font-bold text-dd-forest hover:underline" href="/register">
-              Daftar akun member
-            </Link>
-          </p>
         </div>
       </section>
     </main>

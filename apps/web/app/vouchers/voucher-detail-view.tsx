@@ -169,7 +169,9 @@ export function VoucherDetailView({ id }: { id: string }) {
         <div>
           <span className="text-xs text-dd-muted">Diskon</span>
           <strong className="mt-1 block">
-            {voucher.discountType === 'PERCENTAGE'
+            {(String(voucher.discountType).toUpperCase() === 'PERCENTAGE' ||
+            String(voucher.discountType).toUpperCase() === 'PERCENT' ||
+            String(voucher.discountType) === '%')
               ? `${voucher.discountValue ?? 0}%`
               : `Rp ${(voucher.discountValue ?? 0).toLocaleString('id-ID')}`}
           </strong>

@@ -1,0 +1,175 @@
+{
+  "auditedAt": "2026-10-13T12:17:02.527Z",
+  "mode": "DRY_RUN",
+  "totalWaitingPurchases": 196,
+  "totalWithUniqueCodes": 160,
+  "totalBankMutations": 0,
+  "oldestPendingDate": "2024-01-27T17:14:15.000Z",
+  "sampleUniqueCodePurchases": [
+    {
+      "id": "40000000-0000-4000-8000-000000005525",
+      "invoiceNumber": "INV-V1-00005525",
+      "customerName": "Vira",
+      "customerEmail": "fierawatisprm@yahoo.co.id",
+      "packageName": "Drop In Private Group Class",
+      "totalAmountRp": 230168,
+      "uniqueCodeEnding": 168,
+      "status": "WAITING_VERIFICATION",
+      "createdAt": "2024-01-27T17:14:15.000Z"
+    },
+    {
+      "id": "40000000-0000-4000-8000-000000005526",
+      "invoiceNumber": "INV-V1-00005526",
+      "customerName": "Nia",
+      "customerEmail": "cloniac@yahoo.com",
+      "packageName": "Drop In Private Group Class",
+      "totalAmountRp": 230963,
+      "uniqueCodeEnding": 963,
+      "status": "WAITING_VERIFICATION",
+      "createdAt": "2024-01-27T17:16:03.000Z"
+    },
+    {
+      "id": "40000000-0000-4000-8000-000000005531",
+      "invoiceNumber": "INV-V1-00005531",
+      "customerName": "Tanti",
+      "customerEmail": "fierawati91@yahoo.com",
+      "packageName": "Drop In Private Group Class",
+      "totalAmountRp": 230009,
+      "uniqueCodeEnding": 9,
+      "status": "WAITING_VERIFICATION",
+      "createdAt": "2024-01-27T20:19:11.000Z"
+    },
+    {
+      "id": "40000000-0000-4000-8000-000000005535",
+      "invoiceNumber": "INV-V1-00005535",
+      "customerName": "Agnes Budianto",
+      "customerEmail": "agnesrachelb@gmail.com",
+      "packageName": "20 Sessions Private Group Class",
+      "totalAmountRp": 4256198,
+      "uniqueCodeEnding": 198,
+      "status": "WAITING_VERIFICATION",
+      "createdAt": "2024-01-28T20:06:30.000Z"
+    },
+    {
+      "id": "40000000-0000-4000-8000-000000005536",
+      "invoiceNumber": "INV-V1-00005536",
+      "customerName": "Agnes Budianto",
+      "customerEmail": "agnesrachelb@gmail.com",
+      "packageName": "20 Sessions Private Group Class",
+      "totalAmountRp": 4256487,
+      "uniqueCodeEnding": 487,
+      "status": "WAITING_VERIFICATION",
+      "createdAt": "2024-01-28T20:12:34.000Z"
+    },
+    {
+      "id": "40000000-0000-4000-8000-000000005539",
+      "invoiceNumber": "INV-V1-00005539",
+      "customerName": "nasywa",
+      "customerEmail": "nswaziza24@gmail.com",
+      "packageName": "Drop In Private Group Class",
+      "totalAmountRp": 380569,
+      "uniqueCodeEnding": 569,
+      "status": "WAITING_VERIFICATION",
+      "createdAt": "2024-01-28T23:44:43.000Z"
+    },
+    {
+      "id": "40000000-0000-4000-8000-000000005548",
+      "invoiceNumber": "INV-V1-00005548",
+      "customerName": "Agnes Budianto",
+      "customerEmail": "agnesrachelb@gmail.com",
+      "packageName": "20 Sessions Private Group Class",
+      "totalAmountRp": 4256262,
+      "uniqueCodeEnding": 262,
+      "status": "WAITING_VERIFICATION",
+      "createdAt": "2024-01-29T11:43:24.000Z"
+    },
+    {
+      "id": "40000000-0000-4000-8000-000000005573",
+      "invoiceNumber": "INV-V1-00005573",
+      "customerName": "Althesia",
+      "customerEmail": "althesia.silvia@gmail.com",
+      "packageName": "Drop in Private Class - First Time Package",
+      "totalAmountRp": 1100646,
+      "uniqueCodeEnding": 646,
+      "status": "WAITING_VERIFICATION",
+      "createdAt": "2024-01-30T12:32:25.000Z"
+    },
+    {
+      "id": "40000000-0000-4000-8000-000000005677",
+      "invoiceNumber": "INV-V1-00005677",
+      "customerName": "Esther Febrindah",
+      "customerEmail": "estherfebrindah@gmail.com",
+      "packageName": "Drop In Private Group Class",
+      "totalAmountRp": 380216,
+      "uniqueCodeEnding": 216,
+      "status": "WAITING_VERIFICATION",
+      "createdAt": "2024-02-05T11:38:51.000Z"
+    },
+    {
+      "id": "40000000-0000-4000-8000-000000005684",
+      "invoiceNumber": "INV-V1-00005684",
+      "customerName": "Rosa",
+      "customerEmail": "rosasunardi@hotmail.com",
+      "packageName": "Drop In Private Class",
+      "totalAmountRp": 475636,
+      "uniqueCodeEnding": 636,
+      "status": "WAITING_VERIFICATION",
+      "createdAt": "2024-02-05T17:11:52.000Z"
+    },
+    {
+      "id": "40000000-0000-4000-8000-000000005727",
+      "invoiceNumber": "INV-V1-00005727",
+      "customerName": "Olivia",
+      "customerEmail": "oliviasuhito@gmail.com",
+      "packageName": "Drop In Private Group Class",
+      "totalAmountRp": 230747,
+      "uniqueCodeEnding": 747,
+      "status": "WAITING_VERIFICATION",
+      "createdAt": "2024-02-10T15:41:15.000Z"
+    },
+    {
+      "id": "40000000-0000-4000-8000-000000005733",
+      "invoiceNumber": "INV-V1-00005733",
+      "customerName": "Nayunda",
+      "customerEmail": "yunagx31@gmail.com",
+      "packageName": "Drop In Private Group Class",
+      "totalAmountRp": 380317,
+      "uniqueCodeEnding": 317,
+      "status": "WAITING_VERIFICATION",
+      "createdAt": "2024-02-10T21:06:31.000Z"
+    },
+    {
+      "id": "40000000-0000-4000-8000-000000005780",
+      "invoiceNumber": "INV-V1-00005780",
+      "customerName": "Eins francine (SP)",
+      "customerEmail": "einsfrancine@gmail.com",
+      "packageName": "Drop in Private Group Class - First Time Package",
+      "totalAmountRp": 1100003,
+      "uniqueCodeEnding": 3,
+      "status": "WAITING_VERIFICATION",
+      "createdAt": "2024-02-15T08:04:30.000Z"
+    },
+    {
+      "id": "40000000-0000-4000-8000-000000005781",
+      "invoiceNumber": "INV-V1-00005781",
+      "customerName": "Eins francine (SP)",
+      "customerEmail": "einsfrancine@gmail.com",
+      "packageName": "Drop in Private Class - First Time Package",
+      "totalAmountRp": 1100738,
+      "uniqueCodeEnding": 738,
+      "status": "WAITING_VERIFICATION",
+      "createdAt": "2024-02-15T08:04:48.000Z"
+    },
+    {
+      "id": "40000000-0000-4000-8000-000000005859",
+      "invoiceNumber": "INV-V1-00005859",
+      "customerName": "Neysa Chantanu",
+      "customerEmail": "nchantanu@gmail.com",
+      "packageName": "Drop in Private Class - First Time Package",
+      "totalAmountRp": 1100791,
+      "uniqueCodeEnding": 791,
+      "status": "WAITING_VERIFICATION",
+      "createdAt": "2024-02-19T08:04:12.000Z"
+    }
+  ]
+}

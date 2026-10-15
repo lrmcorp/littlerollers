@@ -249,6 +249,11 @@ export function LocationsView() {
                           <MapPin className="size-3.5 text-dd-forest shrink-0" />
                           <span>{publicProfile.area}</span>
                         </p>
+                        {publicProfile.address && (
+                          <p className="mt-1 text-sm leading-6 text-dd-muted">
+                            {publicProfile.address}
+                          </p>
+                        )}
                         <p className="mt-2 text-sm leading-6 text-dd-muted">
                           {publicProfile.description}
                         </p>
@@ -305,11 +310,6 @@ export function LocationsView() {
                 </button>
               </div>
             )}
-
-            <p className="mt-6 rounded-dd-md border border-dd-line bg-white/60 p-4 text-[13px] leading-6 text-dd-muted">
-              Alamat lengkap, jam operasional, dan petunjuk kedatangan belum ditampilkan sebelum
-              sumber operasionalnya disetujui. Hubungi tim Daily Dose untuk konfirmasi kunjungan.
-            </p>
           </div>
 
           <aside className="grid content-start gap-5" aria-label="Informasi studio">

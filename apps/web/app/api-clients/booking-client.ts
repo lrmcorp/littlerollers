@@ -941,6 +941,8 @@ export const browserBookingClient: BookingClient = {
 };
 
 const messages: Record<string, string> = {
+  PURCHASE_NOT_PAID: 'Pembelian paket ini belum disetujui atau belum lunas. Sesi baru dapat digunakan setelah pembayaran disahkan.',
+  PACKAGE_PAYMENT_PENDING: 'Pembelian paket ini belum disetujui atau belum lunas. Sesi baru dapat digunakan setelah pembayaran disahkan.',
   BOOKING_CUTOFF_PASSED: 'Waktu pemesanan kelas ini sudah ditutup.',
   CLASS_CAPACITY_FULL: 'Kapasitas kelas sudah penuh.',
   INSUFFICIENT_AVAILABLE_SESSIONS: 'Saldo sesi pelanggan tidak mencukupi.',

@@ -6,6 +6,7 @@ import type { SessionPrincipal } from '../identity/identity.service';
 import { PolicyService } from '../identity/policy.service';
 import { ApiProblem } from '../identity/security';
 import { periodRange, summarizeInstructorFees } from './instructor-fee-calculator';
+import { projectionCostFor } from './projection-cost';
 
 const PERIOD = /^\d{4}-(0[1-9]|1[0-2])$/;
 const EXPORT_MAX_DAYS = 366;
@@ -231,55 +232,16 @@ export class FinanceService {
       orderBy: { effectiveDate: 'desc' },
     });
 
-    const classTypeMap = new Map<
-      string,
-      {
-        classTypeId: string;
-        sessionsSold: number;
-        ratePerSesiRp: number;
-        totalCostRp: number;
-      }
-    >();
-
-    let totalSessionsSold = 0;
-    let totalProjectionCostRp = 0;
-
-    for (const p of purchases) {
-      const ctypeId = p.package.classTypeId ?? 'DEFAULT';
-      const sessions = p.package.sessionCount ?? 1;
-      const purchaseDate = p.paidAt ?? p.createdAt;
-
-      const matchedRate =
-        projectionRates.find(
-          (r) =>
-            r.branchId === p.branchId &&
-            r.classTypeId === ctypeId &&
-            r.effectiveDate <= purchaseDate,
-        )?.ratePerSesiRp ?? 125_000;
-
-      const costRp = sessions * matchedRate;
-      totalSessionsSold += sessions;
-      totalProjectionCostRp += costRp;
-
-      if (!classTypeMap.has(ctypeId)) {
-        classTypeMap.set(ctypeId, {
-          classTypeId: ctypeId,
-          sessionsSold: 0,
-          ratePerSesiRp: matchedRate,
-          totalCostRp: 0,
-        });
-      }
-      const entry = classTypeMap.get(ctypeId)!;
-      entry.sessionsSold += sessions;
-      entry.totalCostRp += costRp;
-    }
+    const projection = projectionCostFor(purchases, projectionRates);
+    const totalSessionsSold = projection.totalSessionsSold;
+    const totalProjectionCostRp = projection.totalProjectionCostRp;
 
     return {
       period,
       branchId: input.branchId ?? 'ALL',
       totalSessionsSold,
       totalProjectionCostRp,
-      breakdown: Array.from(classTypeMap.values()),
+      breakdown: projection.breakdown,
     };
   }
 
@@ -968,9 +930,61 @@ export class FinanceService {
     input: { branchId?: string; from?: string; until?: string; limit?: number; cursor?: string },
   ) {
     this.policy.requireCapability(principal.capabilities, 'finance:read');
+    const limit = input.limit ? Math.min(input.limit, 100) : 50;
+
+    // 1. Bank mutations requiring manual review or unmatched
+    const flaggedMutations = await this.db.mutasiBank.findMany({
+      where: {
+        status: { in: ['MANUAL_REVIEW', 'UNMATCHED'] },
+      },
+      take: limit,
+      orderBy: { transactionDate: 'desc' },
+    });
+
+    const mutationItems = flaggedMutations.map((m) => ({
+      purchaseId: m.id,
+      branchId: '',
+      branchCode: m.bankName,
+      amountRp: m.amountRp,
+      submittedAt: m.transactionDate,
+      code: m.status === 'MANUAL_REVIEW' ? 'MUTASI_AMBIGU' : 'MUTASI_BELUM_COCOK',
+      severity: m.status === 'MANUAL_REVIEW' ? ('ERROR' as const) : ('WARNING' as const),
+      message: m.notes || `Mutasi ${m.bankName} Rp ${m.amountRp.toLocaleString('id-ID')}`,
+      href: `/workspace/payments?q=${encodeURIComponent(m.referenceNumber || '')}`,
+    }));
+
+    // 2. Purchases waiting verification aging > 24 hours
+    const agingCutoff = new Date(Date.now() - 24 * 3600 * 1000);
+    const agingPurchases = await this.db.pembelian.findMany({
+      where: {
+        status: 'WAITING_VERIFICATION',
+        createdAt: { lt: agingCutoff },
+        ...(input.branchId ? { branchId: input.branchId } : {}),
+      },
+      include: {
+        branch: { select: { code: true } },
+      },
+      take: limit,
+      orderBy: { createdAt: 'asc' },
+    });
+
+    const purchaseItems = agingPurchases.map((p) => ({
+      purchaseId: p.id,
+      branchId: p.branchId,
+      branchCode: p.branch?.code || '—',
+      amountRp: p.totalAmountRp,
+      submittedAt: p.createdAt,
+      code: 'VERIFIKASI_TERTAHAN',
+      severity: 'WARNING' as const,
+      message: `Tagihan #${p.invoiceNumber} menunggu verifikasi > 24 jam`,
+      href: `/workspace/payments/${p.id}`,
+    }));
+
+    const allItems = [...mutationItems, ...purchaseItems].slice(0, limit);
+
     return {
-      items: [],
-      total: 0,
+      items: allItems,
+      total: allItems.length,
       page: {
         hasMore: false,
         nextCursor: null,

@@ -6,6 +6,7 @@ import type { SessionPrincipal } from '../identity/identity.service';
 import { ApiProblem, newId } from '../identity/security';
 import { MasterAccessService } from './master-access.service';
 import type { PublicProfileInput } from './public-profile-admin.service';
+import { branchPublicLocation } from './branch-location';
 
 function isUnique(error: unknown): boolean {
   return typeof error === 'object' && error !== null && 'code' in error && (error as { code: string }).code === 'P2002';
@@ -120,13 +121,11 @@ export class MasterCatalogService {
 
     const hasMore = rows.length > limit;
     const items = rows.slice(0, limit).map((b) => {
-      const meta = BRANCH_METADATA[b.code];
       return {
         ...b,
         publicProfile: {
           slug: b.code.toLowerCase(),
-          area: meta?.area ?? b.name,
-          city: meta?.city ?? 'Jakarta',
+          ...branchPublicLocation(b.code, b.name, b.address),
           address: b.address ?? null,
         },
       };
@@ -170,8 +169,7 @@ export class MasterCatalogService {
     const meta = BRANCH_METADATA[branch.code];
     const publicProfile = {
       slug: branch.code.toLowerCase(),
-      area: meta?.area ?? branch.name,
-      city: meta?.city ?? 'Jakarta',
+      ...branchPublicLocation(branch.code, branch.name, branch.address),
       address: branch.address ?? '',
       description: `${branch.name} Studio Pilates`,
       arrivalInformation: 'Silakan datang 10-15 menit sebelum sesi kelas dimulai.',
@@ -851,8 +849,7 @@ export class MasterCatalogService {
     const meta = BRANCH_METADATA[branch.code];
     const publicProfile = {
       slug: branch.code.toLowerCase(),
-      area: meta?.area ?? branch.name,
-      city: meta?.city ?? 'Jakarta',
+      ...branchPublicLocation(branch.code, branch.name, branch.address),
       address: branch.address ?? '',
       description: `${branch.name} Studio Pilates`,
       arrivalInformation: 'Silakan datang 10-15 menit sebelum sesi kelas dimulai.',

@@ -5,6 +5,14 @@ import { ApiProblem } from '../identity/security';
 import { PrismaService } from '../database/prisma.service';
 import { dateInTimeZone, startOfLocalDateUtc } from '../identity/assignment-boundary';
 import { summarizeInstructorFees } from '../packages/instructor-fee-calculator';
+import { projectionCostFor } from '../packages/projection-cost';
+import { verificationStatusWhere } from '../identity/manajemen-pelanggan.service';
+
+/**
+ * Satu definisi "booking" untuk seluruh angka dashboard (total, tren, per cabang): pemesanan yang
+ * terjadi pada kelas dalam rentang, termasuk yang sudah dihadiri. Dibatalkan/tidak hadir tidak dihitung.
+ */
+const COUNTED_BOOKING_STATUSES: Array<'BOOKED' | 'ATTENDED'> = ['BOOKED', 'ATTENDED'];
 
 const DAY = 86_400_000;
 
@@ -31,6 +39,7 @@ interface FinancialResult {
     correctionRp: number;
   };
   completeness: number;
+  instructorFeeMissing: boolean;
   anomalyCount: number;
   sourceCutoffAt: string;
   controlHash: string;
@@ -145,7 +154,7 @@ export class DashboardService {
     const fromPeriod = params.from.slice(0, 7);
     const untilPeriod = params.until.slice(0, 7);
 
-    const [purchases, otherCosts, completedSlots, fees] = await Promise.all([
+    const [purchases, otherCosts, completedSlots, fees, projectionRates] = await Promise.all([
       this.db.pembelian.findMany({
         where: {
           branchId: { in: params.branchIds },
@@ -157,6 +166,8 @@ export class DashboardService {
           subtotalRp: true,
           totalAmountRp: true,
           createdAt: true,
+          paidAt: true,
+          package: { select: { classTypeId: true, sessionCount: true } },
         },
       }),
       this.db.otherCost?.findMany
@@ -189,7 +200,25 @@ export class DashboardService {
             orderBy: { effectiveDate: 'desc' },
           })
         : Promise.resolve([]),
+      this.db.projectionRate?.findMany
+        ? this.db.projectionRate.findMany({
+            where: { branchId: { in: params.branchIds } },
+            orderBy: { effectiveDate: 'desc' },
+          })
+        : Promise.resolve([]),
     ]);
+
+    const projection = projectionCostFor(
+      purchases.map((p) => ({
+        branchId: p.branchId,
+        paidAt: p.paidAt,
+        createdAt: p.createdAt,
+        package: p.package ?? { classTypeId: null, sessionCount: null },
+      })),
+      projectionRates,
+    );
+    // Tarif honor belum diisi sama sekali padahal ada kelas selesai: biaya instruktur tampil Rp 0 dan laba = omzet.
+    const instructorFeeMissing = completedSlots.length > 0 && fees.length === 0;
 
     let totalGross = 0;
     let totalRevenue = 0;
@@ -248,7 +277,7 @@ export class DashboardService {
         branchId,
         grossSalesRp: bData.gross,
         revenueRp: bData.revenue,
-        projectionRp: 0,
+        projectionRp: projection.byBranch.get(branchId) ?? 0,
         instructorRealtimeRp: branchInstructorFee,
         otherCostRp: branchOtherCost,
         profitRp: profit,
@@ -267,13 +296,14 @@ export class DashboardService {
       totals: {
         grossSalesRp: totalGross,
         revenueRp: totalRevenue,
-        projectionRp: 0,
+        projectionRp: projection.totalProjectionCostRp,
         instructorRealtimeRp: totalInstructorFee,
         otherCostRp: totalOtherCost,
         profitRp: totalProfit,
         correctionRp: 0,
       },
       completeness: 100,
+      instructorFeeMissing,
       anomalyCount: 0,
       sourceCutoffAt: new Date().toISOString(),
       controlHash: 'lean-v2',
@@ -371,31 +401,40 @@ export class DashboardService {
         until: previousUntilDate,
       }),
       this.db.pemesananKelas.count({
-        where: {
-          classSlot: query.branchId
-            ? { branchId: query.branchId }
-            : { branchId: { in: branchIds } },
-          status: 'BOOKED',
-        },
+        where: { classSlot: { OR: slotCurrentScopes }, status: { in: COUNTED_BOOKING_STATUSES } },
       }),
       this.db.pemesananKelas.count({
-        where: {
-          classSlot: { OR: slotPreviousScopes },
-          status: 'BOOKED',
-        },
+        where: { classSlot: { OR: slotPreviousScopes }, status: { in: COUNTED_BOOKING_STATUSES } },
       }),
       this.db.paketPelanggan.findMany({
         where: { status: 'ACTIVE' },
         distinct: ['userId'],
         select: { userId: true },
       }),
-      this.db.slotKelas.findMany({
-        where: {
-          OR: slotCurrentScopes,
-          status: { in: ['PUBLISHED', 'CONFIRMED', 'COMPLETED'] },
-        },
-        select: { capacity: true, bookedCount: true },
-      }),
+      typeof this.db.slotKelas.aggregate === 'function'
+        ? this.db.slotKelas.aggregate({
+            where: {
+              OR: slotCurrentScopes,
+              status: { in: ['PUBLISHED', 'CONFIRMED', 'COMPLETED'] },
+            },
+            _count: { _all: true },
+            _sum: { capacity: true, bookedCount: true },
+          })
+        : this.db.slotKelas
+            .findMany({
+              where: {
+                OR: slotCurrentScopes,
+                status: { in: ['PUBLISHED', 'CONFIRMED', 'COMPLETED'] },
+              },
+              select: { capacity: true, bookedCount: true },
+            })
+            .then((rows) => ({
+              _count: { _all: rows.length },
+              _sum: {
+                capacity: rows.reduce((sum, r) => sum + r.capacity, 0),
+                bookedCount: rows.reduce((sum, r) => sum + r.bookedCount, 0),
+              },
+            })),
       this.db.pembelian.count({
         where: {
           ...scoped,
@@ -406,18 +445,7 @@ export class DashboardService {
         ? this.db.user.count({
             where: {
               role: { in: ['CUSTOMER', 'MEMBER'] },
-              profile: {
-                OR: [
-                  {
-                    ktpUrl: { not: null },
-                    OR: [{ notes: null }, { notes: { not: { contains: 'KYC_APPROVED' } } }],
-                  },
-                  {
-                    selfieUrl: { not: null },
-                    OR: [{ notes: null }, { notes: { not: { contains: 'KYC_APPROVED' } } }],
-                  },
-                ],
-              },
+              ...verificationStatusWhere('PENDING'),
             },
           })
         : Promise.resolve(0),
@@ -431,8 +459,9 @@ export class DashboardService {
         },
       }),
       this.db.pemesananKelas.findMany({
-        where: { classSlot: { OR: slotCurrentScopes }, status: 'BOOKED' },
+        where: { classSlot: { OR: slotCurrentScopes }, status: { in: COUNTED_BOOKING_STATUSES } },
         select: { createdAt: true },
+        take: 5000,
       }),
       this.db.slotKelas.findMany({
         where: {
@@ -451,8 +480,9 @@ export class DashboardService {
 
     const revenue = financial.totals.revenueRp;
     const previousRevenueValue = previousFinancial.totals.revenueRp;
-    const capacity = slots.reduce((sum, item) => sum + item.capacity, 0);
-    const booked = slots.reduce((sum, item) => sum + item.bookedCount, 0);
+    const capacity = (slots as any)._sum?.capacity ?? 0;
+    const booked = (slots as any)._sum?.bookedCount ?? 0;
+    const slotCount = (slots as any)._count?._all ?? ((slots as any).length ?? 0);
     const trend = new Map<string, { revenue: number; profit: number; bookings: number }>(
       financial.trend.map((item) => [
         item.date,
@@ -472,16 +502,40 @@ export class DashboardService {
           gte: startOfLocalDateUtc(fromDate, branch.timezone),
           lt: startOfLocalDateUtc(dateShift(untilDate, 1), branch.timezone),
         };
-        const [branchSlots, branchBookings] = await Promise.all([
-          this.db.slotKelas.findMany({
-            where: { branchId: branch.id, startAt: branchRange },
-            select: { capacity: true, bookedCount: true },
-          }),
+        const [branchSlotAgg, branchBookings] = await Promise.all([
+          typeof this.db.slotKelas.aggregate === 'function'
+            ? this.db.slotKelas.aggregate({
+                where: {
+                  branchId: branch.id,
+                  startAt: branchRange,
+                  status: { in: ['PUBLISHED', 'CONFIRMED', 'COMPLETED'] },
+                },
+                _sum: { capacity: true, bookedCount: true },
+              })
+            : this.db.slotKelas
+                .findMany({
+                  where: {
+                    branchId: branch.id,
+                    startAt: branchRange,
+                    status: { in: ['PUBLISHED', 'CONFIRMED', 'COMPLETED'] },
+                  },
+                  select: { capacity: true, bookedCount: true },
+                })
+                .then((rows) => ({
+                  _sum: {
+                    capacity: rows.reduce((sum, r) => sum + r.capacity, 0),
+                    bookedCount: rows.reduce((sum, r) => sum + r.bookedCount, 0),
+                  },
+                })),
           this.db.pemesananKelas.count({
-            where: { classSlot: { branchId: branch.id, startAt: branchRange }, status: 'BOOKED' },
+            where: {
+              classSlot: { branchId: branch.id, startAt: branchRange },
+              status: { in: COUNTED_BOOKING_STATUSES },
+            },
           }),
         ]);
-        const branchCapacity = branchSlots.reduce((sum, item) => sum + item.capacity, 0);
+        const branchCapacity = (branchSlotAgg as any)._sum?.capacity ?? 0;
+        const branchBooked = (branchSlotAgg as any)._sum?.bookedCount ?? 0;
         return {
           id: branch.id,
           code: branch.code,
@@ -494,14 +548,12 @@ export class DashboardService {
           profitRp: branchFinancial?.profitRp ?? 0,
           bookings: branchBookings,
           occupancyPercent: branchCapacity
-            ? Math.round(
-                (branchSlots.reduce((sum, item) => sum + item.bookedCount, 0) / branchCapacity) *
-                  1000,
-              ) / 10
+            ? Math.round((branchBooked / branchCapacity) * 1000) / 10
             : 0,
         };
       }),
     );
+
 
     const roles = principal.roles.map((item) => item.role);
     const roleFocus = roles.includes('SUPER_OWNER')
@@ -613,7 +665,7 @@ export class DashboardService {
       {
         key: 'classes',
         label: 'Kelas periode ini',
-        value: slots.length,
+        value: slotCount,
         unit: 'COUNT',
         changePercent: null,
       },
@@ -673,6 +725,7 @@ export class DashboardService {
       financial: {
         ...financial.totals,
         completeness: financial.completeness,
+        instructorFeeMissing: financial.instructorFeeMissing,
         anomalyCount: financial.anomalyCount,
         sourceCutoffAt: financial.sourceCutoffAt,
         controlHash: financial.controlHash,

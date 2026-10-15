@@ -30,6 +30,28 @@ describe('GuideView', () => {
     expect(screen.queryByText('4. Super Owner & Eksekutif')).not.toBeInTheDocument();
   });
 
+  it('keeps the public customer guide free of internal jargon and wrong facts', () => {
+    const { container } = render(<GuideView />);
+    const text = container.textContent ?? '';
+    for (const forbidden of [
+      /tanggal lahir/i,
+      /barre/i,
+      /APPROVED/,
+      /LUNAS/,
+      /KYC/,
+      /BOOKED/,
+      /ATTENDED/,
+      /Front Desk/i,
+      /Finance/i,
+      /Super Owner/i,
+      /5 MB/,
+    ]) {
+      expect(text).not.toMatch(forbidden);
+    }
+    expect(text).toMatch(/maksimal 10 MB/);
+    expect(screen.getByText('1. Daftar Akun & Verifikasi Identitas')).toBeVisible();
+  });
+
   it('exposes internal role tabs and switches content for authenticated staff', () => {
     mockSession = {
       user: { id: 'staff-1', displayName: 'Staff Daily Dose', role: 'ADMIN' },
@@ -65,11 +87,9 @@ describe('GuideView', () => {
     render(<GuideView />);
 
     const searchInput = screen.getByPlaceholderText(/Cari panduan/i);
-    fireEvent.change(searchInput, { target: { value: 'Reschedule' } });
+    fireEvent.change(searchInput, { target: { value: 'Ubah jadwal' } });
 
-    expect(screen.getByText('4. Reschedule & Check-in QR di Studio')).toBeVisible();
-    expect(
-      screen.queryByText('1. Registrasi & Verifikasi Identitas (KYC)'),
-    ).not.toBeInTheDocument();
+    expect(screen.getByText('4. Ubah Jadwal & Hadir di Studio')).toBeVisible();
+    expect(screen.queryByText('1. Daftar Akun & Verifikasi Identitas')).not.toBeInTheDocument();
   });
 });

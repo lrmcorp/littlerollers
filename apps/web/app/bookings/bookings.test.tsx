@@ -117,9 +117,9 @@ async function selectBooking(user: ReturnType<typeof userEvent.setup>) {
 }
 
 describe('BookingView', () => {
-  it('keeps global read mode but requires a branch for mutations', () => {
+  it('keeps global read mode but asks for a branch when creating', () => {
     render(<BookingView client={client()} activeBranchId="" />);
-    expect(screen.getByText(/Mode semua cabang bersifat baca saja/)).toBeInTheDocument();
+    expect(screen.getByText(/Saat membuat booking, Anda akan diminta memilih cabang/)).toBeInTheDocument();
     expect(screen.queryByRole('form', { name: 'Buat booking bantuan' })).not.toBeInTheDocument();
   });
 

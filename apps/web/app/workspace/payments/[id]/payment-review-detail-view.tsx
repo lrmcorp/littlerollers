@@ -540,7 +540,7 @@ export function PaymentReviewDetailView({
                 <div>
                   <h2 className="text-lg font-semibold">Paket pelanggan telah aktif</h2>
                   <p className="text-sm text-dd-muted">
-                    Hasil ini dimuat dari paket dan ledger authoritative.
+                    Hasil ini dimuat dari data paket dan catatan sesi resmi.
                   </p>
                 </div>
               </div>
@@ -584,7 +584,7 @@ export function PaymentReviewDetailView({
               <div>
                 <h2 className="text-lg font-semibold">Penggunaan sesi</h2>
                 <p className="mt-1 text-sm text-dd-muted">
-                  Saldo dan perubahan sesi berasal dari ledger authoritative.
+                  Saldo dan perubahan sesi berasal dari catatan sesi resmi.
                 </p>
               </div>
               {detail.balance ? (

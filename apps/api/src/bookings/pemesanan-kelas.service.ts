@@ -373,6 +373,7 @@ export class BookingsService {
         status: 'ACTIVE',
         remainingSessions: { gt: 0 },
         validUntil: { gt: now },
+        OR: [{ purchaseId: null }, { purchase: { status: 'PAID' } }],
         package: {
           AND: [
             {
@@ -792,7 +793,7 @@ export class BookingsService {
           where: {
             userId: customerUserId,
             classSlotId: slot.id,
-            status: 'BOOKED',
+            status: { in: ['BOOKED', 'ATTENDED'] },
           },
         });
         if (duplicate) throw new ApiProblem('DUPLICATE_ACTIVE_BOOKING', HttpStatus.CONFLICT);

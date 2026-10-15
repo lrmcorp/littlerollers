@@ -28,6 +28,7 @@ import {
 } from '../components/forms';
 import { Drawer, useAppFeedback } from '../components/app-feedback';
 import { formatRupiah } from '../lib/formatters';
+import { timezoneLabel } from '../classes/class-slot-presenters';
 
 type BranchPage = Awaited<ReturnType<MasterClient['listBranches']>>;
 type Branches = BranchPage['items'];
@@ -999,7 +1000,7 @@ export function MasterView({
                           <div>
                             <strong className="text-sm font-semibold text-dd-ink">{item.name}</strong>
                             <div className="text-sm text-dd-muted">
-                              {item.code} · {item.timezone}
+                              {item.code} · {timezoneLabel(item.timezone)}
                             </div>
                           </div>
                           <StatusBadge tone={item.active ? 'success' : 'neutral'}>

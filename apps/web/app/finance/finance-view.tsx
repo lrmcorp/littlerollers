@@ -411,7 +411,7 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
               }`}
             >
               <Users className="h-4 w-4" />
-              3. Cost Instruktur Realtime
+              3. Biaya Instruktur Aktual
             </button>
 
             <button
@@ -424,7 +424,7 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
               }`}
             >
               <FileSpreadsheet className="h-4 w-4" />
-              4. Cost Instruktur Projection
+              4. Biaya Instruktur Proyeksi
             </button>
 
             <button
@@ -437,7 +437,7 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
               }`}
             >
               <DollarSign className="h-4 w-4" />
-              5. Biaya Operasional (Other Cost)
+              5. Biaya Operasional Lain
             </button>
           </div>
 
@@ -451,7 +451,7 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
                   tone="success"
                 />
                 <StatCard
-                  label="Beban Instruktur Realtime"
+                  label="Beban Instruktur Aktual"
                   value={formatRupiah(profitData.costRealtimeRp)}
                   tone="neutral"
                 />
@@ -461,7 +461,7 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
                   tone="neutral"
                 />
                 <StatCard
-                  label="Laba Bersih Realtime"
+                  label="Laba Bersih Aktual"
                   value={formatRupiah(profitData.netProfitRealtimeRp)}
                   tone={profitData.netProfitRealtimeRp >= 0 ? 'success' : 'danger'}
                 />
@@ -469,14 +469,14 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
 
               <div className="grid gap-6 lg:grid-cols-2">
                 <Panel className="space-y-4 p-5">
-                  <h3 className="text-base font-semibold">Komparasi Realtime vs Projeksi</h3>
+                  <h3 className="text-base font-semibold">Perbandingan Aktual vs Proyeksi</h3>
                   <div className="space-y-3 divide-y divide-dd-line text-sm">
                     <div className="flex justify-between pt-2">
                       <span className="text-dd-muted">Total Omset Bulan {selectedPeriod}:</span>
                       <span className="font-semibold">{formatRupiah(profitData.omsetRp)}</span>
                     </div>
                     <div className="flex justify-between pt-2">
-                      <span className="text-dd-muted">Beban Instruktur Realtime (jam kelas selesai):</span>
+                      <span className="text-dd-muted">Beban Instruktur Aktual (jam kelas selesai):</span>
                       <span className="font-semibold text-dd-warning">
                         - {formatRupiah(profitData.costRealtimeRp)}
                       </span>
@@ -488,7 +488,7 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
                       </span>
                     </div>
                     <div className="flex justify-between pt-2">
-                      <span className="text-dd-muted">Beban Operasional Lain (Other Cost):</span>
+                      <span className="text-dd-muted">Beban Operasional Lain:</span>
                       <span className="font-semibold text-dd-danger">
                         - {formatRupiah(profitData.otherCostRp)}
                       </span>
@@ -500,7 +500,7 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
                       </span>
                     </div>
                     <div className="flex justify-between pt-2">
-                      <span className="font-medium text-dd-ink">Laba Bersih Realtime:</span>
+                      <span className="font-medium text-dd-ink">Laba Bersih Aktual:</span>
                       <span className="font-bold text-dd-success">
                         {formatRupiah(profitData.netProfitRealtimeRp)}
                       </span>
@@ -520,7 +520,7 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
                   <h3 className="text-base font-semibold">Status Tutup Buku & Audit</h3>
                   <p className="text-xs text-dd-muted">
                     Tutup Buku membekukan angka finansial ke dalam snapshot permanen. Setelah periode
-                    berstatus LOCKED, penambahan atau perubahan biaya lama diblokir (Keputusan Bisnis #8).
+                    berstatus LOCKED, penambahan atau perubahan biaya lama diblokir.
                   </p>
                   <div className="rounded-dd-md border border-dd-line bg-dd-surface p-4 text-sm space-y-2">
                     <div className="flex justify-between">
@@ -633,7 +633,7 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
             <div className="space-y-6">
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <StatCard
-                  label="Total Beban Instruktur Realtime"
+                  label="Total Beban Instruktur Aktual"
                   value={formatRupiah(instructorRealtimeData.totalInstructorCostRp)}
                   tone="success"
                 />
@@ -657,7 +657,7 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
 
               <Panel className="space-y-4 p-5">
                 <h3 className="text-base font-semibold">
-                  Rincian Biaya Mengajar Instruktur (Rule #10)
+                  Rincian Biaya Mengajar Instruktur
                 </h3>
                 <p className="text-xs text-dd-muted">
                   Dihitung dari jam kelas yang selesai dikalikan tarif efektif per jenis kelas. Kelas
@@ -754,7 +754,7 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
             <div className="space-y-6">
               <div className="grid gap-4 sm:grid-cols-2">
                 <StatCard
-                  label="Total Cost Projeksi Instruktur"
+                  label="Total Biaya Proyeksi Instruktur"
                   value={formatRupiah(instructorProjectionData.totalProjectionCostRp)}
                   tone="success"
                 />
@@ -770,7 +770,7 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
                   Breakdown Projeksi Beban per Kategori Kelas
                 </h3>
                 <p className="text-xs text-dd-muted">
-                  Formula: Sesi Terjual Paket × Projection Rate per Sesi (Effective Date).
+                  Rumus: sesi paket terjual × tarif proyeksi per sesi sesuai tanggal berlaku.
                 </p>
 
                 {instructorProjectionData.breakdown.length === 0 ? (
@@ -935,7 +935,7 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
             <div>
               <h2 className="text-xl font-semibold">Rekonsiliasi transaksi</h2>
               <p className="text-sm text-dd-muted">
-                Audit otomatis mutasi rekening dan transaksi pesanan per periode serta deteksi anomali.
+                Ringkasan pembayaran pesanan yang diharapkan dan yang diterima per periode.
               </p>
             </div>
             <FilterBar>
@@ -980,20 +980,17 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
             />
           </div>
 
-          {/* Anomali Table */}
+          {/* Anomali Table: tampil hanya jika ada hasil pemeriksaan */}
+          {((reconData?.anomalies.items.length ?? 0) > 0 || anomalyCursorHistory.length > 0) && (
           <Panel className="space-y-4 p-5">
             <h3 className="text-base font-semibold">Deteksi Anomali Rekonsiliasi</h3>
-            <Feedback kind="info">
-              Pratinjau — deteksi anomali belum aktif, jadi daftar ini selalu kosong. Kosong bukan
-              berarti seluruh transaksi sudah sinkron; cek manual di laporan Penjualan.
-            </Feedback>
             <DataTable
               rowNumberOffset={pageOffset(anomalyCursorHistory.length)}
               items={reconData?.anomalies.items ?? []}
               loading={reconLoading}
               rowKey={(item) => item.purchaseId}
-              emptyTitle="Deteksi anomali belum aktif"
-              emptyDescription="Belum ada hasil pemeriksaan otomatis untuk periode ini."
+              emptyTitle="Tidak Ada Anomali Rekonsiliasi"
+              emptyDescription="Semua mutasi bank dan transaksi pembayaran pada periode ini telah cocok atau terverifikasi."
               columns={[
                 {
                   id: 'branch',
@@ -1065,13 +1062,12 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
               </div>
             )}
           </Panel>
+          )}
 
-          {/* Legacy Cashflow Table */}
+          {/* Arus kas lama: tampil hanya jika ada datanya */}
+          {((reconData?.legacyCashflow.items.length ?? 0) > 0 || legacyCursorHistory.length > 0) && (
           <Panel className="space-y-4 p-5">
             <h3 className="text-base font-semibold">Entri arus kas lama (v1)</h3>
-            <Feedback kind="info">
-              Pratinjau — impor arus kas lama (v1) belum terhubung, jadi daftar ini selalu kosong.
-            </Feedback>
             <DataTable
               rowNumberOffset={pageOffset(legacyCursorHistory.length)}
               items={reconData?.legacyCashflow.items ?? []}
@@ -1132,6 +1128,7 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
               </div>
             )}
           </Panel>
+          )}
         </div>
       )}
       <OtherCostEditDialog

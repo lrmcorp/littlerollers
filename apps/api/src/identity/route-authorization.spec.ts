@@ -29,7 +29,10 @@ describe('lookups only serve staff pages that need them', () => {
     { id: 'u1', displayName: 'Coach A', role: 'COACH', phone: '+6281234567890', preferredBranchId: null },
   ]);
   const service = new UserAdministrationService(
-    { user: { findMany } } as never,
+    {
+      user: { findMany },
+      auditLog: { findMany: jest.fn().mockResolvedValue([]), count: jest.fn().mockResolvedValue(0) },
+    } as never,
     new PolicyService(),
     {} as never,
   );

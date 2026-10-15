@@ -125,7 +125,6 @@ export const ROLE_CAPABILITIES: Record<ApplicationRole, readonly string[]> = {
   ],
   ADMIN: [
     'automation:read',
-    'automation:run',
     'support:read',
     'support:manage',
     'branch:operate',
@@ -157,7 +156,6 @@ export const ROLE_CAPABILITIES: Record<ApplicationRole, readonly string[]> = {
   ],
   MANAGER: [
     'automation:read',
-    'automation:run',
     'support:read',
     'support:manage',
     'branch:manage',

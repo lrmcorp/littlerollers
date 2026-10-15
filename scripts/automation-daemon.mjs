@@ -13,9 +13,14 @@
  *   node scripts/automation-daemon.mjs --once   -> Menjalankan satu putaran evaluasi (untuk crontab/cronjob)
  */
 
-const API_BASE = process.env.API_BASE_URL || 'http://localhost:32121/api/v1';
-const SUPER_OWNER_EMAIL = process.env.DAEMON_AUTH_EMAIL || 'superowner@dailydose.test';
-const SUPER_OWNER_PASSWORD = process.env.DAEMON_AUTH_PASSWORD || 'SuperOwner123!';
+const isProd = process.env.NODE_ENV === 'production';
+const SUPER_OWNER_EMAIL = process.env.DAEMON_AUTH_EMAIL || (isProd ? null : 'superowner@dailydose.test');
+const SUPER_OWNER_PASSWORD = process.env.DAEMON_AUTH_PASSWORD || (isProd ? null : 'SuperOwner123!');
+
+if (isProd && (!SUPER_OWNER_EMAIL || !SUPER_OWNER_PASSWORD)) {
+  console.error('[FATAL] DAEMON_AUTH_EMAIL and DAEMON_AUTH_PASSWORD are required in production mode. Hardcoded fallback credentials are disabled.');
+  process.exit(1);
+}
 
 const AUTO_CANCEL_INTERVAL_MS = 15 * 60 * 1000; // Setiap 15 Menit
 const REMINDER_BATCH_INTERVAL_MS = 60 * 60 * 1000; // Setiap 60 Menit

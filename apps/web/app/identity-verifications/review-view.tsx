@@ -394,8 +394,8 @@ export function IdentityReviewView({
       {/* Summary KPI Filter Buttons */}
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
         <SummaryButton
-          label="Dalam antrean"
-          value={summary.pendingDocuments}
+          label="Pelanggan dalam antrean"
+          value={summary.pendingCustomers ?? summary.pendingDocuments}
           active={status === 'PENDING'}
           onClick={() => {
             setStatus(status === 'PENDING' ? '' : 'PENDING');
@@ -403,8 +403,8 @@ export function IdentityReviewView({
           }}
         />
         <SummaryButton
-          label="Disetujui"
-          value={summary.approvedDocuments}
+          label="Pelanggan disetujui"
+          value={summary.approvedCustomers ?? summary.approvedDocuments}
           active={status === 'APPROVED'}
           onClick={() => {
             setStatus(status === 'APPROVED' ? '' : 'APPROVED');

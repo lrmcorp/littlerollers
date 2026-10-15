@@ -354,6 +354,25 @@ export class ClassSlotService {
           throw new ApiProblem('SLOT_SCHEDULE_COLLISION', HttpStatus.CONFLICT);
         }
 
+        const inputCapacity = (input as any).capacity;
+        let effectiveCapacity: number;
+        if (inputCapacity !== undefined && inputCapacity !== null) {
+          const parsed = Number(inputCapacity);
+          if (room && room.capacityBed > 0 && parsed > room.capacityBed) {
+            throw new ApiProblem(
+              'CAPACITY_EXCEEDS_ROOM_LIMIT',
+              HttpStatus.BAD_REQUEST,
+              false,
+              [{ field: 'capacity', issue: `EXCEEDS_ROOM_CAPACITY_BED_${room.capacityBed}` }],
+            );
+          }
+          effectiveCapacity = parsed;
+        } else {
+          const defaultCap = classType.defaultCapacity ?? 8;
+          effectiveCapacity =
+            room && room.capacityBed > 0 ? Math.min(defaultCap, room.capacityBed) : defaultCap;
+        }
+
         const slot = await tx.slotKelas.create({
           data: {
             id: newId(),
@@ -364,7 +383,7 @@ export class ClassSlotService {
             instructorId: input.instructorUserId ?? null,
             startAt,
             endAt,
-            capacity: (input as any).capacity ?? classType.defaultCapacity ?? 8,
+            capacity: effectiveCapacity,
             bookedCount: 0,
             status: ClassSlotStatus.DRAFT,
           },
