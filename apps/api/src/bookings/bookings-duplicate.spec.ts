@@ -16,7 +16,10 @@ const principal = {
 };
 
 describe('BookingsService - Anti-Booking Kembar Duplicate Guard (Poin 8)', () => {
-  function createService(existingBookingStatus?: 'BOOKED' | 'ATTENDED' | 'CANCELLED' | null) {
+  function createService(
+    existingBookingStatus?: 'BOOKED' | 'ATTENDED' | 'CANCELLED' | 'SCHEDULE_CONFLICT' | null,
+    activeBookingsCount = 0,
+  ) {
     const futureDate = new Date(Date.now() + 24 * 3600 * 1000);
     const mockSlot = {
       id: slotId,
@@ -62,9 +65,24 @@ describe('BookingsService - Anti-Booking Kembar Duplicate Guard (Poin 8)', () =>
         findUnique: jest.fn(async () => mockCustomer),
       },
       pemesananKelas: {
-        count: jest.fn(async () => 0),
+        count: jest.fn(async ({ where }: any) => {
+          if (where?.classSlotId) return activeBookingsCount;
+          return 0;
+        }),
         findFirst: jest.fn(async ({ where }: any) => {
-          if (existingBookingStatus && ['BOOKED', 'ATTENDED'].includes(existingBookingStatus)) {
+          if (existingBookingStatus === 'SCHEDULE_CONFLICT' && where?.classSlotId?.not) {
+            return {
+              id: 'conflict-booking-1',
+              userId: customerUserId,
+              classSlotId: 'other-slot-id',
+              status: 'BOOKED',
+            };
+          }
+          if (
+            existingBookingStatus &&
+            ['BOOKED', 'ATTENDED'].includes(existingBookingStatus) &&
+            where?.classSlotId === slotId
+          ) {
             return {
               id: 'existing-booking-1',
               userId: customerUserId,
@@ -152,6 +170,47 @@ describe('BookingsService - Anti-Booking Kembar Duplicate Guard (Poin 8)', () =>
       ),
     ).rejects.toMatchObject({
       code: 'DUPLICATE_ACTIVE_BOOKING',
+      status: HttpStatus.CONFLICT,
+    });
+  });
+
+  it('menolak booking jika customer memiliki booking lain pada jam yang bertabrakan (SCHEDULE_CONFLICT 409)', async () => {
+    const { service } = createService('SCHEDULE_CONFLICT');
+
+    await expect(
+      service.create(
+        principal as any,
+        {
+          classSlotId: slotId,
+          customerPackageId,
+          source: 'SELF',
+        },
+        'idem-key-conflict',
+        'corr-conflict',
+      ),
+    ).rejects.toMatchObject({
+      code: 'SCHEDULE_CONFLICT',
+      status: HttpStatus.CONFLICT,
+    });
+  });
+
+  it('menolak booking jika jumlah booking riil di database sudah mencapai kapasitas slot (CLASS_CAPACITY_FULL 409)', async () => {
+    // Kapasitas slot adalah 8, jumlah booking riil di database sudah 8
+    const { service } = createService(null, 8);
+
+    await expect(
+      service.create(
+        principal as any,
+        {
+          classSlotId: slotId,
+          customerPackageId,
+          source: 'SELF',
+        },
+        'idem-key-full',
+        'corr-full',
+      ),
+    ).rejects.toMatchObject({
+      code: 'CLASS_CAPACITY_FULL',
       status: HttpStatus.CONFLICT,
     });
   });

@@ -388,7 +388,19 @@ export class ReschedulesService {
             where: { id: reschedule.targetSlotId },
             select: { id: true, bookedCount: true, capacity: true },
           });
-          if (!targetSlot || targetSlot.bookedCount >= targetSlot.capacity) {
+
+          // Hitung riil booking aktif di target slot agar tidak ada selisih kuota
+          const activeBookingsOnTarget =
+            typeof tx.pemesananKelas?.count === 'function'
+              ? await tx.pemesananKelas.count({
+                  where: {
+                    classSlotId: reschedule.targetSlotId,
+                    status: { in: ['BOOKED', 'ATTENDED'] },
+                  },
+                })
+              : 0;
+          const effectiveBooked = Math.max(targetSlot?.bookedCount ?? 0, activeBookingsOnTarget);
+          if (!targetSlot || effectiveBooked >= targetSlot.capacity) {
             throw new ApiProblem('CLASS_CAPACITY_FULL', HttpStatus.CONFLICT);
           }
 
@@ -415,10 +427,10 @@ export class ReschedulesService {
             data: { bookedCount: { decrement: 1 } },
           });
 
-          // Tambah bookedCount slot baru (kapasitas berkurang)
+          // Tambah bookedCount slot baru disinkronkan dengan kuota riil
           await tx.slotKelas.update({
             where: { id: reschedule.targetSlotId },
-            data: { bookedCount: { increment: 1 } },
+            data: { bookedCount: effectiveBooked + 1 },
           });
         }
 

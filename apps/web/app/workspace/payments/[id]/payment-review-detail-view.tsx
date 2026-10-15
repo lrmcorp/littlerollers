@@ -130,17 +130,8 @@ export function PaymentReviewDetailView({
       setPreviewLoading(false);
     }
   }, [client, detail?.purchase.paymentProof, previewUrl]);
-
-  useEffect(() => {
-    if (
-      detail?.purchase.paymentProof?.id &&
-      detail?.purchase.paymentProof?.scanStatus === 'CLEAN' &&
-      !previewUrl &&
-      !previewLoading
-    ) {
-      void loadPreview();
-    }
-  }, [detail?.purchase.paymentProof?.id, detail?.purchase.paymentProof?.scanStatus, loadPreview, previewLoading, previewUrl]);
+  // Catatan: loadPreview TIDAK dijalankan otomatis pada mount untuk mencegah persetujuan buta (blind approval).
+  // Staf peninjau wajib secara sadar menekan tombol pratinjau bukti sebelum persetujuan dapat diberikan.
 
   const loadUsagePage = async (cursor?: string) => {
     if (!detail) return;
@@ -178,9 +169,15 @@ export function PaymentReviewDetailView({
         purchase.customer.id === sessionContext.session.id,
     );
     const separationOfDutiesBlocked = !isSuper && (isRecorder || isSelfCustomer);
+    const proofRequiresReview = Boolean(purchase?.paymentProof);
+    const proofNotYetViewed = proofRequiresReview && (!previewUrl || previewLoading);
     const isPending =
       purchase?.status === 'PENDING' || purchase?.status === 'WAITING_VERIFICATION';
     if (!purchase || !canDecide || !isPending || separationOfDutiesBlocked) return;
+    if (action === 'APPROVE' && proofNotYetViewed) {
+      setError('Anda wajib melihat pratinjau bukti transfer terlebih dahulu sebelum dapat menyetujui pembayaran.');
+      return;
+    }
     if (
       action === 'ACTION_REQUIRED' &&
       reasonCode === 'OTHER_REVIEW_REQUIRED' &&
@@ -474,7 +471,7 @@ export function PaymentReviewDetailView({
             </ol>
           </Panel>
 
-          <Panel className="p-5 sm:p-6">
+          <Panel id="private-payment-proof-panel" className="p-5 sm:p-6">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <h2 className="text-lg font-semibold">Bukti pembayaran privat</h2>
@@ -754,6 +751,8 @@ export function PaymentReviewDetailView({
                   purchase.customer.id === sessionContext.session.id,
               );
               const separationOfDutiesBlocked = !isSuper && (isRecorder || isSelfCustomer);
+              const proofRequiresReview = Boolean(purchase.paymentProof);
+              const proofNotYetViewed = proofRequiresReview && (!previewUrl || previewLoading);
               return (
                 <div className="mt-5 space-y-4">
                   {separationOfDutiesBlocked && (
@@ -764,9 +763,39 @@ export function PaymentReviewDetailView({
                         : 'Anda tidak dapat menyetujui transaksi milik akun Anda sendiri.'}
                     </div>
                   )}
+                  {proofNotYetViewed && !separationOfDutiesBlocked && (
+                    <div className="rounded-dd-md border border-dd-warning/30 bg-dd-warning-soft p-3 text-xs text-dd-warning leading-relaxed space-y-2">
+                      <div>
+                        <strong className="block font-semibold">Tinjauan Bukti Wajib:</strong>
+                        Buka dan periksa pratinjau bukti transfer di panel kiri sebelum menyetujui transaksi ini.
+                      </div>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        className="w-full text-xs"
+                        disabled={
+                          previewLoading ||
+                          !purchase.paymentProof ||
+                          purchase.paymentProof.scanStatus !== 'CLEAN'
+                        }
+                        onClick={() => {
+                          const el = document.getElementById('private-payment-proof-panel');
+                          el?.scrollIntoView({ behavior: 'smooth' });
+                          void loadPreview();
+                        }}
+                      >
+                        {previewLoading ? 'Memuat bukti…' : 'Buka & Periksa Bukti Sekarang'}
+                      </Button>
+                    </div>
+                  )}
                   <Button
                     className="w-full"
-                    disabled={mutating || separationOfDutiesBlocked}
+                    disabled={mutating || separationOfDutiesBlocked || proofNotYetViewed}
+                    title={
+                      proofNotYetViewed
+                        ? 'Buka pratinjau bukti transfer terlebih dahulu sebelum menyetujui.'
+                        : undefined
+                    }
                     onClick={() => void decide('APPROVE')}
                   >
                     <CheckCircle2 className="size-4" /> Setujui pembayaran

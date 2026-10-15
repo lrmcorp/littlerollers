@@ -751,8 +751,12 @@ export class BookingsService {
           throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
         if (customerPackage.userId !== customerUserId)
           throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
-        if (customerPackage.purchase && customerPackage.purchase.status !== 'PAID')
+        if (
+          (customerPackage.purchase && customerPackage.purchase.status !== 'PAID') ||
+          (customerPackage.purchaseId && (!customerPackage.purchase || customerPackage.purchase.status !== 'PAID'))
+        ) {
           throw new ApiProblem('PURCHASE_NOT_PAID', HttpStatus.CONFLICT);
+        }
         if (customerPackage.status !== 'ACTIVE' || customerPackage.validUntil <= new Date())
           throw new ApiProblem('INSUFFICIENT_AVAILABLE_SESSIONS', HttpStatus.CONFLICT);
 
@@ -798,11 +802,39 @@ export class BookingsService {
         });
         if (duplicate) throw new ApiProblem('DUPLICATE_ACTIVE_BOOKING', HttpStatus.CONFLICT);
 
+        // Pencegahan booking ganda lintas kelas dengan jadwal bertabrakan (Overlapping Schedule)
+        const scheduleConflict = await tx.pemesananKelas.findFirst({
+          where: {
+            userId: customerUserId,
+            status: { in: ['BOOKED', 'ATTENDED'] },
+            classSlotId: { not: slot.id },
+            classSlot: {
+              startAt: { lt: slot.endAt },
+              endAt: { gt: slot.startAt },
+            },
+          },
+        });
+        if (scheduleConflict) {
+          throw new ApiProblem('SCHEDULE_CONFLICT', HttpStatus.CONFLICT);
+        }
+
         const currentSlot = await tx.slotKelas.findUnique({
           where: { id: slot.id },
           select: { bookedCount: true, capacity: true },
         });
-        if (!currentSlot || currentSlot.bookedCount >= currentSlot.capacity)
+
+        // Hitung riil booking aktif di database untuk memastikan tidak ada selisih/drift kuota
+        const activeBookingsOnSlot =
+          typeof tx.pemesananKelas?.count === 'function'
+            ? await tx.pemesananKelas.count({
+                where: {
+                  classSlotId: slot.id,
+                  status: { in: ['BOOKED', 'ATTENDED'] },
+                },
+              })
+            : 0;
+        const effectiveBooked = Math.max(currentSlot?.bookedCount ?? 0, activeBookingsOnSlot);
+        if (!currentSlot || effectiveBooked >= currentSlot.capacity)
           throw new ApiProblem('CLASS_CAPACITY_FULL', HttpStatus.CONFLICT);
 
         const bookingNumber = `BK-${Date.now().toString(36).toUpperCase()}-${randomBytes(3).toString('hex').toUpperCase()}`;
@@ -830,11 +862,11 @@ export class BookingsService {
         // Catatan: Sesi TIDAK dipotong saat booking (Rule #1).
         // Pemotongan sesi ke SessionLedger & PaketPelanggan dieksekusi saat kelas COMPLETED dan customer hadir.
 
-        // Tambah bookedCount O(1)
+        // Tambah bookedCount disinkronkan dengan kuota efektif aktual (mencegah overcapacity 5/4, 6/4)
         await tx.slotKelas.update({
           where: { id: slot.id },
           data: {
-            bookedCount: { increment: 1 },
+            bookedCount: effectiveBooked + 1,
           },
         });
 
