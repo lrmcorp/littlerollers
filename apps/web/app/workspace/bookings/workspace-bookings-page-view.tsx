@@ -57,6 +57,14 @@ export function WorkspaceBookingsPageView() {
         query.delete('cursor');
         query.delete('rescheduleCursor');
         router.replace(`/workspace/bookings?${query.toString()}`, { scroll: false });
+      } else if (!current && !context.activeBranchId && context.session.branches[0]) {
+        const defaultBranchId = context.session.branches[0].id;
+        context.setActiveBranchId(defaultBranchId);
+        const query = new URLSearchParams(paramsKey);
+        query.set('branch', defaultBranchId);
+        query.delete('cursor');
+        query.delete('rescheduleCursor');
+        router.replace(`/workspace/bookings?${query.toString()}`, { scroll: false });
       }
       return;
     }

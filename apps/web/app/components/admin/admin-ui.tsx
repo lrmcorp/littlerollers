@@ -51,32 +51,49 @@ export function StatCard({
   change,
   helper,
   tone = 'neutral',
+  loading = false,
 }: {
   label: string;
   value: string;
   change?: number | null;
   helper?: string;
   tone?: Tone;
+  loading?: boolean;
 }) {
   const ChangeIcon =
     change == null || change === 0 ? Minus : change > 0 ? ArrowUpRight : ArrowDownRight;
   return (
-    <Panel className="relative overflow-hidden p-5">
+    <Panel className="relative overflow-hidden p-5" aria-busy={loading}>
       <span
         className={`absolute inset-x-0 top-0 h-0.5 ${tone === 'warning' ? 'bg-dd-brass' : tone === 'danger' ? 'bg-dd-danger' : 'bg-dd-forest'}`}
       />
       <p className="text-xs font-bold uppercase tracking-[0.14em] text-dd-muted">{label}</p>
       <div className="mt-3 flex items-end justify-between gap-3">
-        <strong className="text-2xl font-semibold tracking-tight text-dd-ink">{value}</strong>
-        {change != null && (
-          <span
-            className={`inline-flex items-center gap-1 text-xs font-bold ${change < 0 ? 'text-dd-danger' : change > 0 ? 'text-dd-success' : 'text-dd-muted'}`}
-          >
-            <ChangeIcon className="size-3.5" /> {Math.abs(change).toLocaleString('id-ID')}%
-          </span>
+        {loading ? (
+          <div
+            className="h-8 w-24 animate-pulse rounded bg-dd-line/60"
+            aria-label="Memuat nilai..."
+          />
+        ) : (
+          <strong className="text-2xl font-semibold tracking-tight text-dd-ink">{value}</strong>
+        )}
+        {loading ? (
+          <div className="h-4 w-12 animate-pulse rounded bg-dd-line/40" />
+        ) : (
+          change != null && (
+            <span
+              className={`inline-flex items-center gap-1 text-xs font-bold ${change < 0 ? 'text-dd-danger' : change > 0 ? 'text-dd-success' : 'text-dd-muted'}`}
+            >
+              <ChangeIcon className="size-3.5" /> {Math.abs(change).toLocaleString('id-ID')}%
+            </span>
+          )
         )}
       </div>
-      {helper && <p className="mt-2 text-sm text-dd-muted">{helper}</p>}
+      {loading ? (
+        helper ? <div className="mt-2 h-4 w-32 animate-pulse rounded bg-dd-line/30" /> : null
+      ) : (
+        helper && <p className="mt-2 text-sm text-dd-muted">{helper}</p>
+      )}
     </Panel>
   );
 }

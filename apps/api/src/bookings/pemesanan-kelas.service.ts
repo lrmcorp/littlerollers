@@ -531,11 +531,12 @@ export class BookingsService {
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
 
     const classSlotFilter: Prisma.SlotKelasWhereInput = {};
+    let resolvedBranchId: Prisma.StringNullableFilter | string | undefined = undefined;
     if (customerFlow) {
-      if (query.branchId) classSlotFilter.branchId = query.branchId;
+      if (query.branchId) resolvedBranchId = query.branchId;
     } else {
       const branchScope = this.staffBranchScope(principal, query.branchId);
-      if (branchScope) classSlotFilter.branchId = branchScope;
+      if (branchScope) resolvedBranchId = branchScope;
     }
     if (query.from || query.until) {
       classSlotFilter.startAt = {
@@ -555,6 +556,7 @@ export class BookingsService {
     }
     const baseWhere: Prisma.PemesananKelasWhereInput = {
       ...(targetUserId ? { userId: targetUserId } : {}),
+      ...(resolvedBranchId ? { branchId: resolvedBranchId } : {}),
       ...(query.classSlotId ? { classSlotId: query.classSlotId } : {}),
       ...(Object.keys(classSlotFilter).length > 0 ? { classSlot: classSlotFilter } : {}),
       ...(conditions.length > 0 ? { AND: conditions } : {}),
@@ -585,19 +587,40 @@ export class BookingsService {
         ? [{ classSlot: { startAt: 'asc' } }, { id: 'asc' }]
         : [{ bookedAt: 'desc' }, { id: 'desc' }];
 
-    const [totalFiltered, statusGroups, reschedulePending] = await Promise.all([
-      typeof this.db.pemesananKelas.count === 'function'
-        ? this.db.pemesananKelas.count({ where })
-        : Promise.resolve(0),
+    const rescheduleWhere: Prisma.UbahJadwalWhereInput =
+      Object.keys(baseWhere).length === 0
+        ? { status: 'PENDING' }
+        : { status: 'PENDING', booking: baseWhere };
+
+    const hasSpecialFilter = Boolean(query.q?.trim() || query.timeline || query.classSlotId);
+    const needDistinctCount =
+      hasSpecialFilter ||
+      (query.status && !['BOOKED', 'ATTENDED', 'CANCELLED', 'NO_SHOW'].includes(query.status));
+
+    const [statusGroups, reschedulePending, explicitCount] = await Promise.all([
       this.db.pemesananKelas.groupBy({
         by: ['status'],
         where: baseWhere,
         _count: { _all: true },
       }),
-      this.db.ubahJadwal.count({ where: { status: 'PENDING', booking: baseWhere } }),
+      this.db.ubahJadwal.count({ where: rescheduleWhere }),
+      needDistinctCount
+        ? typeof this.db.pemesananKelas.count === 'function'
+          ? this.db.pemesananKelas.count({ where })
+          : Promise.resolve(0)
+        : Promise.resolve(null),
     ]);
+
     const statusCount = (status: BookingStatus) =>
       statusGroups.find((group) => group.status === status)?._count._all ?? 0;
+    const allStatusTotal = statusGroups.reduce((sum, group) => sum + group._count._all, 0);
+
+    const totalFiltered =
+      explicitCount !== null
+        ? explicitCount
+        : query.status
+          ? statusCount(query.status as BookingStatus)
+          : allStatusTotal;
 
     const paginationArgs = pageNumber
       ? { skip: (pageNumber - 1) * limit, take: limit }
@@ -843,6 +866,7 @@ export class BookingsService {
             id: randomUUID(),
             bookingNumber,
             classSlotId: slot.id,
+            branchId: slot.branchId,
             userId: customerUserId,
             customerPackageId: customerPackage.id,
             status: 'BOOKED',

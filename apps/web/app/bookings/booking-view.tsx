@@ -154,6 +154,7 @@ export function BookingView({
     'TARGET_UNAVAILABLE' | 'OUTSIDE_POLICY' | 'OUT_OF_SCOPE'
   >('TARGET_UNAVAILABLE');
   const [busy, setBusy] = useState(false);
+  const [initialLoaded, setInitialLoaded] = useState(false);
   const [cancelTarget, setCancelTarget] = useState<CustomerBookingRecord | null>(null);
   const [cancelError, setCancelError] = useState('');
   const [message, setMessage] = useState<string>();
@@ -240,8 +241,22 @@ export function BookingView({
     setPackageId('');
     setSlotId('');
     setSelectedRosterIds([]);
+    setInitialLoaded(false);
     resetIntent();
   }, [branchId]);
+
+  useEffect(() => {
+    if (createOpen && branchId && customers.length === 0) {
+      client
+        .discover(branchId)
+        .then((discovery) => {
+          setCustomers(discovery.customers);
+          setPackages(discovery.packages);
+          setSlots(discovery.slots);
+        })
+        .catch(() => {});
+    }
+  }, [createOpen, branchId, customers.length, client]);
 
   const customerPackages = useMemo(
     () =>
@@ -268,10 +283,7 @@ export function BookingView({
     setFailure(undefined);
     setMessage(undefined);
     try {
-      const [discovery, bookingPage, reschedulePage] = await Promise.all([
-        branchId
-          ? client.discover(branchId)
-          : Promise.resolve({ customers: [], packages: [], slots: [] }),
+      const [bookingPage, reschedulePage] = await Promise.all([
         client.list({
           branchId: branchId || undefined,
           status:
@@ -291,9 +303,6 @@ export function BookingView({
             })
           : Promise.resolve({ items: [], nextCursor: null }),
       ]);
-      setCustomers(discovery.customers);
-      setPackages(discovery.packages);
-      setSlots(discovery.slots);
       setItems(bookingPage.items);
       if (bookingPage.summary) setSummary(bookingPage.summary);
       setNextCursor(bookingPage.nextCursor);
@@ -307,6 +316,7 @@ export function BookingView({
       setFailure(await bookingFailure(error));
     } finally {
       setBusy(false);
+      setInitialLoaded(true);
     }
   };
 
@@ -596,14 +606,28 @@ export function BookingView({
       )}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label="Total booking" value={summary.total.toLocaleString('id-ID')} />
-        <StatCard label="Aktif" value={summary.booked.toLocaleString('id-ID')} tone="success" />
+        <StatCard
+          label="Total booking"
+          value={summary.total.toLocaleString('id-ID')}
+          loading={!initialLoaded || (busy && items.length === 0)}
+        />
+        <StatCard
+          label="Aktif"
+          value={summary.booked.toLocaleString('id-ID')}
+          tone="success"
+          loading={!initialLoaded || (busy && items.length === 0)}
+        />
         <StatCard
           label="Reschedule"
           value={summary.reschedulePending.toLocaleString('id-ID')}
           tone="warning"
+          loading={!initialLoaded || (busy && items.length === 0)}
         />
-        <StatCard label="Sudah hadir" value={summary.attended.toLocaleString('id-ID')} />
+        <StatCard
+          label="Sudah hadir"
+          value={summary.attended.toLocaleString('id-ID')}
+          loading={!initialLoaded || (busy && items.length === 0)}
+        />
       </div>
 
       <Tabs

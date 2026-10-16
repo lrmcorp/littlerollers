@@ -194,6 +194,7 @@ model Cabang {
   correctionJournals    CorrectionJournal[]
   instructorAvailabilities InstructorAvailability[]
   packages              Paket[]
+  bookings              PemesananKelas[]
 
   @@map("cabang")
 }
@@ -578,6 +579,7 @@ model PemesananKelas {
   id                 String        @id @default(uuid()) @db.Char(36)
   bookingNumber      String        @unique @db.VarChar(64)
   classSlotId        String        @db.Char(36)
+  branchId           String?       @db.Char(36)
   userId             String        @db.Char(36)
   customerPackageId  String        @db.Char(36)
   status             BookingStatus @default(BOOKED)
@@ -591,6 +593,7 @@ model PemesananKelas {
   updatedAt          DateTime      @updatedAt
 
   classSlot       SlotKelas              @relation(fields: [classSlotId], references: [id], onDelete: Restrict)
+  branch          Cabang?                @relation(fields: [branchId], references: [id], onDelete: SetNull)
   user            User                   @relation(fields: [userId], references: [id], onDelete: Restrict)
   customerPackage PaketPelanggan         @relation(fields: [customerPackageId], references: [id], onDelete: Restrict)
   attendance      KehadiranPelanggan?
@@ -600,6 +603,9 @@ model PemesananKelas {
 
   @@index([userId, status])
   @@index([classSlotId, status])
+  @@index([branchId, status])
+  @@index([branchId, bookedAt(sort: Desc), id(sort: Desc)])
+  @@index([bookedAt(sort: Desc), id(sort: Desc)])
   @@map("pemesanan_kelas")
 }
 
@@ -618,6 +624,7 @@ model UbahJadwal {
   targetSlot SlotKelas      @relation("TargetSlot", fields: [targetSlotId], references: [id], onDelete: Restrict)
 
   @@index([bookingId])
+  @@index([status])
   @@map("ubah_jadwal")
 }
 
