@@ -319,7 +319,7 @@ export function ClassSlotView({
         titleId="classes-title"
         description={
           globalMode
-            ? 'Pantau jadwal seluruh cabang. Pilih cabang aktif di topbar untuk menjalankan tindakan operasional.'
+            ? 'Pantau jadwal seluruh cabang. Anda dapat membuat kelas langsung dengan memilih cabang studio tujuan pada formulir.'
             : 'Kelola draft, instruktur, publish, dan pembatalan pada waktu lokal cabang.'
         }
         actions={
@@ -336,8 +336,8 @@ export function ClassSlotView({
 
       {globalMode && (
         <Feedback kind="info">
-          Anda sedang melihat seluruh cabang. Pilih satu cabang pada topbar untuk membuat atau
-          mengubah kelas.
+          Anda sedang melihat seluruh cabang. Klik tombol &ldquo;Buat kelas&rdquo; untuk menjadwalkan
+          kelas di cabang pilihan Anda, atau pilih cabang spesifik untuk fokus operasional.
         </Feedback>
       )}
 

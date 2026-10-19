@@ -1,5 +1,6 @@
 import {
   calculateVoucherDiscount,
+  checkVoucherApplicability,
   deriveVoucherStatus,
   normalizeVoucherCode,
   paginateVouchers,
@@ -129,3 +130,158 @@ describe('voucher list pagination and summary', () => {
     expect(page3.nextCursor).toBeNull();
   });
 });
+
+describe('checkVoucherApplicability - strict negative boundary tests', () => {
+  const now = new Date('2026-10-15T12:00:00.000Z');
+  const validVoucher = {
+    active: true,
+    validUntil: new Date('2026-10-20T12:00:00.000Z'),
+    minSpendRp: 250_000,
+    quota: 10,
+    usedCount: 2,
+  };
+
+  it('rejects with NOT_FOUND if voucher is null or undefined', () => {
+    expect(checkVoucherApplicability(null, 500_000, now)).toEqual({
+      valid: false,
+      issue: 'NOT_FOUND',
+    });
+    expect(checkVoucherApplicability(undefined, 500_000, now)).toEqual({
+      valid: false,
+      issue: 'NOT_FOUND',
+    });
+  });
+
+  it('rejects with INACTIVE when active is false, even if quota and validity are fine', () => {
+    expect(
+      checkVoucherApplicability({ ...validVoucher, active: false }, 500_000, now),
+    ).toEqual({
+      valid: false,
+      issue: 'INACTIVE',
+    });
+  });
+
+  it('rejects with EXPIRED when validUntil has passed or matches exactly', () => {
+    // Past date
+    expect(
+      checkVoucherApplicability(
+        { ...validVoucher, validUntil: new Date('2026-10-15T11:59:59.999Z') },
+        500_000,
+        now,
+      ),
+    ).toEqual({
+      valid: false,
+      issue: 'EXPIRED',
+    });
+
+    // Exact current instant
+    expect(
+      checkVoucherApplicability(
+        { ...validVoucher, validUntil: new Date('2026-10-15T12:00:00.000Z') },
+        500_000,
+        now,
+      ),
+    ).toEqual({
+      valid: false,
+      issue: 'EXPIRED',
+    });
+
+    // Future date passes
+    expect(
+      checkVoucherApplicability(
+        { ...validVoucher, validUntil: new Date('2026-10-15T12:00:01.000Z') },
+        500_000,
+        now,
+      ),
+    ).toEqual({ valid: true });
+  });
+
+  it('rejects with MINIMUM_SPEND_NOT_MET when basisRp is strictly below minSpendRp', () => {
+    // 1 rupiah below minimum
+    expect(
+      checkVoucherApplicability(validVoucher, 249_999, now),
+    ).toEqual({
+      valid: false,
+      issue: 'MINIMUM_SPEND_NOT_MET',
+    });
+
+    // Exact minimum spend passes
+    expect(
+      checkVoucherApplicability(validVoucher, 250_000, now),
+    ).toEqual({ valid: true });
+  });
+
+  it('rejects with EXHAUSTED when usedCount equals or exceeds quota', () => {
+    // Exact quota reached
+    expect(
+      checkVoucherApplicability(
+        { ...validVoucher, quota: 10, usedCount: 10 },
+        500_000,
+        now,
+      ),
+    ).toEqual({
+      valid: false,
+      issue: 'EXHAUSTED',
+    });
+
+    // Over quota
+    expect(
+      checkVoucherApplicability(
+        { ...validVoucher, quota: 10, usedCount: 11 },
+        500_000,
+        now,
+      ),
+    ).toEqual({
+      valid: false,
+      issue: 'EXHAUSTED',
+    });
+
+    // 1 under quota passes
+    expect(
+      checkVoucherApplicability(
+        { ...validVoucher, quota: 10, usedCount: 9 },
+        500_000,
+        now,
+      ),
+    ).toEqual({ valid: true });
+
+    // Unlimited quota (null) passes regardless of high usage
+    expect(
+      checkVoucherApplicability(
+        { ...validVoucher, quota: null, usedCount: 9999 },
+        500_000,
+        now,
+      ),
+    ).toEqual({ valid: true });
+  });
+
+  it('hardens calculateVoucherDiscount against negative numbers and excessive amounts', () => {
+    // Negative discountValue must return 0, never negative
+    expect(
+      calculateVoucherDiscount({
+        priceRp: 500_000,
+        discountType: 'FIXED_AMOUNT',
+        discountValue: -100_000,
+      }),
+    ).toBe(0);
+
+    // Negative priceRp must return 0
+    expect(
+      calculateVoucherDiscount({
+        priceRp: -500_000,
+        discountType: 'FIXED_AMOUNT',
+        discountValue: 100_000,
+      }),
+    ).toBe(0);
+
+    // Fixed amount exceeding priceRp must cap at priceRp
+    expect(
+      calculateVoucherDiscount({
+        priceRp: 200_000,
+        discountType: 'FIXED_AMOUNT',
+        discountValue: 1_000_000,
+      }),
+    ).toBe(200_000);
+  });
+});
+

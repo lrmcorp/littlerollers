@@ -12,12 +12,13 @@ export function assertIsoDate(value: string): string {
   return value;
 }
 
-export function dateInTimeZone(instant: Date, timeZone: string): string {
+export function dateInTimeZone(instant: Date, timeZone: string = 'Asia/Jakarta'): string {
   if (Number.isNaN(instant.getTime()))
     throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+  const tz = (timeZone ?? '').trim() || 'Asia/Jakarta';
   try {
     const parts = new Intl.DateTimeFormat('en-CA', {
-      timeZone,
+      timeZone: tz,
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
@@ -54,18 +55,19 @@ function offsetAt(instant: Date, timeZone: string): number {
   return representedAsUtc - instant.getTime();
 }
 
-export function startOfLocalDateUtc(date: string, timeZone: string): Date {
+export function startOfLocalDateUtc(date: string, timeZone: string = 'Asia/Jakarta'): Date {
   assertIsoDate(date);
+  const tz = (timeZone ?? '').trim() || 'Asia/Jakarta';
   const [year, month, day] = date.split('-').map(Number);
   const nominalUtc = Date.UTC(year!, month! - 1, day!);
   let result = new Date(nominalUtc);
   try {
     for (let iteration = 0; iteration < 3; iteration += 1)
-      result = new Date(nominalUtc - offsetAt(result, timeZone));
+      result = new Date(nominalUtc - offsetAt(result, tz));
   } catch {
     throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
   }
-  if (dateInTimeZone(result, timeZone) !== date)
+  if (dateInTimeZone(result, tz) !== date)
     throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
   return result;
 }

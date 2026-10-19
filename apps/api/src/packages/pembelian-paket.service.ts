@@ -12,6 +12,7 @@ import { PackagePricingService } from './kalkulasi-harga-paket.service';
 import {
   VoucherService,
   calculateVoucherDiscount,
+  checkVoucherApplicability,
   isPercentageVoucherType,
   normalizeVoucherCode,
 } from './voucher.service';
@@ -502,23 +503,18 @@ export class CustomerOrderService {
       const v = await tx.voucher.findFirst({
         where: { code },
       });
-      if (
-        !v ||
-        !v.active ||
-        (v.validUntil && v.validUntil <= new Date()) ||
-        basisRp < v.minSpendRp ||
-        (v.quota !== null && v.usedCount >= v.quota)
-      ) {
+      const check = checkVoucherApplicability(v, basisRp);
+      if (!check.valid) {
         throw new ApiProblem('VOUCHER_NOT_APPLICABLE', HttpStatus.UNPROCESSABLE_ENTITY, false, [
-          { field: 'voucherCode', issue: 'NOT_APPLICABLE' },
+          { field: 'voucherCode', issue: check.issue },
         ]);
       }
       voucher = v;
       voucherDiscountRp = calculateVoucherDiscount({
         priceRp: basisRp,
-        discountType: v.discountType,
-        discountValue: v.discountValue,
-        maxDiscountRp: v.maxDiscountRp,
+        discountType: v!.discountType,
+        discountValue: v!.discountValue,
+        maxDiscountRp: v!.maxDiscountRp,
       });
     }
     const subtotalRp = pkg.priceRp;

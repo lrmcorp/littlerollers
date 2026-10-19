@@ -262,9 +262,9 @@ export class BookingsService {
       principal.capabilities,
       customerFlow ? 'booking:self:cancel' : 'booking:cancel:assisted',
     );
-    // Staf wajib menyebut alasan (jejak pembatalan atas nama pelanggan).
+    // Staf wajib menyebut alasan (jejak pembatalan atas nama pelanggan, min. 10 karakter).
     const staffReason = input.reason?.trim() ?? '';
-    if (!customerFlow && (staffReason.length < 3 || staffReason.length > 200))
+    if (!customerFlow && (staffReason.length < 10 || staffReason.length > 200))
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, false, [
         { field: 'reason', issue: 'REASON_REQUIRED' },
       ]);
@@ -337,6 +337,27 @@ export class BookingsService {
           where: { id: booking.classSlotId },
           data: {
             bookedCount: { decrement: 1 },
+          },
+        });
+
+        // Catat jejak audit permanen ke audit_log
+        await tx.auditLog.create({
+          data: {
+            id: randomUUID(),
+            action: customerFlow ? 'booking.cancelled_by_customer' : 'booking.cancelled_by_staff',
+            actorId: principal.userId,
+            targetUserId: booking.userId,
+            branchId: booking.classSlot.branchId,
+            correlationId: _correlationId ? String(_correlationId).slice(0, 64) : null,
+            reason: reason.trim() || null,
+            detail: {
+              bookingId: booking.id,
+              bookingNumber: booking.bookingNumber,
+              classSlotId: booking.classSlotId,
+              previousStatus: booking.status,
+              newStatus: 'CANCELLED',
+              staffReason: customerFlow ? null : staffReason,
+            },
           },
         });
 
@@ -550,8 +571,22 @@ export class BookingsService {
     const conditions: Prisma.PemesananKelasWhereInput[] = [];
     if (query.q?.trim()) {
       const q = query.q.trim();
+      let userIds: string[] = [];
+      if (typeof this.db.user?.findMany === 'function') {
+        const matchedUsers = await this.db.user.findMany({
+          where: { displayName: { contains: q } },
+          select: { id: true },
+          take: 100,
+        });
+        userIds = matchedUsers.map((u) => u.id);
+      }
       conditions.push({
-        OR: [{ bookingNumber: { contains: q } }, { user: { displayName: { contains: q } } }],
+        OR: [
+          { bookingNumber: { contains: q } },
+          ...(userIds.length > 0
+            ? [{ userId: { in: userIds } }]
+            : [{ user: { displayName: { contains: q } } }]),
+        ],
       });
     }
     const baseWhere: Prisma.PemesananKelasWhereInput = {
@@ -622,14 +657,19 @@ export class BookingsService {
           ? statusCount(query.status as BookingStatus)
           : allStatusTotal;
 
+    const skipCount = pageNumber ? (pageNumber - 1) * limit : 0;
+    const isOutOfBounds = Boolean(pageNumber && skipCount >= totalFiltered);
+
     const paginationArgs = pageNumber
-      ? { skip: (pageNumber - 1) * limit, take: limit }
+      ? { skip: skipCount, take: limit }
       : {
           take: limit + 1,
           ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
         };
 
-    const items = await this.db.pemesananKelas.findMany({
+    const items = isOutOfBounds
+      ? []
+      : await this.db.pemesananKelas.findMany({
       where,
       ...paginationArgs,
       include: {

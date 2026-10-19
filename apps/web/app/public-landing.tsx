@@ -16,6 +16,7 @@ import {
 import { HeroCarousel } from './components/public/hero-carousel';
 import { routes } from '@/lib/routes';
 import { resolvePublicImageUrl } from './lib/public-image-url';
+import { classLevelLabel } from './lib/class-level';
 
 export function studioAreaSummary(branches: PublicSiteConfig['branches']) {
   const areas = branches
@@ -112,28 +113,28 @@ export function PublicLanding() {
               {[
                 {
                   number: '01',
-                  title: 'Intimate Class Size',
-                  subtitle: 'Kelas berukuran kecil',
+                  title: 'Kapasitas Kelas Eksklusif',
+                  subtitle: 'Maksimal 4 peserta per sesi',
                   description:
                     'Kapasitas kelas kecil maksimal 4 peserta untuk perhatian personal dalam suasana yang nyaman, aman, dan terarah.',
                 },
                 {
                   number: '02',
-                  title: 'Certified Mastery',
-                  subtitle: 'Instruktur berpengalaman',
+                  title: 'Instruktur Tersertifikasi',
+                  subtitle: 'Berpengalaman & terarah',
                   description:
                     'Pendampingan yang terarah di setiap sesi oleh instruktur berdedikasi dan bersertifikasi.',
                 },
                 {
                   number: '03',
-                  title: 'State-of-the-Art',
-                  subtitle: 'Peralatan premium',
+                  title: 'Peralatan Pilates Modern',
+                  subtitle: 'Presisi, halus & aman',
                   description:
                     'Peralatan Pilates berkualitas untuk latihan yang aman, halus, dan presisi.',
                 },
                 {
                   number: '04',
-                  title: 'Sanctuary Atmosphere',
+                  title: 'Suasana Studio Tenang',
                   subtitle: '5 pilihan studio',
                   description:
                     'Berlatih di 5 studio kami di Jakarta, Tangerang, dan Surabaya dengan jadwal fleksibel yang sesuai ritme Anda.',
@@ -286,7 +287,7 @@ export function PublicLanding() {
                       );
                     })()}
                     <div className="absolute top-3 right-3 rounded-full bg-white/90 px-3 py-1 text-[11px] font-semibold text-dd-forest shadow-2xs backdrop-blur-md">
-                      {level}
+                      {classLevelLabel(level)}
                     </div>
                   </div>
                   <div className="p-6 space-y-3">

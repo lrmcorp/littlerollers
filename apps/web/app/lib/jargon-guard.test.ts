@@ -31,6 +31,15 @@ const forbidden: Array<[RegExp, string]> = [
   [/selalu kosong/, 'catatan pratinjau developer'],
   [/sumber operasionalnya disetujui/, 'catatan developer studio'],
   [/persetujuan berbelit/, 'kalimat Penyesuaian Sesi yang bertentangan'],
+  [/ReminderLog/i, 'istilah ReminderLog'],
+  [/Intimate Class Size/i, 'judul pilar bahasa Inggris'],
+  [/Certified Mastery/i, 'judul pilar bahasa Inggris'],
+  [/Sanctuary Atmosphere/i, 'judul pilar bahasa Inggris'],
+  [/Terkirim \(SENT\)/i, 'kode enum SENT di label UI'],
+  [/Gagal \(FAILED\)/i, 'kode enum FAILED di label UI'],
+  [/Dokumen Identitas \(KYC\)/i, 'istilah KYC di profil'],
+  [/Verifikasi KYC/i, 'istilah KYC di profil'],
+  [/SessionLedger/i, 'nama model database SessionLedger'],
 ];
 
 describe('teks tampilan bebas istilah pemrogram', () => {

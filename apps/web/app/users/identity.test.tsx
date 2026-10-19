@@ -129,7 +129,7 @@ describe('identity UI', () => {
   it('renders an accessible sign-in success and safe failure', async () => {
     const view = render(<SignInView client={client()} />);
     expect((await axe(view.container)).violations).toHaveLength(0);
-    await userEvent.type(screen.getByLabelText('Email'), 'owner@example.test');
+    await userEvent.type(screen.getByLabelText(/Email/i), 'owner@example.test');
     await userEvent.type(screen.getByLabelText('Password'), 'correct-password-123');
     await userEvent.click(screen.getByRole('button', { name: /Masuk dengan email/ }));
     expect(await screen.findByText('Identitas terverifikasi.')).toBeVisible();
@@ -141,7 +141,7 @@ describe('identity UI', () => {
         })}
       />,
     );
-    await userEvent.type(screen.getByLabelText('Email'), 'owner@example.test');
+    await userEvent.type(screen.getByLabelText(/Email/i), 'owner@example.test');
     await userEvent.type(screen.getByLabelText('Password'), 'incorrect-password');
     await userEvent.click(screen.getByRole('button', { name: /Masuk dengan email/ }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Terlalu banyak');
@@ -181,7 +181,7 @@ describe('identity UI', () => {
         })}
       />,
     );
-    await userEvent.type(screen.getByLabelText('Email'), 'owner@example.test');
+    await userEvent.type(screen.getByLabelText(/Email/i), 'owner@example.test');
     await userEvent.type(screen.getByLabelText('Password'), 'correct-password-123');
     await userEvent.click(screen.getByRole('button', { name: /Masuk dengan email/ }));
     expect(await screen.findByRole('alert')).toHaveTextContent(

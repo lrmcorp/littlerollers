@@ -22,6 +22,7 @@ interface InstructorBreakdown {
   totalHours: number;
   totalFeeRp: number;
   unverifiedClassCount: number;
+  unconfiguredFeeClassCount?: number;
 }
 
 interface PerformanceData {
@@ -36,6 +37,8 @@ interface PerformanceData {
   totalInstructorFeeRp: number;
   totalUnverifiedFeeRp: number;
   unverifiedClassCount: number;
+  unconfiguredClassCount?: number;
+  instructorFeeMissing?: boolean;
   estimatedProfitRp: number;
   instructorCount: number;
   totalClassHours: number;
@@ -159,6 +162,18 @@ export function OwnerBranchPerformanceView() {
         </div>
       )}
 
+      {data?.instructorFeeMissing && (
+        <div className="rounded-dd-lg border border-dd-brass/40 bg-dd-warning-soft/80 p-4 text-sm font-medium text-dd-ink shadow-dd-card">
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-dd-forest">Perhatian Operasional:</span>
+            <span className="text-dd-ink">Sebagian atau seluruh tarif honor instruktur belum dikonfigurasi di Master Data ({data.unconfiguredClassCount ?? 0} kelas).</span>
+          </div>
+          <p className="mt-1 text-xs text-dd-muted">
+            Biaya instruktur menggunakan estimasi tarif standar. Mohon lengkapi data tarif pada menu Master Data agar angka pengeluaran dan estimasi profit akurat.
+          </p>
+        </div>
+      )}
+
       {/* Ringkasan Finansial */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
@@ -170,11 +185,13 @@ export function OwnerBranchPerformanceView() {
           label="Biaya Instruktur (Aktual)"
           value={formatRupiah(data?.totalInstructorFeeRp ?? 0)}
           helper={
-            data && data.unverifiedClassCount > 0
-              ? `${data.unverifiedClassCount} kelas (${formatRupiah(data.totalUnverifiedFeeRp)}) belum terverifikasi presensi`
-              : undefined
+            data?.instructorFeeMissing
+              ? `Tarif belum diset (${data.unconfiguredClassCount ?? 0} kelas butuh konfigurasi)`
+              : data && data.unverifiedClassCount > 0
+                ? `${data.unverifiedClassCount} kelas (${formatRupiah(data.totalUnverifiedFeeRp)}) belum terverifikasi presensi`
+                : undefined
           }
-          tone={data && data.unverifiedClassCount > 0 ? 'warning' : 'neutral'}
+          tone={data?.instructorFeeMissing ? 'warning' : data && data.unverifiedClassCount > 0 ? 'warning' : 'neutral'}
         />
         <StatCard
           label="Biaya Operasional Lain"
@@ -184,7 +201,8 @@ export function OwnerBranchPerformanceView() {
         <StatCard
           label="Estimasi Profit"
           value={formatRupiah(data?.estimatedProfitRp ?? 0)}
-          tone={(data?.estimatedProfitRp ?? 0) >= 0 ? 'success' : 'danger'}
+          helper={data?.instructorFeeMissing ? 'Estimasi belum final (beban tarif belum lengkap)' : undefined}
+          tone={data?.instructorFeeMissing ? 'neutral' : (data?.estimatedProfitRp ?? 0) >= 0 ? 'success' : 'danger'}
         />
       </div>
 
@@ -258,6 +276,11 @@ export function OwnerBranchPerformanceView() {
               cell: (item: InstructorBreakdown) => (
                 <div>
                   <div className="font-bold text-dd-forest">{formatRupiah(item.totalFeeRp)}</div>
+                  {item.unconfiguredFeeClassCount && item.unconfiguredFeeClassCount > 0 ? (
+                    <div className="text-xs font-semibold text-dd-brass">
+                      {item.unconfiguredFeeClassCount} kelas tarif belum diset
+                    </div>
+                  ) : null}
                   {item.unverifiedClassCount > 0 && (
                     <div className="text-xs font-semibold text-dd-warning">
                       {item.unverifiedClassCount} kelas belum terverifikasi

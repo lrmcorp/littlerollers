@@ -267,7 +267,7 @@ export function UserDetailView({
               <DetailItem label="Nama tampilan" value={user.displayName} />
               <DetailItem label="Kontak" value={maskPhone(user.phoneE164)} />
               <DetailItem label="Status" value={statusLabels[user.status]} />
-              <DetailItem label="Versi data" value={`v${user.version}`} />
+              <DetailItem label="Revisi data" value={`v${user.version}`} />
               <DetailItem label="Dibuat" value={new Date(user.createdAt).toLocaleString('id-ID')} />
               <DetailItem
                 label="Diperbarui"
@@ -283,7 +283,7 @@ export function UserDetailView({
                   Peran &amp; Cabang
                 </h2>
                 <p className="mt-1 text-sm text-dd-muted">
-                  Role langsung dapat dikelola; role assignment mengikuti periode penugasan.
+                  Peran utama dapat diubah langsung; penugasan operasional mengikuti jadwal cabang.
                 </p>
               </div>
               <ButtonLink variant="secondary" size="sm" href="/users/roles-permissions">
@@ -487,7 +487,7 @@ export function UserDetailView({
               <Badge tone={user.status === 'ACTIVE' ? 'success' : 'neutral'}>
                 {user.status === 'ACTIVE' ? 'Login diizinkan' : 'Login tidak aktif'}
               </Badge>
-              <Badge tone="info">Versi data {user.version}</Badge>
+              <Badge tone="info">Revisi data v{user.version}</Badge>
             </div>
           </Panel>
         </div>

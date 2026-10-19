@@ -18,11 +18,19 @@ function principal(capabilities: string[], branchIds: string[]) {
 function createService(rows: Array<{ id: string }> = [], totalCount = 6) {
   const findMany = jest.fn().mockResolvedValue(rows);
   const count = jest.fn().mockResolvedValue(totalCount);
-  const groupBy = jest.fn().mockResolvedValue([
-    { status: 'BOOKED', _count: { _all: 3 } },
-    { status: 'ATTENDED', _count: { _all: 2 } },
-    { status: 'CANCELLED', _count: { _all: 1 } },
-  ]);
+  const groupBy = jest.fn().mockImplementation(() => {
+    if (totalCount === 15) {
+      return Promise.resolve([
+        { status: 'BOOKED', _count: { _all: 8 } },
+        { status: 'ATTENDED', _count: { _all: 7 } },
+      ]);
+    }
+    return Promise.resolve([
+      { status: 'BOOKED', _count: { _all: 3 } },
+      { status: 'ATTENDED', _count: { _all: 2 } },
+      { status: 'CANCELLED', _count: { _all: 1 } },
+    ]);
+  });
   const ubahJadwalCount = jest.fn().mockResolvedValue(4);
   const db = {
     pemesananKelas: { findMany, groupBy, count },
@@ -50,7 +58,7 @@ describe('staff booking list authorization and scope', () => {
   it('limits branch-scoped staff to their branches', async () => {
     const { service, findMany } = createService();
     await service.list(principal(['booking:read'], [branchA]), {});
-    expect(findMany.mock.calls[0]![0].where.classSlot).toEqual({ branchId: { in: [branchA] } });
+    expect(findMany.mock.calls[0]![0].where.branchId).toEqual({ in: [branchA] });
   });
 
   it('hides other branches from branch-scoped staff', async () => {
@@ -63,9 +71,9 @@ describe('staff booking list authorization and scope', () => {
   it('allows global staff to read any branch without a branch filter', async () => {
     const { service, findMany } = createService();
     await service.list(principal(['booking:read', 'branch:all'], []), {});
-    expect(findMany.mock.calls[0]![0].where.classSlot).toBeUndefined();
+    expect(findMany.mock.calls[0]![0].where.branchId).toBeUndefined();
     await service.list(principal(['booking:read', 'branch:all'], []), { branchId: branchB });
-    expect(findMany.mock.calls[1]![0].where.classSlot).toEqual({ branchId: branchB });
+    expect(findMany.mock.calls[1]![0].where.branchId).toEqual(branchB);
   });
 
   it('rejects malformed cursors', async () => {

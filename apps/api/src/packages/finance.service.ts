@@ -179,6 +179,11 @@ export class FinanceService {
       (sum, item) => sum + item.unverifiedClassCount,
       0,
     );
+    const unconfiguredClassCount = instructorBreakdown.reduce(
+      (sum, item) => sum + item.unconfiguredFeeClassCount,
+      0,
+    );
+    const instructorFeeMissing = slots.length > 0 && (fees.length === 0 || unconfiguredClassCount > 0);
 
     return {
       period,
@@ -187,6 +192,8 @@ export class FinanceService {
       totalVerifiedFeeRp: totalInstructorCostRp - totalUnverifiedFeeRp,
       totalUnverifiedFeeRp,
       unverifiedClassCount,
+      unconfiguredClassCount,
+      instructorFeeMissing,
       totalTeachingHours,
       instructorCount: instructorBreakdown.length,
       instructors: instructorBreakdown,
@@ -1266,6 +1273,12 @@ export class FinanceService {
       0,
     );
 
+    const totalUnconfiguredClassCount = instructorBreakdown.reduce(
+      (sum, item) => sum + item.unconfiguredFeeClassCount,
+      0,
+    );
+    const instructorFeeMissing = slots.length > 0 && (fees.length === 0 || totalUnconfiguredClassCount > 0);
+
     return {
       branch: {
         id: branch.id,
@@ -1281,6 +1294,8 @@ export class FinanceService {
         (sum, item) => sum + item.unverifiedClassCount,
         0,
       ),
+      unconfiguredClassCount: totalUnconfiguredClassCount,
+      instructorFeeMissing,
       estimatedProfitRp,
       instructorCount: instructorBreakdown.length,
       totalClassHours: instructorBreakdown.reduce((sum, item) => sum + item.totalHours, 0),

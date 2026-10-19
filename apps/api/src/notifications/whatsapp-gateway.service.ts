@@ -56,6 +56,9 @@ export class OfficialWhatsAppProvider implements WhatsAppProvider {
   async sendMessage(to: string, text: string, _payload?: Record<string, any>) {
     try {
       const cleanPhone = to.replace(/\D/g, '');
+      if (!cleanPhone || cleanPhone.length < 8) {
+        return { success: false, error: 'Nomor telepon tujuan tidak valid' };
+      }
       const response = await fetch(`${this.apiUrl}/${this.phoneNumberId}/messages`, {
         method: 'POST',
         headers: {
@@ -132,12 +135,26 @@ export class WhatsAppGatewayService {
   /**
    * Normalisasi nomor telepon ke format E.164 Indonesia (+62)
    */
-  normalizePhone(phone: string): string {
-    const digits = phone.trim().replace(/[^0-9+]/g, '');
-    if (digits.startsWith('+')) return digits;
-    if (digits.startsWith('62')) return `+${digits}`;
-    if (digits.startsWith('0')) return `+62${digits.slice(1)}`;
-    return `+${digits}`;
+  normalizePhone(phone: string | null | undefined): string {
+    if (!phone || typeof phone !== 'string') return '';
+    const trimmed = phone.trim();
+    if (!trimmed) return '';
+    const digitsOnly = trimmed.replace(/\D/g, '');
+    if (!digitsOnly) return '';
+
+    if (trimmed.startsWith('+')) {
+      return `+${digitsOnly}`;
+    }
+    if (digitsOnly.startsWith('62')) {
+      return `+${digitsOnly}`;
+    }
+    if (digitsOnly.startsWith('0')) {
+      return `+62${digitsOnly.slice(1)}`;
+    }
+    if (digitsOnly.startsWith('8')) {
+      return `+62${digitsOnly}`;
+    }
+    return `+${digitsOnly}`;
   }
 
   /**
@@ -147,6 +164,21 @@ export class WhatsAppGatewayService {
     const phone = this.normalizePhone(options.to);
     const dedupWindowMs = options.dedupWindowMs ?? 3 * 3_600_000; // Default 3 jam
     const now = options.sentAt ?? new Date();
+
+    // Validasi format nomor telepon dasar (E.164 minimal 8 digit)
+    if (!phone || phone.replace(/\D/g, '').length < 8) {
+      this.logger.warn(
+        `[INVALID_PHONE] Nomor telepon tujuan tidak valid: "${options.to}" untuk reminder ${options.reminderType}`,
+      );
+      return {
+        success: false,
+        provider: this.provider.name,
+        recipientPhone: phone || (typeof options.to === 'string' ? options.to : ''),
+        status: 'FAILED',
+        error: `Nomor telepon tujuan tidak valid: ${options.to}`,
+      };
+    }
+
     const flightKey = `${phone}:${options.reminderType}`;
 
     // 1. Idempotency Guard via In-Flight Lock & ReminderLog

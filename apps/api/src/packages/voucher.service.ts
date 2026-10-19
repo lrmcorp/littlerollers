@@ -144,7 +144,43 @@ export function calculateVoucherDiscount(input: {
     input.maxDiscountRp && input.maxDiscountRp > 0
       ? Math.min(raw, input.maxDiscountRp)
       : raw;
-  return Math.min(capped, Math.max(0, input.priceRp));
+  return Math.max(0, Math.min(capped, Math.max(0, input.priceRp)));
+}
+
+export type VoucherApplicabilityIssue =
+  | 'NOT_FOUND'
+  | 'INACTIVE'
+  | 'EXPIRED'
+  | 'MINIMUM_SPEND_NOT_MET'
+  | 'EXHAUSTED';
+
+export function checkVoucherApplicability(
+  voucher: {
+    active: boolean;
+    validUntil?: Date | string | null;
+    minSpendRp: number;
+    quota?: number | null;
+    usedCount: number;
+  } | null | undefined,
+  basisRp: number,
+  now: Date = new Date(),
+): { valid: true } | { valid: false; issue: VoucherApplicabilityIssue } {
+  if (!voucher) {
+    return { valid: false, issue: 'NOT_FOUND' };
+  }
+  if (!voucher.active) {
+    return { valid: false, issue: 'INACTIVE' };
+  }
+  if (voucher.validUntil && new Date(voucher.validUntil).getTime() <= now.getTime()) {
+    return { valid: false, issue: 'EXPIRED' };
+  }
+  if (basisRp < voucher.minSpendRp) {
+    return { valid: false, issue: 'MINIMUM_SPEND_NOT_MET' };
+  }
+  if (voucher.quota !== null && voucher.quota !== undefined && voucher.usedCount >= voucher.quota) {
+    return { valid: false, issue: 'EXHAUSTED' };
+  }
+  return { valid: true };
 }
 
 @Injectable()
@@ -522,19 +558,22 @@ export class VoucherService {
       where: { code },
     });
 
-    if (!existing) throw new ApiProblem('VOUCHER_INVALID', HttpStatus.UNPROCESSABLE_ENTITY);
-    if (!existing.active) throw new ApiProblem('VOUCHER_INACTIVE', HttpStatus.UNPROCESSABLE_ENTITY);
-    if (existing.validUntil && existing.validUntil <= now)
-      throw new ApiProblem('VOUCHER_EXPIRED', HttpStatus.UNPROCESSABLE_ENTITY);
-
-    const voucher = existing;
-    // Voucher dihitung dari harga setelah promosi paket, sama seperti saat pesanan dibuat.
     const promoted = this.pricing.calculate(pkg.priceRp, await this.pricing.activePromotion(this.db, pkg.id));
     const baseRp = promoted.effectivePriceRp;
-    if (baseRp < voucher.minSpendRp)
-      throw new ApiProblem('VOUCHER_MINIMUM_NOT_MET', HttpStatus.UNPROCESSABLE_ENTITY);
-    if (voucher.quota !== null && voucher.usedCount >= voucher.quota)
-      throw new ApiProblem('VOUCHER_EXHAUSTED', HttpStatus.UNPROCESSABLE_ENTITY);
+
+    const check = checkVoucherApplicability(existing, baseRp, now);
+    if (!check.valid) {
+      const codeMap: Record<VoucherApplicabilityIssue, string> = {
+        NOT_FOUND: 'VOUCHER_INVALID',
+        INACTIVE: 'VOUCHER_INACTIVE',
+        EXPIRED: 'VOUCHER_EXPIRED',
+        MINIMUM_SPEND_NOT_MET: 'VOUCHER_MINIMUM_NOT_MET',
+        EXHAUSTED: 'VOUCHER_EXHAUSTED',
+      };
+      throw new ApiProblem(codeMap[check.issue], HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
+    const voucher = existing!;
 
     const discountRp = calculateVoucherDiscount({
       priceRp: baseRp,

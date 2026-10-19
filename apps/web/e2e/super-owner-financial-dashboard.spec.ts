@@ -50,13 +50,13 @@ function overview(branchId?: string) {
       jobHealth: true,
     },
     metrics: [
-      { key: 'grossSales', label: 'Gross sales', value: revenue, unit: 'IDR', changePercent: 0 },
+      { key: 'grossSales', label: 'Penjualan kotor', value: revenue, unit: 'IDR', changePercent: 0 },
       { key: 'revenue', label: 'Omzet bersih', value: revenue, unit: 'IDR', changePercent: 0 },
-      { key: 'projection', label: 'Projection cost', value: projection, unit: 'IDR' },
+      { key: 'projection', label: 'Proyeksi beban', value: projection, unit: 'IDR' },
       { key: 'instructor', label: 'Pendapatan instruktur', value: instructor, unit: 'IDR' },
       { key: 'otherCost', label: 'Pengeluaran lain', value: other, unit: 'IDR' },
       { key: 'profit', label: 'Profit operasional', value: profit, unit: 'IDR', changePercent: 0 },
-      { key: 'correction', label: 'Correction', value: 25_000, unit: 'IDR' },
+      { key: 'correction', label: 'Koreksi (terpisah)', value: 25_000, unit: 'IDR' },
     ],
     queues: [],
     trend: [

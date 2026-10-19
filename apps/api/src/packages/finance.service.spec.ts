@@ -451,6 +451,54 @@ describe('instructor honor is computed identically by every finance report', () 
     // 2 jam x 175.000 (fee cocok) x 2 kelas + 2 jam x 150.000 (fee bawaan)
     expect(realtime.totalInstructorCostRp).toBe(2 * 350_000 + 300_000);
     expect(realtime.instructors[0]?.unconfiguredFeeClassCount).toBe(1);
+    expect(realtime.unconfiguredClassCount).toBe(1);
+    expect(realtime.instructorFeeMissing).toBe(true);
+    expect(owner.unconfiguredClassCount).toBe(1);
+    expect(owner.instructorFeeMissing).toBe(true);
+  });
+
+  it('marks instructorFeeMissing as false when all classes have configured fees or no classes exist', async () => {
+    // Kasus 1: Tidak ada kelas
+    const emptyDb = {
+      ...db,
+      slotKelas: { findMany: jest.fn().mockResolvedValue([]) },
+    };
+    const emptyService = new FinanceService(emptyDb as never, new PolicyService(), { catat: jest.fn() } as never);
+    const emptyReport = await emptyService.ownerBranchPerformance(superOwner, {
+      branchId: branchA,
+      period: '2026-09',
+    });
+    expect(emptyReport.instructorFeeMissing).toBe(false);
+    expect(emptyReport.unconfiguredClassCount).toBe(0);
+
+    // Kasus 2: Semua kelas memiliki tarif yang cocok
+    const configuredFees = [
+      {
+        instructorId: coach.id,
+        branchId: branchA,
+        classTypeId: id(400),
+        effectiveDate: new Date('2026-01-01T00:00:00.000Z'),
+        feePerJamRp: 175_000,
+      },
+      {
+        instructorId: coach.id,
+        branchId: branchA,
+        classTypeId: id(401),
+        effectiveDate: new Date('2026-01-01T00:00:00.000Z'),
+        feePerJamRp: 200_000,
+      },
+    ];
+    const fullDb = {
+      ...db,
+      instructorFee: { findMany: jest.fn().mockResolvedValue(configuredFees) },
+    };
+    const fullService = new FinanceService(fullDb as never, new PolicyService(), { catat: jest.fn() } as never);
+    const fullReport = await fullService.ownerBranchPerformance(superOwner, {
+      branchId: branchA,
+      period: '2026-09',
+    });
+    expect(fullReport.instructorFeeMissing).toBe(false);
+    expect(fullReport.unconfiguredClassCount).toBe(0);
   });
 });
 

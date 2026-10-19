@@ -708,17 +708,30 @@ export function BookingView({
         title="Batalkan booking pelanggan?"
         description={
           cancelTarget
-            ? `${cancelTarget.customer?.displayName ?? 'Pelanggan'} · ${cancelTarget.classSlot?.classType.name ?? 'Kelas'}. Kursi kembali tersedia dan sesi tidak terpotong. Pembatalan kurang dari H-24 tidak diizinkan; gunakan Penyesuaian Sesi.`
+            ? `Pemesanan #${cancelTarget.bookingNumber || cancelTarget.id.slice(0, 8)} · ${cancelTarget.customer?.displayName ?? 'Pelanggan'} · ${cancelTarget.classSlot?.classType.name ?? 'Kelas'}`
             : undefined
         }
         label="Alasan pembatalan"
         confirmLabel="Batalkan booking"
         tone="danger"
+        minLength={10}
+        maxLength={200}
         busy={busy}
         error={cancelError}
         onCancel={() => setCancelTarget(null)}
         onConfirm={(reason) => void cancelBooking(reason)}
-      />
+      >
+        <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-3.5 space-y-2 text-xs">
+          <strong className="block text-xs font-bold text-amber-900 uppercase tracking-wider">
+            Rincian Dampak Operasional:
+          </strong>
+          <ul className="list-disc pl-4 space-y-1 text-amber-800">
+            <li>1 sesi kuota dikembalikan ke paket aktif pelanggan.</li>
+            <li>1 kursi kuota kelas langsung dibuka kembali untuk pemesanan lain.</li>
+            <li>Aksi ini dicatat permanen dalam jejak audit beserta identitas staf dan timestamp.</li>
+          </ul>
+        </div>
+      </ReasonDialog>
       <Modal
         open={pickBranchOpen}
         title="Pilih cabang"

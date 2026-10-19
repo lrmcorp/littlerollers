@@ -93,7 +93,7 @@ async function main() {
 
     // 2. Nonaktifkan penugasan instruktur dummy
     const assignmentResult = await prisma.penugasanInstruktur.updateMany({
-      where: { instructorId: { in: userIds }, active: true },
+      where: { coachId: { in: userIds }, active: true },
       data: { active: false },
     });
     deactivatedAssignmentsCount = assignmentResult.count;

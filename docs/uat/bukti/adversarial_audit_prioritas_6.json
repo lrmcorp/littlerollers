@@ -1,0 +1,50 @@
+[
+  {
+    "code": "ADV-6.1",
+    "name": "Standardisasi Label Metrik Finansial API Dashboard (Penjualan kotor, Proyeksi beban, Koreksi)",
+    "phase": "FASE 6",
+    "passed": true,
+    "message": "Metrik API 100% menggunakan bahasa Indonesia baku; 0 istilah Gross sales/Projection cost",
+    "durationMs": 296
+  },
+  {
+    "code": "ADV-6.2",
+    "name": "Integritas Data Master Cabang & Studio Real di Database MySQL",
+    "phase": "FASE 6",
+    "passed": true,
+    "message": "Ditemukan 5 cabang aktif (Daily Dose Green Garden, Daily Dose Muara Karang, Daily Dose Graha Family Surabaya, Daily Dose Untar Kampus 2, Daily Dose Orange Groves PIK 2) dan 13 area studio terhubung valid",
+    "durationMs": 21
+  },
+  {
+    "code": "ADV-6.3",
+    "name": "Live HTTP UAT: Halaman Lokasi (/locations) Bebas Jargon Bahasa Inggris \"Our Studios\"",
+    "phase": "FASE 6",
+    "passed": false,
+    "message": "HTTP 500, hasStudioKami=false, hasOurStudios=false",
+    "durationMs": 20049
+  },
+  {
+    "code": "ADV-6.4",
+    "name": "Live HTTP UAT: Halaman Beranda (/) Testimoni Otentik Member & Bebas Salah Kaprah Reformer",
+    "phase": "FASE 6",
+    "passed": true,
+    "message": "3 ulasan member otentik aktif terverifikasi; 0 instruksi keliru membawa reformer pribadi",
+    "durationMs": 7027
+  },
+  {
+    "code": "ADV-6.5",
+    "name": "Live HTTP UAT: Halaman Katalog Kelas (/classes) Bebas Kode ALL_LEVELS & Teks Prototyping",
+    "phase": "FASE 6",
+    "passed": true,
+    "message": "Katalog kelas merender level ramah pengguna (\"Semua Level\"); 0 catatan to-do developer",
+    "durationMs": 1933
+  },
+  {
+    "code": "ADV-6.6",
+    "name": "Live HTTP UAT: Panduan Pelanggan (/guide) 100% Bersih dari Jargon Staf Internal",
+    "phase": "FASE 6",
+    "passed": true,
+    "message": "Halaman panduan pelanggan 100% ramah publik; zero internal operational jargon leak",
+    "durationMs": 3803
+  }
+]

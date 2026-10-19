@@ -1,0 +1,50 @@
+[
+  {
+    "code": "ADV-8.1",
+    "name": "Integritas Data Master Instruktur, Penugasan Cabang & Tarif Honor",
+    "phase": "FASE 7 / PRIORITAS 8",
+    "passed": true,
+    "message": "Tervalidasi 141 penugasan instruktur dan 1650 aturan tarif honor aktif dengan relasi utuh",
+    "durationMs": 39
+  },
+  {
+    "code": "ADV-8.2",
+    "name": "Integritas Jejak Presensi Instruktur QR Tablet Studio di Real MySQL",
+    "phase": "FASE 7 / PRIORITAS 8",
+    "passed": true,
+    "message": "Tervalidasi 2 sampel riwayat presensi instruktur terbaru; seluruh relasi classSlot dan instructorId utuh",
+    "durationMs": 3
+  },
+  {
+    "code": "ADV-8.3",
+    "name": "Live HTTP UAT: Laporan Biaya Honor Instruktur Realtime (/finance/reports/instructor-cost-realtime)",
+    "phase": "FASE 7 / PRIORITAS 8",
+    "passed": true,
+    "message": "Endpoint laporan honor HTTP 200 OK. Total honor: Rp 300.000, Terverifikasi: Rp 300.000, Tanpa QR: Rp 0",
+    "durationMs": 72
+  },
+  {
+    "code": "ADV-8.4",
+    "name": "Audit Database Riil: Verifikasi Ketiadaan Anomali 25 Poin UAT (Zero-Regression)",
+    "phase": "FASE 7 / PRIORITAS 8",
+    "passed": true,
+    "message": "100% Zero-Regression terbukti: 0 slot mendatang overcapacity, 0 booking kembar mendatang, 0 akun dummy aktif, dan data cabang Surabaya akurat",
+    "durationMs": 113
+  },
+  {
+    "code": "ADV-8.5",
+    "name": "Live HTTP UAT: Health Probes & Proteksi Akses Endpoint Sistem",
+    "phase": "FASE 7 / PRIORITAS 8",
+    "passed": true,
+    "message": "API Health probe HTTP 200 (DEGRADED). Endpoint sensitif operations/health menolak request tanpa token dengan aman (HTTP 401)",
+    "durationMs": 4
+  },
+  {
+    "code": "ADV-8.6",
+    "name": "Live HTTP UAT: Rendering Halaman Publik & Ketiadaan Jargon Programmer",
+    "phase": "FASE 7 / PRIORITAS 8",
+    "passed": true,
+    "message": "Seluruh 4 rute publik merender HTTP 200 OK dan 100% bersih dari residu jargon teknis",
+    "durationMs": 238
+  }
+]

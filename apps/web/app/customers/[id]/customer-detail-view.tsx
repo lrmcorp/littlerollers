@@ -637,7 +637,7 @@ export function CustomerDetailView({ id }: { id: string }) {
               <div>
                 <h2 className="text-base font-bold text-dd-ink flex items-center gap-2">
                   <ShieldCheck className="size-5 text-dd-forest" />
-                  Dokumen Identitas (KYC)
+                  Verifikasi Dokumen Identitas (KTP / Paspor)
                 </h2>
                 <p className="mt-0.5 text-xs text-dd-muted">
                   KTP &amp; selfie terenkripsi. Staf dapat unggah berkas langsung.

@@ -222,7 +222,7 @@ export function messageForApiError(error: unknown): {
     ],
     CUSTOMER_VERIFICATION_REQUIRED: [
       'Verifikasi Identitas Diperlukan',
-      'Akun Anda belum lolos verifikasi identitas (KYC) resmi. Silakan lengkapi KTP dan selfie terlebih dahulu.',
+      'Akun Anda belum lolos verifikasi identitas resmi. Silakan lengkapi KTP dan foto selfie terlebih dahulu.',
     ],
     FORBIDDEN: ['Akses tidak tersedia', 'Akun Anda tidak memiliki izin untuk tindakan ini.'],
     UNAUTHORIZED: ['Sesi telah berakhir', 'Silakan masuk kembali untuk melanjutkan.'],

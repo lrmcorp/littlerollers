@@ -57,6 +57,7 @@ function setup(row = bookingRow()) {
       update: jest.fn().mockImplementation(async ({ data }) => ({ ...row, ...data, status: 'CANCELLED' })),
     },
     slotKelas: { update: jest.fn().mockResolvedValue({}) },
+    auditLog: { create: jest.fn().mockResolvedValue({}) },
   };
   const db = { pemesananKelas: { findFirst: jest.fn().mockResolvedValue(row) } };
   const idempotency = {
@@ -83,9 +84,9 @@ describe('staff cancelling a booking on behalf of a customer', () => {
     expect(tx.pemesananKelas.update).not.toHaveBeenCalled();
   });
 
-  it('requires a written reason from staff', async () => {
+  it('requires a written reason from staff (min 10 characters, max 200 characters)', async () => {
     const { service, tx } = setup();
-    for (const reason of [undefined, '  ', 'ab', 'x'.repeat(201)])
+    for (const reason of [undefined, '  ', 'ab', '123456789', '   12345   ', 'x'.repeat(201)])
       await expect(
         service.cancel(admin, bookingId, command(reason), 'k', 'c'),
       ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
@@ -116,6 +117,17 @@ describe('staff cancelling a booking on behalf of a customer', () => {
       where: { id: id(20) },
       data: { bookedCount: { decrement: 1 } },
     });
+    expect(tx.auditLog.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          action: 'booking.cancelled_by_staff',
+          actorId: admin.userId,
+          targetUserId: id(300),
+          branchId: branchA,
+          reason: 'Dibatalkan staf: Pelanggan sakit',
+        }),
+      }),
+    );
     expect(result).toMatchObject({ status: 200, body: { status: 'CANCELLED' } });
   });
 

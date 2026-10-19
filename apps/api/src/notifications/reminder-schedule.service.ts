@@ -199,6 +199,7 @@ export class ReminderScheduleService {
       }
 
       const cleanPhone = this.whatsapp.normalizePhone(user.phone);
+      if (!cleanPhone) continue;
 
       // Hitung riwayat pengiriman reminder renew dari ReminderLog
       const sentHistory = await this.db.reminderLog.findMany({

@@ -1117,7 +1117,7 @@ export function LedgerView({
         title={isDirect ? 'Penyesuaian sesi langsung (Manager/Owner)' : 'Buat permintaan penyesuaian'}
         description={
           isDirect
-            ? 'Penyesuaian sesi akan langsung dimutasi ke buku besar (SessionLedger) secara instan tanpa perlu persetujuan lain.'
+            ? 'Penyesuaian sesi akan langsung diterapkan ke saldo sesi member secara instan tanpa perlu persetujuan lain.'
             : 'Permintaan koreksi sesi akan diajukan ke manajer/staf berwenang untuk disetujui.'
         }
         busy={mutationLoading}

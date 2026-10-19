@@ -212,8 +212,37 @@ describe('assisted (walk-in) package sale', () => {
     const missing = setup({ voucher: null });
     await expect(
       missing.service.recordAssistedSale(admin, input({ voucherCode: 'NGAWUR' }), 'key-12345', 'c'),
-    ).rejects.toMatchObject({ code: 'VOUCHER_NOT_APPLICABLE' });
+    ).rejects.toMatchObject({
+      code: 'VOUCHER_NOT_APPLICABLE',
+      details: [{ field: 'voucherCode', issue: 'NOT_FOUND' }],
+    });
     expect(missing.created).toHaveLength(0);
+
+    const inactive = setup({ voucher: { ...voucher, active: false } });
+    await expect(
+      inactive.service.recordAssistedSale(admin, input({ voucherCode: 'HEMAT' }), 'key-12345', 'c'),
+    ).rejects.toMatchObject({
+      code: 'VOUCHER_NOT_APPLICABLE',
+      details: [{ field: 'voucherCode', issue: 'INACTIVE' }],
+    });
+
+    const expired = setup({
+      voucher: { ...voucher, validUntil: new Date('2020-01-01T00:00:00.000Z') },
+    });
+    await expect(
+      expired.service.recordAssistedSale(admin, input({ voucherCode: 'HEMAT' }), 'key-12345', 'c'),
+    ).rejects.toMatchObject({
+      code: 'VOUCHER_NOT_APPLICABLE',
+      details: [{ field: 'voucherCode', issue: 'EXPIRED' }],
+    });
+
+    const exhausted = setup({ voucher: { ...voucher, quota: 5, usedCount: 5 } });
+    await expect(
+      exhausted.service.recordAssistedSale(admin, input({ voucherCode: 'HEMAT' }), 'key-12345', 'c'),
+    ).rejects.toMatchObject({
+      code: 'VOUCHER_NOT_APPLICABLE',
+      details: [{ field: 'voucherCode', issue: 'EXHAUSTED' }],
+    });
   });
 });
 
@@ -373,6 +402,9 @@ describe('assisted sale with a live package promotion', () => {
     const minimum = setup({ promotion, voucher: { ...voucher, minSpendRp: 950_000 } });
     await expect(
       minimum.service.recordAssistedSale(admin, input({ voucherCode: 'HEMAT' }), 'key-12345', 'c'),
-    ).rejects.toMatchObject({ code: 'VOUCHER_NOT_APPLICABLE' });
+    ).rejects.toMatchObject({
+      code: 'VOUCHER_NOT_APPLICABLE',
+      details: [{ field: 'voucherCode', issue: 'MINIMUM_SPEND_NOT_MET' }],
+    });
   });
 });

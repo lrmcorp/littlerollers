@@ -154,7 +154,6 @@ export function CreatePanel({
         options={branchClassTypes.map((item) => ({
           id: item.id,
           label: item.name,
-          description: item.code,
         }))}
       />
       <SearchSelect
@@ -163,11 +162,14 @@ export function CreatePanel({
         required
         value={studioId}
         placeholder={branchStudios.length ? 'Pilih area studio' : 'Tidak ada studio di cabang ini'}
-        options={branchStudios.map((item) => ({
-          id: item.id,
-          label: item.name,
-          description: item.code,
-        }))}
+        options={branchStudios.map((item) => {
+          const b = branches?.find((br) => br.id === item.branchId);
+          return {
+            id: item.id,
+            label: item.name,
+            description: b ? `Cabang ${b.name}` : undefined,
+          };
+        })}
         onChange={setStudioId}
       />
       {branchStudios.length === 0 && (

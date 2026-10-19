@@ -364,13 +364,15 @@ export function SessionProvider({
     if (status === 'authenticated' && session && !publicRoute && !allowed) router.replace(fallback);
   }, [allowed, fallback, publicRoute, router, session, status]);
 
+  const isProtected = isRecognizedProtectedPath(pathname);
+
   return (
     <SessionContext.Provider value={value}>
-      {!publicRoute && status === 'loading' ? (
+      {isProtected && status === 'loading' ? (
         <main className="mx-auto w-full max-w-3xl px-4 py-10 sm:px-6">
           <Skeleton label="Memuat sesi" />
         </main>
-      ) : !publicRoute && status === 'dependency-error' ? (
+      ) : isProtected && status === 'dependency-error' ? (
         <main className="mx-auto w-full max-w-3xl space-y-4 px-4 py-10 sm:px-6">
           <Feedback kind="error">
             Konteks sesi tidak dapat dimuat. Layanan sedang mengalami gangguan sementara atau pembaruan sistem.
@@ -395,7 +397,7 @@ export function SessionProvider({
             </ButtonLink>
           </ActionGroup>
         </main>
-      ) : !publicRoute && status !== 'authenticated' && isRecognizedProtectedPath(pathname) ? (
+      ) : isProtected && status !== 'authenticated' ? (
         <main className="mx-auto w-full max-w-3xl px-4 py-10 sm:px-6">
           <Skeleton label="Mengarahkan ke halaman masuk" />
         </main>

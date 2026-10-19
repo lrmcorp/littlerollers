@@ -364,21 +364,27 @@ export class DashboardService {
     const previousUntilDate = dateShift(fromDate, -1);
     const previousFromDate = dateShift(previousUntilDate, -(dayCount - 1));
 
-    const slotCurrentScopes = allowedBranches.map((branch) => ({
-      branchId: branch.id,
-      startAt: {
-        gte: startOfLocalDateUtc(fromDate, branch.timezone),
-        lt: startOfLocalDateUtc(dateShift(untilDate, 1), branch.timezone),
-      },
-    }));
+    const slotCurrentScopes = allowedBranches.map((branch) => {
+      const branchTz = branch.timezone?.trim() || 'Asia/Jakarta';
+      return {
+        branchId: branch.id,
+        startAt: {
+          gte: startOfLocalDateUtc(fromDate, branchTz),
+          lt: startOfLocalDateUtc(dateShift(untilDate, 1), branchTz),
+        },
+      };
+    });
 
-    const slotPreviousScopes = allowedBranches.map((branch) => ({
-      branchId: branch.id,
-      startAt: {
-        gte: startOfLocalDateUtc(previousFromDate, branch.timezone),
-        lt: startOfLocalDateUtc(fromDate, branch.timezone),
-      },
-    }));
+    const slotPreviousScopes = allowedBranches.map((branch) => {
+      const branchTz = branch.timezone?.trim() || 'Asia/Jakarta';
+      return {
+        branchId: branch.id,
+        startAt: {
+          gte: startOfLocalDateUtc(previousFromDate, branchTz),
+          lt: startOfLocalDateUtc(fromDate, branchTz),
+        },
+      };
+    });
 
     const [
       financial,
@@ -497,10 +503,19 @@ export class DashboardService {
 
     const branchPerformance = await Promise.all(
       allowedBranches.map(async (branch) => {
-        const branchFinancial = financial.branches.find((item) => item.branchId === branch.id)!;
+        const branchTz = branch.timezone?.trim() || 'Asia/Jakarta';
+        const branchFinancial = financial.branches.find((item) => item.branchId === branch.id) ?? {
+          branchId: branch.id,
+          grossSalesRp: 0,
+          revenueRp: 0,
+          projectionRp: 0,
+          instructorRealtimeRp: 0,
+          otherCostRp: 0,
+          profitRp: 0,
+        };
         const branchRange = {
-          gte: startOfLocalDateUtc(fromDate, branch.timezone),
-          lt: startOfLocalDateUtc(dateShift(untilDate, 1), branch.timezone),
+          gte: startOfLocalDateUtc(fromDate, branchTz),
+          lt: startOfLocalDateUtc(dateShift(untilDate, 1), branchTz),
         };
         const [branchSlotAgg, branchBookings] = await Promise.all([
           typeof this.db.slotKelas.aggregate === 'function'
@@ -568,7 +583,7 @@ export class DashboardService {
     const allMetrics = [
       {
         key: 'gross-sales',
-        label: 'Gross sales',
+        label: 'Penjualan kotor',
         value: financial.totals.grossSalesRp,
         unit: 'IDR',
         changePercent: percentChange(
@@ -585,7 +600,7 @@ export class DashboardService {
       },
       {
         key: 'projection',
-        label: 'Projection cost',
+        label: 'Proyeksi beban',
         value: financial.totals.projectionRp,
         unit: 'IDR',
         changePercent: percentChange(
@@ -622,7 +637,7 @@ export class DashboardService {
       },
       {
         key: 'correction',
-        label: 'Correction (terpisah)',
+        label: 'Koreksi (terpisah)',
         value: financial.totals.correctionRp,
         unit: 'IDR',
         changePercent: null,
@@ -678,6 +693,7 @@ export class DashboardService {
         'instructor-realtime',
         'other-cost',
         'profit',
+        'correction',
         'pending-payments',
         'finance-anomalies',
         'bookings',
@@ -694,6 +710,7 @@ export class DashboardService {
         'instructor-realtime',
         'other-cost',
         'profit',
+        'correction',
         'pending-payments',
         'finance-anomalies',
       ],

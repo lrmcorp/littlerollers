@@ -325,7 +325,7 @@ export function ProfileView() {
               {isVerified ? 'Disetujui' : 'Cek Status'}
             </StatusBadge>
           </div>
-          <strong className="mt-3 block text-sm font-semibold text-dd-ink">Verifikasi KYC</strong>
+          <strong className="mt-3 block text-sm font-semibold text-dd-ink">Verifikasi Identitas Akun</strong>
           <p className="mt-1 text-xs text-dd-muted">Dokumen identitas resmi & selfie akun.</p>
         </Link>
 

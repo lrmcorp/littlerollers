@@ -995,23 +995,38 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
                 {
                   id: 'branch',
                   header: 'Studio/Cabang',
-                  cell: (item: any) => item.branchCode ?? '—',
+                  cell: (item: any) =>
+                    branches.find((b) => b.code === item.branchCode)?.name || item.branchCode || '—',
                 },
                 {
                   id: 'severity',
-                  header: 'Severity',
+                  header: 'Tingkat Urgensi',
                   cell: (item: any) => (
                     <Badge tone={item.severity === 'ERROR' ? 'danger' : 'warning'}>
-                      {item.severity}
+                      {item.severity === 'ERROR'
+                        ? 'Kritis'
+                        : item.severity === 'WARNING'
+                          ? 'Peringatan'
+                          : item.severity}
                     </Badge>
                   ),
                 },
                 {
                   id: 'code',
                   header: 'Jenis Anomali',
-                  cell: (item: any) => (
-                    <span className="font-mono text-xs">{item.code}</span>
-                  ),
+                  cell: (item: any) => {
+                    const anomalyNames: Record<string, string> = {
+                      VERIFIKASI_TERTAHAN: 'Verifikasi Tertahan (> 24 Jam)',
+                      UNMATCHED_MUTATION: 'Mutasi Belum Cocok',
+                      OVERPAID: 'Kelebihan Bayar',
+                      UNDERPAID: 'Kekurangan Bayar',
+                    };
+                    return (
+                      <span className="text-xs font-medium text-dd-ink">
+                        {anomalyNames[item.code] || item.code}
+                      </span>
+                    );
+                  },
                 },
                 {
                   id: 'amount',

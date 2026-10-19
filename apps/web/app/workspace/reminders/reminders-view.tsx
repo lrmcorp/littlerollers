@@ -207,31 +207,42 @@ export function RemindersView() {
             >
               Segarkan
             </Button>
-            {canRun && (
-              <>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={handleTriggerAutoCancel}
-                  disabled={executingAutoCancel}
-                  leadingIcon={<Play className="size-4 text-dd-warning" />}
-                >
-                  {executingAutoCancel ? 'Mengevaluasi...' : 'Jalankan Auto-Cancel H-24'}
-                </Button>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={handleTriggerBatchReminders}
-                  disabled={executingReminders}
-                  leadingIcon={<Send className="size-4" />}
-                >
-                  {executingReminders ? 'Mengirim...' : 'Jalankan Reminder Batch'}
-                </Button>
-              </>
-            )}
           </div>
         }
       />
+
+      {canRun && (
+        <Panel className="border-l-4 border-l-dd-warning p-4 bg-amber-50/40">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h3 className="text-sm font-bold text-dd-ink">Pusat Tindakan &amp; Otomasi Operasional</h3>
+              <p className="text-xs text-dd-muted mt-0.5">
+                Tindakan berisiko tinggi yang mengevaluasi kuota kelas H-24 dan antrean notifikasi WhatsApp pelanggan.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleTriggerAutoCancel}
+                disabled={executingAutoCancel}
+                leadingIcon={<Play className="size-4 text-dd-warning" />}
+              >
+                {executingAutoCancel ? 'Mengevaluasi...' : 'Jalankan Auto-Cancel H-24'}
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleTriggerBatchReminders}
+                disabled={executingReminders}
+                leadingIcon={<Send className="size-4" />}
+              >
+                {executingReminders ? 'Mengirim...' : 'Jalankan Reminder Batch'}
+              </Button>
+            </div>
+          </div>
+        </Panel>
+      )}
 
       {mockProvider && (
         <Feedback kind="warning">
@@ -265,8 +276,8 @@ export function RemindersView() {
           tone="info"
         />
         <StatCard
-          label="Proteksi Idempotensi"
-          value="Aktif (ReminderLog)"
+          label="Pencegahan Pesan Duplikat"
+          value="Aktif (Zero Duplikasi)"
           tone="success"
         />
       </div>
@@ -274,7 +285,7 @@ export function RemindersView() {
       {/* Filter & Kontrol Pencarian */}
       <Panel className="p-5">
         <div className="mb-4">
-          <h2 className="text-base font-semibold text-dd-ink">Riwayat Pengiriman WhatsApp & Idempotency Audit</h2>
+          <h2 className="text-base font-semibold text-dd-ink">Riwayat Pengiriman Notifikasi WhatsApp</h2>
           <p className="text-xs text-dd-muted">Seluruh pengiriman pesan dicatat dengan status pengiriman dan timestamp untuk menjamin nol pesan ganda.</p>
         </div>
 
@@ -315,8 +326,8 @@ export function RemindersView() {
               className="rounded-md border border-dd-line bg-white px-3 py-1.5 text-sm outline-none focus:border-dd-forest"
             >
               <option value="ALL">Semua Status</option>
-              <option value="SENT">Terkirim (SENT)</option>
-              <option value="FAILED">Gagal (FAILED)</option>
+              <option value="SENT">Terkirim</option>
+              <option value="FAILED">Gagal</option>
             </select>
           </div>
         </FilterBar>
@@ -352,18 +363,31 @@ export function RemindersView() {
                 {
                   id: 'recipient',
                   header: 'Penerima',
-                  cell: (item) => (
-                    <div>
-                      <div className="font-medium text-dd-ink">{item.recipientPhone}</div>
-                      <div className="text-xs text-dd-muted">{item.recipientType}</div>
-                    </div>
-                  ),
+                  cell: (item) => {
+                    const typeLabelMap: Record<string, string> = {
+                      CUSTOMER: 'Pelanggan',
+                      INSTRUCTOR: 'Instruktur',
+                      ADMIN: 'Admin Cabang',
+                      OWNER: 'Owner Cabang',
+                      MANAGER: 'Manager Cabang',
+                      SUPER_OWNER: 'Super Owner',
+                    };
+                    const typeLabel = typeLabelMap[item.recipientType] || item.recipientType;
+                    return (
+                      <div>
+                        <div className="font-medium text-dd-ink">{item.recipientPhone}</div>
+                        <div className="text-xs text-dd-muted">{typeLabel}</div>
+                      </div>
+                    );
+                  },
                 },
                 {
                   id: 'reminderType',
                   header: 'Tipe Pengingat',
                   cell: (item) => {
                     const type = item.reminderType;
+                    const typeLabel =
+                      reminderTypeOptions.find((opt) => opt.value === type)?.label || type;
                     let tone: 'neutral' | 'warning' | 'danger' | 'info' | 'success' = 'neutral';
                     if (type.includes('AUTO_CANCEL')) tone = 'warning';
                     else if (type.includes('EXPIRY')) tone = 'info';
@@ -371,7 +395,7 @@ export function RemindersView() {
 
                     return (
                       <Badge tone={tone}>
-                        {type}
+                        {typeLabel}
                       </Badge>
                     );
                   },
@@ -379,11 +403,20 @@ export function RemindersView() {
                 {
                   id: 'status',
                   header: 'Status',
-                  cell: (item) => (
-                    <Badge tone={item.status === 'SENT' ? 'success' : 'danger'}>
-                      {item.status}
-                    </Badge>
-                  ),
+                  cell: (item) => {
+                    const status = item.status;
+                    const label =
+                      status === 'SENT'
+                        ? 'Terkirim'
+                        : status === 'FAILED'
+                        ? 'Gagal'
+                        : status === 'SKIPPED_DUPLICATE'
+                        ? 'Dilewati (Duplikat)'
+                        : status;
+                    const tone =
+                      status === 'SENT' ? 'success' : status === 'FAILED' ? 'danger' : 'neutral';
+                    return <Badge tone={tone}>{label}</Badge>;
+                  },
                 },
                 {
                   id: 'detail',

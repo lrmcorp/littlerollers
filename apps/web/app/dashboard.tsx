@@ -24,6 +24,7 @@ import {
   type DashboardOverview,
 } from '@/api-clients/dashboard-client';
 import { formatRupiah } from './lib/formatters';
+import { metricLabel } from './lib/audit-labels';
 import { iconForPage } from './lib/page-icons';
 import { timezoneLabel } from './classes/class-slot-presenters';
 
@@ -508,7 +509,7 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
             return (
               <StatCard
                 key={metric.key}
-                label={metric.label}
+                label={metricLabel(metric.key, metric.label)}
                 value={formattedValue}
                 change={isUnavailable ? undefined : (metric.changePercent ?? undefined)}
                 helper={helperText}

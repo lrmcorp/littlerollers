@@ -1,0 +1,50 @@
+[
+  {
+    "code": "ADV-7.1",
+    "name": "Integritas Log Pengiriman WhatsApp (ReminderLog) di Real MySQL",
+    "phase": "FASE 4 / PRIORITAS 7",
+    "passed": true,
+    "message": "Tervalidasi 78 total log pengingat di database; 50 log terbaru 100% berstatus valid dan berformat E.164 bersih",
+    "durationMs": 3428
+  },
+  {
+    "code": "ADV-7.2",
+    "name": "Integritas Konfigurasi Aturan Kuota Minimum Kelas (MinQuotaSetting)",
+    "phase": "FASE 4 / PRIORITAS 7",
+    "passed": true,
+    "message": "Tabel min_quota_setting menggunakan fallback dinamis aman (default minQuota=1, cutoffHours=24)",
+    "durationMs": 685
+  },
+  {
+    "code": "ADV-7.3",
+    "name": "Live HTTP UAT: Endpoint Ringkasan Pengingat API (/operations/reminders/summary)",
+    "phase": "FASE 4 / PRIORITAS 7",
+    "passed": true,
+    "message": "Endpoint summary HTTP 200 OK. Provider aktif: \"MOCK\", terkirim: 78, gagal: 0",
+    "durationMs": 7626
+  },
+  {
+    "code": "ADV-7.4",
+    "name": "Live HTTP UAT: Pencegahan Akses Pemicu Otomasi Tanpa Kredensial Resmi",
+    "phase": "FASE 4 / PRIORITAS 7",
+    "passed": true,
+    "message": "Kedua endpoint otomasi berisiko tinggi menolak request publik dengan aman (HTTP 401 & HTTP 401)",
+    "durationMs": 13
+  },
+  {
+    "code": "ADV-7.5",
+    "name": "Live HTTP UAT: Akses Halaman Monitoring Workspace (/workspace/reminders)",
+    "phase": "FASE 4 / PRIORITAS 7",
+    "passed": true,
+    "message": "Halaman /workspace/reminders merender HTTP 200 OK dan 100% bebas dari kebocoran teks programmer internal",
+    "durationMs": 26909
+  },
+  {
+    "code": "ADV-7.6",
+    "name": "Integritas Log Mutasi Sesi Pembatalan Otomatis (SessionLedger) di MySQL",
+    "phase": "FASE 4 / PRIORITAS 7",
+    "passed": true,
+    "message": "Tervalidasi 17 sampel mutasi saldo sesi terbaru; seluruh saldo balanceAfter >= 0 dan integritas paket pelanggan utuh",
+    "durationMs": 13956
+  }
+]
