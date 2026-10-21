@@ -380,6 +380,8 @@ export type InstructorCheckInResult = {
   success: boolean;
   classSlotId: string;
   checkedInAt: string;
+  distanceMeters?: number | null;
+  branchName?: string | null;
 };
 
 export interface BookingClient {
@@ -434,7 +436,11 @@ export interface BookingClient {
   }>;
   consumeCheckIn?(token: string, idempotencyKey: string): Promise<CheckInResult>;
   issueInstructorCheckIn?(classSlotId: string, idempotencyKey: string): Promise<InstructorCheckInIssue>;
-  consumeInstructorCheckIn?(token: string, idempotencyKey: string): Promise<InstructorCheckInResult>;
+  consumeInstructorCheckIn?(
+    token: string,
+    idempotencyKey: string,
+    location?: { latitude: number; longitude: number },
+  ): Promise<InstructorCheckInResult>;
   /** Pembatalan mandiri oleh pelanggan (Aturan Bisnis #6: batas H-24). */
   cancel?(bookingId: string, reason?: string, idempotencyKey?: string): Promise<void>;
   /** Pembatalan atas nama pelanggan oleh staf (Aturan Bisnis #6: batas H-24, alasan wajib). */
@@ -922,14 +928,18 @@ export const browserBookingClient: BookingClient = {
     if (!response.ok) throw { response };
     return response.json() as Promise<InstructorCheckInIssue>;
   },
-  async consumeInstructorCheckIn(token, idempotencyKey) {
+  async consumeInstructorCheckIn(token, idempotencyKey, location) {
     const response = await foregroundFetch(
       '/api/v1/check-ins/instructors',
       {
         method: 'POST',
         credentials: 'include',
         headers: { 'content-type': 'application/json', 'idempotency-key': idempotencyKey },
-        body: JSON.stringify({ token }),
+        body: JSON.stringify({
+          token,
+          latitude: location?.latitude,
+          longitude: location?.longitude,
+        }),
       },
       'Memproses presensi instruktur…',
     );
@@ -975,6 +985,10 @@ const messages: Record<string, string> = {
   INVALID_TOKEN: 'QR tidak dikenali. Minta staf studio menampilkan QR presensi terbaru.',
   TOKEN_ALREADY_USED: 'QR ini sudah dipakai atau sudah diganti. Minta staf studio menampilkan QR terbaru.',
   TOKEN_EXPIRED: 'QR sudah kedaluwarsa. Minta staf studio menampilkan QR terbaru.',
+  GEOLOCATION_REQUIRED:
+    'Akses lokasi (GPS) diperlukan untuk memvalidasi bahwa Anda berada di cabang tempat kelas berlangsung. Izinkan akses lokasi pada browser Anda.',
+  OUT_OF_GEOFENCE:
+    'Presensi ditolak karena Anda berada di luar radius area cabang studio yang telah ditentukan. Anda harus berada di lokasi cabang untuk melakukan presensi.',
 };
 
 export type BookingProblem = {

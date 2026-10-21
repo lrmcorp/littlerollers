@@ -34,11 +34,40 @@ function database() {
     },
     user: { count, findMany },
     auditLog: { findMany },
+    profilPengguna: { findUnique: jest.fn().mockResolvedValue(null) },
   };
 }
 
 describe('DashboardService', () => {
   beforeEach(() => jest.clearAllMocks());
+
+  it('calculates dynamic customer verification status in customerOverview', async () => {
+    const db = database();
+    const service = new DashboardService(db as never);
+
+    // 1. Tanpa dokumen -> ACTION_REQUIRED
+    db.profilPengguna.findUnique.mockResolvedValueOnce(null);
+    const resNoDocs = await service.customerOverview(principal({ roles: [{ role: 'CUSTOMER', branchId: null }] }));
+    expect(resNoDocs.verification.status).toBe('ACTION_REQUIRED');
+
+    // 2. Ada dokumen KTP/selfie tapi belum approved -> PENDING
+    db.profilPengguna.findUnique.mockResolvedValueOnce({
+      userId: 'user-1',
+      ktpUrl: 'https://storage/ktp.jpg',
+      notes: null,
+    });
+    const resPending = await service.customerOverview(principal({ roles: [{ role: 'CUSTOMER', branchId: null }] }));
+    expect(resPending.verification.status).toBe('PENDING');
+
+    // 3. KYC_APPROVED -> APPROVED
+    db.profilPengguna.findUnique.mockResolvedValueOnce({
+      userId: 'user-1',
+      ktpUrl: 'https://storage/ktp.jpg',
+      notes: 'VERIFIED_OK KYC_APPROVED',
+    });
+    const resApproved = await service.customerOverview(principal({ roles: [{ role: 'CUSTOMER', branchId: null }] }));
+    expect(resApproved.verification.status).toBe('APPROVED');
+  });
 
   it('rejects customer-only sessions', async () => {
     const service = new DashboardService(database() as never);

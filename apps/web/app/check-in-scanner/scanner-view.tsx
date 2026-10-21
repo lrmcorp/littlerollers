@@ -32,6 +32,25 @@ export function CheckInScannerView() {
   const [instructorResult, setInstructorResult] = useState<InstructorCheckInResult>();
   const [error, setError] = useState('');
   const [scanning, setScanning] = useState(false);
+  const [locating, setLocating] = useState(false);
+
+  const getCoordinates = async (): Promise<{ latitude: number; longitude: number } | undefined> => {
+    if (typeof window === 'undefined' || !navigator.geolocation) return undefined;
+    return new Promise((resolve) => {
+      setLocating(true);
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setLocating(false);
+          resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
+        },
+        () => {
+          setLocating(false);
+          resolve(undefined);
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 },
+      );
+    });
+  };
 
   const consume = async (value: string) => {
     setError('');
@@ -40,7 +59,12 @@ export function CheckInScannerView() {
         const consumeInstructor = browserBookingClient.consumeInstructorCheckIn;
         if (!consumeInstructor) return;
         setResult(undefined);
-        setInstructorResult(await consumeInstructor(value, crypto.randomUUID()));
+        const coords = await getCoordinates();
+        setInstructorResult(
+          coords
+            ? await consumeInstructor(value, crypto.randomUUID(), coords)
+            : await consumeInstructor(value, crypto.randomUUID()),
+        );
         setManual('');
         return;
       }
@@ -177,12 +201,20 @@ export function CheckInScannerView() {
           <p className="text-xs font-bold uppercase tracking-wider text-dd-success">
             Presensi instruktur tercatat
           </p>
+          {instructorResult.branchName && (
+            <p className="mt-1 font-semibold text-dd-ink">
+              Studio: {instructorResult.branchName}
+            </p>
+          )}
           <p className="mt-2 text-sm">
             Kehadiran Anda dicatat pukul{' '}
             {new Date(instructorResult.checkedInAt).toLocaleTimeString('id-ID', {
               hour: '2-digit',
               minute: '2-digit',
             })}
+            {instructorResult.distanceMeters !== undefined && instructorResult.distanceMeters !== null
+              ? ` · Terdeteksi ${instructorResult.distanceMeters} meter dari titik studio (Dalam area cabang)`
+              : ''}
             . Honor kelas ini kini terhitung sebagai terverifikasi.
           </p>
         </Panel>

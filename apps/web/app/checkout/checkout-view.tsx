@@ -13,6 +13,7 @@ import { PackagePrice } from '../components/public/package-price';
 import {
   browserOrderClient,
   orderError,
+  orderErrorDetails,
   type CheckoutOptions,
   type CustomerOrder,
 } from '@/api-clients/order-client';
@@ -24,7 +25,8 @@ export function CheckoutView() {
   const params = useSearchParams();
   const router = useTrackedRouter();
   const feedback = useAppFeedback();
-  const session = useSessionContext();
+  const sessionContext = useSessionContext();
+  const session = sessionContext?.session;
   const packageId = params.get('package') ?? '';
   const branchId = params.get('branch');
   const requestedClassTypeId = params.get('classType') ?? '';
@@ -36,6 +38,7 @@ export function CheckoutView() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [errorCode, setErrorCode] = useState('');
   const [voucherCode, setVoucherCode] = useState('');
   const [voucherPreview, setVoucherPreview] = useState<{
     code: string;
@@ -50,6 +53,7 @@ export function CheckoutView() {
   useEffect(() => {
     setLoading(true);
     setError('');
+    setErrorCode('');
     const request = orderId
       ? browserOrderClient.detail(orderId).then((value) => setOrder(value))
       : packageId
@@ -69,7 +73,13 @@ export function CheckoutView() {
             );
           })
         : Promise.reject(new Error('RESOURCE_NOT_FOUND'));
-    request.catch((cause) => setError(orderError(cause))).finally(() => setLoading(false));
+    request
+      .catch((cause) => {
+        const details = orderErrorDetails(cause);
+        setError(details.message);
+        setErrorCode(details.code);
+      })
+      .finally(() => setLoading(false));
   }, [branchId, orderId, packageId, requestedClassTypeId]);
 
   if (loading)
@@ -101,14 +111,17 @@ export function CheckoutView() {
 
   if (!packageId || !options) {
     const isAuthError =
+      errorCode === 'UNAUTHORIZED' ||
+      errorCode === 'HTTP_401' ||
       error?.toLowerCase().includes('sesi') ||
       error?.toLowerCase().includes('unauthorized') ||
       error?.toLowerCase().includes('401') ||
-      session?.status === 'unauthenticated';
+      sessionContext?.status === 'unauthenticated';
+
+    const checkoutDestination = `/checkout?package=${packageId}${branchId ? `&branch=${branchId}` : ''}${requestedClassTypeId ? `&classType=${requestedClassTypeId}` : ''}${slot ? `&slot=${encodeURIComponent(slot)}` : ''}`;
+    const returnTo = encodeURIComponent(checkoutDestination);
 
     if (isAuthError && packageId) {
-      const checkoutDestination = `/checkout?package=${packageId}${branchId ? `&branch=${branchId}` : ''}${requestedClassTypeId ? `&classType=${requestedClassTypeId}` : ''}${slot ? `&slot=${encodeURIComponent(slot)}` : ''}`;
-      const returnTo = encodeURIComponent(checkoutDestination);
       return (
         <section className="rounded-dd-xl border border-dd-line bg-white p-8 shadow-dd-card max-w-xl mx-auto text-center space-y-4">
           <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-dd-forest/10 text-dd-forest">
@@ -128,6 +141,47 @@ export function CheckoutView() {
             </ButtonLink>
             <ButtonLink variant="secondary" href={`/register?returnTo=${returnTo}`} className="w-full sm:w-auto">
               Daftar Akun Baru
+            </ButtonLink>
+          </div>
+        </section>
+      );
+    }
+
+    const isVerificationRequired =
+      errorCode === 'CUSTOMER_VERIFICATION_REQUIRED' ||
+      errorCode === 'IDENTITY_VERIFICATION_REQUIRED' ||
+      (sessionContext?.status === 'authenticated' &&
+        session?.identityVerificationStatus &&
+        session?.identityVerificationStatus !== 'APPROVED');
+
+    if (isVerificationRequired && packageId) {
+      const isPending =
+        session?.identityVerificationStatus === 'PENDING' ||
+        error?.toLowerCase().includes('sedang diperiksa') ||
+        error?.toLowerCase().includes('sedang berlangsung');
+
+      return (
+        <section className="rounded-dd-xl border border-dd-line bg-white p-8 shadow-dd-card max-w-xl mx-auto text-center space-y-4">
+          <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-dd-brass-soft text-dd-forest">
+            <ShieldCheck className="size-6" />
+          </div>
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-dd-forest">
+            Verifikasi Identitas Member
+          </p>
+          <h1 className="text-2xl font-semibold text-dd-ink">
+            {isPending ? 'Verifikasi KTP Sedang Diproses' : 'Verifikasi KTP Diperlukan'}
+          </h1>
+          <p className="text-sm leading-6 text-dd-muted">
+            {isPending
+              ? 'Dokumen KTP Anda sedang dalam proses peninjauan oleh tim Daily Dose. Setelah verifikasi disetujui, Anda dapat melanjutkan pembelian paket.'
+              : 'Lengkapi verifikasi KTP terlebih dahulu untuk dapat membeli paket sesi Pilates di Daily Dose.'}
+          </p>
+          <div className="pt-2 flex flex-col sm:flex-row gap-3 justify-center">
+            <ButtonLink href={`/account/verification?returnTo=${returnTo}`} className="w-full sm:w-auto">
+              {isPending ? 'Lihat Status Verifikasi' : 'Lengkapi Verifikasi KTP'}
+            </ButtonLink>
+            <ButtonLink variant="secondary" href="/packages" className="w-full sm:w-auto">
+              Kembali ke Paket
             </ButtonLink>
           </div>
         </section>
@@ -175,7 +229,30 @@ export function CheckoutView() {
         </p>
       </header>
 
-      {error && <AlertBanner tone="danger" title="Pesanan belum berhasil dibuat" message={error} />}
+      {error && (
+        <AlertBanner
+          tone="danger"
+          title={
+            errorCode === 'CUSTOMER_VERIFICATION_REQUIRED'
+              ? 'Verifikasi KTP Diperlukan'
+              : 'Pesanan belum berhasil dibuat'
+          }
+          message={error}
+          action={
+            errorCode === 'CUSTOMER_VERIFICATION_REQUIRED'
+              ? {
+                  label: 'Verifikasi KTP Sekarang',
+                  onSelect: () => {
+                    const checkoutDestination = `/checkout?package=${packageId}${branchId ? `&branch=${branchId}` : ''}${selectedClassTypeId ? `&classType=${selectedClassTypeId}` : ''}${slot ? `&slot=${encodeURIComponent(slot)}` : ''}`;
+                    window.location.assign(
+                      `/account/verification?returnTo=${encodeURIComponent(checkoutDestination)}`,
+                    );
+                  },
+                }
+              : undefined
+          }
+        />
+      )}
 
       <ol
         aria-label="Tahapan checkout"
@@ -206,7 +283,7 @@ export function CheckoutView() {
           <p className="mt-1 text-sm text-dd-muted">
             {options.package.classTypes.find((item) => item.id === selectedClassTypeId)?.name ??
               'Pilih jenis kelas'}{' '}
-            · {options.package.branchName}
+            · {options.package.isMultiBranch ? 'Semua Cabang (Multi-Branch)' : options.package.branchName}
           </p>
 
           {options.package.classTypes.length > 1 && (
@@ -399,7 +476,9 @@ export function CheckoutView() {
                 message: 'Silakan transfer sesuai nominal yang ditampilkan.',
               });
             } catch (cause) {
-              setError(orderError(cause));
+              const details = orderErrorDetails(cause);
+              setError(details.message);
+              setErrorCode(details.code);
             } finally {
               setSubmitting(false);
             }

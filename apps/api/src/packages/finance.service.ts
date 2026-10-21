@@ -5,7 +5,7 @@ import { AuditService } from '../foundation/audit.service';
 import type { SessionPrincipal } from '../identity/identity.service';
 import { PolicyService } from '../identity/policy.service';
 import { ApiProblem } from '../identity/security';
-import { periodRange, summarizeInstructorFees } from './instructor-fee-calculator';
+import { calculateSlotFee, periodRange, summarizeInstructorFees } from './instructor-fee-calculator';
 import { projectionCostFor } from './projection-cost';
 
 const PERIOD = /^\d{4}-(0[1-9]|1[0-2])$/;
@@ -124,6 +124,7 @@ export class FinanceService {
 
   /**
    * 2. Laporan Cost Instruktur Realtime (Jam Mengajar Aktual via QR x Fee/Jam Effective Date)
+   * Menyediakan rekapitulasi per instruktur dan rincian per sesi kelas (termasuk status presensi & geofence).
    */
   async realtimeInstructorCostReport(
     principal: SessionPrincipal,
@@ -155,7 +156,16 @@ export class FinanceService {
         instructor: true,
         classType: true,
         branch: true,
-        instructorAttendance: { select: { id: true } },
+        instructorAttendance: {
+          select: {
+            id: true,
+            checkedInAt: true,
+            latitude: true,
+            longitude: true,
+            distanceMeters: true,
+            isWithinGeofence: true,
+          },
+        },
       },
       orderBy: { startAt: 'asc' },
     });
@@ -165,7 +175,7 @@ export class FinanceService {
       orderBy: { effectiveDate: 'desc' },
     });
 
-    const instructorBreakdown = summarizeInstructorFees(slots, fees);
+    const instructorBreakdown = summarizeInstructorFees(slots as any, fees);
     const totalInstructorCostRp = instructorBreakdown.reduce(
       (sum, item) => sum + item.totalFeeRp,
       0,
@@ -185,6 +195,44 @@ export class FinanceService {
     );
     const instructorFeeMissing = slots.length > 0 && (fees.length === 0 || unconfiguredClassCount > 0);
 
+    const sessions = slots.map((s) => {
+      const slotAny = s as any;
+      const slotFee = s.instructorId
+        ? calculateSlotFee(fees, {
+            startAt: s.startAt,
+            endAt: s.endAt,
+            branchId: s.branchId,
+            classTypeId: s.classTypeId,
+            instructorId: s.instructorId,
+            instructorFeeRp: slotAny.instructorFeeRp,
+            isManualFee: slotAny.isManualFee,
+          })
+        : { hours: 0, feePerJamRp: 0, feeRp: 0, configured: false, isManual: false };
+
+      const att = slotAny.instructorAttendance;
+      return {
+        slotId: s.id,
+        startAt: s.startAt.toISOString(),
+        endAt: s.endAt.toISOString(),
+        branchId: s.branchId,
+        branchName: slotAny.branch?.name ?? '-',
+        classTypeId: s.classTypeId,
+        classTypeName: slotAny.classType?.name ?? '-',
+        instructorId: s.instructorId ?? '-',
+        instructorName: slotAny.instructor?.displayName ?? '(Belum Ditugaskan)',
+        teachingHours: slotFee.hours,
+        feePerJamRp: slotFee.feePerJamRp,
+        feeRp: slotFee.feeRp,
+        isManualFee: Boolean(slotAny.isManualFee),
+        attendanceVerified: Boolean(att),
+        attendanceTime: att?.checkedInAt ? new Date(att.checkedInAt).toISOString() : null,
+        latitude: att?.latitude ? Number(att.latitude) : null,
+        longitude: att?.longitude ? Number(att.longitude) : null,
+        distanceMeters: att?.distanceMeters ?? null,
+        isWithinGeofence: att?.isWithinGeofence ?? null,
+      };
+    });
+
     return {
       period,
       branchId: input.branchId ?? 'ALL',
@@ -197,6 +245,7 @@ export class FinanceService {
       totalTeachingHours,
       instructorCount: instructorBreakdown.length,
       instructors: instructorBreakdown,
+      sessions,
     };
   }
 
@@ -363,6 +412,13 @@ export class FinanceService {
     const totalCorrectionRp = approvedCorrections.reduce((sum, c) => sum + c.amountRp, 0);
 
     const isLocked = monthlyCloseRecord?.status === 'LOCKED';
+    const effectiveOmset = isLocked ? monthlyCloseRecord.omsetRp : omsetRp;
+    const effectiveCostRealtime = isLocked ? monthlyCloseRecord.costRealtimeRp : costRealtimeRp;
+    const effectiveOtherCost = isLocked ? monthlyCloseRecord.otherCostRp : otherCostRp;
+    const grossProfitRp = effectiveOmset - effectiveCostRealtime;
+    const grossMarginPercent = effectiveOmset > 0 ? Math.round((grossProfitRp / effectiveOmset) * 1000) / 10 : 0;
+    const effectiveProfit = isLocked ? monthlyCloseRecord.profitRp : netProfitRealtimeRp;
+    const netMarginPercent = effectiveOmset > 0 ? Math.round((effectiveProfit / effectiveOmset) * 1000) / 10 : 0;
 
     return {
       period,
@@ -371,17 +427,19 @@ export class FinanceService {
       status: monthlyCloseRecord?.status ?? 'OPEN',
       closedAt: monthlyCloseRecord?.closedAt?.toISOString() ?? null,
       closedByName: monthlyCloseRecord?.closedBy?.displayName ?? null,
-      omsetRp: isLocked ? monthlyCloseRecord.omsetRp : omsetRp,
-      costRealtimeRp: isLocked ? monthlyCloseRecord.costRealtimeRp : costRealtimeRp,
+      omsetRp: effectiveOmset,
+      costRealtimeRp: effectiveCostRealtime,
+      grossProfitRp,
+      grossMarginPercent,
       costProjectionRp: isLocked ? monthlyCloseRecord.costProjectionRp : costProjectionRp,
-      otherCostRp: isLocked ? monthlyCloseRecord.otherCostRp : otherCostRp,
-      netProfitRealtimeRp: isLocked ? monthlyCloseRecord.profitRp : netProfitRealtimeRp,
+      otherCostRp: effectiveOtherCost,
+      netProfitRealtimeRp: effectiveProfit,
+      netMarginPercent,
       netProfitProjectionRp: isLocked
         ? monthlyCloseRecord.omsetRp - monthlyCloseRecord.costProjectionRp - monthlyCloseRecord.otherCostRp
         : netProfitProjectionRp,
       totalCorrectionAdjustmentRp: totalCorrectionRp,
-      adjustedNetProfitRealtimeRp:
-        (isLocked ? monthlyCloseRecord.profitRp : netProfitRealtimeRp) + totalCorrectionRp,
+      adjustedNetProfitRealtimeRp: effectiveProfit + totalCorrectionRp,
     };
   }
 

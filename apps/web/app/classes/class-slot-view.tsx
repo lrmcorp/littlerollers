@@ -575,6 +575,7 @@ export function ClassSlotView({
             instructorName={instructorName(panel.slot.instructorUserId, panel.slot)}
             classTypes={classTypes}
             instructors={instructors}
+            studios={studios}
             canManage={canOperate}
             canComplete={canCompleteClass}
             canManageAttendance={canOperateAttendance}

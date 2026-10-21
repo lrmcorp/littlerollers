@@ -187,6 +187,28 @@ export interface InstructorCostBreakdown {
   unverifiedClassCount: number;
 }
 
+export interface InstructorSessionItem {
+  slotId: string;
+  startAt: string;
+  endAt: string;
+  branchId: string;
+  branchName: string;
+  classTypeId: string;
+  classTypeName: string;
+  instructorId: string;
+  instructorName: string;
+  teachingHours: number;
+  feePerJamRp: number;
+  feeRp: number;
+  isManualFee: boolean;
+  attendanceVerified: boolean;
+  attendanceTime: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  distanceMeters: number | null;
+  isWithinGeofence: boolean | null;
+}
+
 export interface InstructorCostRealtimeData {
   period: string;
   branchId: string;
@@ -199,6 +221,7 @@ export interface InstructorCostRealtimeData {
   totalTeachingHours: number;
   instructorCount: number;
   instructors: InstructorCostBreakdown[];
+  sessions?: InstructorSessionItem[];
 }
 
 export interface ProjectionClassTypeBreakdown {
@@ -245,9 +268,12 @@ export interface MonthlyProfitData {
   closedByName: string | null;
   omsetRp: number;
   costRealtimeRp: number;
+  grossProfitRp?: number;
+  grossMarginPercent?: number;
   costProjectionRp: number;
   otherCostRp: number;
   netProfitRealtimeRp: number;
+  netMarginPercent?: number;
   netProfitProjectionRp: number;
   totalCorrectionAdjustmentRp: number;
   adjustedNetProfitRealtimeRp: number;

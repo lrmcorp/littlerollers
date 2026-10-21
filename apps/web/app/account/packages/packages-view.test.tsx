@@ -49,4 +49,53 @@ describe('customer packages actions', () => {
     expect(screen.queryByText('Paket 1')).not.toBeInTheDocument();
     expect(screen.getByText('5 dari 25 paket')).toBeVisible();
   });
+
+  it('separates active and expired packages, marks unused sessions as Hangus, and hides booking button on expired packages', async () => {
+    vi.spyOn(browserLedgerClient, 'list').mockResolvedValue({
+      items: [
+        {
+          id: 'pkg-active',
+          branchId: 'branch-1',
+          status: 'ACTIVE' as const,
+          activationDate: new Date('2026-01-01'),
+          expiryAt: new Date('2027-01-01'),
+          ledgerBalance: 10,
+          reserved: 0,
+          available: 8,
+          packageName: 'Paket Reformer Aktif',
+          branchName: 'Jakarta',
+        },
+        {
+          id: 'pkg-expired',
+          branchId: 'branch-1',
+          status: 'ACTIVE' as const,
+          activationDate: new Date('2024-01-01'),
+          expiryAt: new Date('2025-01-01'),
+          ledgerBalance: 5,
+          reserved: 0,
+          available: 2,
+          packageName: 'Paket Mat Kedaluwarsa',
+          branchName: 'Jakarta',
+        },
+      ],
+      summary: { packageCount: 2, ledgerBalance: 15, reserved: 0, available: 10 },
+      nextCursor: null,
+    });
+
+    render(<CustomerPackagesView />);
+
+    // Di Tab "Paket Aktif":
+    expect(await screen.findByText('Paket Reformer Aktif')).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Booking kelas' })).toBeVisible();
+    expect(screen.getByText('Tersedia')).toBeVisible();
+    expect(screen.queryByText('Paket Mat Kedaluwarsa')).not.toBeInTheDocument();
+
+    // Beralih ke Tab "Riwayat Paket":
+    await userEvent.click(screen.getByRole('tab', { name: 'Riwayat Paket' }));
+    expect(await screen.findByText('Paket Mat Kedaluwarsa')).toBeVisible();
+    expect(screen.getByText('Hangus')).toBeVisible();
+    expect(screen.getByText('Kedaluwarsa')).toBeVisible();
+    expect(screen.queryByRole('link', { name: 'Booking kelas' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Paket Reformer Aktif')).not.toBeInTheDocument();
+  });
 });

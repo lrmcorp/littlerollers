@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Copy, Plus } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { Badge, DataTable, Pagination, Panel, StatCard } from '../components/admin/admin-ui';
 import { AlertBanner, Drawer, useAppFeedback } from '../components/app-feedback';
@@ -26,6 +26,20 @@ const stateLabels = {
   INACTIVE: 'Tidak aktif',
 } as const;
 
+export type PackageFormValues = {
+  name?: string;
+  businessKey?: string;
+  sessionCount?: number;
+  durationDays?: number;
+  priceRp?: number;
+  effectiveFrom?: string;
+  effectiveUntil?: string | null;
+  isMultiBranch?: boolean;
+  selectedBranches?: string[];
+  selectedClassTypes?: string[];
+  reason?: string;
+};
+
 export function PackagesManagementView() {
   const session = useSessionContext();
   const router = useTrackedRouter();
@@ -40,6 +54,7 @@ export function PackagesManagementView() {
   const [error, setError] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
   const [createDirty, setCreateDirty] = useState(false);
+  const [duplicateTemplate, setDuplicateTemplate] = useState<PackageFormValues | null>(null);
   const [classTypes, setClassTypes] = useState<
     Array<{
       id: string;
@@ -54,7 +69,7 @@ export function PackagesManagementView() {
   const confirmDiscardCreate = () =>
     feedback.confirm({
       tone: 'warning',
-      title: 'Batalkan pembuatan paket?',
+      title: duplicateTemplate ? 'Batalkan duplikasi paket?' : 'Batalkan pembuatan paket?',
       message: 'Input paket yang belum disimpan akan hilang.',
       confirmLabel: 'Buang input',
     });
@@ -62,6 +77,7 @@ export function PackagesManagementView() {
     if (!createDirty || (await confirmDiscardCreate())) {
       setCreateDirty(false);
       setCreateOpen(false);
+      setDuplicateTemplate(null);
     }
   };
   const filters = {
@@ -137,6 +153,46 @@ export function PackagesManagementView() {
           setClassTypes(items.map(({ id, name, branchScopes }) => ({ id, name, branchScopes }))),
         );
   }, [createOpen]);
+
+  const duplicatePackage = (source: InternalPackageRecord) => {
+    const today = new Date().toISOString().slice(0, 10);
+    const effectiveUntil = source.effectiveUntil
+      ? new Date(source.effectiveUntil).toISOString().slice(0, 10)
+      : '';
+    const branchIds =
+      source.branchScopes && source.branchScopes.length > 0
+        ? (source.branchScopes.map((s) => s.branchId || s.branch?.id).filter(Boolean) as string[])
+        : source.branchId
+          ? [source.branchId]
+          : source.branch?.id
+            ? [source.branch.id]
+            : [];
+    const classTypeIds =
+      source.classTypeScopes && source.classTypeScopes.length > 0
+        ? (source.classTypeScopes
+            .map((s) => s.classTypeId || s.classType?.id)
+            .filter(Boolean) as string[])
+        : source.classTypeId
+          ? [source.classTypeId]
+          : source.classType?.id
+            ? [source.classType.id]
+            : [];
+
+    setDuplicateTemplate({
+      name: `${source.name} (Salinan)`,
+      businessKey: `${source.businessKey}-copy`,
+      sessionCount: source.sessionCount,
+      durationDays: source.durationDays,
+      priceRp: source.priceRp,
+      effectiveFrom: today,
+      effectiveUntil,
+      isMultiBranch: Boolean(source.isMultiBranch),
+      selectedBranches: branchIds,
+      selectedClassTypes: classTypeIds,
+      reason: `Duplikasi dari paket ${source.name}`,
+    });
+    setCreateOpen(true);
+  };
   if (!session || session.status === 'loading') return <Skeleton label="Memuat paket" />;
   if (!canRead)
     return (
@@ -163,7 +219,10 @@ export function PackagesManagementView() {
         {canManage && (
           <Button
             leadingIcon={<Plus className="size-4" aria-hidden="true" />}
-            onClick={() => setCreateOpen(true)}
+            onClick={() => {
+              setDuplicateTemplate(null);
+              setCreateOpen(true);
+            }}
           >
             Buat paket
           </Button>
@@ -232,12 +291,20 @@ export function PackagesManagementView() {
             {
               id: 'branch',
               header: 'Cakupan Studio/Cabang',
-              cell: (item) =>
-                item.branchScopes?.length
-                  ? item.branchScopes
-                      .map((scope) => scope.branch?.name ?? scope.branchId.slice(0, 8))
-                      .join(', ')
-                  : '—',
+              cell: (item) => (
+                <div>
+                  {item.isMultiBranch ? (
+                    <Badge tone="success">Semua Cabang (Multi-Branch)</Badge>
+                  ) : (
+                    <Badge tone="neutral">
+                      {(item.branch?.name ??
+                        item.branchScopes
+                          ?.map((scope) => scope.branch?.name ?? scope.branchId.slice(0, 8))
+                          .join(', ')) || 'Single-Branch'}
+                    </Badge>
+                  )}
+                </div>
+              ),
             },
             { id: 'price', header: 'Harga normal', cell: (item) => formatRupiah(item.priceRp) },
             {
@@ -267,17 +334,31 @@ export function PackagesManagementView() {
             {
               id: 'action',
               header: 'Tindakan',
+              className: 'whitespace-nowrap',
               cell: (item) => (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    router.push(`/workspace/packages/${item.id}`);
-                  }}
+                <div
+                  className="flex items-center gap-1.5"
+                  onClick={(event) => event.stopPropagation()}
                 >
-                  Lihat detail
-                </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => router.push(`/workspace/packages/${item.id}`)}
+                  >
+                    Lihat detail
+                  </Button>
+                  {canManage && (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      leadingIcon={<Copy className="size-3.5 text-dd-muted" aria-hidden="true" />}
+                      title={`Duplikasi konfigurasi ${item.name}`}
+                      onClick={() => duplicatePackage(item)}
+                    >
+                      Duplikasi
+                    </Button>
+                  )}
+                </div>
               ),
             },
           ]}
@@ -289,13 +370,44 @@ export function PackagesManagementView() {
                   {stateLabels[item.effectiveState ?? 'INACTIVE']}
                 </Badge>
               </div>
-              <span className="text-sm text-dd-muted">
-                {item.branchScopes
-                  ?.map((scope) => scope.branch?.name)
-                  .filter(Boolean)
-                  .join(', ') || '—'}
-              </span>
-              <span className="font-semibold">{formatRupiah(item.priceRp)}</span>
+              <div>
+                {item.isMultiBranch ? (
+                  <Badge tone="success">Semua Cabang (Multi-Branch)</Badge>
+                ) : (
+                  <span className="text-sm text-dd-muted">
+                    {item.branch?.name ||
+                      item.branchScopes
+                        ?.map((scope) => scope.branch?.name)
+                        .filter(Boolean)
+                        .join(', ') || 'Single-Branch'}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center justify-between gap-2 pt-1">
+                <span className="font-semibold">{formatRupiah(item.priceRp)}</span>
+                <div
+                  className="flex items-center gap-1.5"
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => router.push(`/workspace/packages/${item.id}`)}
+                  >
+                    Detail
+                  </Button>
+                  {canManage && (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      leadingIcon={<Copy className="size-3.5 text-dd-muted" aria-hidden="true" />}
+                      onClick={() => duplicatePackage(item)}
+                    >
+                      Duplikasi
+                    </Button>
+                  )}
+                </div>
+              </div>
             </div>
           )}
         />
@@ -313,14 +425,19 @@ export function PackagesManagementView() {
       />
       <Drawer
         open={createOpen}
-        title="Buat paket"
-        description="Paket adalah katalog global dengan cakupan Studio/Cabang dan tipe kelas yang eksplisit."
+        title={duplicateTemplate ? 'Duplikasi paket' : 'Buat paket'}
+        description={
+          duplicateTemplate
+            ? `Duplikasi konfigurasi dari "${duplicateTemplate.name?.replace(' (Salinan)', '')}". Sesuaikan parameter lalu simpan sebagai paket baru.`
+            : 'Paket adalah katalog global dengan cakupan Studio/Cabang dan tipe kelas yang eksplisit.'
+        }
         busy={busy}
         dirty={createDirty}
         onDirtyClose={confirmDiscardCreate}
         onClose={() => {
           setCreateDirty(false);
           setCreateOpen(false);
+          setDuplicateTemplate(null);
         }}
         footer={
           <div className="flex justify-end gap-3">
@@ -328,21 +445,30 @@ export function PackagesManagementView() {
               Batal
             </Button>
             <Button type="submit" form="package-create-form" loading={busy}>
-              Simpan paket
+              {duplicateTemplate ? 'Simpan duplikasi paket' : 'Simpan paket'}
             </Button>
           </div>
         }
       >
         <PackageCreateForm
+          key={
+            duplicateTemplate
+              ? `${duplicateTemplate.businessKey}-${duplicateTemplate.name}`
+              : 'new-package'
+          }
           branches={session.session?.branches ?? []}
           classTypes={classTypes}
+          initialValues={duplicateTemplate}
           onDirty={() => setCreateDirty(true)}
           onSubmit={async (command) => {
+            const isDuplicate = Boolean(duplicateTemplate);
             const accepted = await feedback.confirm({
               tone: 'warning',
-              title: 'Buat paket baru?',
-              message: 'Paket akan tersimpan sebagai konfigurasi aktif pada periode yang dipilih.',
-              confirmLabel: 'Buat paket',
+              title: isDuplicate ? 'Buat paket hasil duplikasi?' : 'Buat paket baru?',
+              message: isDuplicate
+                ? 'Paket baru hasil duplikasi akan tersimpan sebagai konfigurasi aktif pada periode yang dipilih.'
+                : 'Paket akan tersimpan sebagai konfigurasi aktif pada periode yang dipilih.',
+              confirmLabel: isDuplicate ? 'Duplikasi paket' : 'Buat paket',
             });
             if (!accepted) return;
             setBusy(true);
@@ -350,16 +476,17 @@ export function PackagesManagementView() {
               const created = await browserPackagePromotionClient.createPackage(command);
               setCreateDirty(false);
               setCreateOpen(false);
+              setDuplicateTemplate(null);
               feedback.showToast({
                 tone: 'success',
-                title: 'Paket dibuat',
+                title: isDuplicate ? 'Paket berhasil diduplikasi' : 'Paket dibuat',
                 message: `${created.name} berhasil ditambahkan.`,
               });
               router.push(`/workspace/packages/${created.id}`);
             } catch {
               feedback.showAlert({
                 tone: 'danger',
-                title: 'Paket belum dibuat',
+                title: isDuplicate ? 'Duplikasi paket belum berhasil' : 'Paket belum dibuat',
                 message: 'Periksa periode, class type, dan data harga lalu coba kembali.',
               });
             } finally {
@@ -375,6 +502,7 @@ export function PackagesManagementView() {
 function PackageCreateForm({
   branches,
   classTypes,
+  initialValues,
   onDirty,
   onSubmit,
 }: {
@@ -384,32 +512,31 @@ function PackageCreateForm({
     name: string;
     branchScopes: Array<{ branchId: string; active: boolean }>;
   }>;
+  initialValues?: PackageFormValues | null;
   onDirty(): void;
   onSubmit(command: Record<string, unknown>): Promise<void>;
 }) {
-  const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
-  const [selectedClassTypes, setSelectedClassTypes] = useState<string[]>([]);
-  const toggleBranch = (branchId: string, checked: boolean) =>
-    setSelectedBranches((current) => {
-      const next = checked
-        ? [...new Set([...current, branchId])]
-        : current.filter((id) => id !== branchId);
-      setSelectedClassTypes((selected) =>
-        selected.filter((classTypeId) =>
-          classTypes
-            .find((item) => item.id === classTypeId)
-            ?.branchScopes?.some(
-              (scope) => scope.branchId === branchId && scope.active && next.includes(branchId),
-            ),
+  const [isMultiBranch, setIsMultiBranch] = useState(
+    initialValues?.isMultiBranch !== undefined ? initialValues.isMultiBranch : true,
+  );
+  const [selectedBranches, setSelectedBranches] = useState<string[]>(
+    initialValues?.selectedBranches ?? [],
+  );
+  const [selectedClassTypes, setSelectedClassTypes] = useState<string[]>(
+    initialValues?.selectedClassTypes ?? [],
+  );
+
+  const availableClassTypes = isMultiBranch
+    ? classTypes.filter((classType) =>
+        classType.branchScopes?.some((scope) => scope.active),
+      )
+    : classTypes.filter((classType) =>
+        selectedBranches.length > 0 &&
+        selectedBranches.every((branchId) =>
+          classType.branchScopes?.some((scope) => scope.branchId === branchId && scope.active),
         ),
       );
-      return next;
-    });
-  const availableClassTypes = classTypes.filter((classType) =>
-    selectedBranches.every((branchId) =>
-      classType.branchScopes?.some((scope) => scope.branchId === branchId && scope.active),
-    ),
-  );
+
   return (
     <form
       id="package-create-form"
@@ -418,9 +545,16 @@ function PackageCreateForm({
       onSubmit={(event) => {
         event.preventDefault();
         const data = new FormData(event.currentTarget);
+        const branchIds = isMultiBranch
+          ? branches.map((b) => b.id)
+          : selectedBranches;
+        const branchId = isMultiBranch ? null : (selectedBranches[0] || null);
+
         void onSubmit({
-          branchIds: data.getAll('branchIds').map(String),
-          classTypeIds: data.getAll('classTypeIds').map(String),
+          isMultiBranch,
+          branchIds,
+          branchId,
+          classTypeIds: selectedClassTypes,
           businessKey: String(data.get('businessKey')),
           name: String(data.get('name')),
           sessionCount: Number(data.get('sessionCount')),
@@ -432,28 +566,79 @@ function PackageCreateForm({
         });
       }}
     >
-      <fieldset className="grid gap-2 rounded-dd-md border border-dd-line p-3">
-        <legend className="px-1 text-sm font-semibold">Cakupan Studio/Cabang</legend>
-        {branches.map((branch) => (
-          <label className="flex items-center gap-2 text-sm" key={branch.id}>
-            <input
-              type="checkbox"
-              name="branchIds"
-              value={branch.id}
-              required={selectedBranches.length === 0}
-              onChange={(event) => toggleBranch(branch.id, event.currentTarget.checked)}
-            />
-            {branch.name}
-          </label>
-        ))}
+      {initialValues && (
+        <div className="rounded-dd-sm border border-dd-forest/20 bg-dd-forest/5 p-3 text-xs text-dd-forest">
+          <strong>Mode Duplikasi:</strong> Parameter konfigurasi disalin dari paket sebelumnya. Silakan sesuaikan Business Key, nama, masa berlaku, atau harga sebelum menyimpan.
+        </div>
+      )}
+      <fieldset className="grid gap-3 rounded-dd-md border border-dd-line p-3">
+        <legend className="px-1 text-sm font-semibold">Tipe Akses Studio / Cabang</legend>
+        <label className="flex items-start gap-2 text-sm cursor-pointer">
+          <input
+            type="radio"
+            name="scopeRadio"
+            checked={isMultiBranch}
+            onChange={() => {
+              setIsMultiBranch(true);
+              setSelectedBranches([]);
+            }}
+            className="mt-1"
+          />
+          <div>
+            <span className="font-semibold text-dd-forest">Semua Cabang (Multi-Branch)</span>
+            <p className="text-xs text-dd-muted">
+              Member dapat booking dan latihan di seluruh studio/cabang Daily Dose Pilates.
+            </p>
+          </div>
+        </label>
+
+        <label className="flex items-start gap-2 text-sm cursor-pointer">
+          <input
+            type="radio"
+            name="scopeRadio"
+            checked={!isMultiBranch}
+            onChange={() => {
+              setIsMultiBranch(false);
+              if (branches[0] && selectedBranches.length === 0) {
+                setSelectedBranches([branches[0].id]);
+              }
+            }}
+            className="mt-1"
+          />
+          <div>
+            <span className="font-semibold text-dd-forest">Cabang Tertentu (Single-Branch)</span>
+            <p className="text-xs text-dd-muted">
+              Member hanya dapat booking dan latihan di cabang tertentu yang dipilih di bawah.
+            </p>
+          </div>
+        </label>
+
+        {!isMultiBranch && (
+          <div className="mt-2 grid gap-2 border-t border-dd-line pt-2">
+            <p className="text-xs font-semibold uppercase text-dd-muted">Pilih Cabang:</p>
+            {branches.map((branch) => (
+              <label className="flex items-center gap-2 text-sm cursor-pointer" key={branch.id}>
+                <input
+                  type="radio"
+                  name="singleBranchSelect"
+                  value={branch.id}
+                  checked={selectedBranches[0] === branch.id}
+                  onChange={() => setSelectedBranches([branch.id])}
+                />
+                {branch.name}
+              </label>
+            ))}
+          </div>
+        )}
       </fieldset>
+
       <fieldset className="grid gap-2 rounded-dd-md border border-dd-line p-3">
-        <legend className="px-1 text-sm font-semibold">Cakupan tipe kelas</legend>
-        {selectedBranches.length === 0 ? (
+        <legend className="px-1 text-sm font-semibold">Cakupan Tipe Kelas</legend>
+        {!isMultiBranch && selectedBranches.length === 0 ? (
           <p className="text-sm text-dd-muted">Pilih Studio/Cabang terlebih dahulu.</p>
         ) : availableClassTypes.length === 0 ? (
           <p className="text-sm text-dd-danger">
-            Tidak ada tipe kelas yang tersedia di seluruh Studio/Cabang terpilih.
+            Tidak ada tipe kelas yang tersedia untuk studio terpilih.
           </p>
         ) : (
           availableClassTypes.map((item) => (
@@ -478,14 +663,62 @@ function PackageCreateForm({
           ))
         )}
       </fieldset>
-      <TextInput name="businessKey" label="Business key" required />
-      <TextInput name="name" label="Nama paket" required />
-      <TextInput name="sessionCount" label="Jumlah sesi" type="number" min={1} required />
-      <TextInput name="durationDays" label="Masa berlaku (hari)" type="number" min={1} required />
-      <TextInput name="priceRp" label="Harga normal" type="number" min={1} required />
-      <TextInput name="effectiveFrom" label="Mulai berlaku" type="date" required />
-      <TextInput name="effectiveUntil" label="Berakhir" type="date" />
-      <TextInput name="reason" label="Alasan" minLength={3} required />
+      <TextInput
+        name="businessKey"
+        label="Business key"
+        defaultValue={initialValues?.businessKey ?? ''}
+        required
+      />
+      <TextInput
+        name="name"
+        label="Nama paket"
+        defaultValue={initialValues?.name ?? ''}
+        required
+      />
+      <TextInput
+        name="sessionCount"
+        label="Jumlah sesi"
+        type="number"
+        min={1}
+        defaultValue={initialValues?.sessionCount ?? ''}
+        required
+      />
+      <TextInput
+        name="durationDays"
+        label="Masa berlaku (hari)"
+        type="number"
+        min={1}
+        defaultValue={initialValues?.durationDays ?? ''}
+        required
+      />
+      <TextInput
+        name="priceRp"
+        label="Harga normal"
+        type="number"
+        min={1}
+        defaultValue={initialValues?.priceRp ?? ''}
+        required
+      />
+      <TextInput
+        name="effectiveFrom"
+        label="Mulai berlaku"
+        type="date"
+        defaultValue={initialValues?.effectiveFrom ?? ''}
+        required
+      />
+      <TextInput
+        name="effectiveUntil"
+        label="Berakhir"
+        type="date"
+        defaultValue={initialValues?.effectiveUntil ?? ''}
+      />
+      <TextInput
+        name="reason"
+        label="Alasan"
+        minLength={3}
+        defaultValue={initialValues?.reason ?? ''}
+        required
+      />
     </form>
   );
 }

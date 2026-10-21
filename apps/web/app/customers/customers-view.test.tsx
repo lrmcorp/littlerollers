@@ -13,10 +13,19 @@ vi.mock('next/link', () => ({
 }));
 vi.mock('../session-context', () => ({
   useSessionContext: () => ({
+    status: 'authenticated',
     session: {
-      globalCapabilities: ['customer:credential:initialize'],
+      globalCapabilities: [
+        'customer:credential:initialize',
+        'customer:update',
+        'customer:write',
+        'order:assist',
+        'package-promotion:read',
+      ],
       branches: [{ id: 'b1', name: 'Gading Serpong', code: 'DD-GG' }],
     },
+    activeBranchId: 'b1',
+    hasCapability: () => true,
   }),
 }));
 
@@ -78,4 +87,40 @@ describe('CustomersView create form', () => {
     expect(screen.queryByText('Buka profil')).not.toBeInTheDocument();
     expect(screen.getByRole('columnheader', { name: 'No.' })).toBeVisible();
   });
+
+  it('renders quick action buttons for selling packages, editing profile, and resetting password', async () => {
+    (customerClient.list as unknown as { mockResolvedValue(v: unknown): void }).mockResolvedValue({
+      items: [
+        {
+          id: 'c-1',
+          displayName: 'Amanda',
+          email: 'amanda@example.test',
+          phoneE164: '+62811',
+          status: 'ACTIVE',
+          verificationStatus: 'APPROVED',
+          activePackageCount: 1,
+          purchasedSessions: 10,
+          _count: { purchases: 1, customerBookings: 2 },
+        },
+      ],
+      summary: { total: 1 },
+      page: { hasMore: false, nextCursor: null },
+    });
+    render(<CustomersView />);
+    expect((await screen.findAllByText('Amanda'))[0]).toBeVisible();
+
+    const saleBtns = screen.getAllByRole('button', { name: /Jual paket/i });
+    expect(saleBtns.length).toBeGreaterThan(0);
+
+    const editBtns = screen.getAllByRole('button', { name: /Edit/i });
+    expect(editBtns.length).toBeGreaterThan(0);
+
+    const pwdBtns = screen.getAllByRole('button', { name: /Sandi/i });
+    expect(pwdBtns.length).toBeGreaterThan(0);
+
+    const user = userEvent.setup();
+    await user.click(editBtns[0]!);
+    expect(await screen.findByText(/Edit Cepat: Amanda/i)).toBeInTheDocument();
+  });
 });
+

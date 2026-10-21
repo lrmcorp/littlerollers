@@ -4,13 +4,15 @@ import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { Button, ButtonLink } from '../components/actions';
 import { SearchInput, SearchSelect, SelectInput, TextInput } from '../components/forms';
 import { DataTable, Pagination } from '../components/admin/admin-ui';
-import { Drawer } from '../components/app-feedback';
+import { Drawer, Modal, useOptionalAppFeedback } from '../components/app-feedback';
 import { Feedback, StatusBadge } from '../ui';
 import { AdminPageHeader } from '../components/admin/admin-page-header';
 import { useSessionContext } from '../session-context';
 import { customerClient, type CustomerSummary } from './customer-client';
 import { ADMIN_PAGE_SIZE, pageOffset } from '../lib/pagination';
 import { statusLabel } from '../lib/status-labels';
+import { AssistedSaleDrawer } from '../purchases/assisted-sale-drawer';
+import { Edit3, Eye, EyeOff, KeyRound, RefreshCw, ShoppingCart } from 'lucide-react';
 
 export const customerStatusLabels: Record<string, string> = {
   ACTIVE: 'Aktif',
@@ -25,9 +27,38 @@ export const verificationStatusLabels: Record<string, string> = {
 };
 
 export function CustomersView() {
-  const session = useSessionContext()?.session;
+  const sessionContext = useSessionContext();
+  const session = sessionContext?.session;
+  const feedback = useOptionalAppFeedback();
   const canCreate =
     session?.globalCapabilities?.includes('customer:credential:initialize') ?? false;
+  const canWrite = Boolean(
+    sessionContext?.hasCapability?.('customer:write') ||
+    sessionContext?.hasCapability?.('customer:manage') ||
+    session?.capabilities?.includes('customer:write') ||
+    session?.capabilities?.includes('customer:manage') ||
+    session?.globalCapabilities?.includes('customer:write') ||
+    session?.globalCapabilities?.includes('customer:manage'),
+  );
+  const canSell = Boolean(
+    sessionContext?.hasCapability?.('purchase:record') ||
+    session?.capabilities?.includes('purchase:record') ||
+    session?.globalCapabilities?.includes('purchase:record'),
+  );
+  const saleBranch = sessionContext?.activeBranch ?? (session?.branches?.[0] ? { id: session.branches[0].id, name: session.branches[0].name } : null);
+  const saleBranches = (session?.branches ?? []).map((item) => ({ id: item.id, name: item.name }));
+
+  const [selectedForSale, setSelectedForSale] = useState<CustomerSummary | null>(null);
+  const [selectedForEdit, setSelectedForEdit] = useState<CustomerSummary | null>(null);
+  const [quickBusy, setQuickBusy] = useState(false);
+  const [quickError, setQuickError] = useState('');
+
+  const [selectedForPassword, setSelectedForPassword] = useState<CustomerSummary | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [passwordBusy, setPasswordBusy] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
+
   const [items, setItems] = useState<CustomerSummary[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -289,9 +320,48 @@ export function CustomersView() {
             id: 'action',
             header: <span className="sr-only">Tindakan</span>,
             cell: (item) => (
-              <ButtonLink variant="secondary" size="sm" href={`/customers/${item.id}`}>
-                Lihat detail
-              </ButtonLink>
+              <div className="flex items-center justify-end gap-1.5">
+                <ButtonLink variant="secondary" size="sm" href={`/customers/${item.id}`}>
+                  Lihat detail
+                </ButtonLink>
+                {canSell && saleBranches.length > 0 && item.status === 'ACTIVE' && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    title="Jual paket langsung untuk pelanggan ini"
+                    onClick={() => setSelectedForSale(item)}
+                  >
+                    <ShoppingCart className="size-3.5 text-dd-forest" />
+                    <span className="hidden xl:inline">Jual paket</span>
+                  </Button>
+                )}
+                {canWrite && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    title="Edit cepat profil pelanggan"
+                    onClick={() => setSelectedForEdit(item)}
+                  >
+                    <Edit3 className="size-3.5 text-dd-muted" />
+                    <span className="hidden xl:inline">Edit</span>
+                  </Button>
+                )}
+                {canWrite && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    title="Reset kata sandi pelanggan"
+                    onClick={() => {
+                      setSelectedForPassword(item);
+                      setNewPassword('');
+                      setPasswordError('');
+                    }}
+                  >
+                    <KeyRound className="size-3.5 text-dd-muted" />
+                    <span className="hidden xl:inline">Sandi</span>
+                  </Button>
+                )}
+              </div>
             ),
           },
         ]}
@@ -314,9 +384,42 @@ export function CustomersView() {
               · {item.activePackageCount} paket aktif · {item._count?.purchases ?? 0} order ·{' '}
               {item._count?.customerBookings ?? 0} booking
             </p>
-            <ButtonLink variant="secondary" size="sm" href={`/customers/${item.id}`}>
-              Lihat detail
-            </ButtonLink>
+            <div className="flex flex-wrap items-center gap-1.5 pt-1">
+              <ButtonLink variant="secondary" size="sm" href={`/customers/${item.id}`}>
+                Lihat detail
+              </ButtonLink>
+              {canSell && saleBranches.length > 0 && item.status === 'ACTIVE' && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedForSale(item)}
+                >
+                  <ShoppingCart className="size-3.5 text-dd-forest" /> Jual paket
+                </Button>
+              )}
+              {canWrite && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedForEdit(item)}
+                >
+                  <Edit3 className="size-3.5" /> Edit
+                </Button>
+              )}
+              {canWrite && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setSelectedForPassword(item);
+                    setNewPassword('');
+                    setPasswordError('');
+                  }}
+                >
+                  <KeyRound className="size-3.5" /> Reset sandi
+                </Button>
+              )}
+            </div>
           </div>
         )}
       />
@@ -333,6 +436,219 @@ export function CustomersView() {
         onPrevious={() => setPage((p) => Math.max(1, p - 1))}
         onNext={() => setPage((p) => Math.min(Math.ceil(total / ADMIN_PAGE_SIZE) || 1, p + 1))}
       />
+
+      {/* Assisted Sale Drawer */}
+      {canSell && saleBranches.length > 0 && selectedForSale && (
+        <AssistedSaleDrawer
+          open={Boolean(selectedForSale)}
+          branch={saleBranch}
+          branches={saleBranches}
+          customer={{ id: selectedForSale.id, name: selectedForSale.displayName }}
+          onClose={() => setSelectedForSale(null)}
+          onRecorded={() => {
+            const customerName = selectedForSale.displayName;
+            setSelectedForSale(null);
+            feedback?.showToast({
+              tone: 'success',
+              title: 'Penjualan berhasil dicatat',
+              message: `Paket untuk ${customerName} berhasil diproses.`,
+            });
+            setRefreshIndex((prev) => prev + 1);
+          }}
+        />
+      )}
+
+      {/* Quick Edit Customer Modal */}
+      {selectedForEdit && (
+        <Modal
+          open={Boolean(selectedForEdit)}
+          title={`Edit Cepat: ${selectedForEdit.displayName}`}
+          description="Perbarui informasi kontak dan cabang pilihan member."
+          onClose={() => setSelectedForEdit(null)}
+        >
+          <form
+            className="space-y-4 py-2"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              const formData = new FormData(e.currentTarget);
+              setQuickBusy(true);
+              setQuickError('');
+              try {
+                await customerClient.updateProfile(
+                  selectedForEdit.id,
+                  {
+                    displayName: String(formData.get('displayName')),
+                    email: formData.get('email') ? String(formData.get('email')) : null,
+                    phoneE164: String(formData.get('phoneE164')),
+                    preferredBranchId: formData.get('preferredBranchId') ? String(formData.get('preferredBranchId')) : null,
+                    expectedVersion: selectedForEdit.version,
+                    reason: 'Pembaruan cepat dari tabel pelanggan',
+                  },
+                  { idempotencyKey: crypto.randomUUID() },
+                );
+                feedback?.showToast({
+                  tone: 'success',
+                  title: 'Data pelanggan diperbarui',
+                  message: `Profil ${formData.get('displayName')} berhasil disimpan.`,
+                });
+                setSelectedForEdit(null);
+                setRefreshIndex((prev) => prev + 1);
+              } catch (cause: any) {
+                setQuickError(cause?.message || 'Gagal memperbarui profil pelanggan.');
+              } finally {
+                setQuickBusy(false);
+              }
+            }}
+          >
+            {quickError && <Feedback kind="error">{quickError}</Feedback>}
+            <TextInput
+              required
+              label="Nama Lengkap"
+              name="displayName"
+              defaultValue={selectedForEdit.displayName}
+            />
+            <div className="grid gap-3 sm:grid-cols-2">
+              <TextInput
+                required
+                label="Nomor WhatsApp / Telepon"
+                name="phoneE164"
+                defaultValue={selectedForEdit.phoneE164 ?? ''}
+              />
+              <TextInput
+                label="Email (opsional)"
+                name="email"
+                type="email"
+                defaultValue={selectedForEdit.email ?? ''}
+              />
+            </div>
+            <SearchSelect
+              label="Studio/Cabang Pilihan"
+              name="preferredBranchId"
+              defaultValue={selectedForEdit.preferredBranch?.id ?? ''}
+              placeholder="Pilih studio"
+              options={(session?.branches ?? []).map((branch) => ({
+                id: branch.id,
+                label: branch.name,
+              }))}
+            />
+            <div className="flex justify-end gap-2 pt-3 border-t border-dd-line">
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={quickBusy}
+                onClick={() => setSelectedForEdit(null)}
+              >
+                Batal
+              </Button>
+              <Button type="submit" loading={quickBusy}>
+                Simpan Perubahan
+              </Button>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {/* Quick Reset Password Modal */}
+      {selectedForPassword && (
+        <Modal
+          open={Boolean(selectedForPassword)}
+          title={`Reset Kata Sandi: ${selectedForPassword.displayName}`}
+          description={`Setel kata sandi baru untuk member ${selectedForPassword.displayName}. Member dapat langsung login ke portal member menggunakan kata sandi ini.`}
+          onClose={() => {
+            setSelectedForPassword(null);
+            setNewPassword('');
+          }}
+        >
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+              if (!newPassword || newPassword.length < 8) return;
+              setPasswordBusy(true);
+              setPasswordError('');
+              try {
+                await customerClient.resetPassword(selectedForPassword.id, newPassword);
+                feedback?.showToast({
+                  tone: 'success',
+                  title: 'Kata sandi direset',
+                  message: `Kata sandi untuk ${selectedForPassword.displayName} berhasil diperbarui.`,
+                });
+                setSelectedForPassword(null);
+                setNewPassword('');
+              } catch (cause: any) {
+                setPasswordError(cause?.message || 'Gagal mereset kata sandi.');
+              } finally {
+                setPasswordBusy(false);
+              }
+            }}
+            className="space-y-4 py-2"
+          >
+            {passwordError && <Feedback kind="error">{passwordError}</Feedback>}
+            <div className="grid gap-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-dd-ink" htmlFor="quick-reset-password">
+                  Kata Sandi Baru (Min. 8 karakter)
+                </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%';
+                    let generated = '';
+                    for (let i = 0; i < 10; i++) {
+                      generated += chars.charAt(Math.floor(Math.random() * chars.length));
+                    }
+                    setNewPassword(generated);
+                    setShowPassword(true);
+                  }}
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-dd-forest hover:underline cursor-pointer"
+                >
+                  <RefreshCw className="size-3" /> Buat Sandi Acak
+                </button>
+              </div>
+              <div className="relative flex items-center">
+                <input
+                  id="quick-reset-password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Masukkan kata sandi baru atau klik Buat Sandi Acak"
+                  minLength={8}
+                  required
+                  className="w-full rounded-dd-md border border-dd-line bg-white px-3 py-2 pr-10 text-sm text-dd-ink outline-none focus:border-dd-forest focus:ring-2 focus:ring-dd-forest/15"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 text-dd-muted hover:text-dd-ink cursor-pointer"
+                  tabIndex={-1}
+                  aria-label={showPassword ? 'Sembunyikan password' : 'Lihat password'}
+                >
+                  {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                </button>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 pt-3 border-t border-dd-line">
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={passwordBusy}
+                onClick={() => {
+                  setSelectedForPassword(null);
+                  setNewPassword('');
+                }}
+              >
+                Batal
+              </Button>
+              <Button
+                type="submit"
+                loading={passwordBusy}
+                disabled={!newPassword || newPassword.length < 8}
+              >
+                Simpan Kata Sandi
+              </Button>
+            </div>
+          </form>
+        </Modal>
+      )}
     </section>
   );
 }

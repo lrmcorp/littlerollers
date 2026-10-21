@@ -152,6 +152,7 @@ export class PackagePromotionService {
       where: { id: packageId },
       include: {
         classType: { select: { id: true, code: true, name: true } },
+        branch: { select: { id: true, code: true, name: true } },
         _count: { select: { purchases: true, customerPackages: true } },
       },
     });
@@ -199,6 +200,11 @@ export class PackagePromotionService {
     });
     const usage = await this.usageCounts(rows.map((row) => row.id));
     const promotions = rows.map((row) => this.view(row, pkg.priceRp, usage.get(row.id) ?? 0));
+    const branchScopes = (pkg as any).isMultiBranch
+      ? []
+      : (pkg as any).branch
+      ? [{ branchId: (pkg as any).branch.id, active: true, branch: (pkg as any).branch }]
+      : [];
     const detail = {
       id: pkg.id,
       code: pkg.code,
@@ -210,10 +216,13 @@ export class PackagePromotionService {
       durationDays: pkg.validityDays,
       validityDays: pkg.validityDays,
       status: pkg.status,
+      isMultiBranch: Boolean((pkg as any).isMultiBranch),
+      branchId: pkg.branchId ?? null,
+      branch: (pkg as any).branch ?? null,
       effectiveState: pkg.status === 'ACTIVE' ? 'LIVE' : pkg.status,
       effectiveFrom: pkg.createdAt.toISOString(),
       effectiveUntil: null,
-      branchScopes: [],
+      branchScopes,
       classTypeScopes: pkg.classType ? [{ classType: pkg.classType }] : [],
       classType: pkg.classType ?? null,
       classTypeId: pkg.classTypeId ?? null,

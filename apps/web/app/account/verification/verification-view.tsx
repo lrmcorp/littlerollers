@@ -550,13 +550,13 @@ function KycSubmissionForm({ onSubmitted }: { onSubmitted: () => Promise<void> }
       <section className="rounded-dd-xl border border-dd-line bg-white p-6 shadow-dd-card sm:p-8">
         <div className="border-b border-dd-line/60 pb-5">
           <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-dd-brass-dark">
-            Verifikasi Identitas Member (KYC)
+            Verifikasi Identitas KTP
           </span>
           <h1 className="mt-2 text-2xl font-bold tracking-tight text-dd-ink sm:text-3xl">
             Lengkapi Dokumen Verifikasi
           </h1>
           <p className="mt-2 text-sm leading-6 text-dd-muted">
-            Sesuai kebijakan keamanan studio Daily Dose, silakan unggah identitas resmi (KTP) dan foto selfie untuk mengaktifkan pemesanan kelas.
+            Sesuai kebijakan keamanan studio Daily Dose, silakan siapkan 4 data berikut: 16 digit NIK, alamat lengkap sesuai KTP, foto e-KTP jelas, dan foto selfie untuk mengaktifkan pemesanan kelas.
           </p>
         </div>
 
@@ -575,9 +575,11 @@ function KycSubmissionForm({ onSubmitted }: { onSubmitted: () => Promise<void> }
               id="nik"
               name="nik"
               type="text"
+              inputMode="numeric"
+              maxLength={16}
               value={nik}
-              onChange={(e) => setNik(e.target.value)}
-              placeholder="3174051203950001"
+              onChange={(e) => setNik(e.target.value.replace(/\D/g, '').slice(0, 16))}
+              placeholder="Masukkan 16 digit NIK di KTP"
               required
               className="mt-1.5 w-full rounded-dd-md border border-dd-line bg-white px-3.5 py-2.5 text-sm text-dd-ink transition focus:border-dd-forest focus:outline-none focus:ring-1 focus:ring-dd-forest"
             />
@@ -593,7 +595,7 @@ function KycSubmissionForm({ onSubmitted }: { onSubmitted: () => Promise<void> }
               rows={2}
               value={address}
               onChange={(e) => setAddress(e.target.value)}
-              placeholder="Jl. Kedoya Pesing No. 18, Jakarta Barat"
+              placeholder="Contoh: Jl. Nama Jalan No. XX, RT/RW, Kelurahan, Kecamatan, Kota"
               required
               className="mt-1.5 w-full rounded-dd-md border border-dd-line bg-white px-3.5 py-2.5 text-sm text-dd-ink transition focus:border-dd-forest focus:outline-none focus:ring-1 focus:ring-dd-forest"
             />

@@ -49,16 +49,40 @@ export interface DashboardOverviewPeriod {
   previousUntil?: Date | string;
 }
 
+export interface OmsetSourceItem {
+  key: string;
+  label: string;
+  count: number;
+  totalRp: number;
+  percentage: number;
+}
+
+export interface ProfitBreakdownDetails {
+  grossSalesRp: number;
+  discountRp: number;
+  netRevenueRp: number;
+  instructorCostRp: number;
+  grossProfitRp: number;
+  grossMarginPercent: number;
+  otherCostRp: number;
+  netOperatingProfitRp: number;
+  netMarginPercent: number;
+}
+
 export interface DashboardFinancialSummary {
   grossSalesRp: number;
-  packagePromotionDiscountRp: number;
-  voucherDiscountRp: number;
+  discountRp?: number;
+  packagePromotionDiscountRp?: number;
+  voucherDiscountRp?: number;
   revenueRp: number;
   projectionRp: number;
   instructorRealtimeRp: number;
   otherCostRp: number;
+  grossProfitRp?: number;
+  grossMarginPercent?: number;
   correctionRp: number;
   profitRp: number;
+  netMarginPercent?: number;
   completeness: 'COMPLETE' | 'INCOMPLETE' | 'ESTIMATED' | string;
   /** Ada kelas selesai tetapi tarif honor instruktur belum diisi (biaya instruktur tampil Rp 0). */
   instructorFeeMissing?: boolean;
@@ -69,6 +93,12 @@ export interface DashboardFinancialSummary {
   projectedRevenueRp?: number;
   netProfitRp?: number;
   pendingRefundsRp?: number;
+  omsetBreakdown?: {
+    byPackage: OmsetSourceItem[];
+    byPaymentMethod: OmsetSourceItem[];
+    byClassType: OmsetSourceItem[];
+  };
+  profitBreakdown?: ProfitBreakdownDetails;
 }
 
 export interface DashboardBranchPerformance {
@@ -80,7 +110,10 @@ export interface DashboardBranchPerformance {
   projectionRp: number;
   instructorRealtimeRp: number;
   otherCostRp: number;
+  grossProfitRp?: number;
+  grossMarginPercent?: number;
   profitRp: number;
+  netMarginPercent?: number;
   bookings: number;
   occupancyPercent: number;
   bookingCount?: number;

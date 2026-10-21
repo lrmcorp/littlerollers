@@ -23,6 +23,7 @@ export type LedgerBalance = {
   classTypeName?: string;
   classTypeId?: string | null;
   packageBranchId?: string | null;
+  isMultiBranch?: boolean;
   customer?: { id: string; displayName: string; phoneMasked: string | null };
 };
 export type LedgerHistory = {

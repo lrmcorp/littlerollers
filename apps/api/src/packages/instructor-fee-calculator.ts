@@ -17,6 +17,8 @@ export type FeeableSlot = {
   instructor: { id: string; displayName: string } | null;
   classType: { name: string } | null;
   instructorAttendance?: unknown;
+  instructorFeeRp?: number | null;
+  isManualFee?: boolean;
 };
 
 export type InstructorFeeSummary = {
@@ -60,8 +62,25 @@ export function teachingHours(slot: Pick<FeeableSlot, 'startAt' | 'endAt'>): num
  */
 export function calculateSlotFee(
   sortedFees: readonly InstructorFeeRow[],
-  slot: Pick<FeeableSlot, 'startAt' | 'endAt' | 'branchId' | 'classTypeId'> & { instructorId: string },
+  slot: Pick<
+    FeeableSlot,
+    'startAt' | 'endAt' | 'branchId' | 'classTypeId' | 'instructorFeeRp' | 'isManualFee'
+  > & { instructorId: string },
 ) {
+  const hours = teachingHours(slot);
+
+  // Jika honor diatur secara manual per sesi
+  if (slot.isManualFee && slot.instructorFeeRp !== null && slot.instructorFeeRp !== undefined) {
+    const feeRp = Number(slot.instructorFeeRp);
+    return {
+      hours,
+      feePerJamRp: Math.round(feeRp / hours),
+      feeRp,
+      configured: true,
+      isManual: true,
+    };
+  }
+
   const applicable = (f: InstructorFeeRow) =>
     f.instructorId === slot.instructorId &&
     f.classTypeId === slot.classTypeId &&
@@ -70,8 +89,13 @@ export function calculateSlotFee(
     sortedFees.find((f) => applicable(f) && f.branchId === slot.branchId) ??
     sortedFees.find(applicable);
   const feePerJamRp = matched?.feePerJamRp ?? DEFAULT_INSTRUCTOR_FEE_PER_HOUR_RP;
-  const hours = teachingHours(slot);
-  return { hours, feePerJamRp, feeRp: hours * feePerJamRp, configured: Boolean(matched) };
+  return {
+    hours,
+    feePerJamRp,
+    feeRp: hours * feePerJamRp,
+    configured: Boolean(matched),
+    isManual: false,
+  };
 }
 
 /**

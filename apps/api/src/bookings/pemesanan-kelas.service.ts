@@ -398,7 +398,11 @@ export class BookingsService {
         package: {
           AND: [
             {
-              OR: [{ branchId: null }, { branchId: slot.branchId }],
+              OR: [
+                { isMultiBranch: true },
+                { branchId: null },
+                { branchId: slot.branchId },
+              ],
             },
             {
               OR: [{ classTypeId: null }, { classTypeId: slot.classTypeId }],
@@ -408,11 +412,20 @@ export class BookingsService {
       },
       include: {
         package: true,
+        purchase: true,
       },
     });
 
+    // Filter paket: jika paket bukan multi-branch, pastikan cabang paket/pembelian cocok dengan slot
+    const matchingPackages = packages.filter((pkg) => {
+      const isMulti = Boolean(pkg.package.isMultiBranch);
+      if (isMulti) return true;
+      const allowedBranchId = pkg.package.branchId ?? pkg.purchase?.branchId;
+      return !allowedBranchId || allowedBranchId === slot.branchId;
+    });
+
     const items = await Promise.all(
-      packages.map(async (pkg) => {
+      matchingPackages.map(async (pkg) => {
         const activeBookingsCount = await this.db.pemesananKelas.count({
           where: {
             customerPackageId: pkg.id,
@@ -824,10 +837,10 @@ export class BookingsService {
           throw new ApiProblem('INSUFFICIENT_AVAILABLE_SESSIONS', HttpStatus.CONFLICT);
 
         // Validasi kecocokan cabang & jenis kelas paket (Integritas Aturan Bisnis)
-        if (
-          customerPackage.package?.branchId &&
-          customerPackage.package.branchId !== slot.branchId
-        ) {
+        const isMulti = Boolean(customerPackage.package?.isMultiBranch);
+        const allowedBranchId =
+          customerPackage.package?.branchId ?? customerPackage.purchase?.branchId ?? null;
+        if (!isMulti && allowedBranchId && allowedBranchId !== slot.branchId) {
           throw new ApiProblem('PACKAGE_BRANCH_MISMATCH', HttpStatus.CONFLICT);
         }
         if (

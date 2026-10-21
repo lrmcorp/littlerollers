@@ -55,6 +55,7 @@ export class ClassSlotController {
       instructorUserId?: string;
       startAt: string;
       endAt: string;
+      instructorFeeRp?: number | null;
     },
     @Res({ passthrough: true }) res: Response,
   ) {
@@ -86,11 +87,14 @@ export class ClassSlotController {
     @Body()
     body: {
       classTypeId: string;
+      studioId?: string;
+      roomId?: string | null;
       instructorUserId?: string | null;
       startAt: string;
       endAt: string;
       expectedVersion: number;
       reason: string;
+      instructorFeeRp?: number | null;
     },
     @Res({ passthrough: true }) res: Response,
   ) {

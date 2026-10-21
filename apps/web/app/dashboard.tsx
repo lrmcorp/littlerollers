@@ -46,6 +46,7 @@ const financialMetricKeys = new Set([
   'revenue',
   'projection',
   'instructor-realtime',
+  'gross-profit',
   'other-cost',
   'profit',
   'correction',
@@ -632,6 +633,131 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
           </Panel>
         )}
 
+        {/* Rincian Profit & Sumber Omset (Hanya untuk Owner, Super Admin / Executive, & Finance) */}
+        {(focus === 'FINANCE' || focus === 'EXECUTIVE' || focus === 'OWNER') && overview?.financial.profitBreakdown && (
+          <div className="grid gap-6 lg:grid-cols-2">
+            {/* Kartu 1: Dekomposisi Laba Rugi Berjenjang (Waterfall P&L) */}
+            <Panel className="p-6">
+              <div className="flex items-center justify-between border-b border-dd-line/60 pb-3">
+                <div>
+                  <h3 className="font-sans text-base font-bold text-dd-ink">
+                    Dekomposisi Laba Rugi (P&L)
+                  </h3>
+                  <p className="text-xs text-dd-muted">Alur pembentukan laba dari omzet kotor hingga laba bersih operasional</p>
+                </div>
+                <Badge tone={overview.financial.profitBreakdown.netOperatingProfitRp >= 0 ? 'success' : 'danger'}>
+                  Margin Bersih: {overview.financial.profitBreakdown.netMarginPercent}%
+                </Badge>
+              </div>
+
+              <div className="mt-4 space-y-2 text-sm">
+                <div className="flex items-center justify-between py-1.5">
+                  <span className="text-dd-muted">Omzet Penjualan Bruto</span>
+                  <span className="font-semibold">{formatRupiah(overview.financial.profitBreakdown.grossSalesRp)}</span>
+                </div>
+                {overview.financial.profitBreakdown.discountRp > 0 && (
+                  <div className="flex items-center justify-between py-1.5 text-dd-danger">
+                    <span>(-) Diskon & Promo Paket</span>
+                    <span className="font-medium">- {formatRupiah(overview.financial.profitBreakdown.discountRp)}</span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between border-t border-dd-line/50 py-1.5 font-medium">
+                  <span className="text-dd-ink">(=) Omzet Penjualan Bersih</span>
+                  <span className="font-bold text-dd-forest">{formatRupiah(overview.financial.profitBreakdown.netRevenueRp)}</span>
+                </div>
+                <div className="flex items-center justify-between py-1.5 text-dd-brass-dark">
+                  <span>(-) Modal / Biaya Langsung Instruktur (Sesi Selesai)</span>
+                  <span className="font-medium">- {formatRupiah(overview.financial.profitBreakdown.instructorCostRp)}</span>
+                </div>
+                <div className="flex items-center justify-between rounded-dd-md bg-dd-forest/5 px-3 py-2 border border-dd-forest/20">
+                  <div className="flex items-center gap-2">
+                    <strong className="text-dd-forest">(=) Laba Kotor Operasional</strong>
+                    <span className="text-[11px] font-bold text-dd-forest/80 rounded bg-dd-forest/10 px-1.5 py-0.5">
+                      Margin {overview.financial.profitBreakdown.grossMarginPercent}%
+                    </span>
+                  </div>
+                  <span className="font-bold text-dd-forest">{formatRupiah(overview.financial.profitBreakdown.grossProfitRp)}</span>
+                </div>
+                <div className="flex items-center justify-between py-1.5 text-dd-danger">
+                  <span>(-) Biaya Operasional / Pengeluaran Lain</span>
+                  <span className="font-medium">- {formatRupiah(overview.financial.profitBreakdown.otherCostRp)}</span>
+                </div>
+                <div className="flex items-center justify-between rounded-dd-md bg-dd-surface-muted/60 px-3 py-2.5 border border-dd-line">
+                  <div className="flex items-center gap-2">
+                    <strong className="text-dd-ink">(=) Laba Bersih Operasional</strong>
+                    <span className="text-[11px] font-bold text-dd-ink/80 rounded bg-white px-1.5 py-0.5 border border-dd-line/60">
+                      Margin {overview.financial.profitBreakdown.netMarginPercent}%
+                    </span>
+                  </div>
+                  <span className="text-base font-extrabold text-dd-forest">
+                    {formatRupiah(overview.financial.profitBreakdown.netOperatingProfitRp)}
+                  </span>
+                </div>
+              </div>
+            </Panel>
+
+            {/* Kartu 2: Sumber Omset Penjualan (Breakdown by Package, Payment Method, Class Type) */}
+            <Panel className="p-6">
+              <div className="flex items-center justify-between border-b border-dd-line/60 pb-3">
+                <div>
+                  <h3 className="font-sans text-base font-bold text-dd-ink">
+                    Rincian Sumber Omset
+                  </h3>
+                  <p className="text-xs text-dd-muted">Kontribusi omzet berdasarkan paket, metode pembayaran, dan jenis kelas</p>
+                </div>
+                <Badge tone="neutral">
+                  Total {formatRupiah(overview.financial.revenueRp)}
+                </Badge>
+              </div>
+
+              <div className="mt-4 space-y-4">
+                {/* Sumber per Paket */}
+                <div>
+                  <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-dd-muted">
+                    <span>Paket Terlaris</span>
+                    <span>Nominal & Porsi</span>
+                  </div>
+                  <div className="mt-2 divide-y divide-dd-line/50 text-xs">
+                    {(overview.financial.omsetBreakdown?.byPackage ?? []).slice(0, 4).map((pkg) => (
+                      <div key={pkg.key} className="flex items-center justify-between py-2">
+                        <span className="font-medium text-dd-ink truncate max-w-[55%]">
+                          {pkg.label} <span className="text-dd-muted">({pkg.count} terjual)</span>
+                        </span>
+                        <div className="text-right">
+                          <span className="font-bold text-dd-forest">{formatRupiah(pkg.totalRp)}</span>
+                          <span className="ml-2 font-semibold text-dd-muted">({pkg.percentage}%)</span>
+                        </div>
+                      </div>
+                    ))}
+                    {(overview.financial.omsetBreakdown?.byPackage?.length ?? 0) === 0 && (
+                      <p className="py-2 text-center text-xs text-dd-muted">Belum ada transaksi paket terbayar.</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Sumber per Metode Pembayaran */}
+                <div className="border-t border-dd-line/60 pt-3">
+                  <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-dd-muted">
+                    <span>Metode Pembayaran</span>
+                    <span>Nominal & Porsi</span>
+                  </div>
+                  <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
+                    {(overview.financial.omsetBreakdown?.byPaymentMethod ?? []).map((method) => (
+                      <div key={method.key} className="rounded-dd-sm border border-dd-line/60 bg-dd-surface-muted/30 p-2.5">
+                        <span className="font-bold uppercase text-dd-muted">{method.label}</span>
+                        <div className="mt-1 flex items-baseline justify-between">
+                          <strong className="text-dd-ink">{formatRupiah(method.totalRp)}</strong>
+                          <span className="text-[11px] font-semibold text-dd-forest">{method.percentage}%</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </Panel>
+          </div>
+        )}
+
         {overview?.branches.length ? (
           <div className="space-y-3 pt-2">
             <div>
@@ -654,25 +780,39 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
                 },
                 { id: 'revenue', header: 'Omzet', cell: (branch) => formatRupiah(branch.revenueRp) },
                 {
-                  id: 'projection',
-                  header: 'Proyeksi',
-                  cell: (branch) => formatRupiah(branch.projectionRp),
-                },
-                {
                   id: 'instructor',
-                  header: 'Instruktur',
+                  header: 'Instruktur (Modal)',
                   cell: (branch) => formatRupiah(branch.instructorRealtimeRp),
                 },
                 {
+                  id: 'grossProfit',
+                  header: 'Laba Kotor',
+                  cell: (branch) => (
+                    <div>
+                      <span className="font-semibold text-dd-forest">
+                        {formatRupiah(branch.grossProfitRp ?? (branch.revenueRp - branch.instructorRealtimeRp))}
+                      </span>
+                      {branch.grossMarginPercent !== undefined && (
+                        <span className="block text-xs font-medium text-dd-muted">{branch.grossMarginPercent}% margin</span>
+                      )}
+                    </div>
+                  ),
+                },
+                {
                   id: 'cost',
-                  header: 'Pengeluaran',
+                  header: 'Pengeluaran Lain',
                   cell: (branch) => formatRupiah(branch.otherCostRp),
                 },
                 {
                   id: 'profit',
-                  header: 'Profit',
+                  header: 'Profit Bersih',
                   cell: (branch) => (
-                    <span className="font-bold text-dd-forest">{formatRupiah(branch.profitRp)}</span>
+                    <div>
+                      <span className="font-bold text-dd-forest">{formatRupiah(branch.profitRp)}</span>
+                      {branch.netMarginPercent !== undefined && (
+                        <span className="block text-xs font-semibold text-dd-forest/80">{branch.netMarginPercent}% margin</span>
+                      )}
+                    </div>
                   ),
                 },
                 {
@@ -706,7 +846,11 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
                   <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
                     <dt className="text-dd-muted">Omzet</dt>
                     <dd className="text-right font-medium">{formatRupiah(branch.revenueRp)}</dd>
-                    <dt className="text-dd-muted">Profit</dt>
+                    <dt className="text-dd-muted">Laba Kotor</dt>
+                    <dd className="text-right font-semibold text-dd-forest">
+                      {formatRupiah(branch.grossProfitRp ?? (branch.revenueRp - branch.instructorRealtimeRp))}
+                    </dd>
+                    <dt className="text-dd-muted">Profit Bersih</dt>
                     <dd className="text-right font-bold text-dd-forest">
                       {formatRupiah(branch.profitRp)}
                     </dd>

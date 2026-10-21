@@ -4,7 +4,7 @@ import type { SessionPrincipal } from '../identity/identity.service';
 import { ApiProblem } from '../identity/security';
 import { PrismaService } from '../database/prisma.service';
 import { dateInTimeZone, startOfLocalDateUtc } from '../identity/assignment-boundary';
-import { summarizeInstructorFees } from '../packages/instructor-fee-calculator';
+import { calculateSlotFee, summarizeInstructorFees } from '../packages/instructor-fee-calculator';
 import { projectionCostFor } from '../packages/projection-cost';
 import { verificationStatusWhere } from '../identity/manajemen-pelanggan.service';
 
@@ -28,14 +28,38 @@ function percentChange(current: number, previous: number): number | null {
   return change;
 }
 
+export interface OmsetSourceItem {
+  key: string;
+  label: string;
+  count: number;
+  totalRp: number;
+  percentage: number;
+}
+
+export interface ProfitBreakdownDetails {
+  grossSalesRp: number;
+  discountRp: number;
+  netRevenueRp: number;
+  instructorCostRp: number;
+  grossProfitRp: number;
+  grossMarginPercent: number;
+  otherCostRp: number;
+  netOperatingProfitRp: number;
+  netMarginPercent: number;
+}
+
 interface FinancialResult {
   totals: {
     grossSalesRp: number;
+    discountRp: number;
     revenueRp: number;
     projectionRp: number;
     instructorRealtimeRp: number;
     otherCostRp: number;
+    grossProfitRp: number;
+    grossMarginPercent: number;
     profitRp: number;
+    netMarginPercent: number;
     correctionRp: number;
   };
   completeness: number;
@@ -51,8 +75,17 @@ interface FinancialResult {
     projectionRp: number;
     instructorRealtimeRp: number;
     otherCostRp: number;
+    grossProfitRp: number;
+    grossMarginPercent: number;
     profitRp: number;
+    netMarginPercent: number;
   }[];
+  omsetBreakdown: {
+    byPackage: OmsetSourceItem[];
+    byPaymentMethod: OmsetSourceItem[];
+    byClassType: OmsetSourceItem[];
+  };
+  profitBreakdown: ProfitBreakdownDetails;
 }
 
 @Injectable()
@@ -65,7 +98,7 @@ export class DashboardService {
       // allow access for customer/member or review principals
     }
     const now = new Date();
-    const [upcomingBookings, packages, actionableOrders] = await Promise.all([
+    const [upcomingBookings, packages, actionableOrders, profile] = await Promise.all([
       this.db.pemesananKelas.findMany({
         where: {
           userId: principal.userId,
@@ -107,7 +140,14 @@ export class DashboardService {
         orderBy: { createdAt: 'desc' },
         take: 5,
       }),
+      (this.db as any).profilPengguna?.findUnique
+        ? (this.db as any).profilPengguna.findUnique({ where: { userId: principal.userId } })
+        : null,
     ]);
+
+    const isApproved = Boolean(profile?.notes?.includes('KYC_APPROVED'));
+    const hasDocs = Boolean(profile?.ktpUrl || profile?.selfieUrl);
+    const verificationStatus = isApproved ? 'APPROVED' : hasDocs ? 'PENDING' : 'ACTION_REQUIRED';
 
     return {
       generatedAt: now,
@@ -137,7 +177,7 @@ export class DashboardService {
         expiresAt: order.paymentExpiresAt,
       })),
       verification: {
-        status: 'APPROVED',
+        status: verificationStatus,
         documents: [],
       },
       unreadNotifications: 0,
@@ -165,9 +205,18 @@ export class DashboardService {
           branchId: true,
           subtotalRp: true,
           totalAmountRp: true,
+          paymentMethod: true,
           createdAt: true,
           paidAt: true,
-          package: { select: { classTypeId: true, sessionCount: true } },
+          package: {
+            select: {
+              id: true,
+              name: true,
+              classTypeId: true,
+              sessionCount: true,
+              classType: { select: { id: true, name: true } },
+            },
+          },
         },
       }),
       this.db.otherCost?.findMany
@@ -223,7 +272,7 @@ export class DashboardService {
     let totalGross = 0;
     let totalRevenue = 0;
     const branchMap = new Map<string, { gross: number; revenue: number }>();
-    const trendMap = new Map<string, { revenue: number }>();
+    const trendMap = new Map<string, { revenue: number; instructorFee: number }>();
 
     for (const bId of params.branchIds) {
       branchMap.set(bId, { gross: 0, revenue: 0 });
@@ -231,9 +280,14 @@ export class DashboardService {
 
     let curDate = params.from;
     while (curDate <= params.until) {
-      trendMap.set(curDate, { revenue: 0 });
+      trendMap.set(curDate, { revenue: 0, instructorFee: 0 });
       curDate = dateShift(curDate, 1);
     }
+
+    // Breakdown maps
+    const pkgMap = new Map<string, { packageId: string; packageName: string; count: number; totalRp: number }>();
+    const payMethodMap = new Map<string, { method: string; count: number; totalRp: number }>();
+    const classTypeMap = new Map<string, { classTypeId: string; classTypeName: string; count: number; totalRp: number }>();
 
     for (const p of purchases) {
       totalGross += p.subtotalRp;
@@ -249,6 +303,48 @@ export class DashboardService {
       const tEntry = trendMap.get(dKey);
       if (tEntry) {
         tEntry.revenue += p.totalAmountRp;
+      }
+
+      // Breakdown by package
+      const pkgId = p.package?.id ?? 'custom';
+      const pkgName = p.package?.name ?? 'Paket Kustom / Lainnya';
+      const existingPkg = pkgMap.get(pkgId) ?? { packageId: pkgId, packageName: pkgName, count: 0, totalRp: 0 };
+      existingPkg.count += 1;
+      existingPkg.totalRp += p.totalAmountRp;
+      pkgMap.set(pkgId, existingPkg);
+
+      // Breakdown by payment method
+      const method = p.paymentMethod || 'MANUAL_TRANSFER';
+      const existingPay = payMethodMap.get(method) ?? { method, count: 0, totalRp: 0 };
+      existingPay.count += 1;
+      existingPay.totalRp += p.totalAmountRp;
+      payMethodMap.set(method, existingPay);
+
+      // Breakdown by class type
+      const ctId = p.package?.classType?.id ?? 'general';
+      const ctName = p.package?.classType?.name ?? 'Umum / Semua Jenis Kelas';
+      const existingCt = classTypeMap.get(ctId) ?? { classTypeId: ctId, classTypeName: ctName, count: 0, totalRp: 0 };
+      existingCt.count += 1;
+      existingCt.totalRp += p.totalAmountRp;
+      classTypeMap.set(ctId, existingCt);
+    }
+
+    // Hitung biaya instruktur per kelas completed dan update trend harian
+    for (const s of completedSlots) {
+      if (!s.instructorId) continue;
+      const slotFee = calculateSlotFee(fees, {
+        startAt: s.startAt,
+        endAt: s.endAt,
+        branchId: s.branchId,
+        classTypeId: s.classTypeId,
+        instructorId: s.instructorId,
+        instructorFeeRp: (s as any).instructorFeeRp,
+        isManualFee: (s as any).isManualFee,
+      });
+      const dKey = s.startAt.toISOString().slice(0, 10);
+      const tEntry = trendMap.get(dKey);
+      if (tEntry) {
+        tEntry.instructorFee += slotFee.feeRp;
       }
     }
 
@@ -271,7 +367,12 @@ export class DashboardService {
       totalInstructorFee += branchInstructorFee;
       totalOtherCost += branchOtherCost;
 
-      const profit = bData.revenue - branchInstructorFee - branchOtherCost;
+      const branchGrossProfit = bData.revenue - branchInstructorFee;
+      const branchGrossMargin =
+        bData.revenue > 0 ? Math.round((branchGrossProfit / bData.revenue) * 1000) / 10 : 0;
+      const profit = branchGrossProfit - branchOtherCost;
+      const branchNetMargin =
+        bData.revenue > 0 ? Math.round((profit / bData.revenue) * 1000) / 10 : 0;
 
       return {
         branchId,
@@ -280,26 +381,81 @@ export class DashboardService {
         projectionRp: projection.byBranch.get(branchId) ?? 0,
         instructorRealtimeRp: branchInstructorFee,
         otherCostRp: branchOtherCost,
+        grossProfitRp: branchGrossProfit,
+        grossMarginPercent: branchGrossMargin,
         profitRp: profit,
+        netMarginPercent: branchNetMargin,
       };
     });
 
-    const totalProfit = totalRevenue - totalInstructorFee - totalOtherCost;
+    const totalDiscount = Math.max(0, totalGross - totalRevenue);
+    const grossProfit = totalRevenue - totalInstructorFee;
+    const grossMarginPercent =
+      totalRevenue > 0 ? Math.round((grossProfit / totalRevenue) * 1000) / 10 : 0;
+    const totalProfit = grossProfit - totalOtherCost;
+    const netMarginPercent =
+      totalRevenue > 0 ? Math.round((totalProfit / totalRevenue) * 1000) / 10 : 0;
 
     const trend = [...trendMap.entries()].map(([date, data]) => ({
       date,
       revenueRp: data.revenue,
-      profitRp: data.revenue,
+      profitRp: data.revenue - data.instructorFee,
     }));
+
+    const byPackage = [...pkgMap.values()]
+      .map((item) => ({
+        key: item.packageId,
+        label: item.packageName,
+        count: item.count,
+        totalRp: item.totalRp,
+        percentage: totalRevenue > 0 ? Math.round((item.totalRp / totalRevenue) * 1000) / 10 : 0,
+      }))
+      .sort((a, b) => b.totalRp - a.totalRp);
+
+    const byPaymentMethod = [...payMethodMap.values()]
+      .map((item) => ({
+        key: item.method,
+        label: item.method,
+        count: item.count,
+        totalRp: item.totalRp,
+        percentage: totalRevenue > 0 ? Math.round((item.totalRp / totalRevenue) * 1000) / 10 : 0,
+      }))
+      .sort((a, b) => b.totalRp - a.totalRp);
+
+    const byClassType = [...classTypeMap.values()]
+      .map((item) => ({
+        key: item.classTypeId,
+        label: item.classTypeName,
+        count: item.count,
+        totalRp: item.totalRp,
+        percentage: totalRevenue > 0 ? Math.round((item.totalRp / totalRevenue) * 1000) / 10 : 0,
+      }))
+      .sort((a, b) => b.totalRp - a.totalRp);
+
+    const profitBreakdown = {
+      grossSalesRp: totalGross,
+      discountRp: totalDiscount,
+      netRevenueRp: totalRevenue,
+      instructorCostRp: totalInstructorFee,
+      grossProfitRp: grossProfit,
+      grossMarginPercent,
+      otherCostRp: totalOtherCost,
+      netOperatingProfitRp: totalProfit,
+      netMarginPercent,
+    };
 
     return {
       totals: {
         grossSalesRp: totalGross,
+        discountRp: totalDiscount,
         revenueRp: totalRevenue,
         projectionRp: projection.totalProjectionCostRp,
         instructorRealtimeRp: totalInstructorFee,
         otherCostRp: totalOtherCost,
+        grossProfitRp: grossProfit,
+        grossMarginPercent,
         profitRp: totalProfit,
+        netMarginPercent,
         correctionRp: 0,
       },
       completeness: 100,
@@ -309,6 +465,12 @@ export class DashboardService {
       controlHash: 'lean-v2',
       trend,
       branches,
+      omsetBreakdown: {
+        byPackage,
+        byPaymentMethod,
+        byClassType,
+      },
+      profitBreakdown,
     };
   }
 
@@ -511,7 +673,10 @@ export class DashboardService {
           projectionRp: 0,
           instructorRealtimeRp: 0,
           otherCostRp: 0,
+          grossProfitRp: 0,
+          grossMarginPercent: 0,
           profitRp: 0,
+          netMarginPercent: 0,
         };
         const branchRange = {
           gte: startOfLocalDateUtc(fromDate, branchTz),
@@ -560,7 +725,10 @@ export class DashboardService {
           projectionRp: branchFinancial?.projectionRp ?? 0,
           instructorRealtimeRp: branchFinancial?.instructorRealtimeRp ?? 0,
           otherCostRp: branchFinancial?.otherCostRp ?? 0,
+          grossProfitRp: (branchFinancial as any)?.grossProfitRp ?? 0,
+          grossMarginPercent: (branchFinancial as any)?.grossMarginPercent ?? 0,
           profitRp: branchFinancial?.profitRp ?? 0,
+          netMarginPercent: (branchFinancial as any)?.netMarginPercent ?? 0,
           bookings: branchBookings,
           occupancyPercent: branchCapacity
             ? Math.round((branchBooked / branchCapacity) * 1000) / 10
@@ -616,6 +784,16 @@ export class DashboardService {
         changePercent: percentChange(
           financial.totals.instructorRealtimeRp,
           previousFinancial.totals.instructorRealtimeRp,
+        ),
+      },
+      {
+        key: 'gross-profit',
+        label: 'Laba kotor',
+        value: financial.totals.grossProfitRp,
+        unit: 'IDR',
+        changePercent: percentChange(
+          financial.totals.grossProfitRp,
+          previousFinancial.totals.grossProfitRp,
         ),
       },
       {
@@ -691,6 +869,7 @@ export class DashboardService {
         'revenue',
         'projection',
         'instructor-realtime',
+        'gross-profit',
         'other-cost',
         'profit',
         'correction',
@@ -701,13 +880,23 @@ export class DashboardService {
         'customers',
         'classes',
       ],
-      OWNER: ['revenue', 'projection', 'instructor-realtime', 'other-cost', 'profit', 'bookings'],
+      OWNER: [
+        'gross-sales',
+        'revenue',
+        'projection',
+        'instructor-realtime',
+        'gross-profit',
+        'other-cost',
+        'profit',
+        'bookings',
+      ],
       BRANCH_OPERATIONS: ['bookings', 'occupancy', 'customers', 'classes'],
       FINANCE: [
         'gross-sales',
         'revenue',
         'projection',
         'instructor-realtime',
+        'gross-profit',
         'other-cost',
         'profit',
         'correction',
@@ -746,6 +935,8 @@ export class DashboardService {
         anomalyCount: financial.anomalyCount,
         sourceCutoffAt: financial.sourceCutoffAt,
         controlHash: financial.controlHash,
+        omsetBreakdown: financial.omsetBreakdown,
+        profitBreakdown: financial.profitBreakdown,
       },
       roleFocus,
       sections: allowedSections,

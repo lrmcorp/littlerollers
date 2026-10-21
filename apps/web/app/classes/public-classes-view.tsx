@@ -115,6 +115,7 @@ export function PublicClassesView({
     if (!customerPackages.length) return null;
     return customerPackages.find((pkg) => {
       const branchMatches =
+        pkg.isMultiBranch === true ||
         !pkg.packageBranchId ||
         pkg.packageBranchId === 'global' ||
         pkg.packageBranchId === slot.branchId;

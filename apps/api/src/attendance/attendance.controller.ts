@@ -109,7 +109,7 @@ export class AttendanceController {
   consumeInstructor(
     @Req() request: AuthenticatedRequest,
     @Headers('idempotency-key') idempotencyKey: string,
-    @Body() body: { token: string },
+    @Body() body: { token: string; latitude?: number; longitude?: number },
   ) {
     return this.attendance.consumeInstructor(
       request.principal,

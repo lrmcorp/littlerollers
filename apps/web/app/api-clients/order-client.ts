@@ -24,6 +24,7 @@ export interface CheckoutOptions {
     };
     sessionCount: number;
     durationDays: number;
+    isMultiBranch?: boolean;
     branchId: string;
     branchName: string;
 
@@ -473,6 +474,7 @@ export function orderError(error: unknown) {
 export function orderErrorDetails(error: unknown) {
   const code = error instanceof Error ? error.message : '';
   const labels: Record<string, string> = {
+    CUSTOMER_VERIFICATION_REQUIRED: 'Lengkapi verifikasi KTP terlebih dahulu untuk membeli paket.',
     IDENTITY_VERIFICATION_REQUIRED: 'Selesaikan verifikasi identitas sebelum membuat pesanan.',
     PAYMENT_ACCOUNT_UNAVAILABLE: 'Rekening pembayaran cabang belum tersedia.',
     PAYMENT_UNIQUE_CODE_UNAVAILABLE:

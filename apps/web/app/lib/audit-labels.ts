@@ -41,6 +41,8 @@ const dashboardMetricLabels: Record<string, string> = {
   projection: 'Proyeksi beban',
   instructor: 'Pendapatan instruktur',
   'instructor-realtime': 'Pendapatan instruktur',
+  'gross-profit': 'Laba kotor',
+  grossProfit: 'Laba kotor',
   'other-cost': 'Pengeluaran lain',
   otherCost: 'Pengeluaran lain',
   profit: 'Profit operasional',

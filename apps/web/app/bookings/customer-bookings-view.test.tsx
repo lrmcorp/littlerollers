@@ -61,6 +61,8 @@ describe('customer booking timeline', () => {
 
     render(<CustomerBookingsView client={client} />);
     expect(await screen.findByText('Reformer Pilates')).toBeVisible();
+    expect(screen.getByText('Ketersediaan Slot')).toBeVisible();
+    expect(screen.getByText('Lihat detail & QR Pass')).toBeVisible();
     expect(client.list).toHaveBeenCalledWith({
       timeline: 'UPCOMING',
       cursor: undefined,
@@ -69,6 +71,10 @@ describe('customer booking timeline', () => {
 
     await userEvent.click(screen.getByRole('tab', { name: 'Riwayat' }));
     expect(await screen.findByText('Status kehadiran sedang diproses')).toBeVisible();
+    expect(screen.getByText(/2020/)).toBeVisible();
+    expect(screen.queryByText('Ketersediaan Slot')).not.toBeInTheDocument();
+    expect(screen.getByText('Lihat detail')).toBeVisible();
+    expect(screen.queryByText('Lihat detail & QR Pass')).not.toBeInTheDocument();
     await waitFor(() =>
       expect(client.list).toHaveBeenCalledWith({
         timeline: 'HISTORY',

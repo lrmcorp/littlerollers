@@ -194,6 +194,7 @@ export class CustomerOrderService {
           : null,
         sessionCount: pkg.sessionCount,
         durationDays: pkg.validityDays,
+        isMultiBranch: Boolean(pkg.isMultiBranch),
         branchId: targetBranch?.id ?? null,
         branchName: targetBranch?.name ?? null,
         classTypes,
@@ -356,9 +357,18 @@ export class CustomerOrderService {
             ? { status: PurchaseStatus.REJECTED }
             : query.status === 'PAYMENT_SUBMITTED' || query.status === 'WAITING_VERIFICATION'
               ? { status: PurchaseStatus.WAITING_VERIFICATION }
-              : query.status === 'CANCELLED'
+              : query.status === 'CANCELLED' || query.status === 'EXPIRED'
                 ? { status: PurchaseStatus.CANCELLED }
-                : { status: PurchaseStatus.PENDING }
+                : query.status === 'AWAITING_PAYMENT'
+                  ? { status: PurchaseStatus.PENDING, paymentProof: null }
+                  : query.status === 'PENDING'
+                    ? {
+                        OR: [
+                          { status: PurchaseStatus.WAITING_VERIFICATION },
+                          { status: PurchaseStatus.PENDING, paymentProof: { isNot: null } },
+                        ],
+                      }
+                    : { status: PurchaseStatus.PENDING }
         : {}),
       ...(query.from || query.until
         ? {
@@ -369,6 +379,44 @@ export class CustomerOrderService {
           }
         : {}),
     };
+
+    const allUserOrders = await this.db.pembelian.findMany({
+      where: { userId: principal.userId },
+      select: {
+        status: true,
+        paymentProof: {
+          select: { id: true },
+        },
+      },
+    });
+
+    const summary = {
+      total: allUserOrders.length,
+      awaitingPayment: 0,
+      pending: 0,
+      actionRequired: 0,
+      approved: 0,
+      rejected: 0,
+      expired: 0,
+    };
+
+    for (const o of allUserOrders) {
+      if (o.status === PurchaseStatus.PENDING) {
+        if (o.paymentProof) {
+          summary.pending += 1;
+        } else {
+          summary.awaitingPayment += 1;
+        }
+      } else if (o.status === PurchaseStatus.WAITING_VERIFICATION) {
+        summary.pending += 1;
+      } else if (o.status === PurchaseStatus.PAID) {
+        summary.approved += 1;
+      } else if (o.status === PurchaseStatus.CANCELLED) {
+        summary.expired += 1;
+      } else if (o.status === PurchaseStatus.REJECTED) {
+        summary.rejected += 1;
+      }
+    }
 
     const items = await this.db.pembelian.findMany({
       where,
@@ -392,6 +440,7 @@ export class CustomerOrderService {
 
     return {
       items: pageItems.map((o) => this.orderView(o)),
+      summary,
       nextCursor: hasNext ? pageItems[pageItems.length - 1]?.id ?? null : null,
       page: {
         hasMore: hasNext,

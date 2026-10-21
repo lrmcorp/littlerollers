@@ -16,6 +16,7 @@ import type {
   StudioOption,
 } from '@/api-clients/class-slot-client';
 import { formatBranchTime, zonedLocalDateTime } from '@/lib/class-time';
+import { formatRupiah } from '../lib/formatters';
 import { Feedback, StatusBadge } from '../ui';
 import { Button, ButtonLink } from '../components/actions';
 import { SearchSelect, SelectInput, DateInput, TextInput } from '../components/forms';
@@ -65,6 +66,7 @@ export function CreatePanel({
     instructorUserId?: string;
     startAt: Date;
     endAt: Date;
+    instructorFeeRp?: number | null;
   }): Promise<void>;
 }) {
   const [selectedBranchId, setSelectedBranchId] = useState(
@@ -112,7 +114,8 @@ export function CreatePanel({
             String(data.get('endTime')),
             activeBranchTimezone,
           );
-          if (endAt <= startAt) throw new Error('INVALID_RANGE');
+          const feeStr = String(data.get('instructorFeeRp') ?? '').trim();
+          const instructorFeeRp = feeStr !== '' ? Number(feeStr) : undefined;
           void onCreate({
             branchId: selectedBranchId,
             classTypeId: String(data.get('classTypeId')),
@@ -121,6 +124,7 @@ export function CreatePanel({
             instructorUserId: String(data.get('instructorUserId')) || undefined,
             startAt,
             endAt,
+            instructorFeeRp,
           });
         } catch {
           setSummary('Waktu selesai harus setelah waktu mulai dan valid pada timezone cabang.');
@@ -198,6 +202,14 @@ export function CreatePanel({
       <DateInput label="Tanggal" name="date" required />
       <TextInput label="Mulai" name="startTime" type="time" required />
       <TextInput label="Selesai eksklusif" name="endTime" type="time" required />
+      <TextInput
+        label="Modal / Honor Instruktur per Sesi (Rp) - Opsional"
+        name="instructorFeeRp"
+        type="number"
+        min={0}
+        step={1000}
+        placeholder="Kosongkan untuk mengikuti tarif master otomatis"
+      />
       <Feedback kind="info">
         Timezone: {activeBranchTimezone}. {summary}
       </Feedback>
@@ -216,6 +228,7 @@ export function DetailPanel({
   instructorName,
   classTypes,
   instructors,
+  studios = [],
   canManage,
   canComplete,
   canManageAttendance,
@@ -234,6 +247,7 @@ export function DetailPanel({
   instructorName: string;
   classTypes: ClassTypeOption[];
   instructors: InstructorOption[];
+  studios?: StudioOption[];
   canManage: boolean;
   canComplete: boolean;
   canManageAttendance: boolean;
@@ -246,10 +260,13 @@ export function DetailPanel({
   onAssign(id: string): Promise<void>;
   onUpdate(input: {
     classTypeId: string;
+    studioId?: string;
+    roomId?: string | null;
     instructorUserId?: string | null;
     startAt: Date;
     endAt: Date;
     reason: string;
+    instructorFeeRp?: number | null;
   }): Promise<void>;
   onPublish(): Promise<void>;
   onCancel(reason: CancellationReason): Promise<void>;
@@ -328,7 +345,16 @@ export function DetailPanel({
             {formatBranchTime(slot.endAt, slot.timezone)} {timezoneLabel(slot.timezone)}
           </InfoItem>
           <InfoItem label="Instruktur">{instructorName}</InfoItem>
-          <InfoItem label="Studio & ruangan">{location || 'Belum diatur'}</InfoItem>
+          <InfoItem label="Studio &amp; ruangan">{location || 'Belum diatur'}</InfoItem>
+          {Boolean((slot as any).isManualFee) &&
+            (slot as any).instructorFeeRp !== null &&
+            (slot as any).instructorFeeRp !== undefined && (
+              <InfoItem label="Modal Sesi Manual">
+                <span className="font-semibold text-dd-forest">
+                  {formatRupiah((slot as any).instructorFeeRp)} / sesi
+                </span>
+              </InfoItem>
+            )}
           <InfoItem label="Kapasitas" className="col-span-full">
             <CapacityMeter
               booked={slot.bookedCount}
@@ -385,6 +411,7 @@ export function DetailPanel({
                 slot={slot}
                 classTypes={classTypes}
                 instructors={instructors}
+                studios={studios}
                 busy={busy}
                 onSubmit={async (input) => {
                   await onUpdate(input);
@@ -458,7 +485,13 @@ export function DetailPanel({
                     </Button>
                   </div>
                   {instructorQrError && <Feedback kind="warning">{instructorQrError}</Feedback>}
-                  {instructorQr && <InstructorQrCanvas payload={instructorQr.qrPayload} />}
+                  {instructorQr && (
+                    <InstructorQrCanvas
+                      payload={instructorQr.qrPayload}
+                      branchName={details.studio?.name ?? 'Studio'}
+                      classTypeName={classTypes.find((c) => c.id === slot.classTypeId)?.name ?? 'Kelas Pilates'}
+                    />
+                  )}
                 </div>
               )}
               {canVerifyInstructor && onVerifyInstructor && (
@@ -644,19 +677,96 @@ export function DetailPanel({
   );
 }
 
-function InstructorQrCanvas({ payload }: { payload: string }) {
+function InstructorQrCanvas({
+  payload,
+  branchName,
+  classTypeName,
+}: {
+  payload: string;
+  branchName?: string;
+  classTypeName?: string;
+}) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [fullscreen, setFullscreen] = useState(false);
+  const fullscreenCanvasRef = useRef<HTMLCanvasElement>(null);
+
   useEffect(() => {
     if (canvasRef.current)
       void QRCode.toCanvas(canvasRef.current, payload, { width: 240, margin: 2, errorCorrectionLevel: 'M' });
   }, [payload]);
+
+  useEffect(() => {
+    if (fullscreen && fullscreenCanvasRef.current) {
+      void QRCode.toCanvas(fullscreenCanvasRef.current, payload, {
+        width: 340,
+        margin: 3,
+        errorCorrectionLevel: 'M',
+      });
+    }
+  }, [fullscreen, payload]);
+
   return (
-    <canvas
-      ref={canvasRef}
-      role="img"
-      aria-label="QR presensi instruktur"
-      className="justify-self-start rounded-dd-md border border-dd-line bg-white"
-    />
+    <div className="space-y-3">
+      <div className="flex flex-col items-start gap-2">
+        <canvas
+          ref={canvasRef}
+          role="img"
+          aria-label="QR presensi instruktur"
+          className="justify-self-start rounded-dd-md border border-dd-line bg-white shadow-xs"
+        />
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          onClick={() => setFullscreen(true)}
+        >
+          Perbesar QR / Mode Layar Kiosk Studio
+        </Button>
+      </div>
+
+      {fullscreen && (
+        <section
+          aria-label="Mode Layar Kiosk Studio"
+          className="my-4 rounded-dd-xl border-2 border-dd-forest/30 bg-dd-surface p-6 sm:p-8 shadow-dd-card text-center"
+        >
+          <div className="flex flex-col items-center justify-center">
+            <span className="text-xs font-bold uppercase tracking-wider text-dd-forest">
+              Presensi Instruktur · {branchName ?? 'Studio Daily Dose'}
+            </span>
+            <h3 className="mt-1 text-xl font-bold text-dd-ink">{classTypeName ?? 'Scan QR Kehadiran'}</h3>
+            <p className="text-xs text-dd-muted mt-1">
+              Arahkan kamera instruktur dari menu Scan QR di aplikasi
+            </p>
+
+            <div className="my-5 rounded-dd-lg border-2 border-dd-forest/20 p-3 bg-white shadow-xs">
+              <canvas
+                ref={fullscreenCanvasRef}
+                role="img"
+                aria-label="QR presensi instruktur layar studio"
+                className="rounded-dd-md"
+              />
+            </div>
+
+            <div className="rounded-dd-md bg-dd-surface-muted p-3 text-xs text-dd-muted text-left space-y-1 w-full max-w-sm">
+              <p className="font-semibold text-dd-ink">Ketentuan Presensi:</p>
+              <ul className="list-disc list-inside space-y-0.5">
+                <li>Instruktur harus berada di area studio ({branchName}).</li>
+                <li>Aktifkan izin lokasi (GPS) pada perangkat Anda.</li>
+                <li>Tersedia sejak 30 menit sebelum kelas dimulai.</li>
+              </ul>
+            </div>
+
+            <Button
+              variant="secondary"
+              className="mt-5 w-full max-w-sm"
+              onClick={() => setFullscreen(false)}
+            >
+              Tutup Mode Kiosk
+            </Button>
+          </div>
+        </section>
+      )}
+    </div>
   );
 }
 
@@ -664,19 +774,24 @@ function DraftEditForm({
   slot,
   classTypes,
   instructors,
+  studios = [],
   busy,
   onSubmit,
 }: {
   slot: ClassSlot;
   classTypes: ClassTypeOption[];
   instructors: InstructorOption[];
+  studios?: StudioOption[];
   busy: boolean;
   onSubmit(input: {
     classTypeId: string;
+    studioId?: string;
+    roomId?: string | null;
     instructorUserId?: string | null;
     startAt: Date;
     endAt: Date;
     reason: string;
+    instructorFeeRp?: number | null;
   }): Promise<void>;
 }) {
   const parts = (value: Date) => {
@@ -699,6 +814,15 @@ function DraftEditForm({
   const start = parts(slot.startAt);
   const end = parts(slot.endAt);
   const [failure, setFailure] = useState('');
+  const branchStudios = studios.filter(
+    (studio) => !studio.branchId || studio.branchId === slot.branchId,
+  );
+  const [selectedStudioId, setSelectedStudioId] = useState(
+    slot.studioId ?? branchStudios[0]?.id ?? '',
+  );
+  const [selectedRoomId, setSelectedRoomId] = useState(slot.roomId ?? '');
+  const rooms = branchStudios.find((studio) => studio.id === selectedStudioId)?.rooms ?? [];
+
   return (
     <form
       className="grid gap-3 rounded-dd-md border border-dd-line bg-dd-surface p-4"
@@ -725,12 +849,17 @@ function DraftEditForm({
           }
           if (endAt <= startAt) throw new Error('INVALID_RANGE');
           setFailure('');
+          const feeStr = String(data.get('instructorFeeRp') ?? '').trim();
+          const instructorFeeRp = feeStr !== '' ? Number(feeStr) : null;
           void onSubmit({
             classTypeId: String(data.get('classTypeId')),
+            studioId: selectedStudioId || undefined,
+            roomId: selectedRoomId || null,
             instructorUserId: String(data.get('instructorUserId')) || null,
             startAt,
             endAt,
             reason: String(data.get('reason')),
+            instructorFeeRp,
           });
         } catch {
           setFailure('Waktu selesai harus setelah waktu mulai.');
@@ -748,6 +877,38 @@ function DraftEditForm({
           description: item.code,
         }))}
       />
+      {branchStudios.length > 0 && (
+        <>
+          <SearchSelect
+            label="Area Studio"
+            name="studioId"
+            value={selectedStudioId}
+            placeholder="Pilih area studio"
+            options={branchStudios.map((item) => ({
+              id: item.id,
+              label: item.name,
+            }))}
+            onChange={(val) => {
+              setSelectedStudioId(val);
+              setSelectedRoomId('');
+            }}
+          />
+          <SearchSelect
+            key={selectedStudioId || 'no-studio'}
+            label="Ruangan"
+            name="roomId"
+            value={selectedRoomId}
+            disabled={!selectedStudioId || rooms.length === 0}
+            placeholder={rooms.length ? 'Opsional' : 'Tidak ada ruangan aktif'}
+            options={rooms.map((item) => ({
+              id: item.id,
+              label: item.name,
+              description: `${item.code}${item.capacity ? ` · kapasitas ${item.capacity}` : ''}`,
+            }))}
+            onChange={setSelectedRoomId}
+          />
+        </>
+      )}
       <SearchSelect
         label="Instruktur"
         name="instructorUserId"
@@ -760,6 +921,15 @@ function DraftEditForm({
         <TextInput label="Mulai" name="startTime" type="time" defaultValue={start.time} required />
         <TextInput label="Selesai" name="endTime" type="time" defaultValue={end.time} required />
       </div>
+      <TextInput
+        label="Modal / Honor Instruktur per Sesi (Rp) - Opsional"
+        name="instructorFeeRp"
+        type="number"
+        min={0}
+        step={1000}
+        defaultValue={(slot as any).instructorFeeRp ?? ''}
+        placeholder="Kosongkan untuk mengikuti tarif master otomatis"
+      />
       <TextInput
         label="Alasan perubahan"
         name="reason"

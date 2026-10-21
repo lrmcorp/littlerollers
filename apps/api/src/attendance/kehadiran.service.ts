@@ -2,6 +2,7 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import { CheckInMethod, Prisma, SessionMutationType } from '@prisma/client';
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { PrismaService } from '../database/prisma.service';
+import { isWithinGeofence } from '../foundation/geofence.util';
 import { IdempotencyService } from '../foundation/idempotency.service';
 import type { SessionPrincipal } from '../identity/identity.service';
 import { PolicyService } from '../identity/policy.service';
@@ -624,7 +625,7 @@ export class AttendanceService {
 
   async consumeInstructor(
     principal: SessionPrincipal,
-    body: { token: string },
+    body: { token: string; latitude?: number; longitude?: number },
     _idempotencyKey: string,
     _correlationId: string,
     now = new Date(),
@@ -637,7 +638,24 @@ export class AttendanceService {
       where: { token: tokenHash },
       include: {
         classSlot: {
-          select: { id: true, instructorId: true, status: true, startAt: true, endAt: true },
+          select: {
+            id: true,
+            branchId: true,
+            instructorId: true,
+            status: true,
+            startAt: true,
+            endAt: true,
+            branch: {
+              select: {
+                id: true,
+                name: true,
+                code: true,
+                latitude: true,
+                longitude: true,
+                geofenceRadiusMeters: true,
+              },
+            },
+          },
         },
       },
     });
@@ -655,6 +673,33 @@ export class AttendanceService {
     if (window === 'TOO_EARLY') throw new ApiProblem('CHECK_IN_TOO_EARLY', HttpStatus.CONFLICT);
     if (window === 'EXPIRED') throw new ApiProblem('CHECK_IN_WINDOW_CLOSED', HttpStatus.GONE);
 
+    // Validasi Geofencing jika cabang memiliki koordinat GPS
+    const branch = slot.branch;
+    let distanceMeters: number | null = null;
+    let withinGeofence = true;
+
+    if (branch && branch.latitude !== null && branch.longitude !== null) {
+      if (
+        body.latitude === undefined ||
+        body.longitude === undefined ||
+        Number.isNaN(Number(body.latitude)) ||
+        Number.isNaN(Number(body.longitude))
+      ) {
+        throw new ApiProblem('GEOLOCATION_REQUIRED', HttpStatus.UNPROCESSABLE_ENTITY);
+      }
+      const geo = isWithinGeofence(
+        { latitude: Number(body.latitude), longitude: Number(body.longitude) },
+        { latitude: Number(branch.latitude), longitude: Number(branch.longitude) },
+        branch.geofenceRadiusMeters ?? 100,
+      );
+      distanceMeters = geo.distanceMeters;
+      withinGeofence = geo.withinGeofence;
+
+      if (!withinGeofence) {
+        throw new ApiProblem('OUT_OF_GEOFENCE', HttpStatus.CONFLICT);
+      }
+    }
+
     await this.db.$transaction(async (tx) => {
       await tx.instructorCheckInToken.update({ where: { id: token.id }, data: { usedAt: now } });
       await tx.kehadiranInstruktur.upsert({
@@ -664,8 +709,17 @@ export class AttendanceService {
           instructorId: principal.userId,
           method: CheckInMethod.QR_SCAN,
           checkedInAt: now,
+          latitude: body.latitude !== undefined ? new Prisma.Decimal(body.latitude) : null,
+          longitude: body.longitude !== undefined ? new Prisma.Decimal(body.longitude) : null,
+          distanceMeters,
+          isWithinGeofence: withinGeofence,
         },
-        update: {},
+        update: {
+          latitude: body.latitude !== undefined ? new Prisma.Decimal(body.latitude) : null,
+          longitude: body.longitude !== undefined ? new Prisma.Decimal(body.longitude) : null,
+          distanceMeters,
+          isWithinGeofence: withinGeofence,
+        },
       });
     });
 
@@ -676,6 +730,9 @@ export class AttendanceService {
         type: 'INSTRUCTOR',
         classSlotId: slot.id,
         checkedInAt: now.toISOString(),
+        distanceMeters,
+        isWithinGeofence: withinGeofence,
+        branchName: branch?.name ?? null,
       },
     };
   }

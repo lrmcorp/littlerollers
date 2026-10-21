@@ -51,4 +51,27 @@ describe('customer dashboard', () => {
       '/account/packages',
     );
   });
+
+  it('shows ACTION_REQUIRED banner with prompt to complete verification', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          generatedAt: '2026-07-28T00:00:00.000Z',
+          upcomingBookings: [],
+          packages: [],
+          actionableOrders: [],
+          verification: { status: 'ACTION_REQUIRED', documents: [] },
+          unreadNotifications: 0,
+        }),
+      }),
+    );
+
+    render(<CustomerDashboard />);
+
+    expect(await screen.findByRole('heading', { name: 'Halo, Nadia Customer' })).toBeVisible();
+    expect(screen.getByText('Verifikasi KTP belum lengkap')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Lengkapi sekarang' })).toBeVisible();
+  });
 });

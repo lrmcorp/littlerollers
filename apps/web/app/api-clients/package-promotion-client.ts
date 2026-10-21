@@ -31,6 +31,7 @@ export type InternalPackageRecord = {
   effectiveUntil: string | null;
   version: number;
   effectiveState?: 'ACTIVE' | 'SCHEDULED' | 'EXPIRED' | 'INACTIVE';
+  isMultiBranch?: boolean;
   livePromotion?: boolean;
   _count?: { purchases: number; customerPackages: number };
   branch?: { id: string; code: string; name: string };

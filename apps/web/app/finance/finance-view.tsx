@@ -41,6 +41,7 @@ import {
   type OmsetTransaction,
   type InstructorCostRealtimeData,
   type InstructorCostBreakdown,
+  type InstructorSessionItem,
   type InstructorCostProjectionData,
   type ProjectionClassTypeBreakdown,
   type OtherCostReportData,
@@ -69,6 +70,7 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
   const feedback = useAppFeedback();
   const [mainTab, setMainTab] = useState<MainTab>('RECONCILIATION');
   const [reportTab, setReportTab] = useState<ReportSubTab>('PROFIT_CLOSE');
+  const [instructorViewMode, setInstructorViewMode] = useState<'SUMMARY' | 'SESSIONS'>('SUMMARY');
 
   // Filter states
   const [selectedPeriod, setSelectedPeriod] = useState<string>(() =>
@@ -456,63 +458,76 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
                   tone="neutral"
                 />
                 <StatCard
-                  label="Beban Operasional Lain"
-                  value={formatRupiah(profitData.otherCostRp)}
-                  tone="neutral"
+                  label="Laba Kotor (Gross Profit)"
+                  value={formatRupiah(profitData.grossProfitRp ?? (profitData.omsetRp - profitData.costRealtimeRp))}
+                  helper={`Margin ${profitData.grossMarginPercent ?? (profitData.omsetRp > 0 ? Math.round(((profitData.omsetRp - profitData.costRealtimeRp) / profitData.omsetRp) * 1000) / 10 : 0)}%`}
+                  tone="success"
                 />
                 <StatCard
                   label="Laba Bersih Aktual"
                   value={formatRupiah(profitData.netProfitRealtimeRp)}
+                  helper={`Margin ${profitData.netMarginPercent ?? (profitData.omsetRp > 0 ? Math.round((profitData.netProfitRealtimeRp / profitData.omsetRp) * 1000) / 10 : 0)}%`}
                   tone={profitData.netProfitRealtimeRp >= 0 ? 'success' : 'danger'}
                 />
               </div>
 
               <div className="grid gap-6 lg:grid-cols-2">
                 <Panel className="space-y-4 p-5">
-                  <h3 className="text-base font-semibold">Perbandingan Aktual vs Proyeksi</h3>
+                  <div className="flex items-center justify-between border-b border-dd-line/60 pb-3">
+                    <h3 className="text-base font-semibold">Laporan Laba Rugi Berjenjang (P&L)</h3>
+                    <Badge tone={profitData.netProfitRealtimeRp >= 0 ? 'success' : 'danger'}>
+                      Margin Bersih: {profitData.netMarginPercent ?? 0}%
+                    </Badge>
+                  </div>
                   <div className="space-y-3 divide-y divide-dd-line text-sm">
                     <div className="flex justify-between pt-2">
-                      <span className="text-dd-muted">Total Omset Bulan {selectedPeriod}:</span>
+                      <span className="text-dd-muted">Omzet Penjualan Bersih (Bulan {selectedPeriod}):</span>
                       <span className="font-semibold">{formatRupiah(profitData.omsetRp)}</span>
                     </div>
-                    <div className="flex justify-between pt-2">
-                      <span className="text-dd-muted">Beban Instruktur Aktual (jam kelas selesai):</span>
-                      <span className="font-semibold text-dd-warning">
+                    <div className="flex justify-between pt-2 text-dd-warning">
+                      <span>(-) Modal / Beban Instruktur Aktual (Sesi Selesai):</span>
+                      <span className="font-semibold">
                         - {formatRupiah(profitData.costRealtimeRp)}
                       </span>
                     </div>
-                    <div className="flex justify-between pt-2">
-                      <span className="text-dd-muted">Beban Instruktur Projeksi (Sesi Terjual):</span>
-                      <span className="font-semibold text-dd-info">
-                        - {formatRupiah(profitData.costProjectionRp)}
+                    <div className="flex justify-between pt-2 font-medium bg-dd-forest/5 px-2 py-1.5 rounded-dd-sm">
+                      <span className="text-dd-forest">(=) Laba Kotor (Gross Profit):</span>
+                      <span className="font-bold text-dd-forest">
+                        {formatRupiah(profitData.grossProfitRp ?? (profitData.omsetRp - profitData.costRealtimeRp))}
+                        <span className="ml-1.5 text-xs text-dd-forest/80">({profitData.grossMarginPercent ?? 0}%)</span>
                       </span>
                     </div>
-                    <div className="flex justify-between pt-2">
-                      <span className="text-dd-muted">Beban Operasional Lain:</span>
-                      <span className="font-semibold text-dd-danger">
+                    <div className="flex justify-between pt-2 text-dd-danger">
+                      <span>(-) Beban Operasional Lain:</span>
+                      <span className="font-semibold">
                         - {formatRupiah(profitData.otherCostRp)}
                       </span>
                     </div>
-                    <div className="flex justify-between pt-2">
-                      <span className="font-medium text-dd-ink">Laba Bersih Projeksi:</span>
+                    <div className="flex justify-between pt-2 font-medium bg-dd-surface-muted/50 px-2 py-1.5 rounded-dd-sm">
+                      <span className="text-dd-ink">(=) Laba Bersih Operasional:</span>
                       <span className="font-bold text-dd-forest">
-                        {formatRupiah(profitData.netProfitProjectionRp)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between pt-2">
-                      <span className="font-medium text-dd-ink">Laba Bersih Aktual:</span>
-                      <span className="font-bold text-dd-success">
                         {formatRupiah(profitData.netProfitRealtimeRp)}
+                        <span className="ml-1.5 text-xs text-dd-muted">({profitData.netMarginPercent ?? 0}%)</span>
                       </span>
                     </div>
                     {profitData.totalCorrectionAdjustmentRp !== 0 && (
                       <div className="flex justify-between pt-2">
-                        <span className="text-dd-muted">Penyesuaian Jurnal Koreksi:</span>
+                        <span className="text-dd-muted">(+/-) Penyesuaian Jurnal Koreksi:</span>
                         <span className="font-semibold">
                           {formatRupiah(profitData.totalCorrectionAdjustmentRp)}
                         </span>
                       </div>
                     )}
+                    {profitData.totalCorrectionAdjustmentRp !== 0 && (
+                      <div className="flex justify-between pt-2 font-bold text-dd-forest">
+                        <span>Laba Bersih Setelah Koreksi:</span>
+                        <span>{formatRupiah(profitData.adjustedNetProfitRealtimeRp)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between pt-3 text-xs text-dd-muted">
+                      <span>Sebagai pembanding, Beban Instruktur Projeksi (Sesi Terjual):</span>
+                      <span>{formatRupiah(profitData.costProjectionRp)}</span>
+                    </div>
                   </div>
                 </Panel>
 
@@ -656,14 +671,45 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
               </div>
 
               <Panel className="space-y-4 p-5">
-                <h3 className="text-base font-semibold">
-                  Rincian Biaya Mengajar Instruktur
-                </h3>
-                <p className="text-xs text-dd-muted">
-                  Dihitung dari jam kelas yang selesai dikalikan tarif efektif per jenis kelas. Kelas
-                  yang presensi instrukturnya belum tercatat (QR atau verifikasi manual admin) tetap
-                  dihitung tetapi ditandai agar dapat ditinjau sebelum honor dibayar.
-                </p>
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-dd-line/60 pb-3">
+                  <div>
+                    <h3 className="text-base font-semibold">
+                      {instructorViewMode === 'SUMMARY'
+                        ? 'Rekapitulasi Biaya per Instruktur'
+                        : 'Audit Detail Presensi & Honor per Sesi Kelas'}
+                    </h3>
+                    <p className="text-xs text-dd-muted">
+                      {instructorViewMode === 'SUMMARY'
+                        ? 'Ringkasan jam mengajar, tarif kategori, dan status verifikasi presensi per instruktur.'
+                        : 'Daftar audit seluruh kelas selesai dengan verifikasi QR, lokasi geofence/GPS, dan honor modal.'}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1.5 rounded-dd-md border border-dd-line bg-dd-surface-muted/40 p-1">
+                    <button
+                      type="button"
+                      onClick={() => setInstructorViewMode('SUMMARY')}
+                      className={`rounded-dd-sm px-3 py-1.5 text-xs font-semibold transition ${
+                        instructorViewMode === 'SUMMARY'
+                          ? 'bg-white text-dd-forest shadow-xs'
+                          : 'text-dd-muted hover:text-dd-ink'
+                      }`}
+                    >
+                      Rekap Instruktur ({instructorRealtimeData.instructors.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setInstructorViewMode('SESSIONS')}
+                      className={`rounded-dd-sm px-3 py-1.5 text-xs font-semibold transition ${
+                        instructorViewMode === 'SESSIONS'
+                          ? 'bg-white text-dd-forest shadow-xs'
+                          : 'text-dd-muted hover:text-dd-ink'
+                      }`}
+                    >
+                      Rincian per Sesi ({instructorRealtimeData.sessions?.length ?? 0})
+                    </button>
+                  </div>
+                </div>
+
                 {instructorRealtimeData.unverifiedClassCount > 0 && (
                   <Feedback kind="warning">
                     {instructorRealtimeData.unverifiedClassCount} kelas senilai{' '}
@@ -672,78 +718,185 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
                   </Feedback>
                 )}
 
-                {instructorRealtimeData.instructors.length === 0 ? (
-                  <AdminEmptyState
-                    title="Belum Ada Aktivitas Kelas"
-                    description="Tidak ada slot kelas berstatus COMPLETED pada periode bulan ini."
-                  />
-                ) : (
-                  <DataTable<InstructorCostBreakdown>
-                    items={instructorRealtimeData.instructors}
-                    rowKey={(r) => r.instructorId}
-                    columns={[
-                      {
-                        id: 'instructorName',
-                        header: 'Nama Instruktur',
-                        cell: (r) => <span className="font-bold">{r.instructorName}</span>,
-                      },
-                      {
-                        id: 'groupFeeRp',
-                        header: 'Group Class',
-                        cell: (r) => (
-                          <div>
-                            <span>{formatRupiah(r.groupFeeRp)}</span>
-                            <span className="block text-xs text-dd-muted">({r.groupHours} jam)</span>
-                          </div>
-                        ),
-                      },
-                      {
-                        id: 'semiPrivateFeeRp',
-                        header: 'Semi Private',
-                        cell: (r) => (
-                          <div>
-                            <span>{formatRupiah(r.semiPrivateFeeRp)}</span>
-                            <span className="block text-xs text-dd-muted">
-                              ({r.semiPrivateHours} jam)
-                            </span>
-                          </div>
-                        ),
-                      },
-                      {
-                        id: 'privateFeeRp',
-                        header: 'Private Class',
-                        cell: (r) => (
-                          <div>
-                            <span>{formatRupiah(r.privateFeeRp)}</span>
-                            <span className="block text-xs text-dd-muted">
-                              ({r.privateHours} jam)
-                            </span>
-                          </div>
-                        ),
-                      },
-                      {
-                        id: 'totalFeeRp',
-                        header: 'Total Honorarium',
-                        cell: (r) => (
-                          <div>
-                            <span className="font-bold text-dd-forest">
-                              {formatRupiah(r.totalFeeRp)}
-                            </span>
-                            <span className="block text-xs font-semibold text-dd-muted">
-                              {r.totalHours} jam total
-                            </span>
-                            {r.unverifiedClassCount > 0 && (
-                              <span className="mt-1 block">
-                                <Badge tone="warning">
-                                  {r.unverifiedClassCount} kelas belum terverifikasi
-                                </Badge>
+                {instructorViewMode === 'SUMMARY' ? (
+                  instructorRealtimeData.instructors.length === 0 ? (
+                    <AdminEmptyState
+                      title="Belum Ada Aktivitas Kelas"
+                      description="Tidak ada slot kelas berstatus COMPLETED pada periode bulan ini."
+                    />
+                  ) : (
+                    <DataTable<InstructorCostBreakdown>
+                      items={instructorRealtimeData.instructors}
+                      rowKey={(r) => r.instructorId}
+                      columns={[
+                        {
+                          id: 'instructorName',
+                          header: 'Nama Instruktur',
+                          cell: (r) => <span className="font-bold">{r.instructorName}</span>,
+                        },
+                        {
+                          id: 'groupFeeRp',
+                          header: 'Group Class',
+                          cell: (r) => (
+                            <div>
+                              <span>{formatRupiah(r.groupFeeRp)}</span>
+                              <span className="block text-xs text-dd-muted">({r.groupHours} jam)</span>
+                            </div>
+                          ),
+                        },
+                        {
+                          id: 'semiPrivateFeeRp',
+                          header: 'Semi Private',
+                          cell: (r) => (
+                            <div>
+                              <span>{formatRupiah(r.semiPrivateFeeRp)}</span>
+                              <span className="block text-xs text-dd-muted">
+                                ({r.semiPrivateHours} jam)
                               </span>
-                            )}
-                          </div>
-                        ),
-                      },
-                    ]}
-                  />
+                            </div>
+                          ),
+                        },
+                        {
+                          id: 'privateFeeRp',
+                          header: 'Private Class',
+                          cell: (r) => (
+                            <div>
+                              <span>{formatRupiah(r.privateFeeRp)}</span>
+                              <span className="block text-xs text-dd-muted">
+                                ({r.privateHours} jam)
+                              </span>
+                            </div>
+                          ),
+                        },
+                        {
+                          id: 'totalFeeRp',
+                          header: 'Total Honorarium',
+                          cell: (r) => (
+                            <div>
+                              <span className="font-bold text-dd-forest">
+                                {formatRupiah(r.totalFeeRp)}
+                              </span>
+                              <span className="block text-xs font-semibold text-dd-muted">
+                                {r.totalHours} jam total
+                              </span>
+                              {r.unverifiedClassCount > 0 && (
+                                <span className="mt-1 block">
+                                  <Badge tone="warning">
+                                    {r.unverifiedClassCount} kelas belum terverifikasi
+                                  </Badge>
+                                </span>
+                              )}
+                            </div>
+                          ),
+                        },
+                      ]}
+                    />
+                  )
+                ) : (
+                  (instructorRealtimeData.sessions?.length ?? 0) === 0 ? (
+                    <AdminEmptyState
+                      title="Belum Ada Sesi Kelas"
+                      description="Tidak ada slot kelas berstatus COMPLETED pada periode bulan ini."
+                    />
+                  ) : (
+                    <DataTable<InstructorSessionItem>
+                      items={instructorRealtimeData.sessions ?? []}
+                      rowKey={(s) => s.slotId}
+                      columns={[
+                        {
+                          id: 'time',
+                          header: 'Waktu Kelas',
+                          cell: (s) => (
+                            <div>
+                              <strong className="block text-xs font-semibold text-dd-ink">
+                                {new Date(s.startAt).toLocaleDateString('id-ID', {
+                                  day: 'numeric',
+                                  month: 'short',
+                                  year: 'numeric',
+                                })}
+                              </strong>
+                              <span className="text-xs text-dd-muted">
+                                {new Date(s.startAt).toLocaleTimeString('id-ID', {
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })}{' '}
+                                -{' '}
+                                {new Date(s.endAt).toLocaleTimeString('id-ID', {
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })}{' '}
+                                ({s.teachingHours} jam)
+                              </span>
+                            </div>
+                          ),
+                        },
+                        {
+                          id: 'classType',
+                          header: 'Jenis Kelas & Cabang',
+                          cell: (s) => (
+                            <div>
+                              <span className="font-semibold text-dd-ink">{s.classTypeName}</span>
+                              <span className="block text-xs text-dd-muted">{s.branchName}</span>
+                            </div>
+                          ),
+                        },
+                        {
+                          id: 'instructor',
+                          header: 'Instruktur',
+                          cell: (s) => <span className="font-medium text-dd-ink">{s.instructorName}</span>,
+                        },
+                        {
+                          id: 'fee',
+                          header: 'Honor Sesi (Modal)',
+                          cell: (s) => (
+                            <div>
+                              <span className="font-bold text-dd-forest">{formatRupiah(s.feeRp)}</span>
+                              {s.isManualFee ? (
+                                <span className="ml-1.5 inline-block text-[10px]">
+                                  <Badge tone="warning">Manual Flat</Badge>
+                                </span>
+                              ) : (
+                                <span className="block text-xs text-dd-muted">
+                                  {formatRupiah(s.feePerJamRp)}/jam
+                                </span>
+                              )}
+                            </div>
+                          ),
+                        },
+                        {
+                          id: 'attendance',
+                          header: 'Status Presensi & Geofence',
+                          cell: (s) => (
+                            <div className="space-y-1">
+                              {s.attendanceVerified ? (
+                                <>
+                                  <div className="flex flex-wrap items-center gap-1.5">
+                                    <Badge tone="success">Terverifikasi QR</Badge>
+                                    {s.distanceMeters !== null && (
+                                      <Badge tone={s.isWithinGeofence ? 'success' : 'warning'}>
+                                        {s.isWithinGeofence ? 'Dalam Area' : 'Di Luar Area'} ({s.distanceMeters}m)
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  {s.attendanceTime && (
+                                    <span className="block text-[11px] text-dd-muted">
+                                      Scan:{' '}
+                                      {new Date(s.attendanceTime).toLocaleTimeString('id-ID', {
+                                        hour: '2-digit',
+                                        minute: '2-digit',
+                                      })}
+                                    </span>
+                                  )}
+                                </>
+                              ) : (
+                                <Badge tone="danger">Belum Presensi</Badge>
+                              )}
+                            </div>
+                          ),
+                        },
+                      ]}
+                    />
+                  )
                 )}
               </Panel>
             </div>

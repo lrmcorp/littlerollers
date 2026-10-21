@@ -174,7 +174,7 @@ const staffGuides: Record<
           },
           {
             number: 3,
-            title: 'Klik "Approve Payment"',
+            title: 'Klik "Setujui Pembayaran"',
             description:
               'Jika dana sudah masuk, klik tombol "Setujui". Sistem secara otomatis membuat entri Ledger dan mengisi saldo sesi member.',
             tips: 'Jika bukti transfer palsu atau tidak sesuai nominal, klik "Tolak" dengan menyertakan alasan jelas.',
@@ -187,9 +187,9 @@ const staffGuides: Record<
             { label: 'ID Transaksi', value: 'ORD-202608-0188' },
             { label: 'Nominal Mutasi', value: 'Rp 3.500.000 (Sesuai)', tone: 'success' },
             { label: 'Rekening Tujuan', value: 'BCA - Daily Dose Indonesia' },
-            { label: 'Keputusan Finance', value: 'APPROVED & LEDGER POSTED', tone: 'success' },
+            { label: 'Keputusan Finance', value: 'DISETUJUI & TERCATAT BUKU BESAR', tone: 'success' },
           ],
-          statusBadge: { text: 'Approved', tone: 'success' },
+          statusBadge: { text: 'Disetujui', tone: 'success' },
         },
       },
       {

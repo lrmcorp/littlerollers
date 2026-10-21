@@ -147,10 +147,12 @@ export function PackagePromotionDetailView({ id }: { id: string }) {
             {pkg.name}
           </h1>
           <p className="mt-2 text-sm text-dd-muted">
-            {(pkg.branchScopes ?? [])
-              .map((scope) => scope.branch?.name)
-              .filter(Boolean)
-              .join(', ') || '—'}{' '}
+            {pkg.isMultiBranch
+              ? 'Semua Cabang (Multi-Branch)'
+              : (pkg.branchScopes ?? [])
+                  .map((scope) => scope.branch?.name)
+                  .filter(Boolean)
+                  .join(', ') || pkg.branch?.name || '—'}{' '}
             · {pkg.sessionCount} sesi · {pkg.durationDays} hari
           </p>
         </div>
@@ -172,10 +174,12 @@ export function PackagePromotionDetailView({ id }: { id: string }) {
             <PackageInfo
               label="Cakupan Studio/Cabang"
               value={
-                pkg.branchScopes
-                  ?.map((scope) => scope.branch?.name)
-                  .filter(Boolean)
-                  .join(', ') || '—'
+                pkg.isMultiBranch
+                  ? 'Semua Cabang (Multi-Branch)'
+                  : (pkg.branchScopes ?? [])
+                      .map((scope) => scope.branch?.name)
+                      .filter(Boolean)
+                      .join(', ') || pkg.branch?.name || '—'
               }
             />
             <PackageInfo
@@ -677,11 +681,20 @@ function PackageLifecycleEditor({
   const [busy, setBusy] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [failure, setFailure] = useState('');
+  const [scopeIsMulti, setScopeIsMulti] = useState<boolean>(
+    pkg.isMultiBranch ?? (pkg.branchScopes?.length !== 1),
+  );
+  const [scopeBranchId, setScopeBranchId] = useState<string>(
+    pkg.branchId ?? pkg.branchScopes?.[0]?.branchId ?? (branches[0]?.id || ''),
+  );
+
   useEffect(() => {
     if (!mode) return;
     setDirty(false);
     setFailure('');
-  }, [mode]);
+    setScopeIsMulti(pkg.isMultiBranch ?? (pkg.branchScopes?.length !== 1));
+    setScopeBranchId(pkg.branchId ?? pkg.branchScopes?.[0]?.branchId ?? (branches[0]?.id || ''));
+  }, [mode, pkg, branches]);
   const confirmDiscard = () =>
     feedback.confirm({
       tone: 'warning',
@@ -772,7 +785,9 @@ function PackageLifecycleEditor({
                   })
                 : mode === 'scopes'
                   ? await browserPackagePromotionClient.replacePackageScopes(pkg.id, {
-                      branchIds: data.getAll('branchIds').map(String),
+                      isMultiBranch: scopeIsMulti,
+                      branchIds: scopeIsMulti ? branches.map((b) => b.id) : [scopeBranchId],
+                      branchId: scopeIsMulti ? null : scopeBranchId,
                       classTypeIds: data.getAll('classTypeIds').map(String),
                       expectedVersion: pkg.version,
                       reason,
@@ -924,27 +939,68 @@ function PackageLifecycleEditor({
         )}
         {mode === 'scopes' && (
           <>
-            <AlertBanner
-              tone="info"
-              title="Cakupan eksplisit"
-              message="Pilih sedikitnya satu Studio/Cabang dan satu tipe kelas. Pilihan tipe kelas harus tersedia pada seluruh cabang yang dipilih."
-            />
-            <fieldset className="grid gap-2 rounded-dd-md border border-dd-line p-3">
-              <legend className="px-1 text-sm font-semibold">Studio/Cabang</legend>
-              {branches.map((branch) => (
-                <label className="flex items-center gap-2 text-sm" key={branch.id}>
-                  <input
-                    type="checkbox"
-                    name="branchIds"
-                    value={branch.id}
-                    defaultChecked={pkg.branchScopes?.some(
-                      (scope) => scope.branchId === branch.id && scope.active,
-                    )}
-                  />
-                  {branch.name}
-                </label>
-              ))}
+            <fieldset className="grid gap-3 rounded-dd-md border border-dd-line p-3">
+              <legend className="px-1 text-sm font-semibold">Tipe Akses Studio / Cabang</legend>
+              <label className="flex items-start gap-2 text-sm cursor-pointer">
+                <input
+                  type="radio"
+                  name="editScopeRadio"
+                  checked={scopeIsMulti}
+                  onChange={() => {
+                    setScopeIsMulti(true);
+                    setDirty(true);
+                  }}
+                  className="mt-1"
+                />
+                <div>
+                  <span className="font-semibold text-dd-forest">Semua Cabang (Multi-Branch)</span>
+                  <p className="text-xs text-dd-muted">
+                    Member dapat memesan dan latihan di seluruh studio/cabang Daily Dose Pilates.
+                  </p>
+                </div>
+              </label>
+
+              <label className="flex items-start gap-2 text-sm cursor-pointer">
+                <input
+                  type="radio"
+                  name="editScopeRadio"
+                  checked={!scopeIsMulti}
+                  onChange={() => {
+                    setScopeIsMulti(false);
+                    setDirty(true);
+                  }}
+                  className="mt-1"
+                />
+                <div>
+                  <span className="font-semibold text-dd-forest">Cabang Tertentu (Single-Branch)</span>
+                  <p className="text-xs text-dd-muted">
+                    Paket terkunci hanya untuk latihan di studio/cabang terpilih.
+                  </p>
+                </div>
+              </label>
+
+              {!scopeIsMulti && (
+                <div className="mt-2 grid gap-2 border-t border-dd-line pt-2">
+                  <p className="text-xs font-semibold uppercase text-dd-muted">Pilih Cabang:</p>
+                  {branches.map((branch) => (
+                    <label className="flex items-center gap-2 text-sm cursor-pointer" key={branch.id}>
+                      <input
+                        type="radio"
+                        name="editSingleBranch"
+                        value={branch.id}
+                        checked={scopeBranchId === branch.id}
+                        onChange={() => {
+                          setScopeBranchId(branch.id);
+                          setDirty(true);
+                        }}
+                      />
+                      {branch.name}
+                    </label>
+                  ))}
+                </div>
+              )}
             </fieldset>
+
             <fieldset className="grid gap-2 rounded-dd-md border border-dd-line p-3">
               <legend className="px-1 text-sm font-semibold">Tipe kelas</legend>
               {classTypes.map((classType) => (

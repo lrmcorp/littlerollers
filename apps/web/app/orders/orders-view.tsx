@@ -100,6 +100,9 @@ export function OrdersView() {
 
   const returnTo = `${pathname}${searchParams.size ? `?${searchParams.toString()}` : ''}`;
   const summary = data?.summary ?? emptySummary;
+  const activeCard = summaryCards.find((c) => c.status === status);
+  const countForActiveFilter = activeCard ? summary[activeCard.key] : summary.total;
+  const effectiveTotal = Math.max(countForActiveFilter, data?.items?.length ?? 0);
 
   return (
     <main className="space-y-6">
@@ -259,12 +262,12 @@ export function OrdersView() {
           </div>
           <Pagination
             currentPage={cursorHistory.length + 1}
-            totalPages={Math.ceil(summary.total / 20) || 1}
-            totalItems={summary.total}
+            totalPages={Math.ceil(effectiveTotal / 20) || 1}
+            totalItems={effectiveTotal}
             pageSize={20}
             hasPrevious={cursorHistory.length > 0}
             hasNext={Boolean(data.page.hasMore && data.page.nextCursor)}
-            totalLabel={`${data.items.length.toLocaleString('id-ID')} dari ${summary.total.toLocaleString('id-ID')} pesanan`}
+            totalLabel={`${data.items.length.toLocaleString('id-ID')} dari ${effectiveTotal.toLocaleString('id-ID')} pesanan`}
             onPrevious={() => {
               const previous = cursorHistory.at(-1) ?? '';
               setCursorHistory((current) => current.slice(0, -1));

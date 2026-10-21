@@ -289,9 +289,13 @@ export class LedgerService {
 
   private balanceView(row: PackageRow, reserved: number) {
     const ledgerBalance = row.remainingSessions;
+    const isMulti = Boolean((row.package as any)?.isMultiBranch);
+    const packageBranchId = isMulti
+      ? null
+      : (row.package?.branchId ?? row.purchase?.branchId ?? null);
     return {
       id: row.id,
-      branchId: row.purchase?.branchId ?? 'global',
+      branchId: isMulti ? 'global' : (row.purchase?.branchId ?? 'global'),
       status: row.status,
       activationDate: row.validFrom.toISOString(),
       expiryAt: row.validUntil.toISOString(),
@@ -299,10 +303,11 @@ export class LedgerService {
       reserved,
       available: row.status === 'FROZEN' ? 0 : Math.max(0, ledgerBalance - reserved),
       packageName: row.package?.name ?? 'Paket',
-      branchName: row.purchase?.branch?.name ?? 'Semua cabang',
+      branchName: isMulti ? 'Semua Cabang (Multi-Branch)' : (row.purchase?.branch?.name ?? 'Semua cabang'),
       classTypeName: row.package?.classType?.name ?? 'Pilates',
       classTypeId: row.package?.classTypeId ?? null,
-      packageBranchId: row.package?.branchId ?? row.purchase?.branchId ?? null,
+      packageBranchId,
+      isMultiBranch: isMulti,
       customer: {
         id: row.user.id,
         displayName: row.user.displayName,

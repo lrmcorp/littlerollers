@@ -138,6 +138,8 @@ export class ClassSlotService {
       cancellationReason: slot.cancellationReason ?? null,
       notes: slot.notes ?? null,
       version: slot.version ?? 1,
+      instructorFeeRp: slot.instructorFeeRp ?? null,
+      isManualFee: Boolean(slot.isManualFee),
       branch: slot.branch,
       studio: slot.studio,
       room: slot.room,
@@ -295,6 +297,7 @@ export class ClassSlotService {
       instructorUserId?: string;
       startAt: string;
       endAt: string;
+      instructorFeeRp?: number | null;
     },
     key: string,
     _correlationId: string,
@@ -386,6 +389,12 @@ export class ClassSlotService {
             capacity: effectiveCapacity,
             bookedCount: 0,
             status: ClassSlotStatus.DRAFT,
+            instructorFeeRp:
+              input.instructorFeeRp !== undefined && input.instructorFeeRp !== null
+                ? Math.round(Number(input.instructorFeeRp))
+                : null,
+            isManualFee:
+              input.instructorFeeRp !== undefined && input.instructorFeeRp !== null,
           },
           include: {
             branch: true,
@@ -452,11 +461,14 @@ export class ClassSlotService {
     id: string,
     input: {
       classTypeId: string;
+      studioId?: string;
+      roomId?: string | null;
       instructorUserId?: string | null;
       startAt: string;
       endAt: string;
       expectedVersion?: number;
       reason?: string;
+      instructorFeeRp?: number | null;
     },
     key: string,
     _correlationId: string,
@@ -464,6 +476,10 @@ export class ClassSlotService {
     this.manage(principal);
     this.validateKey(key);
     if (!UUID.test(id) || !UUID.test(input.classTypeId))
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+    if (input.studioId != null && !UUID.test(input.studioId))
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+    if (input.roomId != null && input.roomId !== '' && !UUID.test(input.roomId))
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
     if (input.instructorUserId != null && !UUID.test(input.instructorUserId))
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
@@ -485,14 +501,34 @@ export class ClassSlotService {
         this.scope(principal, slot.branchId, 'class-slot:manage');
         this.assertClaimable(slot, expectedVersion, STATUS_ALLOWED.update);
 
+        const targetStudioId = input.studioId !== undefined ? input.studioId : slot.studioId;
+        const targetRoomId = input.roomId !== undefined ? (input.roomId || null) : slot.roomId;
+
+        let room = null;
+        if (targetRoomId && (tx as any).ruangan) {
+          room = await (tx as any).ruangan.findUnique({ where: { id: targetRoomId } });
+          if (!room || room.studioId !== targetStudioId) {
+            throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+          }
+        }
+
+        const classType = (tx as any).jenisKelas
+          ? await (tx as any).jenisKelas.findUnique({ where: { id: input.classTypeId } })
+          : null;
+        if ((tx as any).jenisKelas && !classType) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+
+        const defaultCap = classType?.defaultCapacity ?? 8;
+        const effectiveCapacity =
+          room && room.capacityBed > 0 ? Math.min(defaultCap, room.capacityBed) : defaultCap;
+
         // Instruktur yang tidak dikirim tetap dipertahankan; hanya `null` eksplisit yang mengosongkannya.
         const targetInstructorId =
           input.instructorUserId !== undefined ? input.instructorUserId : slot.instructorId;
         const updateCollisionConditions: Prisma.SlotKelasWhereInput[] = [];
-        if (slot.roomId) {
-          updateCollisionConditions.push({ studioId: slot.studioId, roomId: slot.roomId });
+        if (targetRoomId) {
+          updateCollisionConditions.push({ studioId: targetStudioId, roomId: targetRoomId });
         } else {
-          updateCollisionConditions.push({ studioId: slot.studioId });
+          updateCollisionConditions.push({ studioId: targetStudioId });
         }
         if (targetInstructorId) {
           updateCollisionConditions.push({ instructorId: targetInstructorId });
@@ -514,9 +550,19 @@ export class ClassSlotService {
         await this.claim(tx, id, expectedVersion, STATUS_ALLOWED.update, {
           classTypeId: input.classTypeId,
           instructorId: targetInstructorId,
+          studioId: targetStudioId,
+          roomId: targetRoomId,
+          capacity: effectiveCapacity,
           startAt,
           endAt,
           notes: input.reason ?? slot.notes,
+          ...(input.instructorFeeRp !== undefined
+            ? {
+                instructorFeeRp:
+                  input.instructorFeeRp !== null ? Math.round(Number(input.instructorFeeRp)) : null,
+                isManualFee: input.instructorFeeRp !== null,
+              }
+            : {}),
         });
         return this.viewOf(tx, id);
       },

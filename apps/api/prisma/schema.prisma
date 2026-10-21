@@ -175,6 +175,9 @@ model Cabang {
   timezone            String   @default("Asia/Jakarta") @db.VarChar(64)
   heroImageKey        String?  @map("hero_image_key") @db.VarChar(255)
   galleryImageKeys    Json?    @map("gallery_image_keys")
+  latitude            Decimal? @db.Decimal(10, 7)
+  longitude           Decimal? @db.Decimal(10, 7)
+  geofenceRadiusMeters Int     @default(100)
   active              Boolean  @default(true) @map("isActive")
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
@@ -380,6 +383,7 @@ model Paket {
   priceRp      Int
   description  String?       @db.Text
   status       PackageStatus @default(ACTIVE)
+  isMultiBranch Boolean      @default(false) @map("is_multi_branch")
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
@@ -553,6 +557,8 @@ model SlotKelas {
   status             ClassSlotStatus @default(PUBLISHED)
   notes              String?         @db.Text
   cancellationReason String?         @db.Text
+  instructorFeeRp    Int?
+  isManualFee        Boolean         @default(false)
   // Kunci optimistik untuk perubahan definisi/status kelas oleh staf (instruktur, jadwal, publikasi,
   // pembatalan, penyelesaian). `bookedCount` berubah lewat booking dan sengaja TIDAK menaikkan versi.
   version            Int             @default(1)
@@ -659,6 +665,10 @@ model KehadiranInstruktur {
   checkedInAt  DateTime      @default(now())
   recordedById String?       @db.Char(36)
   notes        String?       @db.VarChar(255)
+  latitude     Decimal?      @db.Decimal(10, 7)
+  longitude    Decimal?      @db.Decimal(10, 7)
+  distanceMeters Int?
+  isWithinGeofence Boolean     @default(true)
 
   classSlot  SlotKelas @relation(fields: [classSlotId], references: [id], onDelete: Cascade)
   instructor User      @relation("InstructorAttendee", fields: [instructorId], references: [id], onDelete: Cascade)

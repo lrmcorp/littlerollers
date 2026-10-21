@@ -29,6 +29,20 @@ const statusTones = {
   NO_SHOW: 'danger',
 } as const;
 
+export function formatBookingSlotTime(date: Date, timezone?: string, isHistory = false) {
+  const currentYear = new Date().getFullYear();
+  const showYear = isHistory || date.getFullYear() !== currentYear;
+  return date.toLocaleString('id-ID', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    ...(showYear ? { year: 'numeric' } : {}),
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: timezone,
+  });
+}
+
 export function CustomerBookingsView({
   client = browserBookingClient,
 }: {
@@ -89,7 +103,7 @@ export function CustomerBookingsView({
             type="button"
             role="tab"
             aria-selected={timeline === value}
-            className={`min-h-10 rounded-dd-sm px-4 text-sm font-semibold transition ${
+            className={`min-h-10 rounded-dd-sm px-4 text-sm font-semibold transition cursor-pointer ${
               timeline === value
                 ? 'bg-dd-forest text-white'
                 : 'bg-transparent text-dd-muted hover:bg-dd-surface-muted hover:text-dd-ink'
@@ -154,21 +168,22 @@ export function CustomerBookingsView({
                     </StatusBadge>
                   </div>
 
-                  <div className="mt-4 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3 rounded-dd-lg bg-dd-surface-muted p-3.5 text-xs text-dd-muted">
+                  <div
+                    className={`mt-4 grid gap-2.5 rounded-dd-lg bg-dd-surface-muted p-3.5 text-xs text-dd-muted ${
+                      timeline === 'UPCOMING' ? 'sm:grid-cols-2 lg:grid-cols-3' : 'sm:grid-cols-2'
+                    }`}
+                  >
                     <div>
                       <span className="block text-[11px] uppercase tracking-wider font-semibold text-dd-forest">
                         Waktu Sesi
                       </span>
                       <strong className="mt-0.5 block text-xs font-semibold text-dd-ink">
                         {item.classSlot
-                          ? item.classSlot.startAt.toLocaleString('id-ID', {
-                              weekday: 'short',
-                              day: 'numeric',
-                              month: 'short',
-                              hour: '2-digit',
-                              minute: '2-digit',
-                              timeZone: item.classSlot.timezone,
-                            })
+                          ? formatBookingSlotTime(
+                              item.classSlot.startAt,
+                              item.classSlot.timezone,
+                              timeline === 'HISTORY',
+                            )
                           : `Dibuat ${item.createdAt.toLocaleString('id-ID')}`}
                       </strong>
                     </div>
@@ -182,16 +197,18 @@ export function CustomerBookingsView({
                       </strong>
                     </div>
 
-                    <div>
-                      <span className="block text-[11px] uppercase tracking-wider font-semibold text-dd-forest">
-                        Ketersediaan Slot
-                      </span>
-                      <strong className="mt-0.5 block text-xs font-semibold text-dd-ink">
-                        {item.classSlot?.capacity
-                          ? `${item.classSlot.bookedCount ?? 1}/${item.classSlot.capacity} terisi (${availablePlaces ?? 0} sisa tempat)`
-                          : 'Tersedia'}
-                      </strong>
-                    </div>
+                    {timeline === 'UPCOMING' && (
+                      <div>
+                        <span className="block text-[11px] uppercase tracking-wider font-semibold text-dd-forest">
+                          Ketersediaan Slot
+                        </span>
+                        <strong className="mt-0.5 block text-xs font-semibold text-dd-ink">
+                          {item.classSlot?.capacity
+                            ? `${item.classSlot.bookedCount ?? 1}/${item.classSlot.capacity} terisi (${availablePlaces ?? 0} sisa tempat)`
+                            : 'Tersedia'}
+                        </strong>
+                      </div>
+                    )}
                   </div>
 
                   <div className="mt-3 flex items-center justify-between text-xs text-dd-muted pt-2 border-t border-dd-line/50">
@@ -199,7 +216,7 @@ export function CustomerBookingsView({
                       Paket: <strong className="font-medium text-dd-ink">{item.package?.name ?? 'Paket Customer'}</strong>
                     </span>
                     <span className="inline-flex items-center gap-1 font-semibold text-dd-forest shrink-0">
-                      <span>Lihat detail & QR Pass</span>
+                      <span>{timeline === 'HISTORY' ? 'Lihat detail' : 'Lihat detail & QR Pass'}</span>
                       <ArrowRight className="size-3.5" />
                     </span>
                   </div>

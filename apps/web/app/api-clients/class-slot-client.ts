@@ -35,6 +35,8 @@ export interface ClassSlot {
   cancellationReasonCode?: ClassSlotCancellationReason | null;
   version: number;
   idempotentReplay?: boolean;
+  instructorFeeRp?: number | null;
+  isManualFee?: boolean;
   /** Presensi instruktur yang sudah tercatat (QR atau verifikasi manual); null bila belum. */
   instructorAttendance?: { checkedInAt: Date | string; method: string } | null;
 }
@@ -111,16 +113,20 @@ export interface ClassSlotClient {
     instructorUserId?: string;
     startAt: Date;
     endAt: Date;
+    instructorFeeRp?: number | null;
   }): Promise<ClassSlot>;
   update(
     id: string,
     input: {
       classTypeId: string;
+      studioId?: string;
+      roomId?: string | null;
       instructorUserId?: string | null;
       startAt: Date;
       endAt: Date;
       expectedVersion: number;
       reason: string;
+      instructorFeeRp?: number | null;
     },
   ): Promise<ClassSlot>;
   assign(id: string, instructorUserId: string, expectedVersion: number): Promise<ClassSlot>;
@@ -371,6 +377,7 @@ export const browserClassSlotClient: ClassSlotClient = {
         instructorUserId: input.instructorUserId,
         startAt: input.startAt.toISOString(),
         endAt: input.endAt.toISOString(),
+        instructorFeeRp: input.instructorFeeRp,
       }),
       label: 'Membuat kelas…',
     }).then((slot) => ({
@@ -387,11 +394,14 @@ export const browserClassSlotClient: ClassSlotClient = {
       headers: { 'idempotency-key': key() },
       body: JSON.stringify({
         classTypeId: input.classTypeId,
+        studioId: input.studioId,
+        roomId: input.roomId,
         instructorUserId: input.instructorUserId,
         startAt: input.startAt.toISOString(),
         endAt: input.endAt.toISOString(),
         expectedVersion: input.expectedVersion,
         reason: input.reason,
+        instructorFeeRp: input.instructorFeeRp,
       }),
       label: 'Menyimpan perubahan kelas…',
     }).then((slot) => ({

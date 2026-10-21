@@ -69,7 +69,19 @@ export function CustomerDashboard() {
 
   const verificationStatus =
     overview?.verification.status ??
-    (session.identityVerificationStatus === 'APPROVED' ? 'APPROVED' : 'PENDING');
+    (session.identityVerificationStatus === 'APPROVED'
+      ? 'APPROVED'
+      : session.identityVerificationStatus === 'ACTION_REQUIRED'
+        ? 'ACTION_REQUIRED'
+        : 'PENDING');
+
+  const activeBranchId =
+    session.preferredBranch?.id ??
+    session.branches?.[0]?.id ??
+    '';
+  const bookingHref = activeBranchId
+    ? `/classes?branch=${encodeURIComponent(activeBranchId)}#schedule`
+    : '/classes#schedule';
 
   return (
     <main className="space-y-7" aria-labelledby="customer-dashboard-title">
@@ -85,7 +97,7 @@ export function CustomerDashboard() {
             Jadwal, paket, dan pembayaran yang perlu Anda perhatikan.
           </p>
         </div>
-        <ButtonLink href="/classes#schedule">Booking kelas</ButtonLink>
+        <ButtonLink href={bookingHref}>Booking kelas</ButtonLink>
       </header>
 
       {error && (
@@ -103,12 +115,19 @@ export function CustomerDashboard() {
           tone={verificationStatus === 'ACTION_REQUIRED' ? 'warning' : 'info'}
           title={
             verificationStatus === 'ACTION_REQUIRED'
-              ? 'Dokumen perlu diperbaiki'
+              ? 'Verifikasi KTP belum lengkap'
               : 'Verifikasi sedang berlangsung'
           }
-          message="Pembelian paket dan booking terbuka setelah Selfie serta KTP disetujui."
+          message={
+            verificationStatus === 'ACTION_REQUIRED'
+              ? 'Lengkapi verifikasi KTP untuk membuka pembelian paket dan booking kelas.'
+              : 'Pembelian paket dan booking terbuka setelah Selfie serta KTP disetujui.'
+          }
           action={{
-            label: 'Lihat verifikasi',
+            label:
+              verificationStatus === 'ACTION_REQUIRED'
+                ? 'Lengkapi sekarang'
+                : 'Lihat status verifikasi',
             onSelect: () => window.location.assign('/account/verification'),
           }}
         />

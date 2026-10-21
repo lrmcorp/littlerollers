@@ -32,6 +32,33 @@ const reasonLabels = {
 } as const;
 type RejectReason = keyof typeof reasonLabels;
 
+const quickRejectionTemplates: Array<{
+  label: string;
+  reason: RejectReason;
+  text: string;
+}> = [
+  {
+    label: 'Bukti buram / terpotong',
+    reason: 'PROOF_INVALID',
+    text: 'Bukti transfer tidak jelas atau terpotong. Mohon unggah ulang bukti transfer yang jelas.',
+  },
+  {
+    label: 'Nominal tidak sesuai',
+    reason: 'AMOUNT_MISMATCH',
+    text: 'Nominal pada bukti transfer tidak sesuai dengan total tagihan pesanan.',
+  },
+  {
+    label: 'Rekening tidak cocok',
+    reason: 'PROOF_INVALID',
+    text: 'Nama rekening pengirim atau nomor rekening tujuan tidak sesuai dengan instruksi pembayaran.',
+  },
+  {
+    label: 'Dana belum masuk',
+    reason: 'OTHER_REVIEW_REQUIRED',
+    text: 'Dana mutasi belum masuk pada rekening studio. Mohon konfirmasi ke bank pengirim.',
+  },
+];
+
 export function safePaymentReturnTo(value?: string) {
   if (!value || !value.startsWith('/workspace/payments') || value.startsWith('//'))
     return '/workspace/payments';
@@ -811,6 +838,24 @@ export function PaymentReviewDetailView({
                       </option>
                     ))}
                   </SelectInput>
+                  <div className="space-y-1.5">
+                    <span className="text-xs font-medium text-dd-muted">Templat alasan cepat:</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {quickRejectionTemplates.map((tpl) => (
+                        <button
+                          key={tpl.label}
+                          type="button"
+                          onClick={() => {
+                            setReasonCode(tpl.reason);
+                            setNote(tpl.text);
+                          }}
+                          className="rounded-full border border-dd-line bg-dd-surface px-2.5 py-1 text-xs text-dd-ink transition hover:border-dd-forest hover:bg-dd-forest/5 hover:text-dd-forest"
+                        >
+                          {tpl.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                   <Textarea
                     label={`Catatan ${reasonCode === 'OTHER_REVIEW_REQUIRED' ? '(wajib)' : '(opsional)'}`}
                     value={note}

@@ -14,6 +14,12 @@ function packageView(pkg: any) {
     ? [{ classTypeId: pkg.classType.id, active: true, classType: pkg.classType }]
     : [];
 
+  const branchScopes = pkg.isMultiBranch
+    ? []
+    : pkg.branch
+    ? [{ branchId: pkg.branch.id, active: true, branch: pkg.branch }]
+    : [];
+
   return {
     id: pkg.id,
     businessKey: pkg.code,
@@ -26,10 +32,12 @@ function packageView(pkg: any) {
     validityDays: pkg.validityDays,
     status: pkg.status,
     branchId: pkg.branchId ?? null,
+    branch: pkg.branch ?? null,
+    isMultiBranch: Boolean(pkg.isMultiBranch),
     effectiveState: pkg.status === 'ACTIVE' ? 'LIVE' : pkg.status,
     effectiveFrom: pkg.createdAt,
     effectiveUntil: null,
-    branchScopes: [],
+    branchScopes,
     classTypeScopes,
     classType: pkg.classType ?? null,
     classTypeId: pkg.classTypeId ?? null,
@@ -82,8 +90,16 @@ export class PackageCatalogService {
     // mencerminkan seluruh katalog yang cocok, bukan hanya satu halaman.
     const baseWhere: Prisma.PaketWhereInput = {
       ...(query.classTypeId ? { classTypeId: query.classTypeId } : {}),
-      // Paket tanpa cabang berlaku untuk semua cabang, jadi ikut tampil pada filter cabang mana pun.
-      ...(query.branchId ? { OR: [{ branchId: query.branchId }, { branchId: null }] } : {}),
+      // Paket multi-cabang berlaku untuk semua cabang, jadi ikut tampil pada filter cabang mana pun.
+      ...(query.branchId
+        ? {
+            OR: [
+              { branchId: query.branchId },
+              { isMultiBranch: true },
+              { branchId: null },
+            ],
+          }
+        : {}),
       ...(query.q?.trim()
         ? {
             AND: [
@@ -107,6 +123,7 @@ export class PackageCatalogService {
         where,
         include: {
           classType: { select: { id: true, code: true, name: true } },
+          branch: { select: { id: true, code: true, name: true } },
         },
         take: limit + 1,
         orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
@@ -167,6 +184,16 @@ export class PackageCatalogService {
     if (!code || !name || priceRp < 0 || sessionCount < 1)
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
 
+    const isMultiBranch = Boolean(
+      input.isMultiBranch === true ||
+      input.isMultiBranch === 'true' ||
+      input.branchScope === 'MULTI' ||
+      (Array.isArray(input.branchIds) && input.branchIds.length > 1),
+    );
+    const branchId = isMultiBranch
+      ? null
+      : (input.branchId ?? (Array.isArray(input.branchIds) ? input.branchIds[0] : null) ?? null);
+
     return this.idempotency.execute(
       {
         scope: `package-create:${code}`,
@@ -186,6 +213,8 @@ export class PackageCatalogService {
             name,
             description: input.description?.trim() ?? null,
             classTypeId: input.classTypeId ?? input.classTypeIds?.[0] ?? null,
+            branchId,
+            isMultiBranch,
             priceRp,
             sessionCount,
             validityDays,
@@ -193,6 +222,7 @@ export class PackageCatalogService {
           },
           include: {
             classType: true,
+            branch: true,
           },
         });
 
@@ -232,6 +262,17 @@ export class PackageCatalogService {
         const pkg = await tx.paket.findUnique({ where: { id } });
         if (!pkg) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
 
+        const isMultiBranch =
+          body.isMultiBranch !== undefined
+            ? Boolean(body.isMultiBranch === true || body.isMultiBranch === 'true')
+            : undefined;
+        const branchId =
+          isMultiBranch === true
+            ? null
+            : body.branchId !== undefined
+            ? body.branchId
+            : undefined;
+
         const updated = await tx.paket.update({
           where: { id },
           data: {
@@ -246,8 +287,10 @@ export class PackageCatalogService {
                   ? Number(body.durationDays)
                   : undefined,
             classTypeId: body.classTypeId !== undefined ? body.classTypeId : undefined,
+            ...(isMultiBranch !== undefined ? { isMultiBranch } : {}),
+            ...(branchId !== undefined ? { branchId } : {}),
           },
-          include: { classType: true },
+          include: { classType: true, branch: true },
         });
 
         this.auditService.record({
@@ -296,6 +339,28 @@ export class PackageCatalogService {
         const pkg = await tx.paket.findUnique({ where: { id }, include: { classType: true } });
         if (!pkg) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
 
+        const branchIds = Array.isArray(body.branchIds) ? body.branchIds : [];
+        const isMultiBranch =
+          body.isMultiBranch !== undefined
+            ? Boolean(body.isMultiBranch)
+            : branchIds.length > 1;
+        const branchId = isMultiBranch ? null : (branchIds[0] ?? null);
+        const classTypeId =
+          body.classTypeId ??
+          (Array.isArray(body.classTypeIds) && body.classTypeIds.length > 0
+            ? body.classTypeIds[0]
+            : undefined);
+
+        const updated = await tx.paket.update({
+          where: { id },
+          data: {
+            isMultiBranch,
+            branchId,
+            ...(classTypeId !== undefined ? { classTypeId } : {}),
+          },
+          include: { classType: true, branch: true },
+        });
+
         this.auditService.record({
           action: 'PACKAGE_SCOPES_REPLACED',
           resourceType: 'Package',
@@ -306,7 +371,7 @@ export class PackageCatalogService {
 
         return {
           status: HttpStatus.OK,
-          body: packageView(pkg) as unknown as Prisma.InputJsonValue,
+          body: packageView(updated) as unknown as Prisma.InputJsonValue,
         };
       },
     );

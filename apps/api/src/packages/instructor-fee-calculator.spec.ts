@@ -64,6 +64,20 @@ describe('calculateSlotFee', () => {
     expect(calculateSlotFee(fees, withId(slot())).configured).toBe(false);
   });
 
+  it('uses manual flat session fee when isManualFee is true regardless of hourly rate', () => {
+    const fees = sortFeesNewestFirst([fee({ feePerJamRp: 500_000 })]);
+    const manualSlot = withId(
+      slot({
+        isManualFee: true,
+        instructorFeeRp: 350_000,
+      }),
+    );
+    const result = calculateSlotFee(fees, manualSlot);
+    expect(result.feeRp).toBe(350_000);
+    expect(result.isManual).toBe(true);
+    expect(result.configured).toBe(true);
+  });
+
   it('bills at least one hour and rounds to whole hours', () => {
     const short = slot({ endAt: new Date('2026-09-10T02:20:00Z') });
     const long = slot({ endAt: new Date('2026-09-10T04:30:00Z') });

@@ -173,6 +173,7 @@ describe('Dashboard', () => {
     const shortcuts = await screen.findByRole('region', { name: 'Pintasan' });
     const links = within(shortcuts).getAllByRole('link');
     expect(links.map((link) => link.getAttribute('href'))).toEqual([
+      '/workspace/guide',
       '/workspace/payments',
       '/workspace/vouchers',
       '/finance',
