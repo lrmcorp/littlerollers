@@ -62,6 +62,21 @@ describe('CustomersView create form', () => {
     expect(options.stepUpToken).toBeUndefined();
   });
 
+  it('displays user-friendly error message inside the drawer when registration fails with identity conflict', async () => {
+    vi.spyOn(customerClient, 'create').mockRejectedValue({ code: 'IDENTITY_CONFLICT' } as never);
+    render(<CustomersView />);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: 'Buat pelanggan aktif' }));
+
+    await user.type(screen.getByLabelText('Nama'), 'Cindy Member');
+    await user.type(screen.getByLabelText('Telepon'), '+628999999992');
+    await user.click(screen.getByRole('button', { name: 'Simpan pelanggan' }));
+
+    expect(
+      await screen.findByText(/Email atau nomor telepon sudah terdaftar atas nama pelanggan lain/i),
+    ).toBeInTheDocument();
+  });
+
   it('lists customers in the shared table with a consistent detail action', async () => {
     (customerClient.list as unknown as { mockResolvedValue(v: unknown): void }).mockResolvedValue({
       items: [

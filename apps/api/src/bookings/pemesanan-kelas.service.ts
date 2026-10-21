@@ -558,6 +558,7 @@ export class BookingsService {
     } = {},
   ) {
     const customerFlow = this.isCustomer(principal);
+    const instructorFlow = isInstructorRosterPrincipal(principal);
     const targetUserId = customerFlow ? principal.userId : query.customerId;
     const limit = Math.min(query.limit ?? PAGE_SIZE, 100);
     const pageNumber = query.page && Number(query.page) > 0 ? Number(query.page) : undefined;
@@ -568,6 +569,14 @@ export class BookingsService {
     let resolvedBranchId: Prisma.StringNullableFilter | string | undefined = undefined;
     if (customerFlow) {
       if (query.branchId) resolvedBranchId = query.branchId;
+    } else if (instructorFlow) {
+      classSlotFilter.instructorId = principal.userId;
+      if (query.branchId) {
+        if (!principal.branchIds?.includes(query.branchId)) {
+          throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+        }
+        resolvedBranchId = query.branchId;
+      }
     } else {
       const branchScope = this.staffBranchScope(principal, query.branchId);
       if (branchScope) resolvedBranchId = branchScope;

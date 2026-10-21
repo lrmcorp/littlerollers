@@ -71,6 +71,7 @@ export function CustomersView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showCreate, setShowCreate] = useState(false);
+  const [createError, setCreateError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [refreshIndex, setRefreshIndex] = useState(0);
 
@@ -118,6 +119,7 @@ export function CustomersView() {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
     setSubmitting(true);
+    setCreateError('');
     const password = String(data.get('password') || '').trim();
     const passwordConfirmation = String(data.get('passwordConfirmation') || '').trim();
     const email = String(data.get('email') || '').trim();
@@ -140,12 +142,12 @@ export function CustomersView() {
       setRefreshIndex((prev) => prev + 1);
     } catch (failure) {
       const code = (failure as { code?: string }).code;
-      setError(
+      setCreateError(
         code === 'IDENTITY_CONFLICT'
-          ? 'Email atau nomor telepon sudah digunakan.'
+          ? 'Email atau nomor telepon sudah terdaftar atas nama pelanggan lain. Gunakan data berbeda atau cari akun pelanggan di tabel.'
           : code === 'MFA_REQUIRED'
-            ? 'Verifikasi MFA Super Admin diperlukan.'
-            : 'Pelanggan belum dapat dibuat. Periksa data dan nomor telepon.',
+            ? 'Verifikasi MFA Super Admin diperlukan untuk membuat pelanggan.'
+            : 'Pelanggan belum dapat dibuat. Pastikan format nomor telepon benar (+62... atau 08...).',
       );
     } finally {
       setSubmitting(false);
@@ -160,7 +162,12 @@ export function CustomersView() {
         description="Cari pelanggan dan lihat profil terpadu tanpa mengubah saldo atau transaksi di luar alur resmi."
         actions={
           canCreate ? (
-            <Button onClick={() => setShowCreate(true)}>
+            <Button
+              onClick={() => {
+                setCreateError('');
+                setShowCreate(true);
+              }}
+            >
               Buat pelanggan aktif
             </Button>
           ) : undefined
@@ -170,7 +177,10 @@ export function CustomersView() {
 
       <Drawer
         open={showCreate}
-        onClose={() => setShowCreate(false)}
+        onClose={() => {
+          setCreateError('');
+          setShowCreate(false);
+        }}
         title="Pendaftaran Pelanggan Baru"
         description="Pendaftaran cepat member walk-in atau member baru studio."
         className="max-w-xl"
@@ -222,8 +232,21 @@ export function CustomersView() {
           <Feedback kind="info">
             Pelanggan langsung aktif. Sistem otomatis mengirimkan notifikasi aktivasi ke WhatsApp member.
           </Feedback>
+          {createError && (
+            <Feedback kind="error" onDismiss={() => setCreateError('')}>
+              {createError}
+            </Feedback>
+          )}
           <div className="flex justify-end gap-2 pt-3 border-t border-dd-line">
-            <Button type="button" variant="secondary" disabled={submitting} onClick={() => setShowCreate(false)}>
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={submitting}
+              onClick={() => {
+                setCreateError('');
+                setShowCreate(false);
+              }}
+            >
               Batal
             </Button>
             <Button type="submit" loading={submitting}>

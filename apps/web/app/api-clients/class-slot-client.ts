@@ -490,18 +490,36 @@ export const browserClassSlotClient: ClassSlotClient = {
 
 export function classSlotFailure(error: unknown) {
   notifySessionFailure(error);
-  const status = (error as { response?: { status?: number }; status?: number })?.response?.status ?? (error as { status?: number })?.status;
-  const code = (error as { response?: { data?: { error?: { code?: string } } }; data?: { error?: { code?: string } } })?.response?.data
-    ?.error?.code ?? (error as { data?: { error?: { code?: string } } })?.data?.error?.code;
+  const typed = error as {
+    response?: { status?: number; data?: { code?: string; error?: { code?: string } } };
+    status?: number;
+    data?: { code?: string; error?: { code?: string } };
+    error?: { code?: string };
+    code?: string;
+  };
+  const status = typed?.response?.status ?? typed?.status;
+  const code =
+    typed?.response?.data?.error?.code ??
+    typed?.response?.data?.code ??
+    typed?.data?.error?.code ??
+    typed?.data?.code ??
+    typed?.error?.code ??
+    typed?.code;
   const messages: Record<string, string> = {
     CONFIGURATION_REQUIRED: 'Konfigurasi quota atau capacity belum tersedia untuk waktu tersebut.',
     AVAILABILITY_REQUIRED: 'Availability instructor belum mencakup seluruh waktu kelas.',
-    SCHEDULE_CONFLICT: 'Jadwal instructor bertabrakan dengan kelas lain.',
-    STALE_VERSION: 'Data kelas berubah. Muat ulang sebelum melanjutkan.',
-    RESOURCE_NOT_FOUND: 'Data tidak tersedia dalam cabang yang dipilih.',
-    INVALID_STATE_TRANSITION: 'Status kelas tidak mendukung tindakan tersebut.',
+    SCHEDULE_CONFLICT: 'Jadwal kelas atau ketersediaan instruktur bertabrakan dengan kelas lain.',
+    SLOT_SCHEDULE_COLLISION:
+      'Ruangan ini sudah memiliki jadwal kelas lain pada jam yang sama. Silakan pilih ruangan lain atau ubah jam mulai.',
+    CAPACITY_EXCEEDS_ROOM_LIMIT:
+      'Kapasitas peserta melebihi batas maksimal daya tampung ruangan studio.',
+    INSTRUCTOR_SCHEDULE_COLLISION:
+      'Instruktur yang dipilih sudah memiliki jadwal mengajar di kelas lain pada jam yang sama.',
+    STALE_VERSION: 'Data kelas telah diperbarui oleh pengguna lain. Muat ulang sebelum melanjutkan.',
+    RESOURCE_NOT_FOUND: 'Data kelas atau ruangan tidak ditemukan pada cabang yang dipilih.',
+    INVALID_STATE_TRANSITION: 'Status kelas saat ini tidak mengizinkan tindakan tersebut.',
     INSTRUCTOR_REQUIRED: 'Tetapkan instruktur terlebih dahulu sebelum mempublikasikan kelas.',
-    VALIDATION_ERROR: 'Tanggal, waktu, atau pilihan kelas belum valid.',
+    VALIDATION_ERROR: 'Tanggal, waktu, atau pilihan kelas belum valid. Periksa kembali form isian.',
     CHECK_IN_TOO_EARLY: 'Presensi baru dapat dicatat mulai 30 menit sebelum kelas dimulai.',
   };
   if (code && messages[code]) return messages[code];

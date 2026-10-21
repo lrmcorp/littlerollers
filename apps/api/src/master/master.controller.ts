@@ -149,9 +149,10 @@ export class MasterController {
     @Headers('idempotency-key') key: string | undefined,
     @Body()
     body: {
-      name: string;
-      timezone: string;
+      name?: string;
+      timezone?: string;
       supportWhatsappE164?: string | null;
+      geofenceRadiusMeters?: number;
       expectedVersion?: number;
       reason?: string;
     },

@@ -221,6 +221,7 @@ export const ROLE_CAPABILITIES: Record<ApplicationRole, readonly string[]> = {
     'payment:decide',
     'package:read',
     'voucher:read',
+    'voucher:manage',
     'ledger:read',
     'ledger:adjust:read',
   ],

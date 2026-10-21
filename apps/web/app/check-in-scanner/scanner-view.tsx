@@ -47,7 +47,7 @@ export function CheckInScannerView() {
           setLocating(false);
           resolve(undefined);
         },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 },
+        { enableHighAccuracy: true, timeout: 4000, maximumAge: 30000 },
       );
     });
   };

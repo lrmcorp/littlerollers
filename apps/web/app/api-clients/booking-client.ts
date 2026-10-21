@@ -1079,3 +1079,54 @@ export async function confirmCustomerLink(token: string): Promise<CustomerLinkCo
   });
 }
 
+// ============================================================================
+// PUBLIC KIOSK DISPLAY API (Tablet Layar Studio & Geofence Checking)
+// ============================================================================
+
+export type KioskBranchItem = {
+  id: string;
+  code: string;
+  name: string;
+  address: string | null;
+  timezone: string;
+  latitude: number | null;
+  longitude: number | null;
+  hasGeofence: boolean;
+  geofenceRadiusMeters: number;
+};
+
+export type KioskSlotItem = {
+  id: string;
+  classTypeName: string;
+  studioName: string | null;
+  roomName: string | null;
+  instructorId: string | null;
+  instructorName: string;
+  startAt: string;
+  endAt: string;
+  window: 'TOO_EARLY' | 'OPEN' | 'EXPIRED';
+  isAttended: boolean;
+  attendance: {
+    checkedInAt: string;
+    method: string;
+    distanceMeters: number | null;
+    isWithinGeofence: boolean;
+  } | null;
+  qrPayload: string | null;
+  token: string | null;
+};
+
+export type KioskDisplayData = {
+  branch: KioskBranchItem;
+  serverTime: string;
+  slots: KioskSlotItem[];
+};
+
+export async function getKioskBranches(): Promise<{ items: KioskBranchItem[] }> {
+  return apiFetch<{ items: KioskBranchItem[] }>('/api/v1/check-ins/kiosk/branches');
+}
+
+export async function getKioskDisplay(branchCode: string): Promise<KioskDisplayData> {
+  return apiFetch<KioskDisplayData>(`/api/v1/check-ins/kiosk/${encodeURIComponent(branchCode)}`);
+}
+

@@ -259,9 +259,10 @@ export class MasterCatalogService {
     principal: SessionPrincipal,
     id: string,
     input: {
-      name: string;
-      timezone: string;
+      name?: string;
+      timezone?: string;
       supportWhatsappE164?: string | null;
+      geofenceRadiusMeters?: number;
       expectedVersion?: number;
       reason?: string;
     },
@@ -270,14 +271,28 @@ export class MasterCatalogService {
   ): Promise<Cabang> {
     this.access.authorize(principal, true);
     this.access.ensureBranchScope(principal, id, true);
-    const name = input.name?.trim();
-    if (!name || name.length < 2)
+
+    if (input.geofenceRadiusMeters !== undefined) {
+      if (typeof input.geofenceRadiusMeters !== 'number' || input.geofenceRadiusMeters < 10) {
+        throw new ApiProblem(
+          'VALIDATION_ERROR',
+          HttpStatus.BAD_REQUEST,
+          false,
+          [{ field: 'geofenceRadiusMeters', issue: 'Radius geofence harus bernilai positif minimal 10 meter' }],
+        );
+      }
+    }
+
+    const name = input.name !== undefined ? input.name.trim() : undefined;
+    if (name !== undefined && name.length < 2)
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
 
-    try {
-      new Intl.DateTimeFormat('en-US', { timeZone: input.timezone }).format();
-    } catch {
-      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+    if (input.timezone !== undefined) {
+      try {
+        new Intl.DateTimeFormat('en-US', { timeZone: input.timezone }).format();
+      } catch {
+        throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+      }
     }
     if (input.supportWhatsappE164 && !/^\+[1-9]\d{7,14}$/.test(input.supportWhatsappE164.trim()))
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
@@ -293,9 +308,10 @@ export class MasterCatalogService {
         const updated = await tx.cabang.update({
           where: { id },
           data: {
-            name,
-            timezone: input.timezone,
-            supportWhatsappE164: input.supportWhatsappE164?.trim() || null,
+            ...(name !== undefined ? { name } : {}),
+            ...(input.timezone !== undefined ? { timezone: input.timezone } : {}),
+            ...(input.supportWhatsappE164 !== undefined ? { supportWhatsappE164: input.supportWhatsappE164?.trim() || null } : {}),
+            ...(input.geofenceRadiusMeters !== undefined ? { geofenceRadiusMeters: input.geofenceRadiusMeters } : {}),
           },
         });
 

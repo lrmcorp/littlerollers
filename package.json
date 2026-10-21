@@ -35,6 +35,7 @@
     "test:adversarial:phase5": "TSX_TSCONFIG_PATH=apps/api/tsconfig.json NODE_PATH=./apps/api/node_modules node --env-file=.env --import ./apps/api/node_modules/tsx/dist/loader.mjs tools/verification/adversarial-phase5-package-adjustments.ts",
     "test:adversarial:phase6": "TSX_TSCONFIG_PATH=apps/api/tsconfig.json NODE_PATH=./apps/api/node_modules node --env-file=.env --import ./apps/api/node_modules/tsx/dist/loader.mjs tools/verification/adversarial-phase6-finance-monthly-close.ts",
     "test:uat:suites": "NODE_PATH=./apps/web/node_modules:./apps/api/node_modules node --env-file=.env --import ./apps/api/node_modules/tsx/dist/loader.mjs tools/run-browser-uat-suites.ts",
+    "test:uat:roles": "NODE_PATH=./apps/api/node_modules node --env-file=.env --import ./apps/api/node_modules/tsx/dist/loader.mjs tools/uat/run-all-roles-uat.ts",
     "test:e2e:studio-journey": "NODE_PATH=./apps/web/node_modules:./apps/api/node_modules node --env-file=.env --import ./apps/api/node_modules/tsx/dist/loader.mjs tools/e2e-studio-journey.ts",
     "test:e2e:real": "pnpm --filter @dailydose/web test:e2e:real",
     "test:e2e:customer": "node --env-file=.env tools/run-customer-e2e.mjs",

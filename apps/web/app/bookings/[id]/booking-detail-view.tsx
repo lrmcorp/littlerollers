@@ -110,11 +110,24 @@ export function BookingDetailView({
       setCancelMessage('Booking berhasil dibatalkan. Kuota sesi paket Anda telah dikembalikan secara utuh.');
       await load();
     } catch (cause: any) {
-      const code = cause?.error?.code ?? cause?.code;
-      if (code === 'CANCELLATION_CUTOFF_PASSED') {
-        setCancelError('Batas pembatalan H-24 sudah terlewati. Hubungi admin studio.');
+      const code = cause?.error?.code ?? cause?.code ?? cause?.data?.error?.code;
+      if (code === 'ATTENDANCE_RECORDED') {
+        setCancelError('Kehadiran kelas sudah tercatat atau sesi telah berjalan. Booking tidak dapat dibatalkan.');
+      } else if (code === 'CLASS_IN_PROGRESS') {
+        setCancelError('Kelas sedang atau sudah selesai berlangsung. Booking tidak dapat dibatalkan.');
+      } else if (code === 'CANCELLATION_CUTOFF_PASSED') {
+        setCancelError('Batas waktu pembatalan mandiri (H-24) telah terlewati. Hubungi admin studio jika terdapat kondisi darurat medis.');
+      } else if (code === 'BOOKING_ALREADY_CANCELLED') {
+        setCancelError('Booking ini sudah dibatalkan sebelumnya.');
+      } else if (code === 'RESOURCE_NOT_FOUND') {
+        setCancelError('Data booking tidak ditemukan atau sudah tidak aktif.');
       } else {
-        setCancelError('Gagal membatalkan booking. Silakan coba kembali.');
+        const friendly = await bookingFailure(cause);
+        setCancelError(
+          friendly && !friendly.includes('OFFLINE_OR_REQUEST_FAILED')
+            ? friendly
+            : 'Gagal membatalkan booking. Silakan hubungi admin studio.',
+        );
       }
     } finally {
       setCancelSubmitting(false);

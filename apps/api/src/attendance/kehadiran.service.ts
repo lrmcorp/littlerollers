@@ -1,6 +1,6 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { CheckInMethod, Prisma, SessionMutationType } from '@prisma/client';
-import { createHash, randomBytes, randomUUID } from 'node:crypto';
+import { createHash, createHmac, randomBytes, randomUUID } from 'node:crypto';
 import { PrismaService } from '../database/prisma.service';
 import { isWithinGeofence } from '../foundation/geofence.util';
 import { IdempotencyService } from '../foundation/idempotency.service';
@@ -944,5 +944,166 @@ export class AttendanceService {
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
     );
+  }
+
+  async getKioskBranches() {
+    const branches = await this.db.cabang.findMany({
+      where: { active: true },
+      select: {
+        id: true,
+        code: true,
+        name: true,
+        address: true,
+        timezone: true,
+        latitude: true,
+        longitude: true,
+        geofenceRadiusMeters: true,
+      },
+      orderBy: { name: 'asc' },
+    });
+    return {
+      items: branches.map((b) => ({
+        id: b.id,
+        code: b.code,
+        name: b.name,
+        address: b.address,
+        timezone: b.timezone,
+        latitude: b.latitude ? Number(b.latitude) : null,
+        longitude: b.longitude ? Number(b.longitude) : null,
+        hasGeofence: Boolean(b.latitude !== null && b.longitude !== null),
+        geofenceRadiusMeters: b.geofenceRadiusMeters ?? 100,
+      })),
+    };
+  }
+
+  async getKioskDisplay(branchCode: string, now = new Date()) {
+    const normalized = branchCode.trim();
+    if (!normalized) {
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+    const branch = await this.db.cabang.findFirst({
+      where: {
+        OR: [{ code: normalized.toUpperCase() }, { id: normalized }],
+        active: true,
+      },
+      select: {
+        id: true,
+        code: true,
+        name: true,
+        address: true,
+        timezone: true,
+        latitude: true,
+        longitude: true,
+        geofenceRadiusMeters: true,
+      },
+    });
+
+    if (!branch) {
+      throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+    }
+
+    const windowPast = new Date(now.getTime() - 60 * 60_000);
+    const windowFuture = new Date(now.getTime() + 8 * 60 * 60_000);
+
+    const slots = await this.db.slotKelas.findMany({
+      where: {
+        branchId: branch.id,
+        status: { in: ['CONFIRMED', 'PUBLISHED'] },
+        instructorId: { not: null },
+        endAt: { gte: windowPast },
+        startAt: { lte: windowFuture },
+      },
+      include: {
+        classType: { select: { id: true, name: true } },
+        studio: { select: { id: true, name: true } },
+        room: { select: { id: true, name: true } },
+        instructor: { select: { id: true, displayName: true, email: true } },
+        instructorAttendance: {
+          select: {
+            id: true,
+            checkedInAt: true,
+            method: true,
+            distanceMeters: true,
+            isWithinGeofence: true,
+          },
+        },
+      },
+      orderBy: { startAt: 'asc' },
+    });
+
+    const kioskSlots = await Promise.all(
+      slots.map(async (slot) => {
+        const window = checkInWindowState(slot.startAt, slot.endAt, now);
+        const isAttended = Boolean(slot.instructorAttendance);
+
+        let qrPayload: string | null = null;
+        let token: string | null = null;
+
+        if (window === 'OPEN' && !isAttended) {
+          const secret = process.env.SESSION_SECRET || 'dailydose-kiosk-secret';
+          const rawToken = createHmac('sha256', secret)
+            .update(`${slot.id}:${slot.startAt.toISOString()}`)
+            .digest('base64url');
+          const tokenHash = sha256(rawToken);
+
+          const existingToken = await this.db.instructorCheckInToken.findUnique({
+            where: { token: tokenHash },
+          });
+
+          if (!existingToken) {
+            await this.db.instructorCheckInToken.create({
+              data: {
+                classSlotId: slot.id,
+                token: tokenHash,
+                expiresAt: slot.endAt,
+                issuedById: null,
+              },
+            });
+          }
+
+          token = rawToken;
+          qrPayload = `dd-checkin:v1:${rawToken}`;
+        }
+
+        return {
+          id: slot.id,
+          classTypeName: slot.classType.name,
+          studioName: slot.studio?.name ?? null,
+          roomName: slot.room?.name ?? null,
+          instructorId: slot.instructorId,
+          instructorName: slot.instructor?.displayName ?? 'Instruktur',
+          startAt: slot.startAt.toISOString(),
+          endAt: slot.endAt.toISOString(),
+          window,
+          isAttended,
+          attendance: slot.instructorAttendance
+            ? {
+                checkedInAt: slot.instructorAttendance.checkedInAt.toISOString(),
+                method: slot.instructorAttendance.method,
+                distanceMeters: slot.instructorAttendance.distanceMeters,
+                isWithinGeofence: slot.instructorAttendance.isWithinGeofence,
+              }
+            : null,
+          qrPayload,
+          token,
+        };
+      }),
+    );
+
+    return {
+      branch: {
+        id: branch.id,
+        code: branch.code,
+        name: branch.name,
+        address: branch.address,
+        timezone: branch.timezone,
+        latitude: branch.latitude ? Number(branch.latitude) : null,
+        longitude: branch.longitude ? Number(branch.longitude) : null,
+        hasGeofence: Boolean(branch.latitude !== null && branch.longitude !== null),
+        geofenceRadiusMeters: branch.geofenceRadiusMeters ?? 100,
+      },
+      serverTime: now.toISOString(),
+      slots: kioskSlots,
+    };
   }
 }
