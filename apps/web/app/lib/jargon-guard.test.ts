@@ -20,6 +20,7 @@ const forbidden: Array<[RegExp, string]> = [
   [/Rules? #\d/, 'nomor aturan internal'],
   [/Keputusan Bisnis #?\d/, 'nomor keputusan bisnis internal'],
   [/ledger authoritative/i, 'istilah ledger authoritative'],
+  [/Maker-Checker/i, 'istilah perbankan Maker-Checker'],
   [/Optimistic locking/i, 'istilah optimistic locking'],
   [/Role (&|&amp;) Scope/, 'Role & Scope'],
   [/\(Other Cost\)/i, '(Other Cost)'],

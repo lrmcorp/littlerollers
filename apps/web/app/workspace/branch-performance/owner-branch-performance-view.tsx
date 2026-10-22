@@ -294,6 +294,31 @@ export function OwnerBranchPerformanceView() {
           rowKey={(item) => item.instructorId}
           emptyTitle="Belum ada catatan mengajar"
           emptyDescription="Belum ada catatan kelas mengajar instruktur pada periode ini."
+          mobileCard={(item: InstructorBreakdown) => (
+            <div className="space-y-1.5 text-xs">
+              <div className="flex items-center justify-between">
+                <strong className="text-sm font-bold text-dd-ink">{item.instructorName}</strong>
+                <strong className="text-sm font-bold text-dd-forest">{formatRupiah(item.totalFeeRp)}</strong>
+              </div>
+              <div className="grid grid-cols-3 gap-1 py-1 text-[11px] text-dd-muted border-y border-dd-line/40">
+                <div>Group: {item.groupHours}j ({formatRupiah(item.groupFeeRp)})</div>
+                <div>Semi: {item.semiPrivateHours}j ({formatRupiah(item.semiPrivateFeeRp)})</div>
+                <div>Priv: {item.privateHours}j ({formatRupiah(item.privateFeeRp)})</div>
+              </div>
+              <div className="flex items-center justify-between text-dd-muted">
+                <span>Total: <strong>{item.totalHours} jam</strong></span>
+                {item.unconfiguredFeeClassCount && item.unconfiguredFeeClassCount > 0 ? (
+                  <span className="text-xs font-semibold text-dd-brass">
+                    {item.unconfiguredFeeClassCount} kelas pakai estimasi
+                  </span>
+                ) : item.unverifiedClassCount > 0 ? (
+                  <span className="text-xs font-semibold text-dd-warning">
+                    {item.unverifiedClassCount} kelas belum verifikasi
+                  </span>
+                ) : null}
+              </div>
+            </div>
+          )}
         />
       </Panel>
     </div>

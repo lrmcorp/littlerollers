@@ -185,51 +185,51 @@ const staffGuides: Record<
           title: 'Rincian Verifikasi Pembayaran Transfer',
           items: [
             { label: 'ID Transaksi', value: 'ORD-202608-0188' },
-            { label: 'Nominal Mutasi', value: 'Rp 3.500.000 (Sesuai)', tone: 'success' },
+            { label: 'Nominal Transfer', value: 'Rp 3.500.000 (Sesuai)', tone: 'success' },
             { label: 'Rekening Tujuan', value: 'BCA - Daily Dose Indonesia' },
-            { label: 'Keputusan Finance', value: 'DISETUJUI & TERCATAT BUKU BESAR', tone: 'success' },
+            { label: 'Keputusan Verifikasi', value: 'DISETUJUI & PAKET AKTIF', tone: 'success' },
           ],
           statusBadge: { text: 'Disetujui', tone: 'success' },
         },
       },
       {
         id: 'fin-ledger',
-        title: '2. Session Ledger & Penyesuaian Saldo',
-        badge: 'Audit & Akuntansi',
+        title: '2. Kuota Sesi Member & Penyesuaian',
+        badge: 'Kuota & Sesi',
         description:
-          'Setiap pemakaian, pembelian, kedaluwarsa, atau kompensasi sesi tercatat permanen di Ledger yang tidak dapat dimanipulasi.',
+          'Setiap pemakaian, pembelian, kedaluwarsa, atau kompensasi sesi tercatat otomatis dan aman di riwayat sesi member.',
         actionHref: '/ledger',
-        actionLabel: 'Buka Ledger',
+        actionLabel: 'Buka Sesi Pelanggan',
         steps: [
           {
             number: 1,
-            title: 'Pantau Buku Besar Saldo',
+            title: 'Pantau Kuota & Sesi Member',
             description:
-              'Buka menu "Ledger" (/ledger) untuk melihat riwayat audit saldo debit/kredit per member.',
+              'Buka menu "Sesi Pelanggan" (/ledger) untuk melihat riwayat pemakaian dan sisa kuota sesi per member.',
           },
           {
             number: 2,
-            title: 'Buat Penyesuaian Saldo (Adjustment)',
+            title: 'Ajukan Penyesuaian Sesi',
             description:
-              'Jika terjadi kompensasi kendala teknis (misal: penambahan 1 sesi darurat), ajukan request adjustment di menu /ledger/adjustments dengan alasan tertulis.',
+              'Jika terjadi kompensasi kendala teknis (misal: penambahan 1 sesi pengganti), ajukan penyesuaian di menu Penyesuaian Sesi dengan alasan tertulis.',
           },
           {
             number: 3,
-            title: 'Otorisasi 4-Eyes Principle',
+            title: 'Pemeriksaan Silang (Persetujuan Manajer)',
             description:
-              'Setiap penyesuaian saldo memerlukan otorisasi bertingkat sebelum saldo efektif berubah di akun member.',
+              'Setiap penyesuaian sesi memerlukan persetujuan manajer sebelum kuota sesi efektif berubah di akun member.',
           },
         ],
         mockup: {
           type: 'card',
-          title: 'Entri Ledger Audit Saldo',
+          title: 'Riwayat Pemakaian Sesi',
           items: [
-            { label: 'Tipe Mutasi', value: 'SESSION_USAGE (Pengurangan Sesi)' },
+            { label: 'Tipe Aktivitas', value: 'Pemakaian Kelas (Presensi Hadir)' },
             { label: 'Jumlah', value: '-1 Sesi' },
             { label: 'Referensi Booking', value: 'BKG-202608-0042' },
-            { label: 'Saldo Akhir', value: '9 Sesi Tersedia', tone: 'info' },
+            { label: 'Sisa Kuota', value: '9 Sesi Tersedia', tone: 'info' },
           ],
-          statusBadge: { text: 'Audit Synced', tone: 'info' },
+          statusBadge: { text: 'Tervalidasi', tone: 'info' },
         },
       },
     ],

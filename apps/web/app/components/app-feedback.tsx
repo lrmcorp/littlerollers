@@ -209,16 +209,16 @@ export function messageForApiError(error: unknown): {
       'Kelas telah selesai lebih dari 2 jam lalu. Presensi ditutup dan wajib diajukan melalui Tiket Penyesuaian Medis ke Manager.',
     ],
     PERIOD_ALREADY_LOCKED: [
-      'Periode Telah Dikunci (Locked)',
-      'Periode bulan ini telah ditutup resmi. Mutasi biaya baru tidak dapat dicatat tanpa Jurnal Koreksi berizin Super Owner.',
+      'Periode Telah Ditutup',
+      'Periode bulan ini telah ditutup. Biaya operasional baru tidak dapat ditambahkan atau diubah tanpa persetujuan Super Owner.',
     ],
     VERIFICATION_LOCKED_APPROVED: [
       'Dokumen Terverifikasi Resmi',
       'Dokumen identitas Anda telah disetujui sah oleh Super Owner dan terkunci demi keamanan akun.',
     ],
     SEPARATION_OF_DUTIES: [
-      'Pemisahan Wewenang (Maker-Checker)',
-      'Anda dilarang menyetujui tiket pengajuan Anda sendiri demi kepatuhan tata kelola.',
+      'Pemeriksaan Silang Staf',
+      'Persetujuan harus diputuskan oleh staf atau manajer yang berbeda dari pemohon demi transparansi.',
     ],
     CUSTOMER_VERIFICATION_REQUIRED: [
       'Verifikasi Identitas Diperlukan',
@@ -482,7 +482,7 @@ export function Modal({
         {footer && (
           <div
             data-overlay-footer
-            className="shrink-0 border-t border-dd-line bg-dd-surface px-5 py-4 sm:px-6"
+            className="shrink-0 border-t border-dd-line bg-dd-surface px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-6"
           >
             {footer}
           </div>

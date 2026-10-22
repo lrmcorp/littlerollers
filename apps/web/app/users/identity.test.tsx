@@ -826,6 +826,7 @@ describe('effective master UI', () => {
     await userEvent.click(screen.getByRole('tab', { name: 'Kuota/Kapasitas' }));
     expect(screen.queryByRole('heading', { name: 'Daftar cabang' })).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Tipe kelas' })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: /\+ Atur kuota baru/i }));
     expect(screen.getByLabelText(/Minimum peserta/)).toHaveValue(null);
     expect(screen.getByLabelText(/Kapasitas maksimum/)).toHaveValue(null);
     await userEvent.click(screen.getByRole('button', { name: 'Muat master data' }));
@@ -862,6 +863,7 @@ describe('effective master UI', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Muat master data' }));
     await screen.findByText('Daily Dose Jakarta');
     await userEvent.click(screen.getByRole('tab', { name: 'Kuota/Kapasitas' }));
+    await userEvent.click(screen.getByRole('button', { name: /\+ Atur kuota baru/i }));
     await userEvent.type(screen.getByLabelText(/Minimum peserta/), '4');
     await userEvent.type(screen.getByLabelText(/Kapasitas maksimum/), '8');
     await userEvent.type(screen.getByLabelText(/Efektif mulai/), '2026-08-01');

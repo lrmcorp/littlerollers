@@ -94,6 +94,7 @@ export function ClassSlotView({
   const [failure, setFailure] = useState<string>();
   const [busy, setBusy] = useState(false);
   const [panelDirty, setPanelDirty] = useState(false);
+  const [selectedMobileDay, setSelectedMobileDay] = useState<string>('ALL');
   const displayTimezone = branch?.timezone ?? branches[0]?.timezone ?? 'Asia/Jakarta';
   const week = useMemo(
     () => (branch || globalMode ? weekWindow(reference, displayTimezone) : null),
@@ -415,56 +416,115 @@ export function ClassSlotView({
         />
       ) : (
         <>
-          {/* Desktop 7-Column Grid */}
-          <div className="hidden md:grid md:grid-cols-7 gap-3 items-start" role="region" aria-label="Kalender kelas tujuh hari">
-            {week?.days.map((day) => {
-              const daySlots = grouped.get(day) ?? [];
-              return (
-                <section
-                  className="flex flex-col gap-2 rounded-2xl border border-dd-line/80 bg-white/95 p-3 shadow-xs min-h-[380px]"
-                  aria-labelledby={`day-${day}`}
-                  key={day}
-                >
-                  <h2
-                    id={`day-${day}`}
-                    className="text-xs font-bold uppercase tracking-wider text-dd-forest pb-2.5 border-b border-dd-line text-center"
+          {/* Desktop & Tablet 7-Column Grid with Horizontal Scroll on Medium Screens */}
+          <div className="hidden md:block overflow-x-auto pb-4 -mx-2 px-2 sm:mx-0 sm:px-0">
+            <div
+              className="grid grid-cols-7 gap-3 items-start min-w-[940px] xl:min-w-0"
+              role="region"
+              aria-label="Kalender kelas tujuh hari"
+            >
+              {week?.days.map((day) => {
+                const daySlots = grouped.get(day) ?? [];
+                return (
+                  <section
+                    className="flex flex-col gap-2 rounded-2xl border border-dd-line/80 bg-white/95 p-3 shadow-xs min-h-[380px]"
+                    aria-labelledby={`day-${day}`}
+                    key={day}
                   >
-                    {formatBranchDay(day, displayTimezone)}
-                  </h2>
-                  <div className="flex flex-col gap-2.5 flex-1 pt-1">
-                    {daySlots.length ? (
-                      daySlots.map(slotCard)
-                    ) : (
-                      <div className="flex-1 flex items-center justify-center text-center p-3 text-xs text-dd-muted italic">
-                        Tidak ada kelas
-                      </div>
-                    )}
-                  </div>
-                </section>
-              );
-            })}
+                    <h2
+                      id={`day-${day}`}
+                      className="text-xs font-bold uppercase tracking-wider text-dd-forest pb-2.5 border-b border-dd-line text-center"
+                    >
+                      {formatBranchDay(day, displayTimezone)}
+                    </h2>
+                    <div className="flex flex-col gap-2.5 flex-1 pt-1">
+                      {daySlots.length ? (
+                        daySlots.map(slotCard)
+                      ) : (
+                        <div className="flex-1 flex items-center justify-center text-center p-3 text-xs text-dd-muted italic">
+                          Tidak ada kelas
+                        </div>
+                      )}
+                    </div>
+                  </section>
+                );
+              })}
+            </div>
           </div>
 
-          {/* Mobile Agenda View */}
+          {/* Mobile Agenda View with 1-Tap Day Filter */}
           <div className="md:hidden flex flex-col gap-4" aria-label="Agenda kelas mingguan">
-            {week?.days.map((day) => {
-              const daySlots = grouped.get(day) ?? [];
-              return (
-                <section key={day} className="rounded-2xl border border-dd-line bg-white p-4 shadow-xs flex flex-col gap-3">
-                  <h2 className="text-sm font-bold text-dd-ink pb-2 border-b border-dd-line flex items-center justify-between">
-                    <span>{formatBranchDay(day, displayTimezone)}</span>
-                    <span className="text-xs font-normal text-dd-muted">{daySlots.length} sesi</span>
-                  </h2>
-                  <div className="flex flex-col gap-2.5">
-                    {daySlots.length ? (
-                      daySlots.map(slotCard)
-                    ) : (
-                      <p className="text-xs text-dd-muted italic py-2">Tidak ada kelas pada hari ini.</p>
-                    )}
-                  </div>
-                </section>
-              );
-            })}
+            {/* Quick Day Selector Strip */}
+            <div
+              className="flex items-center gap-1.5 overflow-x-auto pb-2 no-scrollbar"
+              role="group"
+              aria-label="Pilih hari jadwal"
+            >
+              <button
+                type="button"
+                onClick={() => setSelectedMobileDay('ALL')}
+                className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                  selectedMobileDay === 'ALL'
+                    ? 'bg-dd-forest text-white shadow-xs'
+                    : 'bg-dd-surface-muted text-dd-muted hover:text-dd-ink border border-dd-line/60'
+                }`}
+              >
+                Semua ({visible.length})
+              </button>
+              {week?.days.map((day) => {
+                const daySlots = grouped.get(day) ?? [];
+                const isSelected = selectedMobileDay === day;
+                return (
+                  <button
+                    key={day}
+                    type="button"
+                    onClick={() => setSelectedMobileDay(day)}
+                    className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition flex items-center gap-1.5 ${
+                      isSelected
+                        ? 'bg-dd-forest text-white shadow-xs'
+                        : 'bg-dd-surface-muted text-dd-muted hover:text-dd-ink border border-dd-line/60'
+                    }`}
+                  >
+                    <span>{formatBranchDay(day, displayTimezone).slice(0, 3)}</span>
+                    <span
+                      className={`text-[10px] px-1 rounded-full ${
+                        isSelected ? 'bg-white/25 text-white' : 'bg-dd-line text-dd-muted'
+                      }`}
+                    >
+                      {daySlots.length}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {week?.days
+              .filter((day) => selectedMobileDay === 'ALL' || selectedMobileDay === day)
+              .map((day) => {
+                const daySlots = grouped.get(day) ?? [];
+                return (
+                  <section
+                    key={day}
+                    className="rounded-2xl border border-dd-line bg-white p-4 shadow-xs flex flex-col gap-3"
+                  >
+                    <h2 className="text-sm font-bold text-dd-ink pb-2 border-b border-dd-line flex items-center justify-between">
+                      <span>{formatBranchDay(day, displayTimezone)}</span>
+                      <span className="text-xs font-normal text-dd-muted">
+                        {daySlots.length} sesi
+                      </span>
+                    </h2>
+                    <div className="flex flex-col gap-2.5">
+                      {daySlots.length ? (
+                        daySlots.map(slotCard)
+                      ) : (
+                        <p className="text-xs text-dd-muted italic py-2">
+                          Tidak ada kelas pada hari ini.
+                        </p>
+                      )}
+                    </div>
+                  </section>
+                );
+              })}
           </div>
         </>
       )}
@@ -501,11 +561,12 @@ export function ClassSlotView({
         onClose={closePanel}
         footer={
           panel?.kind === 'create' ? (
-            <div className="flex justify-end gap-2">
+            <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
               <Button
                 type="button"
                 variant="secondary"
                 disabled={busy}
+                className="w-full sm:w-auto"
                 onClick={() =>
                   void (async () => {
                     if (
@@ -527,6 +588,7 @@ export function ClassSlotView({
                 type="submit"
                 form="class-slot-create-form"
                 loading={busy}
+                className="w-full sm:w-auto"
               >
                 Buat draft
               </Button>

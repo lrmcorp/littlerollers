@@ -10,6 +10,9 @@ vi.mock('../session-context', () => ({
     activeBranchId: 'branch-1',
     activeBranch: { id: 'branch-1', code: 'JKT', name: 'Jakarta' },
     hasCapability: () => true,
+    session: {
+      branches: [{ id: 'branch-1', code: 'JKT', name: 'Jakarta' }],
+    },
   }),
 }));
 
@@ -58,7 +61,7 @@ describe('Finance anomaly pagination', () => {
 
     render(
       <AppFeedbackProvider>
-        <FinanceView client={client} />
+        <FinanceView client={client} initialTab="RECONCILIATION" />
       </AppFeedbackProvider>,
     );
     // Navigasi paginasi pertama di halaman ini adalah milik antrean anomali.
@@ -117,7 +120,7 @@ describe('Finance anomaly pagination', () => {
 
     render(
       <AppFeedbackProvider>
-        <FinanceView client={client} />
+        <FinanceView client={client} initialTab="RECONCILIATION" />
       </AppFeedbackProvider>,
     );
     await screen.findByRole('heading', { name: 'Rekonsiliasi transaksi' });
@@ -127,5 +130,95 @@ describe('Finance anomaly pagination', () => {
     expect(createObjectURL).toHaveBeenCalledWith(expect.any(Blob));
     expect(click).toHaveBeenCalledTimes(1);
     expect(revokeObjectURL).toHaveBeenCalledWith('blob:finance');
+  });
+
+  it('renders Laporan Keuangan & Honor Instruktur as the default tab', async () => {
+    const client = {
+      overview: vi.fn().mockResolvedValue({
+        generatedAt: new Date(),
+        period: { from: new Date(), until: new Date() },
+        metrics: {
+          expectedRp: 0,
+          receivedRp: 0,
+          approvedRp: 0,
+          identificationAmountRp: 0,
+          ledgerDeltaRp: 0,
+          unreconciledCount: 0,
+        },
+        branches: [],
+      }),
+      anomalies: vi.fn().mockResolvedValue({ items: [], total: 0, page: { hasMore: false, nextCursor: null } }),
+      legacyCashflow: vi.fn().mockResolvedValue({ items: [], total: 0, summary: {}, page: { hasMore: false, nextCursor: null } }),
+      getProfitCloseReport: vi.fn().mockResolvedValue({
+        monthlyProfit: {
+          omsetRp: 50_000_000,
+          instructorFeeRp: 15_000_000,
+          otherCostRp: 5_000_000,
+          grossProfitRp: 30_000_000,
+          isPeriodLocked: false,
+        },
+      }),
+      getOmsetReport: vi.fn().mockResolvedValue({ transactions: [], totalOmsetRp: 0, totalTransactions: 0 }),
+      getRealtimeInstructorReport: vi.fn().mockResolvedValue({ instructors: [], totalFeeRp: 0, totalHours: 0, totalSessions: 0 }),
+      getProjectionReport: vi.fn().mockResolvedValue({ classTypeBreakdown: [], totalEstimatedFeeRp: 0, totalScheduledSessions: 0 }),
+      getOtherCostReport: vi.fn().mockResolvedValue({ items: [], totalOtherCostRp: 0 }),
+    } as unknown as FinanceClient;
+
+    render(
+      <AppFeedbackProvider>
+        <FinanceView client={client} />
+      </AppFeedbackProvider>,
+    );
+
+    // Verify default active tab is Laporan Keuangan & Honor Instruktur
+    expect(
+      screen.getByRole('button', { name: /Laporan Keuangan & Honor Instruktur/i }),
+    ).toHaveClass('border-dd-forest');
+  });
+
+  it('displays error feedback when financial reports fail to load (non-happy path)', async () => {
+    const client = {
+      overview: vi.fn().mockResolvedValue({
+        generatedAt: new Date(),
+        period: { from: new Date(), until: new Date() },
+        metrics: { expectedRp: 0, receivedRp: 0, approvedRp: 0, identificationAmountRp: 0, ledgerDeltaRp: 0, unreconciledCount: 0 },
+        branches: [],
+      }),
+      anomalies: vi.fn().mockResolvedValue({ items: [], total: 0, page: { hasMore: false, nextCursor: null } }),
+      legacyCashflow: vi.fn().mockResolvedValue({ items: [], total: 0, summary: {}, page: { hasMore: false, nextCursor: null } }),
+      getMonthlyProfit: vi.fn().mockRejectedValue(new Error('Koneksi server terputus saat mengambil laporan laba rugi')),
+      getOmsetReport: vi.fn().mockResolvedValue({ transactions: [], totalOmsetRp: 0, totalTransactions: 0 }),
+      getInstructorCostRealtime: vi.fn().mockResolvedValue({ instructors: [], totalFeeRp: 0, totalHours: 0, totalSessions: 0 }),
+      getInstructorCostProjection: vi.fn().mockResolvedValue({ classTypeBreakdown: [], totalEstimatedFeeRp: 0, totalScheduledSessions: 0 }),
+      getOtherCostReport: vi.fn().mockResolvedValue({ items: [], totalOtherCostRp: 0 }),
+    } as unknown as FinanceClient;
+
+    render(
+      <AppFeedbackProvider>
+        <FinanceView client={client} />
+      </AppFeedbackProvider>,
+    );
+
+    expect(
+      await screen.findByText('Koneksi server terputus saat mengambil laporan laba rugi'),
+    ).toBeVisible();
+  });
+
+  it('displays reconFailed feedback when reconciliation overview fails (non-happy path)', async () => {
+    const client = {
+      overview: vi.fn().mockRejectedValue(new Error('Database timeout')),
+      anomalies: vi.fn().mockResolvedValue({ items: [], total: 0, page: { hasMore: false, nextCursor: null } }),
+      legacyCashflow: vi.fn().mockResolvedValue({ items: [], total: 0, summary: {}, page: { hasMore: false, nextCursor: null } }),
+    } as unknown as FinanceClient;
+
+    render(
+      <AppFeedbackProvider>
+        <FinanceView client={client} initialTab="RECONCILIATION" />
+      </AppFeedbackProvider>,
+    );
+
+    expect(
+      await screen.findByText(/Gagal memuat atau mengekspor data finansial server/i),
+    ).toBeVisible();
   });
 });

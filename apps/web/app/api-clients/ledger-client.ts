@@ -411,11 +411,11 @@ export async function ledgerFailure(error: unknown): Promise<string> {
     INSUFFICIENT_SESSION_BALANCE:
       'Pengurangan sesi tidak dapat diproses karena melebihi saldo tersedia atau masih ada sesi yang tertahan (direservasi).',
     LEDGER_INVARIANT_VIOLATION:
-      'Perubahan akan membuat saldo tidak cukup untuk sesi yang masih tertahan (direservasi).',
+      'Perubahan akan membuat kuota tidak cukup untuk booking kelas yang masih aktif.',
     SEPARATION_OF_DUTIES:
-      'Permintaan harus diputuskan oleh Manager atau Super Admin yang berbeda dari staf yang mengajukan (Maker-Checker).',
+      'Permintaan harus diputuskan oleh Manager atau Super Admin yang berbeda dari staf yang mengajukan (Pemeriksaan Silang).',
     SEPARATION_OF_DUTIES_VIOLATION:
-      'Permintaan harus diputuskan oleh Manager atau Super Admin yang berbeda dari staf yang mengajukan (Maker-Checker).',
+      'Permintaan harus diputuskan oleh Manager atau Super Admin yang berbeda dari staf yang mengajukan (Pemeriksaan Silang).',
     ADJUSTMENT_VERSION_CONFLICT:
       'Data penyesuaian telah berubah atau baru saja diputuskan oleh pengguna lain. Perbarui antrean sebelum mencoba lagi.',
     STALE_VERSION:

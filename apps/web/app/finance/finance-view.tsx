@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import {
   AlertTriangle,
   Calendar,
@@ -63,12 +64,25 @@ type ReportSubTab =
   | 'INSTRUCTOR_PROJECTION'
   | 'OTHER_COST';
 
-export function FinanceView({ client = browserFinanceClient }: { client?: FinanceClient }) {
+export function FinanceView({
+  client = browserFinanceClient,
+  initialTab,
+}: {
+  client?: FinanceClient;
+  initialTab?: MainTab;
+}) {
   const context = useSessionContext();
+  const searchParams = useSearchParams();
   const session = context?.session;
   const branches = session?.branches ?? [];
   const feedback = useAppFeedback();
-  const [mainTab, setMainTab] = useState<MainTab>('RECONCILIATION');
+
+  const queryTab = searchParams?.get('tab')?.toUpperCase();
+  const defaultTab: MainTab =
+    queryTab === 'RECONCILIATION'
+      ? 'RECONCILIATION'
+      : (initialTab || 'FINANCIAL_REPORTS');
+  const [mainTab, setMainTab] = useState<MainTab>(defaultTab);
   const [reportTab, setReportTab] = useState<ReportSubTab>('PROFIT_CLOSE');
   const [instructorViewMode, setInstructorViewMode] = useState<'SUMMARY' | 'SESSIONS'>('SUMMARY');
 
@@ -297,7 +311,7 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
         </Feedback>
       )}
 
-      {/* TABS UTAMA: 5 LAPORAN vs REKONSILIASI */}
+      {/* TABS UTAMA: LAPORAN KEUANGAN vs REKONSILIASI */}
       <div className="flex gap-6 border-b border-dd-line">
         <button
           type="button"
@@ -309,7 +323,7 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
           }`}
         >
           <PieChart className="h-5 w-5" />
-          5 Laporan Finansial & Tutup Buku
+          Laporan Keuangan & Honor Instruktur
         </button>
 
         <button
@@ -322,7 +336,7 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
           }`}
         >
           <Scale className="h-5 w-5" />
-          Rekonsiliasi Transaksi & Anomali
+          Rekonsiliasi Transaksi & Anomali (Opsional)
         </button>
       </div>
 
@@ -617,6 +631,17 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
                   <DataTable<OmsetTransaction>
                     items={omsetData.transactions}
                     rowKey={(t) => t.id}
+                    mobileCard={(t) => (
+                      <div className="space-y-1 text-xs">
+                        <div className="flex items-center justify-between">
+                          <span className="font-mono text-dd-muted">{t.orderNumber}</span>
+                          <span className="font-semibold text-dd-success">{formatRupiah(t.totalAmountRp)}</span>
+                        </div>
+                        <div className="font-medium text-dd-ink text-sm">{t.customerName}</div>
+                        <div className="text-dd-muted">{t.packageName} · {t.paymentMethod}</div>
+                        <div className="text-[11px] text-dd-muted">{new Date(t.paidAt).toLocaleDateString('id-ID')}</div>
+                      </div>
+                    )}
                     columns={[
                       { id: 'orderNumber', header: 'Nomor Invoice', cell: (t) => t.orderNumber },
                       { id: 'customerName', header: 'Pelanggan', cell: (t) => t.customerName },
@@ -728,6 +753,25 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
                     <DataTable<InstructorCostBreakdown>
                       items={instructorRealtimeData.instructors}
                       rowKey={(r) => r.instructorId}
+                      mobileCard={(r) => (
+                        <div className="space-y-1.5 text-xs">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-sm text-dd-ink">{r.instructorName}</span>
+                            <span className="font-bold text-sm text-dd-forest">{formatRupiah(r.totalFeeRp)}</span>
+                          </div>
+                          <div className="grid grid-cols-3 gap-1 py-1 text-[11px] text-dd-muted border-y border-dd-line/40">
+                            <div>Group: {r.groupHours}j ({formatRupiah(r.groupFeeRp)})</div>
+                            <div>Semi: {r.semiPrivateHours}j ({formatRupiah(r.semiPrivateFeeRp)})</div>
+                            <div>Priv: {r.privateHours}j ({formatRupiah(r.privateFeeRp)})</div>
+                          </div>
+                          <div className="flex items-center justify-between text-dd-muted">
+                            <span>Total durasi: <strong>{r.totalHours} jam</strong></span>
+                            {r.unverifiedClassCount > 0 && (
+                              <Badge tone="warning">{r.unverifiedClassCount} kelas belum verifikasi</Badge>
+                            )}
+                          </div>
+                        </div>
+                      )}
                       columns={[
                         {
                           id: 'instructorName',
@@ -802,6 +846,34 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
                     <DataTable<InstructorSessionItem>
                       items={instructorRealtimeData.sessions ?? []}
                       rowKey={(s) => s.slotId}
+                      mobileCard={(s) => (
+                        <div className="space-y-1.5 text-xs">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <strong className="block text-sm text-dd-ink">{s.classTypeName}</strong>
+                              <span className="text-xs text-dd-muted">{s.instructorName} · {s.branchName}</span>
+                            </div>
+                            <div className="text-right">
+                              <strong className="block text-sm text-dd-forest">{formatRupiah(s.feeRp)}</strong>
+                              {s.isManualFee ? (
+                                <Badge tone="warning">Manual Flat</Badge>
+                              ) : (
+                                <span className="text-[11px] text-dd-muted">{formatRupiah(s.feePerJamRp)}/j</span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between text-[11px] text-dd-muted pt-1 border-t border-dd-line/40">
+                            <span>
+                              {new Date(s.startAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} ·{' '}
+                              {new Date(s.startAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} -{' '}
+                              {new Date(s.endAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} ({s.teachingHours} jam)
+                            </span>
+                            <Badge tone={s.attendanceVerified ? 'success' : 'warning'}>
+                              {s.attendanceVerified ? 'Terverifikasi' : 'Belum Verifikasi'}
+                            </Badge>
+                          </div>
+                        </div>
+                      )}
                       columns={[
                         {
                           id: 'time',
@@ -935,6 +1007,15 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
                   <DataTable<ProjectionClassTypeBreakdown>
                     items={instructorProjectionData.breakdown}
                     rowKey={(b) => b.classTypeId}
+                    mobileCard={(b) => (
+                      <div className="flex items-center justify-between text-xs">
+                        <div>
+                          <span className="font-semibold text-sm text-dd-ink block">{b.classTypeId}</span>
+                          <span className="text-dd-muted">{b.sessionsSold} sesi terjual · {formatRupiah(b.ratePerSesiRp)}/sesi</span>
+                        </div>
+                        <span className="font-bold text-sm text-dd-forest">{formatRupiah(b.totalCostRp)}</span>
+                      </div>
+                    )}
                     columns={[
                       { id: 'classTypeId', header: 'ID Jenis Kelas', cell: (b) => b.classTypeId },
                       { id: 'sessionsSold', header: 'Sesi Terjual', cell: (b) => b.sessionsSold },
@@ -1006,6 +1087,63 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
                   <DataTable<OtherCostItem>
                     items={otherCostData.items}
                     rowKey={(c) => c.id}
+                    mobileCard={(c) => (
+                      <div className="space-y-1.5 text-xs">
+                        <div className="flex items-center justify-between">
+                          <Badge tone="neutral">{c.category}</Badge>
+                          <span className="font-bold text-sm text-dd-danger">{formatRupiah(c.amountRp)}</span>
+                        </div>
+                        <div className="font-medium text-dd-ink">{c.description}</div>
+                        <div className="flex items-center justify-between text-[11px] text-dd-muted pt-1 border-t border-dd-line/40">
+                          <span>Dicatat: {c.createdByName} · {new Date(c.createdAt).toLocaleDateString('id-ID')}</span>
+                          {!isLocked ? (
+                            <div className="flex gap-2">
+                              {canManageCosts && client.updateOtherCost && (
+                                <button
+                                  type="button"
+                                  className="text-dd-forest font-semibold hover:underline"
+                                  onClick={() => setEditingCost(c)}
+                                >
+                                  Ubah
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                className="text-dd-danger font-semibold hover:underline flex items-center gap-0.5"
+                                onClick={() => {
+                                  void feedback
+                                    .confirm({
+                                      tone: 'danger',
+                                      title: 'Hapus Biaya Operasional',
+                                      message: 'Biaya operasional ini akan dihapus permanen.',
+                                      confirmLabel: 'Hapus',
+                                    })
+                                    .then(async (accepted) => {
+                                      if (!accepted) return;
+                                      try {
+                                        if (client.deleteOtherCost) {
+                                          await client.deleteOtherCost(c.id);
+                                          void loadReports();
+                                        }
+                                      } catch (error) {
+                                        feedback.showToast({
+                                          tone: 'danger',
+                                          title: 'Biaya belum dapat dihapus',
+                                          message: financeFailureMessage(error),
+                                        });
+                                      }
+                                    });
+                                }}
+                              >
+                                Hapus
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-dd-muted">Terkunci</span>
+                          )}
+                        </div>
+                      </div>
+                    )}
                     columns={[
                       { id: 'category', header: 'Kategori', cell: (c) => c.category },
                       { id: 'description', header: 'Deskripsi', cell: (c) => c.description },
@@ -1144,6 +1282,29 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
               rowKey={(item) => item.purchaseId}
               emptyTitle="Tidak Ada Anomali Rekonsiliasi"
               emptyDescription="Semua mutasi bank dan transaksi pembayaran pada periode ini telah cocok atau terverifikasi."
+              mobileCard={(item: any) => (
+                <div className="space-y-1 text-xs">
+                  <div className="flex items-center justify-between">
+                    <Badge tone={item.severity === 'ERROR' ? 'danger' : 'warning'}>
+                      {item.severity === 'ERROR' ? 'Kritis' : item.severity === 'WARNING' ? 'Peringatan' : item.severity}
+                    </Badge>
+                    <span className="font-bold text-dd-ink">{formatRupiah(item.amountRp)}</span>
+                  </div>
+                  <div className="font-semibold text-dd-ink">
+                    {item.code === 'VERIFIKASI_TERTAHAN'
+                      ? 'Verifikasi Tertahan (> 24 Jam)'
+                      : item.code === 'UNMATCHED_MUTATION'
+                        ? 'Mutasi Belum Cocok'
+                        : item.code}
+                  </div>
+                  <div className="flex items-center justify-between text-[11px] text-dd-muted pt-1 border-t border-dd-line/40">
+                    <span>{branches.find((b) => b.code === item.branchCode)?.name || item.branchCode || '—'} · {new Date(item.submittedAt).toLocaleDateString('id-ID')}</span>
+                    <Link href={item.href || '#'} className="font-semibold text-dd-forest hover:underline">
+                      Buka Pembayaran →
+                    </Link>
+                  </div>
+                </div>
+              )}
               columns={[
                 {
                   id: 'branch',
@@ -1243,6 +1404,20 @@ export function FinanceView({ client = browserFinanceClient }: { client?: Financ
               rowKey={(item) => item.id}
               emptyTitle="Arus kas lama (v1) belum terhubung"
               emptyDescription="Belum ada data v1 yang dapat ditampilkan."
+              mobileCard={(item: any) => (
+                <div className="space-y-1 text-xs">
+                  <div className="flex items-center justify-between">
+                    <Badge tone={item.type === 'INCOME' ? 'success' : 'warning'}>
+                      {item.type === 'INCOME' ? 'Income' : 'Expense'}
+                    </Badge>
+                    <span className="font-bold text-sm text-dd-ink">{formatRupiah(item.amountRp)}</span>
+                  </div>
+                  <div className="font-medium text-dd-ink">{item.description ?? '—'}</div>
+                  <div className="text-[11px] text-dd-muted pt-1 border-t border-dd-line/40">
+                    {item.branch?.name ?? 'Global'} · {new Date(item.occurredAt).toLocaleDateString('id-ID')}
+                  </div>
+                </div>
+              )}
               columns={[
                 {
                   id: 'date',

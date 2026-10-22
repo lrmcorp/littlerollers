@@ -41,6 +41,8 @@ export interface MasterSetting {
   version: number;
   /** Nama instruktur pada honor. */
   instructorName?: string;
+  /** ID instruktur pada honor. */
+  instructorId?: string;
   /** Tarif belum berlaku sehingga masih boleh dihapus. */
   deletable?: boolean;
 }
@@ -94,7 +96,12 @@ export interface MasterClient {
     timezone: string;
     reason?: string;
   }): Promise<void>;
-  createClassType(input: { code: string; name: string; branchIds?: string[] }): Promise<void>;
+  createClassType(input: {
+    code: string;
+    name: string;
+    description?: string;
+    branchIds?: string[];
+  }): Promise<void>;
   listStudios(branchId: string, options?: { includeInactive?: boolean }): Promise<Studio[]>;
   createStudio(
     branchId: string,
@@ -201,6 +208,7 @@ export const browserMasterClient: MasterClient = {
       body: JSON.stringify({
         code: input.code,
         name: input.name,
+        description: input.description,
         branchIds: input.branchIds,
       }),
     });
@@ -327,6 +335,7 @@ export const browserMasterClient: MasterClient = {
         effectiveUntil: null,
         version: 1,
         instructorName: row.instructorName,
+        instructorId: row.instructorId,
         deletable: Boolean(row.deletable),
       }));
     }

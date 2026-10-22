@@ -3,12 +3,17 @@ import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PurchaseClient, PurchaseReviewClient } from '@/api-clients/purchase-client';
+import type { SessionClient } from '@/api-clients/session-client';
 import { PurchaseView } from '@/purchases/purchase-view';
 import { paymentRowState, PurchaseReviewView } from '@/purchases/purchase-review-view';
 import { PaymentReviewDetailView } from '@/workspace/payments/[id]/payment-review-detail-view';
+import { SessionProvider } from '../session-context';
+import { AppFeedbackProvider } from '../components/app-feedback';
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  usePathname: () => '/workspace/payments/purchase-1',
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 const branch = { id: 'branch-1', name: 'Jakarta', timezone: 'Asia/Jakarta' };
@@ -615,6 +620,61 @@ describe('purchase internal review workspace', () => {
     expect(
       screen.getByRole('status', { name: 'Memuat detail pembayaran' }),
     ).toBeInTheDocument();
+  });
+
+  it('blocks approval and displays Pemeriksaan Silang Staf banner when reviewer recorded the payment (non-happy path)', async () => {
+    const sessionClient: SessionClient = {
+      me: vi.fn().mockResolvedValue({
+        id: 'staff-recorder-1',
+        displayName: 'Staff Kasir',
+        roles: ['ADMIN'],
+        branchIds: ['branch-1'],
+        capabilities: ['payment:review', 'payment:decide', 'purchase:review', 'purchase:decide'],
+        branches: [{ id: 'branch-1', name: 'Jakarta', code: 'JKT', timezone: 'Asia/Jakarta' }],
+        sessionExpiresAt: new Date(Date.now() + 3600_000),
+        passwordChangeRequired: false,
+      }),
+      logout: vi.fn().mockResolvedValue(undefined),
+    };
+
+    const recordedPurchase = {
+      ...reviewPurchase,
+      recordedById: 'staff-recorder-1',
+      paymentProof: proof,
+    };
+
+    const client = reviewFake({
+      detail: vi.fn().mockResolvedValue({
+        purchase: recordedPurchase,
+        timeline: {
+          submittedAt: recordedPurchase.submittedAt,
+          proofFinalizedAt: new Date(),
+          decidedAt: null,
+        },
+        decisionActorMasked: null,
+        activation: null,
+        balance: null,
+        usageHistory: { items: [], page: { nextCursor: null, hasMore: false } },
+      }),
+    });
+
+    render(
+      <SessionProvider client={sessionClient}>
+        <AppFeedbackProvider>
+          <PaymentReviewDetailView
+            id="purchase-1"
+            client={client}
+            authorityOverride={{ canReview: true, canDecide: true }}
+          />
+        </AppFeedbackProvider>
+      </SessionProvider>,
+    );
+
+    expect(await screen.findByText('Pemeriksaan Silang Staf:')).toBeVisible();
+    expect(
+      screen.getByText(/Anda mencatat transaksi ini. Untuk menjaga transparansi/i),
+    ).toBeVisible();
+    expect(screen.queryByRole('button', { name: /Setujui dan aktifkan paket/i })).not.toBeInTheDocument();
   });
 });
 

@@ -784,9 +784,9 @@ export function PaymentReviewDetailView({
                 <div className="mt-5 space-y-4">
                   {separationOfDutiesBlocked && (
                     <div className="rounded-dd-md border border-dd-warning/30 bg-dd-warning-soft p-3 text-xs text-dd-warning leading-relaxed">
-                      <strong className="block font-semibold">Pemisahan Tugas (Maker-Checker):</strong>
+                      <strong className="block font-semibold">Pemeriksaan Silang Staf:</strong>
                       {isRecorder
-                        ? 'Anda mencatat transaksi ini. Sesuai prinsip pemisahan tugas, persetujuan pembayaran harus dilakukan oleh staf/manager lain.'
+                        ? 'Anda mencatat transaksi ini. Untuk menjaga transparansi, persetujuan pembayaran harus dilakukan oleh staf atau manajer lain.'
                         : 'Anda tidak dapat menyetujui transaksi milik akun Anda sendiri.'}
                     </div>
                   )}

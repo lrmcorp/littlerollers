@@ -20,17 +20,20 @@ export function StudioVenueList({
   client,
   onChanged,
   onFailure,
+  onAddRoom,
 }: {
   studios: Studio[];
   canManage: boolean;
   client: Pick<MasterClient, 'updateStudio' | 'updateRoom'>;
   onChanged(message: string): void | Promise<void>;
   onFailure(message: string): void;
+  onAddRoom?(studioId: string): void;
 }) {
   const feedback = useAppFeedback();
   const [editing, setEditing] = useState<Editing>(null);
   const [name, setName] = useState('');
   const [equipment, setEquipment] = useState('');
+  const [phone, setPhone] = useState('');
   const [capacity, setCapacity] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -88,16 +91,19 @@ export function StudioVenueList({
 
   const save = () => {
     if (!editing) return;
-    if (editing.kind === 'studio')
+    if (editing.kind === 'studio') {
+      const payload: { name: string; equipmentText?: string; contactPhoneE164?: string } = {
+        name: name.trim(),
+        equipmentText: equipment.trim(),
+      };
+      if (phone.trim()) {
+        payload.contactPhoneE164 = phone.trim();
+      }
       void run(
-        () =>
-          client.updateStudio(editing.studio.id, {
-            name: name.trim(),
-            equipmentText: equipment.trim(),
-          }),
+        () => client.updateStudio(editing.studio.id, payload),
         'Area studio diperbarui.',
       );
-    else
+    } else {
       void run(
         () =>
           client.updateRoom(editing.room.id, {
@@ -106,6 +112,7 @@ export function StudioVenueList({
           }),
         'Ruangan diperbarui.',
       );
+    }
   };
 
   const capacityValid =
@@ -146,8 +153,23 @@ export function StudioVenueList({
             <p className="mt-2 text-xs text-dd-muted">
               {studio.equipmentText || 'Equipment belum dicatat'}
             </p>
+            {studio.contactPhoneE164 && (
+              <p className="mt-1 text-xs text-dd-muted">
+                Kontak: <span className="font-medium text-dd-ink">{studio.contactPhoneE164}</span>
+              </p>
+            )}
             {canManage && (
               <div className="mt-3 flex flex-wrap gap-2">
+                {studio.active && onAddRoom && (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    disabled={busy}
+                    onClick={() => onAddRoom(studio.id)}
+                  >
+                    + Ruangan
+                  </Button>
+                )}
                 <Button
                   size="sm"
                   variant="secondary"
@@ -155,6 +177,7 @@ export function StudioVenueList({
                   onClick={() => {
                     setName(studio.name);
                     setEquipment(studio.equipmentText ?? '');
+                    setPhone(studio.contactPhoneE164 ?? '');
                     setEditing({ kind: 'studio', studio });
                   }}
                 >
@@ -246,12 +269,20 @@ export function StudioVenueList({
             onChange={(event) => setName(event.target.value)}
           />
           {editing?.kind === 'studio' ? (
-            <Textarea
-              label="Equipment"
-              value={equipment}
-              maxLength={500}
-              onChange={(event) => setEquipment(event.target.value)}
-            />
+            <>
+              <Textarea
+                label="Equipment"
+                value={equipment}
+                maxLength={500}
+                onChange={(event) => setEquipment(event.target.value)}
+              />
+              <TextInput
+                label="Nomor kontak (opsional)"
+                placeholder="+628…"
+                value={phone}
+                onChange={(event) => setPhone(event.target.value)}
+              />
+            </>
           ) : (
             <TextInput
               label="Kapasitas (opsional)"
