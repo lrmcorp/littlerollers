@@ -472,6 +472,15 @@ export class LifecycleService {
       const branchId = (await spec.branchOf?.(tx, row)) ?? null;
       await this.authorize(principal, kind, branchId);
       if (row.archivedAt) throw new ApiProblem('INVALID_STATE_TRANSITION', HttpStatus.CONFLICT);
+      // Kelas yang masih akan berlangsung harus dibatalkan atau dipindah dulu (sama seperti studio).
+      const upcoming = await (tx as any).slotKelas.count({
+        where: {
+          [kind === 'branch' ? 'branchId' : 'classTypeId']: id,
+          status: { in: ['DRAFT', 'PUBLISHED', 'CONFIRMED'] },
+          endAt: { gt: new Date() },
+        },
+      });
+      if (upcoming > 0) throw new ApiProblem('HAS_UPCOMING_SLOTS', HttpStatus.CONFLICT);
       const updated = await (tx as any)[spec.delegate].update({
         where: { id },
         data: { active: false, archivedAt: new Date() },

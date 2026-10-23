@@ -67,6 +67,7 @@ function build(opts: { counts?: Record<string, number>; row?: Record<string, unk
       delete: delegate.delete,
     },
     pembelian: { count: jest.fn().mockResolvedValue(counts.promoPurchases ?? 0) },
+    slotKelas: { count: jest.fn().mockResolvedValue(counts.upcomingSlots ?? 0) },
     rekeningPembayaran: delegate,
     publicContent: delegate,
     $transaction: jest.fn(async (fn: (tx: unknown) => unknown) => fn(db)),
@@ -255,6 +256,26 @@ describe('LifecycleService.archive', () => {
       }),
     );
   });
+
+  it.each([['branch', 'branchId'], ['class-type', 'classTypeId']] as const)(
+    'refuses to archive a %s that still has upcoming classes, and changes nothing',
+    async (kind, column) => {
+      const { service, delegate, db, audit } = build({
+        row: { id: branchA, active: true, archivedAt: null },
+        counts: { upcomingSlots: 2 },
+      });
+      await expect(service.archive(superOwner as never, kind, branchA, 'ditutup', 'c')).rejects.toMatchObject({
+        code: 'HAS_UPCOMING_SLOTS',
+        status: 409,
+      });
+      expect(db.slotKelas.count.mock.calls[0][0].where).toMatchObject({
+        [column]: branchA,
+        status: { in: ['DRAFT', 'PUBLISHED', 'CONFIRMED'] },
+      });
+      expect(delegate.update).not.toHaveBeenCalled();
+      expect(audit.catat).not.toHaveBeenCalled();
+    },
+  );
 
   it('refuses to archive something already archived', async () => {
     const { service } = build({ row: { id: branchA, active: false, archivedAt: new Date() } });

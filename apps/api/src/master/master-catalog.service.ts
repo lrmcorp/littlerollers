@@ -352,6 +352,10 @@ export class MasterCatalogService {
       async (tx) => {
         const current = await tx.cabang.findUnique({ where: { id } });
         if (!current) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+        if (status === 'INACTIVE' && current.active) {
+          const upcoming = await this.upcomingSlotCount(tx, { branchId: id });
+          if (upcoming > 0) throw new ApiProblem('HAS_UPCOMING_SLOTS', HttpStatus.CONFLICT);
+        }
 
         // Mengaktifkan kembali juga membuka arsip.
         const updated = await tx.cabang.update({
@@ -400,7 +404,7 @@ export class MasterCatalogService {
   /** Kelas terjadwal (belum selesai/dibatalkan) yang masih memakai studio/ruangan; menghalangi penonaktifan. */
   private async upcomingSlotCount(
     tx: Prisma.TransactionClient,
-    where: { studioId?: string; roomId?: string },
+    where: { studioId?: string; roomId?: string; branchId?: string; classTypeId?: string },
   ) {
     return tx.slotKelas.count({
       where: {
@@ -756,6 +760,10 @@ export class MasterCatalogService {
       async (tx) => {
         const current = await tx.jenisKelas.findUnique({ where: { id } });
         if (!current) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+        if (current.active) {
+          const upcoming = await this.upcomingSlotCount(tx, { classTypeId: id });
+          if (upcoming > 0) throw new ApiProblem('HAS_UPCOMING_SLOTS', HttpStatus.CONFLICT);
+        }
 
         const updated = await tx.jenisKelas.update({
           where: { id },
