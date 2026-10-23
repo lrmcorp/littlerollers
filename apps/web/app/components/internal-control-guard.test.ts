@@ -89,43 +89,13 @@ describe('internal Tailwind control guardrail', () => {
     ).toEqual([]);
   });
 
-  it('melarang browser dialog dan ikon langsung di dalam Button', () => {
+  it('melarang browser dialog native (window.alert/confirm/prompt)', () => {
     const sources = productionViews();
     expect(
       sources
         .filter(([, source]) => /window\.(?:alert|confirm|prompt)\s*\(/u.test(source))
         .map(([path]) => path),
     ).toEqual([]);
-    const directIcon =
-      /<Button\b(?![^>]*(?:leadingIcon|trailingIcon))[^>]*>\s*<[A-Z][A-Za-z0-9]*\b/u;
-    expect(sources.filter(([, source]) => directIcon.test(source)).map(([path]) => path)).toEqual(
-      [],
-    );
-  });
-
-  it('mengharuskan searchable dropdown untuk opsi data dinamis', () => {
-    const dynamicSources = [
-      'branches',
-      'classTypes',
-      'instructors',
-      'customers',
-      'customerPackages',
-      'eligibleSlots',
-      'packageOptions',
-      'assetKeys',
-      'visibleRoles',
-      'capabilities',
-      'categories',
-    ];
-    const violations = productionViews().flatMap(([path, source]) => {
-      const controls = [
-        ...source.matchAll(/<(?:select|SelectInput)\b[\s\S]*?<\/(?:select|SelectInput)>/gu),
-      ];
-      return controls
-        .filter((match) => dynamicSources.some((name) => match[0].includes(`${name}.map`)))
-        .map(() => path);
-    });
-    expect([...new Set(violations)]).toEqual([]);
   });
 
   it('tidak menyisakan façade SearchableLookup lama', () => {

@@ -167,7 +167,7 @@ export function PublicExperience({ children }: { children: ReactNode }) {
           type="button"
           aria-label="Hubungi Daily Dose melalui WhatsApp"
           onClick={() => (preferred ? openWhatsapp(preferred) : setChooserOpen(true))}
-          className={`public-whatsapp-fab fixed right-3 z-40 grid size-14 min-h-14 w-14 place-items-center rounded-full border border-white/30 bg-[#1f8f5f] p-0 text-white shadow-dd-float transition hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-dd-forest/25 motion-reduce:transform-none sm:right-6 ${
+          className={`public-whatsapp-fab fixed right-3 z-40 grid size-14 min-h-14 w-14 place-items-center rounded-full border border-white/30 bg-[#1f8f5f] p-0 text-white  transition hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ed-green/25 motion-reduce:transform-none sm:right-6 ${
             pathname === '/checkout'
               ? 'bottom-[calc(5.5rem+env(safe-area-inset-bottom))] sm:bottom-6'
               : 'bottom-[calc(4.75rem+env(safe-area-inset-bottom))] sm:bottom-6'
@@ -188,11 +188,11 @@ export function PublicExperience({ children }: { children: ReactNode }) {
         showCloseButton={!mandatory}
       >
         {state === 'loading' ? (
-          <p className="mt-5 animate-pulse rounded-dd-md bg-dd-surface-muted p-5 text-center">
+          <p className="mt-5 animate-pulse rounded-none bg-ed-tint p-5 text-center">
             Memuat studio…
           </p>
         ) : state === 'error' && !config ? (
-          <div className="mt-5 rounded-dd-md bg-dd-danger-soft p-4 text-dd-danger">
+          <div className="mt-5 rounded-none bg-dd-danger-soft p-4 text-dd-danger">
             <p>Studio belum dapat dimuat.</p>
             <Button variant="secondary" size="sm" className="mt-3" onClick={() => void load()}>
               Coba lagi
@@ -246,7 +246,7 @@ export function PublicExperience({ children }: { children: ReactNode }) {
         {state === 'error' && config && (
           <p
             role="alert"
-            className="mt-4 rounded-dd-md bg-dd-danger-soft p-3 text-sm text-dd-danger"
+            className="mt-4 rounded-none bg-dd-danger-soft p-3 text-sm text-dd-danger"
           >
             Pilihan belum tersimpan. Muat ulang lalu coba kembali.
           </p>

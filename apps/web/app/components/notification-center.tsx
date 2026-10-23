@@ -8,6 +8,7 @@ import {
   type NotificationClient,
   type UserNotification,
 } from '@/api-clients/notification-client';
+import { useSessionContext } from '../session-context';
 import { Button, IconButton } from './actions';
 
 const toneDot = {
@@ -37,7 +38,7 @@ export function NotificationCenter({
     },
     [controlledOpen, onOpenChange],
   );
-  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [status, setStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('loading');
   const [items, setItems] = useState<UserNotification[]>([]);
   const [unread, setUnread] = useState(0);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
@@ -45,8 +46,15 @@ export function NotificationCenter({
   const [actionError, setActionError] = useState('');
   const root = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
+  const stoppedByAuthError = useRef(false);
+
+  const context = useSessionContext();
+  const isAuthenticated = context
+    ? context.status === 'authenticated' && Boolean(context.session)
+    : true;
 
   const refresh = useCallback(async () => {
+    if (!isAuthenticated || stoppedByAuthError.current) return;
     setStatus('loading');
     try {
       const [page, count] = await Promise.all([client.list({ limit: 12 }), client.unreadCount()]);
@@ -54,16 +62,35 @@ export function NotificationCenter({
       setNextCursor(page.page.nextCursor);
       setUnread(count.count);
       setStatus('ready');
-    } catch {
+    } catch (err: unknown) {
+      const statusCode = (err as { response?: { status?: number } })?.response?.status;
+      if (statusCode === 401 || (err instanceof Error && err.message.includes('401'))) {
+        stoppedByAuthError.current = true;
+      }
       setStatus('error');
     }
-  }, [client]);
+  }, [client, isAuthenticated]);
 
   useEffect(() => {
+    if (!isAuthenticated) {
+      setStatus('idle');
+      setItems([]);
+      setUnread(0);
+      return;
+    }
+    stoppedByAuthError.current = false;
     void refresh();
-    const timer = window.setInterval(() => void refresh(), 60_000);
+    const timer = window.setInterval(() => {
+      if (stoppedByAuthError.current) {
+        window.clearInterval(timer);
+        return;
+      }
+      void refresh();
+    }, 60_000);
     const visible = () => {
-      if (document.visibilityState === 'visible') void refresh();
+      if (document.visibilityState === 'visible' && !stoppedByAuthError.current) {
+        void refresh();
+      }
     };
     window.addEventListener('focus', visible);
     document.addEventListener('visibilitychange', visible);
@@ -72,11 +99,11 @@ export function NotificationCenter({
       window.removeEventListener('focus', visible);
       document.removeEventListener('visibilitychange', visible);
     };
-  }, [refresh]);
+  }, [isAuthenticated, refresh]);
 
   useEffect(() => {
-    if (open) void refresh();
-  }, [open, refresh]);
+    if (open && isAuthenticated && !stoppedByAuthError.current) void refresh();
+  }, [isAuthenticated, open, refresh]);
 
   useEffect(() => {
     if (!open) return;
@@ -190,7 +217,7 @@ export function NotificationCenter({
                 </Button>
               </div>
             )}
-            {status === 'ready' && items.length === 0 && (
+            {(status === 'ready' || status === 'idle') && items.length === 0 && (
               <div className="p-8 text-center">
                 <Bell className="mx-auto size-6 text-dd-muted" />
                 <strong className="mt-3 block text-sm">Belum ada notifikasi</strong>

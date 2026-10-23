@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AppFeedbackProvider } from '../../components/app-feedback';
 import { reminderClient, type ReminderLogItem } from '../../api-clients/reminder-client';
+import { ADMIN_PAGE_SIZE } from '../../lib/pagination';
 import { RemindersView } from './reminders-view';
 
 let capabilities: string[] = [];
@@ -30,7 +31,7 @@ describe('RemindersView access and provider mode', () => {
       items: [],
       total: 0,
       page: 1,
-      limit: 20,
+      limit: ADMIN_PAGE_SIZE,
       totalPages: 1,
     });
     vi.spyOn(reminderClient, 'getSummary').mockResolvedValue({
@@ -110,7 +111,7 @@ describe('RemindersView pagination', () => {
   it('renders pagination and handles page navigation', async () => {
     const listSpy = vi.spyOn(reminderClient, 'listLogs').mockImplementation(async (params) => {
       const page = params?.page ?? 1;
-      const limit = params?.limit ?? 20;
+      const limit = params?.limit ?? ADMIN_PAGE_SIZE;
       const start = (page - 1) * limit;
       const items = Array.from({ length: 45 }, (_, i) => createMockItem(i + 1)).slice(
         start,
@@ -121,7 +122,7 @@ describe('RemindersView pagination', () => {
         total: 45,
         page,
         limit,
-        totalPages: 3,
+        totalPages: 5,
       };
     });
 
@@ -129,12 +130,12 @@ describe('RemindersView pagination', () => {
 
     // Verify first page renders items and pagination info
     await screen.findByText('081234567801');
-    expect(screen.getByText('081234567820')).toBeVisible();
-    expect(screen.queryByText('081234567821')).toBeNull();
+    expect(screen.getByText('081234567810')).toBeVisible();
+    expect(screen.queryByText('081234567811')).toBeNull();
 
     const paginationNav = screen.getByRole('navigation', { name: 'Paginasi data' });
     expect(paginationNav).toBeVisible();
-    expect(within(paginationNav).getByText(/Menampilkan 1–20 dari 45 data/)).toBeVisible();
+    expect(within(paginationNav).getByText(/Menampilkan 1–10 dari 45 data/)).toBeVisible();
 
     // Click next page button
     const nextBtn = within(paginationNav).getByRole('button', { name: /Berikutnya/ });
@@ -142,12 +143,12 @@ describe('RemindersView pagination', () => {
 
     await waitFor(() => {
       expect(listSpy).toHaveBeenCalledWith(
-        expect.objectContaining({ page: 2, limit: 20 }),
+        expect.objectContaining({ page: 2, limit: ADMIN_PAGE_SIZE }),
       );
     });
 
-    await screen.findByText('081234567821');
-    expect(within(paginationNav).getByText(/Menampilkan 21–40 dari 45 data/)).toBeVisible();
+    await screen.findByText('081234567811');
+    expect(within(paginationNav).getByText(/Menampilkan 11–20 dari 45 data/)).toBeVisible();
 
     // Reset to page 1 on search change
     const searchInput = screen.getByPlaceholderText('Cari nomor HP penerima...');

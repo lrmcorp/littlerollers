@@ -127,14 +127,18 @@ describe('CustomersView create form', () => {
     const saleBtns = screen.getAllByRole('button', { name: /Jual paket/i });
     expect(saleBtns.length).toBeGreaterThan(0);
 
-    const editBtns = screen.getAllByRole('button', { name: /Edit/i });
-    expect(editBtns.length).toBeGreaterThan(0);
-
-    const pwdBtns = screen.getAllByRole('button', { name: /Sandi/i });
-    expect(pwdBtns.length).toBeGreaterThan(0);
+    const menuBtns = screen.getAllByRole('button', { name: /Aksi pelanggan Amanda/i });
+    expect(menuBtns.length).toBeGreaterThan(0);
 
     const user = userEvent.setup();
-    await user.click(editBtns[0]!);
+    await user.click(menuBtns[0]!);
+
+    const editItem = screen.getByRole('menuitem', { name: /Edit profil/i });
+    const pwdItem = screen.getByRole('menuitem', { name: /Reset kata sandi/i });
+    expect(editItem).toBeInTheDocument();
+    expect(pwdItem).toBeInTheDocument();
+
+    await user.click(editItem);
     expect(await screen.findByText(/Edit Cepat: Amanda/i)).toBeInTheDocument();
   });
 });

@@ -4,7 +4,6 @@ import { Eye, FileCheck, Lock, ShieldCheck, UserCheck } from 'lucide-react';
 import { PublicFooter } from '../components/public/public-footer';
 import { PublicHeader } from '../components/public/public-header';
 import { PublicPageHero } from '../components/public/public-page';
-import { publicContainer } from '../components/public/public-styles';
 
 export const metadata: Metadata = {
   title: 'Kebijakan Privasi',
@@ -14,11 +13,11 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
   return (
-    <div className="min-w-0 overflow-x-clip bg-dd-cream font-sans text-dd-ink">
+    <div className="ed-scope min-w-0 overflow-x-clip bg-ed-cream text-ed-ink">
       <a className="skip-link" href="#privacy-main">
         Langsung ke isi kebijakan privasi
       </a>
-      <PublicHeader />
+      <PublicHeader variant="editorial" />
       <main id="privacy-main">
         <PublicPageHero
           eyebrow="Perlindungan Data Pribadi"
@@ -26,16 +25,16 @@ export default function PrivacyPage() {
           description="Komitmen Daily Dose Pilates dalam melindungi data pribadi, privasi akun, dan keamanan dokumen identitas Anda."
         />
 
-        <section className="py-12 sm:py-16">
-          <div className={publicContainer}>
-            <div className="mx-auto max-w-3xl space-y-10">
+        <section className="py-[clamp(64px,8vw,120px)]">
+          <div className="ed-wrap">
+            <div className="mx-auto max-w-3xl">
               {/* Seksi 1: Data yang Dikumpulkan */}
-              <article className="rounded-dd-xl border border-dd-line bg-white p-6 sm:p-8 shadow-dd-card space-y-4">
-                <div className="flex items-center gap-2.5 text-dd-forest font-bold text-sm uppercase tracking-wider">
+              <article className="space-y-4 border-t border-ed-line py-8">
+                <div className="flex items-center gap-3 text-xl font-medium tracking-[-0.03em] text-ed-ink [&>svg]:size-5 [&>svg]:text-ed-green">
                   <UserCheck className="size-4" />
                   <h2>1. Data Pribadi yang Kami Kumpulkan</h2>
                 </div>
-                <div className="space-y-3 text-sm leading-relaxed text-dd-muted">
+                <div className="space-y-3 text-[15px] leading-[1.7] text-ed-muted">
                   <p>
                     Saat Anda mendaftar atau berinteraksi dengan layanan kami, kami mengumpulkan informasi yang Anda berikan secara sukarela, meliputi:
                   </p>
@@ -49,12 +48,12 @@ export default function PrivacyPage() {
               </article>
 
               {/* Seksi 2: Penggunaan Data */}
-              <article className="rounded-dd-xl border border-dd-line bg-white p-6 sm:p-8 shadow-dd-card space-y-4">
-                <div className="flex items-center gap-2.5 text-dd-forest font-bold text-sm uppercase tracking-wider">
+              <article className="space-y-4 border-t border-ed-line py-8">
+                <div className="flex items-center gap-3 text-xl font-medium tracking-[-0.03em] text-ed-ink [&>svg]:size-5 [&>svg]:text-ed-green">
                   <Eye className="size-4" />
                   <h2>2. Bagaimana Kami Menggunakan Data Anda</h2>
                 </div>
-                <div className="space-y-3 text-sm leading-relaxed text-dd-muted">
+                <div className="space-y-3 text-[15px] leading-[1.7] text-ed-muted">
                   <p>
                     Informasi pribadi Anda digunakan untuk:
                   </p>
@@ -68,12 +67,12 @@ export default function PrivacyPage() {
               </article>
 
               {/* Seksi 3: Keamanan Dokumen Identitas (KTP & Selfie) */}
-              <article className="rounded-dd-xl border border-dd-line bg-white p-6 sm:p-8 shadow-dd-card space-y-4">
-                <div className="flex items-center gap-2.5 text-dd-forest font-bold text-sm uppercase tracking-wider">
+              <article className="space-y-4 border-t border-ed-line py-8">
+                <div className="flex items-center gap-3 text-xl font-medium tracking-[-0.03em] text-ed-ink [&>svg]:size-5 [&>svg]:text-ed-green">
                   <Lock className="size-4" />
                   <h2>3. Keamanan &amp; Penyimpanan Dokumen KTP</h2>
                 </div>
-                <div className="space-y-3 text-sm leading-relaxed text-dd-muted">
+                <div className="space-y-3 text-[15px] leading-[1.7] text-ed-muted">
                   <p>
                     Dokumen identitas (foto KTP dan foto selfie) disimpan pada media penyimpanan privat yang terenkripsi dan <strong>tidak pernah dipublikasikan atau dibagikan ke pihak ketiga</strong>.
                   </p>
@@ -84,12 +83,12 @@ export default function PrivacyPage() {
               </article>
 
               {/* Seksi 4: Hak Anda */}
-              <article className="rounded-dd-xl border border-dd-line bg-white p-6 sm:p-8 shadow-dd-card space-y-4">
-                <div className="flex items-center gap-2.5 text-dd-forest font-bold text-sm uppercase tracking-wider">
+              <article className="space-y-4 border-t border-ed-line py-8">
+                <div className="flex items-center gap-3 text-xl font-medium tracking-[-0.03em] text-ed-ink [&>svg]:size-5 [&>svg]:text-ed-green">
                   <FileCheck className="size-4" />
                   <h2>4. Hak Anda atas Data Pribadi</h2>
                 </div>
-                <div className="space-y-3 text-sm leading-relaxed text-dd-muted">
+                <div className="space-y-3 text-[15px] leading-[1.7] text-ed-muted">
                   <p>
                     Anda berhak untuk memperbarui data profil Anda, memeriksa riwayat penggunaan sesi, atau mengajukan permohonan pembaruan informasi dengan menghubungi admin studio.
                   </p>
@@ -100,18 +99,18 @@ export default function PrivacyPage() {
               </article>
 
               {/* Seksi 5: Hubungi Kami */}
-              <article className="rounded-dd-xl border border-dd-line bg-white p-6 sm:p-8 shadow-dd-card space-y-4">
-                <div className="flex items-center gap-2.5 text-dd-forest font-bold text-sm uppercase tracking-wider">
+              <article className="space-y-4 border-t border-ed-line py-8">
+                <div className="flex items-center gap-3 text-xl font-medium tracking-[-0.03em] text-ed-ink [&>svg]:size-5 [&>svg]:text-ed-green">
                   <ShieldCheck className="size-4" />
                   <h2>5. Kontak Perlindungan Privasi</h2>
                 </div>
-                <p className="text-sm leading-relaxed text-dd-muted">
+                <p className="text-sm leading-relaxed text-ed-muted">
                   Jika Anda memiliki pertanyaan seputar privasi data Anda di Daily Dose Pilates, silakan hubungi tim kami melalui WhatsApp atau formulir kontak resmi.
                 </p>
                 <div className="pt-2">
                   <Link
                     href="/contact"
-                    className="inline-flex items-center gap-2 rounded-dd-md bg-dd-forest px-4 py-2 text-sm font-semibold text-white no-underline transition hover:bg-dd-forest-dark"
+                    className="inline-flex items-center gap-2 rounded-none bg-ed-green px-4 py-2 text-sm font-semibold text-white no-underline transition hover:bg-ed-forest"
                   >
                     <span>Hubungi Kami</span>
                   </Link>
@@ -121,7 +120,7 @@ export default function PrivacyPage() {
           </div>
         </section>
       </main>
-      <PublicFooter />
+      <PublicFooter variant="editorial" />
     </div>
   );
 }

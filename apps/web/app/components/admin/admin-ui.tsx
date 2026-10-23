@@ -12,6 +12,7 @@ import {
   X,
 } from 'lucide-react';
 import { Button } from '../actions';
+import { EmptyState } from '../../ui';
 
 type Tone = 'neutral' | 'success' | 'warning' | 'danger' | 'info';
 
@@ -116,28 +117,8 @@ export function FilterChip({ children, onRemove }: { children: ReactNode; onRemo
   );
 }
 
-export function AdminEmptyState({
-  title,
-  description,
-  action,
-}: {
-  title: string;
-  description: string;
-  action?: ReactNode;
-}) {
-  return (
-    <div className="grid min-h-52 place-items-center rounded-dd-lg border border-dashed border-dd-line bg-dd-surface-muted p-8 text-center">
-      <div className="max-w-md">
-        <div className="mx-auto mb-4 grid size-12 place-items-center rounded-full bg-dd-brass-soft text-dd-brass">
-          <Inbox className="size-6" aria-hidden="true" />
-        </div>
-        <strong className="text-base text-dd-ink">{title}</strong>
-        <p className="mt-2 text-sm leading-6 text-dd-muted">{description}</p>
-        {action && <div className="mt-5">{action}</div>}
-      </div>
-    </div>
-  );
-}
+export const AdminEmptyState = EmptyState;
+export { EmptyState };
 
 export function Tooltip({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -625,3 +606,5 @@ export function AdminPageState({
     </div>
   );
 }
+
+export { TableActionMenu, type ActionMenuItem } from './table-action-menu';

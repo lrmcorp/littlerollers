@@ -3,7 +3,7 @@
 import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { Button, ButtonLink } from '../components/actions';
 import { SearchInput, SearchSelect, SelectInput, TextInput } from '../components/forms';
-import { DataTable, Pagination } from '../components/admin/admin-ui';
+import { DataTable, Pagination, TableActionMenu } from '../components/admin/admin-ui';
 import { Drawer, Modal, useOptionalAppFeedback } from '../components/app-feedback';
 import { Feedback, StatusBadge } from '../ui';
 import { AdminPageHeader } from '../components/admin/admin-page-header';
@@ -359,30 +359,27 @@ export function CustomersView() {
                   </Button>
                 )}
                 {canWrite && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    title="Edit cepat profil pelanggan"
-                    onClick={() => setSelectedForEdit(item)}
-                  >
-                    <Edit3 className="size-3.5 text-dd-muted" />
-                    <span className="hidden xl:inline">Edit</span>
-                  </Button>
-                )}
-                {canWrite && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    title="Reset kata sandi pelanggan"
-                    onClick={() => {
-                      setSelectedForPassword(item);
-                      setNewPassword('');
-                      setPasswordError('');
-                    }}
-                  >
-                    <KeyRound className="size-3.5 text-dd-muted" />
-                    <span className="hidden xl:inline">Sandi</span>
-                  </Button>
+                  <TableActionMenu
+                    ariaLabel={`Aksi pelanggan ${item.displayName}`}
+                    items={[
+                      {
+                        id: 'edit',
+                        label: 'Edit profil',
+                        icon: <Edit3 className="size-3.5 text-dd-muted" aria-hidden="true" />,
+                        onClick: () => setSelectedForEdit(item),
+                      },
+                      {
+                        id: 'password',
+                        label: 'Reset kata sandi',
+                        icon: <KeyRound className="size-3.5 text-dd-muted" aria-hidden="true" />,
+                        onClick: () => {
+                          setSelectedForPassword(item);
+                          setNewPassword('');
+                          setPasswordError('');
+                        },
+                      },
+                    ]}
+                  />
                 )}
               </div>
             ),
@@ -421,26 +418,27 @@ export function CustomersView() {
                 </Button>
               )}
               {canWrite && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setSelectedForEdit(item)}
-                >
-                  <Edit3 className="size-3.5" /> Edit
-                </Button>
-              )}
-              {canWrite && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setSelectedForPassword(item);
-                    setNewPassword('');
-                    setPasswordError('');
-                  }}
-                >
-                  <KeyRound className="size-3.5" /> Reset sandi
-                </Button>
+                <TableActionMenu
+                  ariaLabel={`Aksi pelanggan ${item.displayName}`}
+                  items={[
+                    {
+                      id: 'edit',
+                      label: 'Edit profil',
+                      icon: <Edit3 className="size-3.5" aria-hidden="true" />,
+                      onClick: () => setSelectedForEdit(item),
+                    },
+                    {
+                      id: 'password',
+                      label: 'Reset kata sandi',
+                      icon: <KeyRound className="size-3.5" aria-hidden="true" />,
+                      onClick: () => {
+                        setSelectedForPassword(item);
+                        setNewPassword('');
+                        setPasswordError('');
+                      },
+                    },
+                  ]}
+                />
               )}
             </div>
           </div>

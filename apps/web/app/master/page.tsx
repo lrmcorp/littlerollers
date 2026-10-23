@@ -7,16 +7,10 @@ import type { MasterTab } from './master-view';
 import { useTrackedRouter } from '../components/app-loading';
 import { useSessionContext } from '../session-context';
 
-const MASTER_TABS: MasterTab[] = [
+const VALID_MASTER_TABS: MasterTab[] = [
   'classTypes',
-  'venues',
-  'projection',
   'capacity',
   'fees',
-  'accounts',
-  'publicProfiles',
-  'branches',
-  'packages',
 ];
 
 export default function MasterPage() {
@@ -24,22 +18,44 @@ export default function MasterPage() {
   const router = useTrackedRouter();
   const session = useSessionContext();
   const setActiveBranchId = session?.setActiveBranchId;
-  const requestedTab = params.get('tab') as MasterTab | null;
+  const requestedTab = params.get('tab');
   const requestedBranch = params.get('branch');
-  const activeTab =
-    requestedTab && MASTER_TABS.includes(requestedTab) ? requestedTab : 'classTypes';
+
+  // Graceful redirect for legacy master tabs to their canonical domain pages
+  useEffect(() => {
+    if (!requestedTab) return;
+    if (requestedTab === 'branches') {
+      router.replace('/workspace/branches');
+    } else if (requestedTab === 'packages') {
+      router.replace('/workspace/packages');
+    } else if (requestedTab === 'vouchers') {
+      router.replace('/workspace/vouchers');
+    } else if (requestedTab === 'projection') {
+      router.replace('/master');
+    } else if (['venues', 'accounts', 'publicProfiles'].includes(requestedTab)) {
+      if (requestedBranch) {
+        router.replace(`/workspace/branches/${requestedBranch.toLowerCase()}`);
+      } else {
+        router.replace('/workspace/branches');
+      }
+    }
+  }, [requestedTab, requestedBranch, router]);
+
   useEffect(() => {
     if (requestedBranch) setActiveBranchId?.(requestedBranch);
   }, [requestedBranch, setActiveBranchId]);
+
+  const activeTab: MasterTab =
+    requestedTab && VALID_MASTER_TABS.includes(requestedTab as MasterTab)
+      ? (requestedTab as MasterTab)
+      : 'classTypes';
+
   const setActiveTab = (tab: MasterTab) => {
     const next = new URLSearchParams(params.toString());
     if (tab === 'classTypes') next.delete('tab');
     else next.set('tab', tab);
     router.replace(`/master${next.size ? `?${next}` : ''}`);
   };
-  return (
-    <>
-      <MasterView activeTab={activeTab} onTabChange={setActiveTab} />
-    </>
-  );
+
+  return <MasterView activeTab={activeTab} onTabChange={setActiveTab} />;
 }

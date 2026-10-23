@@ -1,6 +1,9 @@
 import type { ReactNode } from 'react';
-import { publicContainer } from './public-styles';
 
+/**
+ * Hero halaman publik (gaya "Editorial Calm"): pita hijau tua, eyebrow, judul display, paragraf.
+ * `compact` dipakai pelanggan yang membuka halaman ini di dalam shell aplikasi pelanggan.
+ */
 export function PublicPageHero({
   eyebrow,
   title,
@@ -18,40 +21,28 @@ export function PublicPageHero({
 }) {
   const compact = variant === 'compact';
   return (
-    <section
-      className={`relative isolate overflow-hidden border-b border-dd-line bg-dd-paper ${
-        compact ? 'py-3' : 'py-16 sm:py-20 lg:py-24'
-      }`}
-    >
-      <div className={`${publicContainer} relative z-10`}>
-        <p className="text-xs font-bold tracking-[0.14em] text-dd-forest uppercase">{eyebrow}</p>
+    <section className="ed-scope bg-ed-forest text-ed-cream">
+      <div className={`ed-wrap ${compact ? 'py-6 sm:py-8' : 'py-[clamp(64px,9vw,120px)]'}`}>
+        <p className="ed-eyebrow text-ed-mint">{eyebrow}</p>
         <h1
-          className={`font-sans font-semibold tracking-[-0.035em] ${
+          className={`ed-display text-balance ${
             compact
-              ? 'mt-1 max-w-5xl text-[clamp(2.15rem,3.2vw,2.8rem)] leading-[1.02]'
-              : 'mt-3 max-w-4xl text-[clamp(3rem,7vw,5.5rem)] leading-[0.93]'
+              ? 'mt-2 max-w-[900px] text-[clamp(30px,3.4vw,46px)]'
+              : 'mt-6 max-w-[1000px] text-[clamp(44px,6.4vw,96px)]'
           }`}
           id={titleId}
         >
           {title}
         </h1>
         <p
-          className={`text-base text-dd-muted sm:text-lg ${
-            compact ? 'mt-2 max-w-4xl leading-6 sm:leading-7' : 'mt-5 max-w-2xl leading-7'
+          className={`m-0 max-w-[600px] text-ed-mint ${
+            compact ? 'mt-3 text-base leading-[1.55]' : 'mt-8 text-[17px] leading-[1.7]'
           }`}
         >
           {description}
         </p>
-        {children && <div className={compact ? 'mt-3' : 'mt-7'}>{children}</div>}
+        {children && <div className={compact ? 'mt-3' : 'mt-8'}>{children}</div>}
       </div>
-      <span
-        className="absolute -top-20 right-[-8rem] -z-10 size-[28rem] rounded-full border border-dd-forest/10"
-        aria-hidden="true"
-      />
-      <span
-        className="absolute top-14 right-[-2rem] -z-10 size-56 rounded-full border border-dd-brass/20"
-        aria-hidden="true"
-      />
     </section>
   );
 }
@@ -70,16 +61,20 @@ export function PublicSectionHeading({
   aside?: ReactNode;
 }) {
   return (
-    <header className="mb-8 flex flex-col justify-between gap-5 md:flex-row md:items-end">
+    <header className="ed-scope mb-10 flex flex-col justify-between gap-6 md:flex-row md:items-end">
       <div className="max-w-3xl">
-        <p className="text-xs font-bold tracking-[0.14em] text-dd-forest uppercase">{eyebrow}</p>
+        <p className="ed-eyebrow text-ed-green">{eyebrow}</p>
         <h2
-          className="mt-2 font-sans text-[clamp(2.25rem,5vw,3.75rem)] leading-none font-semibold"
+          className="ed-display mt-5 text-[clamp(36px,4.6vw,64px)] text-balance text-ed-ink"
           id={titleId}
         >
           {title}
         </h2>
-        {description && <p className="mt-4 max-w-2xl leading-7 text-dd-muted">{description}</p>}
+        {description && (
+          <p className="m-0 mt-5 max-w-[560px] text-[17px] leading-[1.7] text-ed-muted">
+            {description}
+          </p>
+        )}
       </div>
       {aside && <div className="shrink-0">{aside}</div>}
     </header>
@@ -99,14 +94,16 @@ export function PublicStatePanel({
 }) {
   return (
     <div
-      className={`rounded-dd-lg border p-8 text-center shadow-dd-card ${
+      className={`border-y p-8 text-center ${
         tone === 'error'
-          ? 'border-dd-danger/30 bg-dd-danger-soft text-dd-danger'
-          : 'border-dd-line bg-white text-dd-muted'
+          ? 'border-dd-danger/40 bg-dd-danger-soft text-dd-danger'
+          : 'border-ed-line bg-ed-tint text-ed-muted'
       }`}
       role={role}
     >
-      {title && <h3 className="font-sans text-2xl font-semibold text-dd-ink">{title}</h3>}
+      {title && (
+        <h3 className="m-0 text-2xl font-medium tracking-[-0.04em] text-ed-ink">{title}</h3>
+      )}
       <div className={title ? 'mt-2' : ''}>{children}</div>
     </div>
   );

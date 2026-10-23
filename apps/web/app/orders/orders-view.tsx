@@ -18,6 +18,7 @@ import { useTrackedRouter } from '../components/app-loading';
 import { DateInput, SearchInput, SelectInput } from '../components/forms';
 import { EmptyState, Feedback, PageHeader, Skeleton, StatusBadge } from '../ui';
 import { Pagination } from '../components/admin/admin-ui';
+import { ADMIN_PAGE_SIZE } from '../lib/pagination';
 import { formatRupiah } from '../lib/formatters';
 
 const emptySummary: CustomerOrderSummary = {
@@ -92,7 +93,7 @@ export function OrdersView() {
     setLoading(true);
     setError('');
     browserOrderClient
-      .list({ status, q, from, until, cursor, limit: 20 })
+      .list({ status, q, from, until, cursor, limit: ADMIN_PAGE_SIZE })
       .then(setData)
       .catch((cause) => setError(orderError(cause)))
       .finally(() => setLoading(false));
@@ -262,9 +263,9 @@ export function OrdersView() {
           </div>
           <Pagination
             currentPage={cursorHistory.length + 1}
-            totalPages={Math.ceil(effectiveTotal / 20) || 1}
+            totalPages={Math.ceil(effectiveTotal / ADMIN_PAGE_SIZE) || 1}
             totalItems={effectiveTotal}
-            pageSize={20}
+            pageSize={ADMIN_PAGE_SIZE}
             hasPrevious={cursorHistory.length > 0}
             hasNext={Boolean(data.page.hasMore && data.page.nextCursor)}
             totalLabel={`${data.items.length.toLocaleString('id-ID')} dari ${effectiveTotal.toLocaleString('id-ID')} pesanan`}

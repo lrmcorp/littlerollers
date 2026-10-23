@@ -58,6 +58,7 @@ describe('SupportCasesView', () => {
     expect(screen.queryByLabelText(/Customer ID/i)).not.toBeInTheDocument();
 
     const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: '+ Buat kasus bantuan' }));
     await user.click(screen.getByRole('combobox', { name: /Pelanggan/ }));
     await user.click(await screen.findByRole('option', { name: /Budi Santoso/ }));
     await user.type(screen.getByLabelText(/Subjek Case/), 'Lupa membawa QR');
@@ -81,6 +82,9 @@ describe('SupportCasesView', () => {
     expect(list.getByText('Tinggi')).toBeVisible();
     expect(list.getByText('Diproses')).toBeVisible();
     expect(screen.queryByText('IN_PROGRESS')).not.toBeInTheDocument();
+    // Buka drawer formulir buat kasus untuk memverifikasi opsi bahasa Indonesia di form dan filter
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: '+ Buat kasus bantuan' }));
     // Satu di formulir buat kasus, satu di filter prioritas.
     expect(screen.getAllByRole('option', { name: 'Mendesak' })).toHaveLength(2);
   });

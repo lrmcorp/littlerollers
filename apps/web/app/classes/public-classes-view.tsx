@@ -18,12 +18,7 @@ import {
 import { PublicFooter } from '../components/public/public-footer';
 import { PublicHeader } from '../components/public/public-header';
 import { PublicPageHero, PublicSectionHeading } from '../components/public/public-page';
-import {
-  publicContainer,
-  publicField,
-  publicPrimaryButton,
-  publicSecondaryButton,
-} from '../components/public/public-styles';
+import { publicField, publicPrimaryButton, publicSecondaryButton } from '../components/public/public-styles';
 import { useSessionContext } from '../session-context';
 import { SearchSelect } from '../components/forms';
 import { isCustomerOnlySession } from '@/lib/session-audience';
@@ -338,11 +333,11 @@ export function PublicClassesView({
   };
 
   return (
-    <div className="min-w-0 overflow-x-clip bg-dd-cream font-sans text-dd-ink">
+    <div className="ed-scope min-w-0 overflow-x-clip bg-ed-cream text-ed-ink">
       <a className="skip-link" href="#catalog-main">
         Langsung ke jadwal
       </a>
-      {!inCustomerShell && <PublicHeader />}
+      {!inCustomerShell && <PublicHeader variant="editorial" />}
 
       <main id="catalog-main">
         <PublicPageHero
@@ -356,7 +351,7 @@ export function PublicClassesView({
           id="schedule"
           aria-labelledby="catalog-filter-title"
         >
-          <div className={publicContainer}>
+          <div className="ed-wrap">
             <PublicSectionHeading
               eyebrow="01 — Pilih jadwal"
               title="Kelas dua minggu ke depan"
@@ -364,12 +359,12 @@ export function PublicClassesView({
               description="Temukan kelas berdasarkan studio, tanggal, dan tipe latihan."
               aside={
                 inCustomerShell ? undefined : branch ? (
-                  <p className="rounded-dd-md border border-dd-line bg-white px-4 py-3 text-sm shadow-sm">
+                  <p className="rounded-none border border-ed-line bg-white px-4 py-3 text-sm ">
                     <strong className="block">{branch.name}</strong>
-                    <span className="text-dd-muted">{timezoneLabel(branch.timezone)}</span>
+                    <span className="text-ed-muted">{timezoneLabel(branch.timezone)}</span>
                   </p>
                 ) : (
-                  <p className="text-sm text-dd-muted">Pilih studio untuk melihat jadwal kelas.</p>
+                  <p className="text-sm text-ed-muted">Pilih studio untuk melihat jadwal kelas.</p>
                 )
               }
             />
@@ -377,7 +372,7 @@ export function PublicClassesView({
             {isCustomer &&
               session?.identityVerificationStatus &&
               session.identityVerificationStatus !== 'APPROVED' && (
-                <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-dd-lg border border-dd-warning/30 bg-dd-warning-soft p-4 text-xs sm:text-sm text-dd-warning">
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-none border border-dd-warning/30 bg-dd-warning-soft p-4 text-xs sm:text-sm text-dd-warning">
                   <div className="flex items-center gap-2.5">
                     <AlertCircle className="size-4 text-dd-warning shrink-0" />
                     <span>
@@ -387,7 +382,7 @@ export function PublicClassesView({
                   </div>
                   <Link
                     href="/account/verification"
-                    className="font-semibold text-dd-warning underline shrink-0 hover:text-dd-ink"
+                    className="font-semibold text-dd-warning underline shrink-0 hover:text-ed-ink"
                   >
                     Cek Status Verifikasi →
                   </Link>
@@ -395,20 +390,20 @@ export function PublicClassesView({
               )}
 
             {isCustomer && customerPackages.length > 0 && (
-              <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-dd-xl border border-dd-success/30 bg-dd-success-soft/70 p-4 text-xs sm:text-sm shadow-xs">
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-none border border-dd-success/30 bg-dd-success-soft/70 p-4 text-xs sm:text-sm ">
                 <div className="flex items-center gap-2.5">
-                  <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-dd-success/20 text-dd-forest">
+                  <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-dd-success/20 text-ed-green">
                     <Ticket className="size-3.5" aria-hidden="true" />
                   </div>
                   <div>
-                    <span className="font-semibold text-dd-forest">Paket Aktif: </span>
-                    <strong className="text-dd-ink">{customerPackages[0]!.packageName}</strong>
-                    <span className="text-dd-muted"> · {customerPackages[0]!.branchName}</span>
-                    <span className="text-dd-muted"> · Sisa </span>
+                    <span className="font-semibold text-ed-green">Paket Aktif: </span>
+                    <strong className="text-ed-ink">{customerPackages[0]!.packageName}</strong>
+                    <span className="text-ed-muted"> · {customerPackages[0]!.branchName}</span>
+                    <span className="text-ed-muted"> · Sisa </span>
                     <strong className="text-dd-success font-semibold">
                       {customerPackages[0]!.available} sesi
                     </strong>
-                    <span className="text-dd-muted">
+                    <span className="text-ed-muted">
                       {' '}
                       (Berlaku s/d{' '}
                       {new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium' }).format(
@@ -430,12 +425,12 @@ export function PublicClassesView({
                           handleSelectBranch(targetBranchId);
                         }
                       }}
-                      className="font-semibold text-dd-forest underline hover:text-dd-forest-dark cursor-pointer"
+                      className="font-semibold text-ed-green underline hover:text-ed-forest cursor-pointer"
                     >
                       Buka jadwal di {customerPackages[0]!.branchName} →
                     </button>
                   )}
-                  <label className="inline-flex items-center gap-2 font-medium text-dd-forest cursor-pointer select-none">
+                  <label className="inline-flex items-center gap-2 font-medium text-ed-green cursor-pointer select-none">
                     <input
                       type="checkbox"
                       checked={onlyEligible}
@@ -450,13 +445,13 @@ export function PublicClassesView({
                           }
                         }
                       }}
-                      className="size-4 accent-dd-forest rounded"
+                      className="size-4 accent-ed-green rounded"
                     />
                     <span>Hanya kelas sesuai paket saya</span>
                   </label>
                   <Link
                     href="/account/packages"
-                    className="font-semibold text-dd-forest hover:underline"
+                    className="font-semibold text-ed-green hover:underline"
                   >
                     Kelola paket →
                   </Link>
@@ -466,18 +461,18 @@ export function PublicClassesView({
 
             {/* Studio Quick Buttons (UAT #23) */}
             {branches.length > 0 && (
-              <div className="mb-6 rounded-dd-xl border border-dd-line bg-white p-4 shadow-sm sm:p-5">
+              <div className="mb-6 rounded-none border border-ed-line bg-white p-4 sm:p-5">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <span className="text-xs font-bold uppercase tracking-wider text-dd-brass">
+                    <span className="text-xs font-bold uppercase tracking-wider text-ed-green">
                       Pilih Lokasi Studio
                     </span>
-                    <h3 className="font-sans text-base font-bold text-dd-ink sm:text-lg">
+                    <h3 className="font-sans text-base font-bold text-ed-ink sm:text-lg">
                       Mau latihan di studio mana?
                     </h3>
                   </div>
                   {branch && (
-                    <span className="inline-flex items-center gap-1.5 self-start rounded-full bg-dd-forest/10 px-3 py-1 text-xs font-semibold text-dd-forest sm:self-auto">
+                    <span className="inline-flex items-center gap-1.5 self-start rounded-full bg-ed-green/10 px-3 py-1 text-xs font-semibold text-ed-green sm:self-auto">
                       <MapPin className="size-3.5" /> Studio Aktif: {branch.name}
                     </span>
                   )}
@@ -494,17 +489,17 @@ export function PublicClassesView({
                         type="button"
                         key={b.id}
                         onClick={() => handleSelectBranch(b.id)}
-                        className={`min-h-[44px] rounded-dd-lg px-4 py-2 text-sm font-bold transition-all cursor-pointer flex items-center gap-2 border ${
+                        className={`min-h-[44px] rounded-none px-4 py-2 text-sm font-bold transition-all cursor-pointer flex items-center gap-2 border ${
                           isSelected
-                            ? 'border-dd-forest bg-dd-forest text-white shadow-sm ring-2 ring-dd-forest/20'
-                            : 'border-dd-line bg-dd-paper text-dd-ink hover:border-dd-forest/50 hover:bg-white'
+                            ? 'border-ed-green bg-ed-green text-white  ring-2 ring-ed-green/20'
+                            : 'border-ed-line bg-ed-cream text-ed-ink hover:border-ed-green/50 hover:bg-white'
                         }`}
                       >
-                        <MapPin className={`size-4 ${isSelected ? 'text-white' : 'text-dd-forest'}`} />
+                        <MapPin className={`size-4 ${isSelected ? 'text-white' : 'text-ed-green'}`} />
                         <span>{b.name}</span>
                         <span
                           className={`text-xs px-1.5 py-0.5 rounded font-mono ${
-                            isSelected ? 'bg-white/20 text-white' : 'bg-dd-line/50 text-dd-muted'
+                            isSelected ? 'bg-white/20 text-white' : 'bg-ed-line/50 text-ed-muted'
                           }`}
                         >
                           {b.code}
@@ -518,13 +513,13 @@ export function PublicClassesView({
 
             {/* 14 Days Calendar Strip (UAT #23) */}
             {branchId && status !== 'loading' && calendarDays.length > 0 && (
-              <div className="mb-6 rounded-dd-xl border border-dd-line bg-white p-4 shadow-sm sm:p-5">
+              <div className="mb-6 rounded-none border border-ed-line bg-white p-4 sm:p-5">
                 <div className="mb-3 flex items-center justify-between">
                   <div>
-                    <span className="text-xs font-bold uppercase tracking-wider text-dd-brass">
+                    <span className="text-xs font-bold uppercase tracking-wider text-ed-green">
                       Jadwal 14 Hari ke Depan
                     </span>
-                    <h4 className="font-sans text-sm font-bold text-dd-ink sm:text-base">
+                    <h4 className="font-sans text-sm font-bold text-ed-ink sm:text-base">
                       Pilih tanggal untuk melihat sesi
                     </h4>
                   </div>
@@ -535,7 +530,7 @@ export function PublicClassesView({
                         setDay('');
                         updateQuery({ date: '' });
                       }}
-                      className="text-xs font-semibold text-dd-forest underline hover:text-dd-forest-dark cursor-pointer"
+                      className="text-xs font-semibold text-ed-green underline hover:text-ed-forest cursor-pointer"
                     >
                       Lihat Semua Tanggal
                     </button>
@@ -550,9 +545,9 @@ export function PublicClassesView({
                     type="button"
                     className={`${
                       !day
-                        ? 'border-dd-forest bg-dd-forest text-white shadow-sm ring-2 ring-dd-forest/20'
-                        : 'border-dd-line bg-dd-paper text-dd-ink hover:border-dd-forest/50 hover:bg-white'
-                    } min-h-[50px] shrink-0 rounded-dd-lg border px-4 py-2 text-center text-sm font-semibold transition-all cursor-pointer flex flex-col items-center justify-center`}
+                        ? 'border-ed-green bg-ed-green text-white  ring-2 ring-ed-green/20'
+                        : 'border-ed-line bg-ed-cream text-ed-ink hover:border-ed-green/50 hover:bg-white'
+                    } min-h-[50px] shrink-0 rounded-none border px-4 py-2 text-center text-sm font-semibold transition-all cursor-pointer flex flex-col items-center justify-center`}
                     onClick={() => {
                       setDay('');
                       updateQuery({ date: '' });
@@ -569,9 +564,9 @@ export function PublicClassesView({
                         key={item.key}
                         className={`${
                           isSelected
-                            ? 'border-dd-forest bg-dd-forest text-white shadow-sm ring-2 ring-dd-forest/20'
-                            : 'border-dd-line bg-dd-paper text-dd-ink hover:border-dd-forest/50 hover:bg-white'
-                        } min-h-[50px] min-w-[76px] shrink-0 rounded-dd-lg border px-3 py-1.5 text-center transition-all cursor-pointer flex flex-col items-center justify-center`}
+                            ? 'border-ed-green bg-ed-green text-white  ring-2 ring-ed-green/20'
+                            : 'border-ed-line bg-ed-cream text-ed-ink hover:border-ed-green/50 hover:bg-white'
+                        } min-h-[50px] min-w-[76px] shrink-0 rounded-none border px-3 py-1.5 text-center transition-all cursor-pointer flex flex-col items-center justify-center`}
                         onClick={() => {
                           setDay(item.key);
                           updateQuery({ date: item.key });
@@ -580,7 +575,7 @@ export function PublicClassesView({
                       >
                         <span
                           className={`text-[11px] font-medium uppercase ${
-                            isSelected ? 'text-white/80' : 'text-dd-muted'
+                            isSelected ? 'text-white/80' : 'text-ed-muted'
                           }`}
                         >
                           {item.weekday}
@@ -591,8 +586,8 @@ export function PublicClassesView({
                             isSelected
                               ? 'bg-white/20 text-white'
                               : item.count > 0
-                                ? 'bg-dd-forest/10 text-dd-forest'
-                                : 'text-dd-muted/60'
+                                ? 'bg-ed-green/10 text-ed-green'
+                                : 'text-ed-muted/60'
                           }`}
                         >
                           {item.count > 0 ? `${item.count} sesi` : '0 sesi'}
@@ -604,7 +599,7 @@ export function PublicClassesView({
               </div>
             )}
 
-            <div className="grid gap-4 rounded-dd-lg border border-dd-line bg-white p-4 shadow-dd-card md:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_auto] lg:items-end">
+            <div className="grid gap-4 rounded-none border border-ed-line bg-white p-4 md:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_auto] lg:items-end">
               <SearchSelect
                 label="Pilih Lokasi Studio"
                 value={branchId}
@@ -659,14 +654,14 @@ export function PublicClassesView({
 
             {status === 'loading' ? (
               <div
-                className="mt-8 rounded-dd-lg border border-dd-line bg-white p-10 text-center shadow-dd-card"
+                className="mt-8 rounded-none border border-ed-line bg-white p-10 text-center "
                 role="status"
               >
                 Memuat jadwal kelas…
               </div>
             ) : status === 'error' ? (
               <div
-                className="mt-8 rounded-dd-lg border border-dd-danger/30 bg-dd-danger-soft p-10 text-center"
+                className="mt-8 rounded-none border border-dd-danger/30 bg-dd-danger-soft p-10 text-center"
                 role="alert"
               >
                 <strong className="font-sans text-2xl">Jadwal belum tersedia</strong>
@@ -680,16 +675,16 @@ export function PublicClassesView({
                 </button>
               </div>
             ) : !branchId ? (
-              <div className="mt-8 rounded-dd-lg border border-dd-line bg-white p-10 text-center shadow-dd-card">
+              <div className="mt-8 rounded-none border border-ed-line bg-white p-10 text-center ">
                 <strong className="font-sans text-2xl">Pilih studio untuk melihat kelas</strong>
-                <p className="mt-2 text-dd-muted">
+                <p className="mt-2 text-ed-muted">
                   Silakan pilih studio terlebih dahulu untuk menampilkan jadwal kelas yang tersedia.
                 </p>
               </div>
             ) : visible.length === 0 ? (
-              <div className="mt-8 rounded-dd-lg border border-dd-line bg-white p-10 text-center shadow-dd-card">
+              <div className="mt-8 rounded-none border border-ed-line bg-white p-10 text-center ">
                 <strong className="font-sans text-2xl">Belum ada kelas pada filter ini</strong>
-                <p className="mt-2 text-dd-muted">
+                <p className="mt-2 text-ed-muted">
                   Ubah tanggal atau tipe kelas untuk melihat pilihan lain.
                 </p>
                 <div className="mt-4 flex flex-wrap justify-center gap-3">
@@ -719,17 +714,17 @@ export function PublicClassesView({
               <div className="mt-8 grid gap-6" aria-live="polite">
                 {Object.entries(grouped).map(([date, items]) => (
                   <section
-                    className="overflow-hidden rounded-dd-lg border border-dd-line bg-white shadow-dd-card"
+                    className="overflow-hidden rounded-none border border-ed-line bg-white "
                     aria-labelledby={`day-${date}`}
                     key={date}
                   >
-                    <header className="border-b border-dd-line bg-dd-paper px-5 py-4">
-                      <span className="text-xs font-bold tracking-wider text-dd-brass">{date}</span>
+                    <header className="border-b border-ed-line bg-ed-cream px-5 py-4">
+                      <span className="text-xs font-bold tracking-wider text-ed-green">{date}</span>
                       <h3 className="mt-1 font-sans text-2xl font-semibold" id={`day-${date}`}>
                         {dateLabel(items[0]!.startAt, items[0]!.timezone)}
                       </h3>
                     </header>
-                    <div className="divide-y divide-dd-line">
+                    <div className="divide-y divide-ed-line">
                       {items.map((slot) => (
                         <article
                           className="grid gap-4 p-5 sm:grid-cols-[100px_minmax(0,1fr)_120px_auto] sm:items-center"
@@ -739,32 +734,32 @@ export function PublicClassesView({
                             <strong className="block text-lg">
                               {timeLabel(slot.startAt, slot.timezone)}
                             </strong>
-                            <span className="text-sm text-dd-muted">
+                            <span className="text-sm text-ed-muted">
                               sampai {timeLabel(slot.endAt, slot.timezone)} ·{' '}
                               {durationLabel(slot.startAt, slot.endAt)}
                             </span>
                           </div>
                           <div>
-                            <span className="text-xs font-bold text-dd-forest">
+                            <span className="text-xs font-bold text-ed-green">
                               {slot.classType.code}
                             </span>
                             <h4 className="mt-1 font-sans text-xl font-semibold">
                               {slot.classType.name}
                             </h4>
-                            <p className="mt-1 text-sm text-dd-muted">
+                            <p className="mt-1 text-sm text-ed-muted">
                               {slot.status === 'CONFIRMED'
                                 ? 'Kelas dikonfirmasi'
                                 : 'Terbuka untuk booking'}
                             </p>
                             {slot.instructor?.displayName && (
-                              <p className="mt-1 text-xs font-semibold text-dd-muted">
+                              <p className="mt-1 text-xs font-semibold text-ed-muted">
                                 Instruktur · {slot.instructor.displayName}
                               </p>
                             )}
                             <div className="mt-2 flex flex-wrap gap-3 text-xs font-bold">
                               <Link
                                 href={`/schedule/${slot.id}`}
-                                className="text-dd-forest underline-offset-4 hover:underline"
+                                className="text-ed-green underline-offset-4 hover:underline"
                               >
                                 Detail jadwal
                               </Link>
@@ -778,14 +773,14 @@ export function PublicClassesView({
                                         ? 'semi-private'
                                         : 'private-group'
                                 }`}
-                                className="text-dd-forest underline-offset-4 hover:underline"
+                                className="text-ed-green underline-offset-4 hover:underline"
                               >
                                 Detail kelas
                               </Link>
                             </div>
                           </div>
                           <div>
-                            <span className="block text-xs text-dd-muted">Ketersediaan</span>
+                            <span className="block text-xs text-ed-muted">Ketersediaan</span>
                             <strong className="mt-1 block">
                               {slot.available > 0 ? `Sisa ${slot.available} tempat` : 'Kelas penuh'}
                             </strong>
@@ -808,7 +803,7 @@ export function PublicClassesView({
                             className={`${
                               isActionable(slot)
                                 ? isCustomer && !findMatchingPackage(slot)
-                                ? `${publicSecondaryButton} border-dd-forest text-dd-forest hover:bg-dd-success-soft`
+                                ? `${publicSecondaryButton} border-ed-green text-ed-green hover:bg-dd-success-soft`
                                 : publicPrimaryButton
                                 : `${publicSecondaryButton} pointer-events-none opacity-50`
                             } w-full sm:w-auto`}
@@ -849,7 +844,7 @@ export function PublicClassesView({
           </div>
         </section>
       </main>
-      {!inCustomerShell && <PublicFooter />}
+      {!inCustomerShell && <PublicFooter variant="editorial" />}
     </div>
   );
 }

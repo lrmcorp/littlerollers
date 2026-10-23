@@ -199,9 +199,11 @@ export function CreatePanel({
         placeholder="Tetapkan nanti"
         options={branchInstructors.map((item) => ({ id: item.id, label: item.displayName }))}
       />
-      <DateInput label="Tanggal" name="date" required />
-      <TextInput label="Mulai" name="startTime" type="time" required />
-      <TextInput label="Selesai eksklusif" name="endTime" type="time" required />
+      <div className="grid gap-3 sm:grid-cols-3">
+        <DateInput label="Tanggal" name="date" required />
+        <TextInput label="Mulai" name="startTime" type="time" required />
+        <TextInput label="Selesai eksklusif" name="endTime" type="time" required />
+      </div>
       <TextInput
         label="Modal / Honor Instruktur per Sesi (Rp) - Opsional"
         name="instructorFeeRp"

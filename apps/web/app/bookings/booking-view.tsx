@@ -27,9 +27,10 @@ import {
   Pagination,
   Panel,
   StatCard,
+  TableActionMenu,
   Tabs,
 } from '../components/admin/admin-ui';
-import { pageOffset } from '../lib/pagination';
+import { ADMIN_PAGE_SIZE, pageOffset } from '../lib/pagination';
 import { timezoneLabel } from '../classes/class-slot-presenters';
 
 const newIntentKey = () => crypto.randomUUID();
@@ -292,6 +293,7 @@ export function BookingView({
           from: from ? new Date(`${from}T00:00:00`).toISOString() : undefined,
           until: until ? new Date(`${until}T23:59:59.999`).toISOString() : undefined,
           page,
+          limit: ADMIN_PAGE_SIZE,
           cursor: cursor || undefined,
           classSlotId: activeTab === 'attendance' ? rosterSlotId || undefined : undefined,
         }),
@@ -1237,85 +1239,89 @@ export function BookingView({
               {
                 id: 'action',
                 header: <span className="sr-only">Tindakan</span>,
-                cell: (booking) => (
-                  <div className="flex flex-wrap justify-end gap-2">
-                    <Link
-                      className="inline-flex min-h-10 items-center rounded-dd-md border border-dd-line px-3 text-sm font-bold text-dd-forest no-underline hover:bg-dd-surface-muted"
-                      href={`/workspace/bookings/${booking.id}?returnTo=${encodeURIComponent('/workspace/bookings')}`}
-                    >
-                      Lihat detail
-                    </Link>
-                    {booking.status === 'BOOKED' && canManageAttendance && branchId && (
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        disabled={busy}
-                        onClick={() => void issueCheckIn(booking)}
+                cell: (booking) => {
+                  const issue = checkInIssues[booking.id];
+                  const menuItems = [
+                    ...(booking.status === 'BOOKED' && canCancelBookings && client.cancelAsStaff
+                      ? [
+                          {
+                            id: 'cancel',
+                            label: 'Batalkan booking',
+                            tone: 'danger' as const,
+                            onClick: () => {
+                              setCancelError('');
+                              setCancelTarget(booking);
+                            },
+                          },
+                        ]
+                      : []),
+                    ...(activeTab === 'attendance' &&
+                    booking.checkInToken?.status === 'ACTIVE' &&
+                    canManageAttendance &&
+                    branchId
+                      ? [
+                          {
+                            id: 'revoke',
+                            label: 'Cabut QR',
+                            tone: 'warning' as const,
+                            onClick: () => void revokeCheckIn(booking),
+                          },
+                        ]
+                      : []),
+                    ...(issue?.whatsappUrl
+                      ? [
+                          {
+                            id: 'whatsapp',
+                            label: 'Buka WhatsApp',
+                            href: issue.whatsappUrl,
+                          },
+                        ]
+                      : []),
+                    ...(issue?.passUrl
+                      ? [
+                          {
+                            id: 'pass',
+                            label: 'Buka pass',
+                            href: issue.passUrl,
+                          },
+                          {
+                            id: 'copy-link',
+                            label: 'Salin link pass',
+                            onClick: () => void navigator.clipboard.writeText(issue.passUrl ?? ''),
+                          },
+                        ]
+                      : []),
+                  ];
+
+                  return (
+                    <div className="flex items-center justify-end gap-1.5">
+                      <Link
+                        className="inline-flex min-h-9 items-center rounded-dd-md border border-dd-line px-3 text-xs font-semibold text-dd-forest no-underline hover:bg-dd-surface-muted"
+                        href={`/workspace/bookings/${booking.id}?returnTo=${encodeURIComponent('/workspace/bookings')}`}
                       >
-                        Buat/Kirim QR
-                      </Button>
-                    )}
-                    {booking.status === 'BOOKED' && canCancelBookings && client.cancelAsStaff && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        disabled={busy}
-                        onClick={() => {
-                          setCancelError('');
-                          setCancelTarget(booking);
-                        }}
-                      >
-                        Batalkan
-                      </Button>
-                    )}
-                    {activeTab === 'attendance' &&
-                      booking.checkInToken?.status === 'ACTIVE' &&
-                      canManageAttendance &&
-                      branchId && (
+                        Lihat detail
+                      </Link>
+                      {booking.status === 'BOOKED' && canManageAttendance && branchId && (
                         <Button
                           type="button"
-                          variant="ghost"
+                          variant="secondary"
+                          size="sm"
                           disabled={busy}
-                          onClick={() => void revokeCheckIn(booking)}
+                          onClick={() => void issueCheckIn(booking)}
                         >
-                          Cabut QR
+                          Buat/Kirim QR
                         </Button>
                       )}
-                    {checkInIssues[booking.id]?.whatsappUrl && (
-                      <a
-                        className={actionClasses({ variant: 'secondary', size: 'sm' })}
-                        href={checkInIssues[booking.id]?.whatsappUrl ?? '#'}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        Buka WhatsApp
-                      </a>
-                    )}
-                    {checkInIssues[booking.id]?.passUrl && (
-                      <>
-                        <a
-                          className={actionClasses({ variant: 'secondary', size: 'sm' })}
-                          href={checkInIssues[booking.id]?.passUrl ?? '#'}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          Buka pass
-                        </a>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          onClick={() =>
-                            void navigator.clipboard.writeText(
-                              checkInIssues[booking.id]?.passUrl ?? '',
-                            )
-                          }
-                        >
-                          Salin link
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                ),
+                      {menuItems.length > 0 && (
+                        <TableActionMenu
+                          ariaLabel={`Aksi booking ${shortId(booking.id)}`}
+                          disabled={busy}
+                          items={menuItems}
+                        />
+                      )}
+                    </div>
+                  );
+                },
               },
             ]}
             mobileCard={(booking) => (
@@ -1364,25 +1370,42 @@ export function BookingView({
                     Pilih peserta
                   </label>
                 )}
-                <Link
-                  className="inline-flex min-h-10 items-center justify-center rounded-dd-md border border-dd-line px-3 text-sm font-bold text-dd-forest no-underline"
-                  href={`/workspace/bookings/${booking.id}?returnTo=${encodeURIComponent('/workspace/bookings')}`}
-                >
-                  Lihat detail
-                </Link>
-                {booking.status === 'BOOKED' && canCancelBookings && client.cancelAsStaff && (
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    disabled={busy}
-                    onClick={() => {
-                      setCancelError('');
-                      setCancelTarget(booking);
-                    }}
+                <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                  <Link
+                    className="inline-flex min-h-9 items-center justify-center rounded-dd-md border border-dd-line px-3 text-xs font-semibold text-dd-forest no-underline"
+                    href={`/workspace/bookings/${booking.id}?returnTo=${encodeURIComponent('/workspace/bookings')}`}
                   >
-                    Batalkan booking
-                  </Button>
-                )}
+                    Lihat detail
+                  </Link>
+                  {booking.status === 'BOOKED' && canManageAttendance && branchId && (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      disabled={busy}
+                      onClick={() => void issueCheckIn(booking)}
+                    >
+                      Buat/Kirim QR
+                    </Button>
+                  )}
+                  {booking.status === 'BOOKED' && canCancelBookings && client.cancelAsStaff && (
+                    <TableActionMenu
+                      ariaLabel={`Aksi booking ${shortId(booking.id)}`}
+                      disabled={busy}
+                      items={[
+                        {
+                          id: 'cancel',
+                          label: 'Batalkan booking',
+                          tone: 'danger' as const,
+                          onClick: () => {
+                            setCancelError('');
+                            setCancelTarget(booking);
+                          },
+                        },
+                      ]}
+                    />
+                  )}
+                </div>
               </div>
             )}
           />
@@ -1392,7 +1415,7 @@ export function BookingView({
             currentPage={page}
             totalPages={totalPages > 1 ? totalPages : (nextCursor ? page + 1 : page)}
             totalItems={totalItems}
-            pageSize={20}
+            pageSize={ADMIN_PAGE_SIZE}
             showPageNumbers={totalPages > 1}
             onPageChange={(target) => {
               setPage(target);

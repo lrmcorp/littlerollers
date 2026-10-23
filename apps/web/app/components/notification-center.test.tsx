@@ -1,8 +1,13 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { NotificationClient, UserNotification } from '@/api-clients/notification-client';
 import { NotificationCenter } from './notification-center';
+
+const mockSessionContext = vi.hoisted(() => vi.fn(() => null));
+vi.mock('../session-context', () => ({
+  useSessionContext: () => mockSessionContext(),
+}));
 
 const item = (id: string, title = `Notifikasi ${id}`): UserNotification => ({
   id,
@@ -32,6 +37,9 @@ const client = (overrides: Partial<NotificationClient> = {}): NotificationClient
 });
 
 describe('NotificationCenter', () => {
+  beforeEach(() => {
+    mockSessionContext.mockReturnValue(null);
+  });
   it('loads current notifications when opened and marks one item read', async () => {
     const notification = { ...item('notification-1'), href: null };
     const api = client({
@@ -91,5 +99,13 @@ describe('NotificationCenter', () => {
       'Notifikasi belum dapat diperbarui.',
     );
     expect(screen.getByText('1 belum dibaca')).toBeVisible();
+  });
+
+  it('does not poll notification APIs when session context is unauthenticated', () => {
+    mockSessionContext.mockReturnValue({ status: 'unauthenticated', session: null } as any);
+    const api = client();
+    render(<NotificationCenter client={api} />);
+    expect(api.list).not.toHaveBeenCalled();
+    expect(api.unreadCount).not.toHaveBeenCalled();
   });
 });

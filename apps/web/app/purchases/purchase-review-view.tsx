@@ -46,7 +46,7 @@ const emptySummary: ReviewSummary = {
 };
 
 const readFilters = (): Filters => {
-  if (typeof window === 'undefined') return { status: 'PENDING', limit: 20, page: 1 };
+  if (typeof window === 'undefined') return { status: 'PENDING', limit: ADMIN_PAGE_SIZE, page: 1 };
   const query = new URLSearchParams(window.location.search);
   const date = (name: string) => {
     const value = query.get(name);
@@ -61,7 +61,7 @@ const readFilters = (): Filters => {
     cursor: query.get('cursor') || undefined,
     purchaseId: query.get('purchaseId') || undefined,
     page: Number(query.get('page')) > 0 ? Number(query.get('page')) : 1,
-    limit: 20,
+    limit: ADMIN_PAGE_SIZE,
   };
 };
 
@@ -303,6 +303,7 @@ export function PurchaseReviewView({
       purchaseId: undefined,
       branchId: effectiveBranchId,
       status: filters.status === 'ALL' ? undefined : filters.status,
+      limit: ADMIN_PAGE_SIZE,
     }),
     [effectiveBranchId, filters],
   );

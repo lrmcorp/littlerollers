@@ -185,7 +185,9 @@ describe('BookingView', () => {
       />,
     );
     const user = userEvent.setup();
-    await user.click((await screen.findAllByRole('button', { name: 'Batalkan' }))[0]!);
+    const actionMenu = (await screen.findAllByRole('button', { name: /Aksi booking/i }))[0]!;
+    await user.click(actionMenu);
+    await user.click(screen.getByRole('menuitem', { name: /Batalkan booking/i }));
     const dialog = await screen.findByRole('dialog', { name: /Batalkan booking pelanggan/ });
     const confirm = within(dialog).getByRole('button', { name: 'Batalkan booking' });
     expect(confirm).toBeDisabled();

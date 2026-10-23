@@ -26,7 +26,6 @@ import {
   DetailHero,
   DetailLoading,
   PublicDetailFrame,
-  publicContainer,
   publicSecondaryButton,
 } from '../../components/public/public-detail-shared';
 import { classLevelLabel } from '../../lib/class-level';
@@ -91,8 +90,8 @@ export function ScheduleDetailView({
             facts={
               <div className="flex flex-wrap gap-2.5 text-sm">
                 {/* Tanggal */}
-                <span className="inline-flex items-center gap-2 rounded-full border border-dd-line bg-white px-3.5 py-2 font-medium text-dd-ink shadow-xs">
-                  <CalendarDays className="size-4 text-dd-forest" />
+                <span className="inline-flex items-center gap-2 rounded-full border border-ed-line bg-white px-3.5 py-2 font-medium text-ed-ink ">
+                  <CalendarDays className="size-4 text-ed-green" />
                   {new Intl.DateTimeFormat('id-ID', {
                     weekday: 'short',
                     day: 'numeric',
@@ -103,8 +102,8 @@ export function ScheduleDetailView({
                 </span>
 
                 {/* Jam Mulai - Selesai */}
-                <span className="inline-flex items-center gap-2 rounded-full border border-dd-line bg-white px-3.5 py-2 font-medium text-dd-ink shadow-xs">
-                  <Clock3 className="size-4 text-dd-forest" />
+                <span className="inline-flex items-center gap-2 rounded-full border border-ed-line bg-white px-3.5 py-2 font-medium text-ed-ink ">
+                  <Clock3 className="size-4 text-ed-green" />
                   {new Intl.DateTimeFormat('id-ID', {
                     hour: '2-digit',
                     minute: '2-digit',
@@ -120,14 +119,14 @@ export function ScheduleDetailView({
                 </span>
 
                 {/* Durasi Jadwal */}
-                <span className="inline-flex items-center gap-2 rounded-full border border-dd-forest/30 bg-dd-success-soft px-3.5 py-2 font-semibold text-dd-forest shadow-xs">
-                  <Timer className="size-4 text-dd-forest" />
+                <span className="inline-flex items-center gap-2 rounded-full border border-ed-green/30 bg-dd-success-soft px-3.5 py-2 font-semibold text-ed-green ">
+                  <Timer className="size-4 text-ed-green" />
                   Durasi {durationMinutes} Menit
                 </span>
 
                 {/* Instruktur */}
-                <span className="inline-flex items-center gap-2 rounded-full border border-dd-line bg-white px-3.5 py-2 font-medium text-dd-ink shadow-xs">
-                  <UserCheck className="size-4 text-dd-forest" />
+                <span className="inline-flex items-center gap-2 rounded-full border border-ed-line bg-white px-3.5 py-2 font-medium text-ed-ink ">
+                  <UserCheck className="size-4 text-ed-green" />
                   {item.instructor?.displayName
                     ? `Instruktur: ${item.instructor.displayName}`
                     : 'Instruktur: Tim Daily Dose'}
@@ -135,12 +134,12 @@ export function ScheduleDetailView({
 
                 {/* Ketersediaan Tempat */}
                 <span
-                  className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-2 font-medium shadow-xs ${
+                  className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-2 font-medium  ${
                     isFull
                       ? 'border-dd-danger/30 bg-dd-danger-soft text-dd-danger'
                       : item.available <= 2
                         ? 'border-dd-warning/30 bg-dd-warning-soft text-dd-warning'
-                        : 'border-dd-line bg-white text-dd-ink'
+                        : 'border-ed-line bg-white text-ed-ink'
                   }`}
                 >
                   <UsersRound className="size-4" />
@@ -151,8 +150,8 @@ export function ScheduleDetailView({
 
                 {/* Level */}
                 {item.classProfile.level && (
-                  <span className="inline-flex items-center gap-2 rounded-full border border-dd-line bg-white px-3.5 py-2 font-medium text-dd-ink shadow-xs">
-                    <Gauge className="size-4 text-dd-forest" />
+                  <span className="inline-flex items-center gap-2 rounded-full border border-ed-line bg-white px-3.5 py-2 font-medium text-ed-ink ">
+                    <Gauge className="size-4 text-ed-green" />
                     {classLevelLabel(item.classProfile.level)}
                   </span>
                 )}
@@ -180,35 +179,35 @@ export function ScheduleDetailView({
           />
 
           {/* Section 1: Informasi Kelas & Sesi */}
-          <section className={`${publicContainer} grid gap-8 py-10 lg:grid-cols-[1.1fr_0.9fr]`}>
+          <section className={`ed-wrap grid gap-8 py-10 lg:grid-cols-[1.1fr_0.9fr]`}>
             {/* Kolom Kiri: Tentang Kelas */}
             <article className="space-y-6">
               <div>
-                <p className="text-xs font-bold tracking-[0.14em] text-dd-forest uppercase">
+                <p className="text-xs font-bold tracking-[0.14em] text-ed-green uppercase">
                   Tentang Kelas Ini
                 </p>
-                <h2 className="mt-2 text-2xl font-bold text-dd-ink sm:text-3xl">
+                <h2 className="mt-2 text-2xl font-bold text-ed-ink sm:text-3xl">
                   {item.classType.name}
                 </h2>
-                <p className="mt-3 text-base leading-relaxed text-dd-muted">
+                <p className="mt-3 text-base leading-relaxed text-ed-muted">
                   {item.classProfile.description || item.classProfile.summary}
                 </p>
               </div>
 
               {/* Manfaat Kelas */}
               {item.classProfile.benefits && item.classProfile.benefits.length > 0 && (
-                <div className="rounded-dd-lg border border-dd-line bg-white p-6 shadow-dd-card">
-                  <h3 className="flex items-center gap-2 text-lg font-semibold text-dd-ink">
-                    <Sparkles className="size-5 text-dd-forest" />
+                <div className="rounded-none border border-ed-line bg-white p-6 ">
+                  <h3 className="flex items-center gap-2 text-lg font-semibold text-ed-ink">
+                    <Sparkles className="size-5 text-ed-green" />
                     Manfaat Latihan
                   </h3>
                   <ul className="mt-4 grid gap-3 sm:grid-cols-2">
                     {item.classProfile.benefits.map((benefit) => (
                       <li
                         key={benefit}
-                        className="flex items-start gap-2.5 rounded-dd-sm bg-dd-surface-muted p-3 text-sm text-dd-ink"
+                        className="flex items-start gap-2.5 rounded-none bg-ed-tint p-3 text-sm text-ed-ink"
                       >
-                        <Check className="mt-0.5 size-4 shrink-0 text-dd-forest" />
+                        <Check className="mt-0.5 size-4 shrink-0 text-ed-green" />
                         <span>{benefit}</span>
                       </li>
                     ))}
@@ -218,18 +217,18 @@ export function ScheduleDetailView({
 
               {/* Perlengkapan */}
               {item.classProfile.equipment && item.classProfile.equipment.length > 0 && (
-                <div className="rounded-dd-lg border border-dd-line bg-white p-6 shadow-dd-card">
-                  <h3 className="flex items-center gap-2 text-lg font-semibold text-dd-ink">
-                    <Info className="size-5 text-dd-forest" />
+                <div className="rounded-none border border-ed-line bg-white p-6 ">
+                  <h3 className="flex items-center gap-2 text-lg font-semibold text-ed-ink">
+                    <Info className="size-5 text-ed-green" />
                     Perlengkapan Sesi
                   </h3>
                   <div className="mt-4 flex flex-wrap gap-2">
                     {item.classProfile.equipment.map((eq) => (
                       <span
                         key={eq}
-                        className="inline-flex items-center gap-1.5 rounded-full border border-dd-line bg-dd-paper px-3 py-1.5 text-xs font-medium text-dd-ink"
+                        className="inline-flex items-center gap-1.5 rounded-full border border-ed-line bg-ed-cream px-3 py-1.5 text-xs font-medium text-ed-ink"
                       >
-                        <span className="size-1.5 rounded-full bg-dd-forest" />
+                        <span className="size-1.5 rounded-full bg-ed-green" />
                         {eq}
                       </span>
                     ))}
@@ -241,26 +240,26 @@ export function ScheduleDetailView({
             {/* Kolom Kanan: Detail Lokasi & Persiapan */}
             <aside className="space-y-6">
               {/* Studio Card */}
-              <div className="rounded-dd-lg border border-dd-line bg-white p-6 shadow-dd-card">
-                <div className="flex items-center gap-2 text-xs font-bold tracking-wider text-dd-forest uppercase">
+              <div className="rounded-none border border-ed-line bg-white p-6 ">
+                <div className="flex items-center gap-2 text-xs font-bold tracking-wider text-ed-green uppercase">
                   <MapPin className="size-4" />
                   Lokasi Studio
                 </div>
-                <h3 className="mt-2 text-xl font-bold text-dd-ink">{item.branch.name}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-dd-muted">
+                <h3 className="mt-2 text-xl font-bold text-ed-ink">{item.branch.name}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-ed-muted">
                   {item.branch.publicProfile.address}
                 </p>
 
                 {item.branch.publicProfile.arrivalInformation && (
-                  <div className="mt-4 rounded-dd-sm border border-dd-line bg-dd-paper p-3.5 text-xs leading-relaxed text-dd-muted">
-                    <strong className="block font-semibold text-dd-ink">Akses Masuk:</strong>
+                  <div className="mt-4 rounded-none border border-ed-line bg-ed-cream p-3.5 text-xs leading-relaxed text-ed-muted">
+                    <strong className="block font-semibold text-ed-ink">Akses Masuk:</strong>
                     {item.branch.publicProfile.arrivalInformation}
                   </div>
                 )}
 
                 {item.branch.publicProfile.parkingInformation && (
-                  <div className="mt-2 rounded-dd-sm border border-dd-line bg-dd-paper p-3.5 text-xs leading-relaxed text-dd-muted">
-                    <strong className="block font-semibold text-dd-ink">Info Parkir:</strong>
+                  <div className="mt-2 rounded-none border border-ed-line bg-ed-cream p-3.5 text-xs leading-relaxed text-ed-muted">
+                    <strong className="block font-semibold text-ed-ink">Info Parkir:</strong>
                     {item.branch.publicProfile.parkingInformation}
                   </div>
                 )}
@@ -274,7 +273,7 @@ export function ScheduleDetailView({
                   </Link>
                   {item.branch.supportWhatsappE164 && (
                     <a
-                      className="inline-flex min-h-11 items-center gap-2 rounded-dd-sm border border-dd-success/30 bg-dd-success-soft px-4 text-xs font-semibold text-dd-success no-underline transition-colors hover:bg-dd-success/20"
+                      className="inline-flex min-h-11 items-center gap-2 rounded-none border border-dd-success/30 bg-dd-success-soft px-4 text-xs font-semibold text-dd-success no-underline transition-colors hover:bg-dd-success/20"
                       href={`https://wa.me/${item.branch.supportWhatsappE164.replace(/\D/g, '')}?text=${encodeURIComponent(`Halo Daily Dose, saya ingin bertanya seputar jadwal ${item.classType.name} di ${item.branch.name}`)}`}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -287,48 +286,48 @@ export function ScheduleDetailView({
               </div>
 
               {/* Panduan Sebelum Datang */}
-              <div className="rounded-dd-lg border border-dd-line bg-dd-paper p-6">
-                <h3 className="text-lg font-bold text-dd-ink">Sebelum Datang ke Studio</h3>
-                <ul className="mt-4 space-y-3 text-sm leading-relaxed text-dd-muted">
+              <div className="rounded-none border border-ed-line bg-ed-cream p-6">
+                <h3 className="text-lg font-bold text-ed-ink">Sebelum Datang ke Studio</h3>
+                <ul className="mt-4 space-y-3 text-sm leading-relaxed text-ed-muted">
                   <li className="flex items-start gap-2.5">
-                    <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-dd-forest text-[11px] font-bold text-white">
+                    <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-ed-green text-[11px] font-bold text-white">
                       1
                     </span>
                     <span>
-                      <strong className="font-semibold text-dd-ink">
+                      <strong className="font-semibold text-ed-ink">
                         Datang 15 menit lebih awal
                       </strong>{' '}
                       untuk proses check-in QR pass dan persiapan sesi.
                     </span>
                   </li>
                   <li className="flex items-start gap-2.5">
-                    <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-dd-forest text-[11px] font-bold text-white">
+                    <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-ed-green text-[11px] font-bold text-white">
                       2
                     </span>
                     <span>
-                      <strong className="font-semibold text-dd-ink">
+                      <strong className="font-semibold text-ed-ink">
                         Wajib memakai grip socks
                       </strong>{' '}
                       demi keamanan dan kenyamanan selama di studio.
                     </span>
                   </li>
                   <li className="flex items-start gap-2.5">
-                    <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-dd-forest text-[11px] font-bold text-white">
+                    <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-ed-green text-[11px] font-bold text-white">
                       3
                     </span>
                     <span>
-                      <strong className="font-semibold text-dd-ink">
+                      <strong className="font-semibold text-ed-ink">
                         Fasilitas studio tersedia
                       </strong>{' '}
                       seperti loker penyimpanan barang, ruang ganti, dan air minum.
                     </span>
                   </li>
                   <li className="flex items-start gap-2.5">
-                    <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-dd-forest text-[11px] font-bold text-white">
+                    <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-ed-green text-[11px] font-bold text-white">
                       4
                     </span>
                     <span>
-                      <strong className="font-semibold text-dd-ink">Kebijakan pembatalan</strong>{' '}
+                      <strong className="font-semibold text-ed-ink">Kebijakan pembatalan</strong>{' '}
                       dapat dilakukan melalui dashboard akun sesuai ketentuan paket Anda.
                     </span>
                   </li>

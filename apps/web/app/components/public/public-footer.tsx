@@ -1,6 +1,9 @@
 import Link from 'next/link';
 import { ChevronRight, Heart, Mail, MapPin, MessageCircle } from 'lucide-react';
 
+import { BrandMark } from './brand-mark';
+import type { PublicChromeVariant } from './public-header';
+
 const footerLinks = [
   {
     label: 'Studio',
@@ -27,7 +30,7 @@ const footerLinks = [
   },
 ];
 
-export function PublicFooter() {
+function DefaultPublicFooter() {
   const year = new Date().getFullYear();
 
   return (
@@ -66,9 +69,12 @@ export function PublicFooter() {
         <div className="grid grid-cols-2 gap-8 sm:grid-cols-[2fr_1fr_1fr_1fr] lg:gap-12">
           {/* Brand Column */}
           <div className="col-span-2 sm:col-span-1">
-            <p className="font-sans text-2xl font-bold tracking-tight text-white">Daily Dose Pilates</p>
+            <p className="font-sans text-2xl font-bold tracking-tight text-white">
+              Daily Dose Pilates
+            </p>
             <p className="mt-2 max-w-[26ch] text-sm leading-6 text-white/65">
-              Studio Pilates modern di Jakarta, Tangerang &amp; Surabaya. Bergerak lebih baik, hidup lebih seimbang.
+              Studio Pilates modern di Jakarta, Tangerang &amp; Surabaya. Bergerak lebih baik, hidup
+              lebih seimbang.
             </p>
             <div className="mt-5 space-y-2 text-sm text-white/65">
               <p className="flex items-center gap-1.5">
@@ -153,10 +159,112 @@ export function PublicFooter() {
         <div className="mx-auto flex w-full max-w-[1180px] flex-col items-center justify-between gap-3 px-4 py-5 text-xs text-white/40 sm:flex-row sm:px-6 lg:px-8">
           <p className="m-0">© {year} Daily Dose Pilates. All rights reserved.</p>
           <p className="m-0 flex items-center gap-1">
-            Dibuat dengan <Heart className="size-3.5 fill-dd-brass text-dd-brass inline" /> untuk komunitas Pilates Indonesia
+            Dibuat dengan <Heart className="size-3.5 fill-dd-brass text-dd-brass inline" /> untuk
+            komunitas Pilates Indonesia
           </p>
         </div>
       </div>
     </footer>
   );
+}
+
+const socialLinks = [
+  {
+    href: 'https://www.instagram.com/dailydosepilates/',
+    label: 'Instagram',
+    ariaLabel: 'Instagram Daily Dose Pilates',
+  },
+  {
+    href: 'https://www.tiktok.com/@dailydosepilates',
+    label: 'TikTok',
+    ariaLabel: 'TikTok Daily Dose Pilates',
+  },
+] as const;
+
+const editorialLink =
+  'inline-flex min-h-11 items-center border-b border-transparent pb-1 text-[13px] sm:min-h-8 font-semibold text-white no-underline transition hover:border-white';
+
+/**
+ * Footer varian "Editorial Calm": latar `ed-deep`, tanpa kartu/ikon bulat,
+ * hanya teks, garis tipis, dan tautan bergaris bawah.
+ */
+function EditorialPublicFooter() {
+  const year = new Date().getFullYear();
+  const whatsapp = process.env.NEXT_PUBLIC_OFFICIAL_WHATSAPP || '62895329736127';
+
+  return (
+    <footer className="ed-scope bg-ed-deep text-white">
+      <div className="ed-wrap flex flex-col items-start justify-between gap-6 border-b border-white/35 py-12 sm:flex-row sm:items-end">
+        <div>
+          <span className="ed-eyebrow text-ed-mint">Kabar studio</span>
+          <p className="ed-display mt-4 max-w-[18ch] text-[clamp(32px,4vw,56px)]">
+            Tetap dekat dengan <span className="ed-serif text-ed-mint">ritme gerakmu.</span>
+          </p>
+        </div>
+        <Link className="ed-button-light shrink-0" href="/contact">
+          Hubungi Kami
+        </Link>
+      </div>
+
+      <div className="ed-wrap grid gap-12 py-[65px] sm:grid-cols-[1.4fr_repeat(3,1fr)] lg:gap-16">
+        <div>
+          <BrandMark
+            className="w-[200px] bg-ed-cream px-3 py-2"
+            ariaLabel="Daily Dose Pilates — kembali ke halaman utama"
+          />
+          <p className="mt-6 max-w-[310px] text-sm leading-relaxed text-ed-mist">
+            Studio Pilates modern di Jakarta, Tangerang &amp; Surabaya. Bergerak lebih baik, hidup
+            lebih seimbang.
+          </p>
+          <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2">
+            <a
+              className={editorialLink}
+              href={`https://wa.me/${whatsapp}`}
+              target="_blank"
+              rel="noreferrer"
+              aria-label="Hubungi via WhatsApp"
+            >
+              WhatsApp Admin
+            </a>
+            {socialLinks.map((link) => (
+              <a
+                className={editorialLink}
+                href={link.href}
+                key={link.label}
+                target="_blank"
+                rel="noreferrer"
+                aria-label={link.ariaLabel}
+              >
+                {link.label}
+              </a>
+            ))}
+          </div>
+        </div>
+
+        {footerLinks.map((group) => (
+          <nav key={group.label} aria-label={group.label}>
+            <h3 className="ed-eyebrow m-0 mb-4 text-ed-mint">{group.label}</h3>
+            <ul className="m-0 grid list-none gap-2 p-0">
+              {group.links.map((link) => (
+                <li key={link.label}>
+                  <Link className={editorialLink} href={link.href}>
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        ))}
+      </div>
+
+      <div className="ed-wrap flex flex-col justify-between gap-2 border-t border-white/35 pb-6 pt-5 text-xs text-ed-mist sm:flex-row sm:gap-6">
+        <span>© {year} Daily Dose Pilates. All rights reserved.</span>
+        <span>Dibuat untuk komunitas Pilates Indonesia</span>
+      </div>
+    </footer>
+  );
+}
+
+export function PublicFooter({ variant = 'default' }: { variant?: PublicChromeVariant } = {}) {
+  return variant === 'editorial' ? <EditorialPublicFooter /> : <DefaultPublicFooter />;
 }

@@ -160,11 +160,15 @@ for (const viewport of viewports) {
         content: document.documentElement.scrollWidth,
         bodyMargin: getComputedStyle(document.body).margin,
         bodyFont: getComputedStyle(document.body).fontFamily,
+        headingFont: getComputedStyle(document.querySelector('h1')!).fontFamily,
       }));
       expect(dimensions.content, path).toBeLessThanOrEqual(dimensions.viewport);
       expect(dimensions.bodyMargin, path).toBe('0px');
+      // Body tetap Poppins (aplikasi internal); konten publik bergaya editorial memakai DM Sans
+      // lewat wrapper `.ed-scope`. Georgia hanya untuk kata aksen serif, bukan judul.
       expect(dimensions.bodyFont, path).toMatch(/poppins/i);
-      expect(dimensions.bodyFont, path).not.toMatch(/DM Sans|Cormorant|Georgia|Times New Roman/i);
+      expect(dimensions.headingFont, path).toMatch(/dm ?sans/i);
+      expect(dimensions.headingFont, path).not.toMatch(/Cormorant|Georgia|Times New Roman/i);
     }
   });
 }

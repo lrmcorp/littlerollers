@@ -1,6 +1,5 @@
 import { HelpCircle } from 'lucide-react';
 import type { PublicFaqItem } from '@/api-clients/account-client';
-import { publicContainer } from '../../components/public/public-detail-shared';
 
 /** Tampil bila staf belum menerbitkan FAQ di Konten Publik. */
 export const DEFAULT_CLASS_FAQ: PublicFaqItem[] = [
@@ -30,11 +29,11 @@ export const DEFAULT_CLASS_FAQ: PublicFaqItem[] = [
 export function ClassFaqSection({ items }: { items?: PublicFaqItem[] | null }) {
   const list = items && items.length > 0 ? items : DEFAULT_CLASS_FAQ;
   return (
-    <section className="border-t border-dd-line bg-dd-paper py-12" aria-labelledby="class-faq-title">
-      <div className={`${publicContainer} max-w-4xl`}>
+    <section className="border-t border-ed-line bg-ed-cream py-12" aria-labelledby="class-faq-title">
+      <div className={`ed-wrap max-w-4xl`}>
         <div className="text-center">
-          <p className="text-xs font-bold tracking-[0.14em] text-dd-forest uppercase">Panduan Kelas</p>
-          <h2 id="class-faq-title" className="mt-1 text-2xl font-bold text-dd-ink sm:text-3xl">
+          <p className="text-xs font-bold tracking-[0.14em] text-ed-green uppercase">Panduan Kelas</p>
+          <h2 id="class-faq-title" className="mt-1 text-2xl font-bold text-ed-ink sm:text-3xl">
             Pertanyaan Seputar Kelas Ini
           </h2>
         </div>
@@ -42,13 +41,13 @@ export function ClassFaqSection({ items }: { items?: PublicFaqItem[] | null }) {
           {list.map((entry) => (
             <div
               key={entry.id}
-              className="rounded-dd-lg border border-dd-line bg-white p-5 shadow-xs"
+              className="rounded-none border border-ed-line bg-white p-5 "
             >
-              <h3 className="flex items-start gap-2 text-base font-bold text-dd-ink">
-                <HelpCircle className="mt-0.5 size-4 shrink-0 text-dd-forest" aria-hidden="true" />
+              <h3 className="flex items-start gap-2 text-base font-bold text-ed-ink">
+                <HelpCircle className="mt-0.5 size-4 shrink-0 text-ed-green" aria-hidden="true" />
                 {entry.question}
               </h3>
-              <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-dd-muted">
+              <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-ed-muted">
                 {entry.answer}
               </p>
             </div>

@@ -1,10 +1,9 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ArrowRight, ExternalLink, MessageCircle } from 'lucide-react';
+import { ArrowRight, MessageCircle } from 'lucide-react';
 import { PublicFooter } from '../components/public/public-footer';
 import { PublicHeader } from '../components/public/public-header';
 import { PublicPageHero, PublicSectionHeading } from '../components/public/public-page';
-import { publicContainer } from '../components/public/public-styles';
 
 export const metadata: Metadata = {
   title: 'Hubungi Kami',
@@ -13,77 +12,84 @@ export const metadata: Metadata = {
 
 export default function ContactPage() {
   return (
-    <div className="min-w-0 overflow-x-clip bg-dd-cream font-sans text-dd-ink">
+    <div className="ed-scope min-w-0 overflow-x-clip bg-ed-cream text-ed-ink">
       <a className="skip-link" href="#contact-main">
         Langsung ke kontak
       </a>
-      <PublicHeader />
+      <PublicHeader variant="editorial" />
       <main id="contact-main">
         <PublicPageHero
           eyebrow="Kami siap membantu"
           title="Ada yang ingin Anda tanyakan?"
           description="Tim Daily Dose siap membantu memilih kelas, paket, atau studio yang sesuai dengan kebutuhan Anda."
         />
-        <section className="py-12 sm:py-16" aria-labelledby="contact-options-title">
-          <div className={publicContainer}>
+        <section className="py-[clamp(64px,8vw,120px)]" aria-labelledby="contact-options-title">
+          <div className="ed-wrap">
             <PublicSectionHeading
-              eyebrow="01 — Pilih kebutuhan"
+              eyebrow="Pilih kebutuhan"
               title="Mulai dari jalur yang tepat."
               titleId="contact-options-title"
               description="Pilih kebutuhan Anda agar kami dapat mengarahkan ke informasi yang relevan."
             />
-            <div className="grid gap-5 md:grid-cols-3">
-              <article className="rounded-dd-lg border border-dd-line bg-white p-6 shadow-dd-card">
-                <span className="text-xs font-bold text-dd-brass">01</span>
-                <h3 className="mt-3 font-sans text-2xl font-semibold">Jadwal kelas</h3>
-                <p className="mt-3 min-h-16 leading-7 text-dd-muted">
-                  Lihat jadwal publik yang tersedia menurut studio dan zona waktunya.
+            <ol className="m-0 list-none border-t border-ed-line p-0">
+              {[
+                {
+                  title: 'Jadwal kelas',
+                  description: 'Lihat jadwal publik yang tersedia menurut studio dan zona waktunya.',
+                  href: '/classes',
+                  label: 'Jelajahi jadwal',
+                },
+                {
+                  title: 'Paket Pilates',
+                  description: 'Bandingkan paket aktif, jumlah sesi, harga, dan masa berlaku.',
+                  href: '/packages',
+                  label: 'Jelajahi paket',
+                },
+              ].map((item, index) => (
+                <li
+                  className="grid gap-x-8 gap-y-3 border-b border-ed-line py-8 transition-colors duration-200 hover:bg-ed-tint md:grid-cols-[48px_minmax(0,0.9fr)_minmax(0,1.3fr)_auto] md:items-center"
+                  key={item.title}
+                >
+                  <span className="text-xs font-bold text-ed-green">0{index + 1}</span>
+                  <h3 className="m-0 text-[clamp(24px,2.4vw,34px)] leading-[1.1] font-medium tracking-[-0.05em]">
+                    {item.title}
+                  </h3>
+                  <p className="m-0 text-[15px] leading-[1.65] text-ed-muted">{item.description}</p>
+                  <Link className="ed-link text-ed-green" href={item.href}>
+                    <span>{item.label}</span>
+                    <ArrowRight aria-hidden="true" className="size-4" />
+                  </Link>
+                </li>
+              ))}
+              <li className="grid gap-x-8 gap-y-3 border-b border-ed-line py-8 transition-colors duration-200 hover:bg-ed-tint md:grid-cols-[48px_minmax(0,0.9fr)_minmax(0,1.3fr)_auto] md:items-center">
+                <span className="text-xs font-bold text-ed-green">03</span>
+                <h3 className="m-0 text-[clamp(24px,2.4vw,34px)] leading-[1.1] font-medium tracking-[-0.05em]">
+                  Bantuan &amp; Kontak
+                </h3>
+                <p className="m-0 text-[15px] leading-[1.65] text-ed-muted">
+                  Hubungi kami langsung melalui WhatsApp studio atau kanal kontak resmi Daily Dose
+                  Pilates.
                 </p>
-                <Link className="mt-5 inline-flex items-center gap-1.5 font-bold text-dd-forest hover:underline" href="/classes">
-                  <span>Jelajahi jadwal</span>
-                  <ArrowRight className="size-4" />
-                </Link>
-              </article>
-              <article className="rounded-dd-lg border border-dd-line bg-white p-6 shadow-dd-card">
-                <span className="text-xs font-bold text-dd-brass">02</span>
-                <h3 className="mt-3 font-sans text-2xl font-semibold">Paket Pilates</h3>
-                <p className="mt-3 min-h-16 leading-7 text-dd-muted">
-                  Bandingkan paket aktif, jumlah sesi, harga, dan masa berlaku.
-                </p>
-                <Link className="mt-5 inline-flex items-center gap-1.5 font-bold text-dd-forest hover:underline" href="/packages">
-                  <span>Jelajahi paket</span>
-                  <ArrowRight className="size-4" />
-                </Link>
-              </article>
-              <article className="rounded-dd-lg border border-dd-line bg-white p-6 shadow-dd-card">
-                <span className="text-xs font-bold text-dd-brass">03</span>
-                <h3 className="mt-3 font-sans text-2xl font-semibold">Bantuan & Kontak</h3>
-                <p className="mt-3 min-h-16 leading-7 text-dd-muted">
-                  Hubungi kami langsung melalui WhatsApp studio atau kanal kontak resmi Daily Dose Pilates.
-                </p>
-                <div className="mt-5 flex flex-col gap-2.5 sm:flex-row sm:items-center">
+                <div className="flex flex-col items-start gap-5 md:items-end">
                   <a
-                    className="inline-flex items-center justify-center gap-2 rounded-dd-md bg-[#1f8f5f] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#18754e] shadow-sm"
+                    className="ed-button"
                     href={`https://wa.me/${process.env.NEXT_PUBLIC_OFFICIAL_WHATSAPP || '62895329736127'}?text=Halo%20Daily%20Dose%20Pilates,%20saya%20ingin%20bertanya%20seputar%20kelas%20dan%20paket%20studio`}
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    <MessageCircle className="size-4" />
+                    <MessageCircle aria-hidden="true" className="mr-2 size-4" />
                     <span>Chat WhatsApp CS</span>
                   </a>
-                  <Link
-                    className="inline-flex items-center gap-1.5 font-bold text-dd-forest hover:underline text-sm"
-                    href="/locations"
-                  >
+                  <Link className="ed-link text-ed-green" href="/locations">
                     <span>Lihat kontak per studio</span>
-                    <ArrowRight className="size-3.5" />
+                    <ArrowRight aria-hidden="true" className="size-4" />
                   </Link>
                 </div>
-              </article>
-            </div>
-            <div className="mt-8 rounded-dd-lg border border-dd-line bg-dd-paper p-6">
-              <strong className="text-dd-forest">Privasi Anda tetap penting.</strong>
-              <p className="mt-2 leading-7 text-dd-muted">
+              </li>
+            </ol>
+            <div className="mt-12 border-l-2 border-ed-green bg-ed-mist p-6">
+              <strong className="text-ed-ink">Privasi Anda tetap penting.</strong>
+              <p className="m-0 mt-2 text-[15px] leading-[1.65] text-ed-muted">
                 Halaman ini tidak meminta atau menyimpan data pribadi secara publik. Setiap pesan
                 dan pertanyaan Anda kami jaga kerahasiaannya untuk membantu kebutuhan latihan Anda di
                 Daily Dose.
@@ -92,7 +98,7 @@ export default function ContactPage() {
           </div>
         </section>
       </main>
-      <PublicFooter />
+      <PublicFooter variant="editorial" />
     </div>
   );
 }

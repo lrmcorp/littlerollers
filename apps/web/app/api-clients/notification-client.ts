@@ -1,3 +1,5 @@
+import { notifySessionFailure } from './session-client';
+
 export type NotificationTone = 'success' | 'info' | 'warning' | 'danger';
 
 export type UserNotification = {
@@ -25,7 +27,14 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     ...init,
     headers: { 'content-type': 'application/json', ...init?.headers },
   });
-  if (!response.ok) throw new Error(`NOTIFICATION_REQUEST_${response.status}`);
+  if (!response.ok) {
+    const error = new Error(`NOTIFICATION_REQUEST_${response.status}`);
+    (error as any).response = { status: response.status };
+    if (response.status === 401) {
+      notifySessionFailure(error);
+    }
+    throw error;
+  }
   return response.json() as Promise<T>;
 }
 

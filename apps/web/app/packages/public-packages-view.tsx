@@ -26,11 +26,7 @@ import { PackagePrice } from '../components/public/package-price';
 import { PublicFooter } from '../components/public/public-footer';
 import { PublicHeader } from '../components/public/public-header';
 import { PublicPageHero, PublicStatePanel } from '../components/public/public-page';
-import {
-  publicContainer,
-  publicPrimaryButton,
-  publicSecondaryButton,
-} from '../components/public/public-styles';
+import { publicPrimaryButton, publicSecondaryButton } from '../components/public/public-styles';
 import { signInReturnTo } from '@/lib/routes';
 import type { WebSession } from '@/api-clients/session-client';
 import {
@@ -336,11 +332,11 @@ export function PublicPackagesView({
     status !== 'ready' || !branchId || (branchId.length > 0 && visible.length === 0);
 
   return (
-    <div className="min-w-0 overflow-x-clip bg-dd-cream font-sans text-dd-ink">
+    <div className="ed-scope min-w-0 overflow-x-clip bg-ed-cream text-ed-ink">
       <a className="skip-link" href="#packages-main">
         Langsung ke paket
       </a>
-      {!inCustomerShell && <PublicHeader />}
+      {!inCustomerShell && <PublicHeader variant="editorial" />}
       <main id="packages-main">
         <PublicPageHero
           eyebrow="Paket Daily Dose"
@@ -348,10 +344,10 @@ export function PublicPackagesView({
           description="Pilih studio, bandingkan paket yang tersedia, lalu temukan ritme latihan yang paling sesuai untuk Anda."
           variant="compact"
         >
-          <ul className="grid max-w-3xl list-none gap-2 p-0 text-sm text-dd-muted sm:grid-cols-3 sm:gap-4">
+          <ul className="grid max-w-3xl list-none gap-2 p-0 text-sm text-ed-muted sm:grid-cols-3 sm:gap-4">
             {packageBenefits.map((benefit) => (
               <li className="flex items-start gap-2" key={benefit}>
-                <Check className="mt-0.5 size-4 shrink-0 text-dd-forest" aria-hidden="true" />
+                <Check className="mt-0.5 size-4 shrink-0 text-ed-green" aria-hidden="true" />
                 {benefit}
               </li>
             ))}
@@ -359,18 +355,18 @@ export function PublicPackagesView({
         </PublicPageHero>
 
         <section className="py-2 sm:py-6" aria-labelledby="package-discovery-title">
-          <div className={publicContainer}>
+          <div className="ed-wrap">
             <header className="mb-6 max-w-3xl">
-              <span className="text-xs font-bold uppercase tracking-wider text-dd-forest">
+              <span className="text-xs font-bold uppercase tracking-wider text-ed-green">
                 01 — Pilih studio
               </span>
               <h2
-                className="mt-1 font-sans text-2xl sm:text-3xl lg:text-4xl font-bold leading-tight tracking-tight text-dd-ink"
+                className="mt-1 font-sans text-2xl sm:text-3xl lg:text-4xl font-bold leading-tight tracking-tight text-ed-ink"
                 id="package-discovery-title"
               >
-                Pilih studio tempat Anda <span className="italic text-dd-forest">berlatih</span>.
+                Pilih studio tempat Anda <span className="italic text-ed-green">berlatih</span>.
               </h2>
-              <p className="mt-1 max-w-2xl text-sm sm:text-base leading-relaxed text-dd-muted">
+              <p className="mt-1 max-w-2xl text-sm sm:text-base leading-relaxed text-ed-muted">
                 Harga dan ketersediaan paket mengikuti studio pilihan Anda.
               </p>
             </header>
@@ -379,7 +375,7 @@ export function PublicPackagesView({
               <div className="grid grid-cols-2 gap-3" role="status" aria-label="Memuat studio">
                 {[0, 1].map((item) => (
                   <div
-                    className="h-20 animate-pulse rounded-2xl border border-dd-line/80 bg-white shadow-sm"
+                    className="h-20 animate-pulse rounded-none border border-ed-line/80 bg-white "
                     key={item}
                   />
                 ))}
@@ -391,18 +387,18 @@ export function PublicPackagesView({
                   return (
                     <button
                       type="button"
-                      className={`flex min-h-16 items-center gap-3.5 rounded-2xl border p-4 text-left shadow-dd-card transition-all duration-200 cursor-pointer ${
+                      className={`flex min-h-16 items-center gap-3.5 rounded-none border p-4 text-left  transition-all duration-200 cursor-pointer ${
                         selected
-                          ? 'border-dd-forest bg-dd-forest text-white shadow-dd-soft ring-2 ring-dd-forest/20'
-                          : 'border-dd-line/80 bg-white/95 text-dd-ink hover:-translate-y-0.5 hover:border-dd-forest/60'
+                          ? 'border-ed-green bg-ed-green text-white  ring-2 ring-ed-green/20'
+                          : 'border-ed-line/80 bg-white/95 text-ed-ink hover:-translate-y-0.5 hover:border-ed-green/60'
                       }`}
                       aria-pressed={selected}
                       key={item.id}
                       onClick={() => void selectBranch(item.id)}
                     >
                       <span
-                        className={`grid size-11 shrink-0 place-items-center rounded-xl transition ${
-                          selected ? 'bg-white/20 text-white' : 'bg-dd-success-soft text-dd-forest border border-dd-success/30'
+                        className={`grid size-11 shrink-0 place-items-center rounded-none transition ${
+                          selected ? 'bg-white/20 text-white' : 'bg-dd-success-soft text-ed-green border border-dd-success/30'
                         }`}
                       >
                         <MapPin className="size-5" aria-hidden="true" />
@@ -411,7 +407,7 @@ export function PublicPackagesView({
                         <strong className="block truncate text-sm sm:text-base font-bold">{item.name}</strong>
                         <span
                           className={`block truncate text-xs font-medium ${
-                            selected ? 'text-white/80' : 'text-dd-muted'
+                            selected ? 'text-white/80' : 'text-ed-muted'
                           }`}
                         >
                           {publicBranchLocation(item)}
@@ -424,16 +420,16 @@ export function PublicPackagesView({
             )}
 
             {/* Filter & Search Bar */}
-            <div className="mt-5 rounded-2xl border border-dd-line/80 bg-white/95 p-4 sm:p-5 shadow-dd-card">
+            <div className="mt-5 rounded-none border border-ed-line/80 bg-white/95 p-4 sm:p-5 ">
               <div className="mb-3 flex items-center justify-between gap-2">
-                <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-dd-forest">
+                <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-ed-green">
                   <SlidersHorizontal className="size-3.5" aria-hidden="true" />
                   02 — Filter &amp; Pencarian Paket
                 </span>
                 {hasActiveFilters && (
                   <button
                     type="button"
-                    className="inline-flex min-h-8 items-center gap-1.5 rounded-lg border border-dd-line bg-dd-surface-muted px-2.5 py-1 text-xs font-bold text-dd-forest transition hover:bg-dd-surface-muted/80 cursor-pointer"
+                    className="inline-flex min-h-8 items-center gap-1.5 rounded-none border border-ed-line bg-ed-tint px-2.5 py-1 text-xs font-bold text-ed-green transition hover:bg-ed-tint/80 cursor-pointer"
                     onClick={resetAllFilters}
                   >
                     <RotateCcw className="size-3" aria-hidden="true" />
@@ -445,12 +441,12 @@ export function PublicPackagesView({
               <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-4 items-end">
                 {/* 1. Nama Paket */}
                 <div className="grid min-w-0 gap-1.5">
-                  <label htmlFor="package-search-input" className="text-sm font-semibold text-dd-ink">
+                  <label htmlFor="package-search-input" className="text-sm font-semibold text-ed-ink">
                     Nama paket
                   </label>
                   <div className="relative min-w-0">
                     <Search
-                      className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-dd-muted"
+                      className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ed-muted"
                       aria-hidden="true"
                     />
                     <input
@@ -464,13 +460,13 @@ export function PublicPackagesView({
                         syncCatalogQuery(branchId, classTypeId, val, priceRange, sessionRange);
                       }}
                       placeholder="Cari nama paket…"
-                      className="min-h-11 w-full rounded-dd-md border border-dd-line bg-white pl-9 pr-8 font-sans text-sm text-dd-ink shadow-sm transition placeholder:text-dd-muted hover:border-dd-forest/40 focus:border-dd-forest focus:outline-hidden focus:ring-2 focus:ring-dd-forest/15 disabled:cursor-not-allowed disabled:bg-dd-surface-muted disabled:text-dd-muted"
+                      className="min-h-11 w-full rounded-none border border-ed-line bg-white pl-9 pr-8 font-sans text-sm text-ed-ink transition placeholder:text-ed-muted hover:border-ed-green/40 focus:border-ed-green focus:outline-hidden focus:ring-2 focus:ring-ed-green/15 disabled:cursor-not-allowed disabled:bg-ed-tint disabled:text-ed-muted"
                     />
                     {searchQuery && (
                       <button
                         type="button"
                         aria-label="Hapus kata kunci pencarian"
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-full p-1 text-dd-muted transition hover:bg-dd-surface-muted hover:text-dd-ink cursor-pointer"
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-full p-1 text-ed-muted transition hover:bg-ed-tint hover:text-ed-ink cursor-pointer"
                         onClick={() => {
                           setSearchQuery('');
                           syncCatalogQuery(branchId, classTypeId, '', priceRange, sessionRange);
@@ -532,19 +528,19 @@ export function PublicPackagesView({
               </div>
 
               {/* Status Bar */}
-              <div className="mt-3.5 flex flex-wrap items-center justify-between gap-2 border-t border-dd-line/60 pt-3 text-xs text-dd-muted">
+              <div className="mt-3.5 flex flex-wrap items-center justify-between gap-2 border-t border-ed-line/60 pt-3 text-xs text-ed-muted">
                 <p>
                   {branchId ? (
                     <>
-                      Menampilkan <strong className="font-semibold text-dd-ink">{visible.length}</strong> dari{' '}
-                      <strong className="font-semibold text-dd-ink">{items.length}</strong> paket tersedia
+                      Menampilkan <strong className="font-semibold text-ed-ink">{visible.length}</strong> dari{' '}
+                      <strong className="font-semibold text-ed-ink">{items.length}</strong> paket tersedia
                     </>
                   ) : (
                     'Pilih salah satu studio di atas untuk melihat paket yang tersedia.'
                   )}
                 </p>
                 {hasActiveFilters && (
-                  <span className="font-medium text-dd-forest">
+                  <span className="font-medium text-ed-green">
                     Filter aktif diterapkan
                   </span>
                 )}
@@ -557,7 +553,7 @@ export function PublicPackagesView({
                   <div className="grid gap-5 md:grid-cols-2" role="status">
                     {[0, 1].map((item) => (
                       <div
-                        className="h-72 animate-pulse rounded-2xl border border-dd-line/80 bg-white shadow-sm"
+                        className="h-72 animate-pulse rounded-none border border-ed-line/80 bg-white "
                         key={item}
                       />
                     ))}
@@ -568,7 +564,7 @@ export function PublicPackagesView({
                     <p>{message}</p>
                     <button
                       type="button"
-                      className="mt-4 min-h-11 rounded-xl border border-dd-danger/30 bg-white px-5 font-bold text-sm shadow-sm transition hover:bg-dd-surface-muted"
+                      className="mt-4 min-h-11 rounded-none border border-dd-danger/30 bg-white px-5 font-bold text-sm transition hover:bg-ed-tint"
                       onClick={() => void retryCatalog()}
                     >
                       Coba lagi
@@ -593,7 +589,7 @@ export function PublicPackagesView({
                     {items.length > 0 && hasActiveFilters && (
                       <button
                         type="button"
-                        className="mt-4 min-h-11 rounded-xl border border-dd-forest/30 bg-white px-5 font-bold text-sm text-dd-forest shadow-sm transition hover:bg-dd-surface-muted cursor-pointer"
+                        className="mt-4 min-h-11 rounded-none border border-ed-green/30 bg-white px-5 font-bold text-sm text-ed-green transition hover:bg-ed-tint cursor-pointer"
                         onClick={resetAllFilters}
                       >
                         Reset semua filter
@@ -607,7 +603,7 @@ export function PublicPackagesView({
                             <button
                               key={otherBranch.id}
                               type="button"
-                              className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-dd-line/80 bg-white px-4 text-sm font-semibold text-dd-forest shadow-sm transition hover:border-dd-forest hover:bg-dd-forest/5 cursor-pointer"
+                              className="inline-flex min-h-11 items-center gap-2 rounded-none border border-ed-line/80 bg-white px-4 text-sm font-semibold text-ed-green transition hover:border-ed-green hover:bg-ed-green/5 cursor-pointer"
                               onClick={() => void selectBranch(otherBranch.id)}
                             >
                               <MapPin className="size-4" />
@@ -623,7 +619,7 @@ export function PublicPackagesView({
 
             {status === 'ready' && visible.length > 0 && (
               <>
-                <p className="mt-4 pr-20 text-xs sm:text-sm font-medium text-dd-muted sm:pr-0">
+                <p className="mt-4 pr-20 text-xs sm:text-sm font-medium text-ed-muted sm:pr-0">
                   {packageJourneyCopy(session ?? null)}
                 </p>
                 <div className="mt-4 grid gap-6 md:grid-cols-2" aria-label="Daftar paket aktif">
@@ -633,28 +629,28 @@ export function PublicPackagesView({
                     const href = packageCtaHref(audience, purchase);
                     return (
                       <article
-                        className={`flex min-h-[340px] flex-col rounded-2xl border bg-white/95 p-6 shadow-dd-card transition-all duration-300 hover:shadow-dd-float hover:-translate-y-0.5 sm:p-7 ${
+                        className={`flex min-h-[340px] flex-col rounded-none border bg-white/95 p-6  transition-all duration-300 hover: hover:-translate-y-0.5 sm:p-7 ${
                           recommended
-                            ? 'border-dd-brass ring-1 ring-dd-brass/30'
-                            : 'border-dd-line/80'
+                            ? 'border-ed-green ring-1 ring-ed-green/30'
+                            : 'border-ed-line/80'
                         }`}
                         key={item.id}
                       >
                         <div className="flex min-h-7 flex-wrap items-start justify-between gap-2">
-                          <span className="inline-flex items-center rounded-full bg-dd-forest/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-dd-forest">
+                          <span className="inline-flex items-center rounded-full bg-ed-green/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-ed-green">
                             {item.classType.name}
                           </span>
                           {recommended && (
-                            <span className="inline-flex items-center gap-1.5 rounded-full border border-dd-brass/40 bg-dd-brass-soft/80 px-3 py-0.5 text-[11px] font-semibold tracking-wider text-dd-brass-dark uppercase shadow-2xs">
-                              <span className="size-1.5 rounded-full bg-dd-brass" />
+                            <span className="inline-flex items-center gap-1.5 rounded-full border border-ed-green/40 bg-ed-mist/80 px-3 py-0.5 text-[11px] font-semibold tracking-wider text-ed-green uppercase ">
+                              <span className="size-1.5 rounded-full bg-ed-green" />
                               Direkomendasikan
                             </span>
                           )}
                         </div>
-                        <h3 className="mt-3 font-sans text-2xl sm:text-3xl font-bold tracking-tight text-dd-ink">
+                        <h3 className="mt-3 font-sans text-2xl sm:text-3xl font-bold tracking-tight text-ed-ink">
                           {item.name}
                         </h3>
-                        <p className="mt-1 text-xs sm:text-sm text-dd-muted">
+                        <p className="mt-1 text-xs sm:text-sm text-ed-muted">
                           {packageDescriptor(item, visible, recommendedId)}
                         </p>
                         <div className="mt-4">
@@ -665,19 +661,19 @@ export function PublicPackagesView({
                             sessionCount={item.sessionCount}
                           />
                         </div>
-                        <dl className="mt-5 grid grid-cols-2 gap-4 border-y border-dd-line/60 py-4">
+                        <dl className="mt-5 grid grid-cols-2 gap-4 border-y border-ed-line/60 py-4">
                           <div>
-                            <dt className="text-xs font-semibold text-dd-muted">Jumlah sesi</dt>
-                            <dd className="mt-1 font-sans text-lg sm:text-xl font-semibold text-dd-ink">{item.sessionCount} sesi</dd>
+                            <dt className="text-xs font-semibold text-ed-muted">Jumlah sesi</dt>
+                            <dd className="mt-1 font-sans text-lg sm:text-xl font-semibold text-ed-ink">{item.sessionCount} sesi</dd>
                           </div>
                           <div>
-                            <dt className="text-xs font-semibold text-dd-muted">Masa berlaku</dt>
-                            <dd className="mt-1 font-sans text-lg sm:text-xl font-semibold text-dd-ink">{item.durationDays} hari</dd>
+                            <dt className="text-xs font-semibold text-ed-muted">Masa berlaku</dt>
+                            <dd className="mt-1 font-sans text-lg sm:text-xl font-semibold text-ed-ink">{item.durationDays} hari</dd>
                           </div>
                         </dl>
                         <div className="mt-auto grid gap-3 pt-5">
-                          <p className="flex items-center gap-2 text-xs font-medium text-dd-muted">
-                            <CalendarDays className="size-4 shrink-0 text-dd-forest" aria-hidden="true" />
+                          <p className="flex items-center gap-2 text-xs font-medium text-ed-muted">
+                            <CalendarDays className="size-4 shrink-0 text-ed-green" aria-hidden="true" />
                             {item.effectiveUntil
                               ? `Tersedia sampai ${new Intl.DateTimeFormat('id-ID', {
                                   dateStyle: 'medium',
@@ -685,7 +681,7 @@ export function PublicPackagesView({
                               : 'Tersedia untuk pembelian'}
                           </p>
                           {audience === 'STAFF' && (
-                            <p className="rounded-xl bg-dd-surface-muted px-3 py-2 text-xs leading-5 text-dd-muted">
+                            <p className="rounded-none bg-ed-tint px-3 py-2 text-xs leading-5 text-ed-muted">
                               Pembelian paket menggunakan akun customer.
                             </p>
                           )}
@@ -705,14 +701,14 @@ export function PublicPackagesView({
                     );
                   })}
                 </div>
-                <div className="mt-6 grid gap-3.5 rounded-2xl border border-dd-line/80 bg-white/95 p-5 text-xs sm:text-sm font-medium text-dd-muted shadow-dd-card sm:grid-cols-3">
+                <div className="mt-6 grid gap-3.5 rounded-none border border-ed-line/80 bg-white/95 p-5 text-xs sm:text-sm font-medium text-ed-muted sm:grid-cols-3">
                   {[
                     'Harga final mengikuti studio pilihan.',
                     'Paket aktif setelah pembayaran disetujui.',
                     'Sisa sesi dapat dipantau melalui akun.',
                   ].map((item) => (
-                    <p className="flex items-start gap-2 text-dd-ink" key={item}>
-                      <Check className="mt-0.5 size-4 shrink-0 text-dd-forest" aria-hidden="true" />
+                    <p className="flex items-start gap-2 text-ed-ink" key={item}>
+                      <Check className="mt-0.5 size-4 shrink-0 text-ed-green" aria-hidden="true" />
                       {item}
                     </p>
                   ))}
@@ -722,7 +718,7 @@ export function PublicPackagesView({
           </div>
         </section>
       </main>
-      {!inCustomerShell && <PublicFooter />}
+      {!inCustomerShell && <PublicFooter variant="editorial" />}
     </div>
   );
 }

@@ -16,7 +16,6 @@ import {
   DetailLoading,
   PublicDetailFrame,
   RelatedSchedules,
-  publicContainer,
   publicSecondaryButton,
 } from '../../components/public/public-detail-shared';
 import { PackagePrice } from '../../components/public/package-price';
@@ -66,8 +65,8 @@ export function StudioDetailView({
             imageKey={item.publicProfile.heroImageKey}
             facts={
               <div className="flex flex-wrap gap-3 text-sm">
-                <span className="inline-flex items-center gap-2 rounded-full border border-dd-line bg-white px-4 py-2">
-                  <MapPin className="size-4 text-dd-forest" />
+                <span className="inline-flex items-center gap-2 rounded-full border border-ed-line bg-white px-4 py-2">
+                  <MapPin className="size-4 text-ed-green" />
                   {item.publicProfile.address}
                 </span>
               </div>
@@ -81,7 +80,7 @@ export function StudioDetailView({
               </>
             }
           />
-          <section className={`${publicContainer} grid gap-8 py-10 lg:grid-cols-[1fr_0.72fr]`}>
+          <section className={`ed-wrap grid gap-8 py-10 lg:grid-cols-[1fr_0.72fr]`}>
             <div>
               <h2 className="text-3xl font-semibold">Galeri studio</h2>
               <div className="mt-5 grid gap-4 sm:grid-cols-2">
@@ -89,7 +88,7 @@ export function StudioDetailView({
                   .filter((k): k is string => Boolean(k) && k !== 'null')
                   .map((key, index) => (
                     <div
-                      className={`relative min-h-56 overflow-hidden rounded-dd-lg border border-dd-line ${index === 0 ? 'sm:col-span-2 sm:min-h-80' : ''}`}
+                      className={`relative min-h-56 overflow-hidden rounded-none border border-ed-line ${index === 0 ? 'sm:col-span-2 sm:min-h-80' : ''}`}
                       key={key}
                     >
                       <Image
@@ -104,56 +103,56 @@ export function StudioDetailView({
               </div>
             </div>
             <aside className="grid content-start gap-5">
-              <div className="rounded-dd-lg border border-dd-line bg-white p-6 shadow-dd-card">
-                <Clock3 className="size-6 text-dd-forest" />
+              <div className="rounded-none border border-ed-line bg-white p-6 ">
+                <Clock3 className="size-6 text-ed-green" />
                 <h2 className="mt-4 text-xl font-semibold">Jam buka</h2>
                 <dl className="mt-4 grid gap-3 text-sm">
                   {(item.publicProfile.openingHours ?? []).map((row) => (
                     <div className="flex justify-between gap-4" key={row.days}>
-                      <dt className="text-dd-muted">{row.days}</dt>
+                      <dt className="text-ed-muted">{row.days}</dt>
                       <dd className="font-semibold">{row.hours}</dd>
                     </div>
                   ))}
                 </dl>
               </div>
-              <div className="rounded-dd-lg border border-dd-line bg-dd-paper p-6">
+              <div className="rounded-none border border-ed-line bg-ed-cream p-6">
                 <h2 className="text-xl font-semibold">Fasilitas</h2>
                 <ul className="mt-4 grid list-none gap-3 p-0 text-sm">
                   {(item.publicProfile.amenities ?? []).map((value) => (
                     <li className="flex gap-2" key={value}>
-                      <Check className="size-4 text-dd-forest" />
+                      <Check className="size-4 text-ed-green" />
                       {value}
                     </li>
                   ))}
                 </ul>
               </div>
-              <div className="rounded-dd-lg border border-dd-line bg-white p-6">
+              <div className="rounded-none border border-ed-line bg-white p-6">
                 <h2 className="text-xl font-semibold">Petunjuk kedatangan</h2>
-                <p className="mt-3 text-sm leading-6 text-dd-muted">
+                <p className="mt-3 text-sm leading-6 text-ed-muted">
                   {item.publicProfile.arrivalInformation}
                 </p>
                 {item.publicProfile.parkingInformation && (
-                  <p className="mt-3 text-sm leading-6 text-dd-muted">
+                  <p className="mt-3 text-sm leading-6 text-ed-muted">
                     {item.publicProfile.parkingInformation}
                   </p>
                 )}
               </div>
             </aside>
           </section>
-          <section className="border-y border-dd-line bg-white py-10">
-            <div className={publicContainer}>
+          <section className="border-y border-ed-line bg-white py-10">
+            <div className="ed-wrap">
               <h2 className="text-3xl font-semibold">Kelas di studio ini</h2>
               <div className="mt-5 grid gap-4 md:grid-cols-3">
                 {item.classes.map((entry) => (
                   <article
-                    className="rounded-dd-lg border border-dd-line bg-dd-cream p-5"
+                    className="rounded-none border border-ed-line bg-ed-cream p-5"
                     key={entry.code}
                   >
-                    <p className="text-xs font-bold text-dd-forest uppercase">
+                    <p className="text-xs font-bold text-ed-green uppercase">
                       {classLevelLabel(entry.profile.level)}
                     </p>
                     <h3 className="mt-2 text-xl font-semibold">{entry.name}</h3>
-                    <p className="mt-2 text-sm leading-6 text-dd-muted">{entry.profile.summary}</p>
+                    <p className="mt-2 text-sm leading-6 text-ed-muted">{entry.profile.summary}</p>
                     <Link
                       className={`${publicSecondaryButton} mt-4`}
                       href={`/classes/${entry.profile.slug}`}
@@ -165,7 +164,7 @@ export function StudioDetailView({
               </div>
             </div>
           </section>
-          <section className={`${publicContainer} grid gap-10 py-10 lg:grid-cols-2`}>
+          <section className={`ed-wrap grid gap-10 py-10 lg:grid-cols-2`}>
             <div>
               <h2 className="text-3xl font-semibold">Jadwal berikutnya</h2>
               <div className="mt-5">
@@ -177,13 +176,13 @@ export function StudioDetailView({
               <div className="mt-5 grid gap-3">
                 {item.packages.slice(0, 4).map((pkg) => (
                   <Link
-                    className="flex items-center justify-between gap-4 rounded-dd-md border border-dd-line bg-white p-4 text-dd-ink no-underline"
+                    className="flex items-center justify-between gap-4 rounded-none border border-ed-line bg-white p-4 text-ed-ink no-underline"
                     href={`/packages/${pkg.id}`}
                     key={pkg.id}
                   >
                     <span>
                       <strong className="block">{pkg.name}</strong>
-                      <small className="text-dd-muted">
+                      <small className="text-ed-muted">
                         {pkg.sessionCount} sesi · {pkg.durationDays} hari
                       </small>
                     </span>

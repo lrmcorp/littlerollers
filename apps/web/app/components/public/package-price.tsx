@@ -28,28 +28,28 @@ export function PackagePrice({
       {promoted && (
         <div className={`flex flex-wrap items-center gap-2 ${compact ? 'justify-end' : ''}`}>
           <del
-            className="text-sm font-medium text-dd-muted"
+            className="text-sm font-medium text-ed-muted"
             aria-label={`Harga normal ${formatRupiah(priceRp)}`}
           >
             {formatRupiah(priceRp)}
           </del>
-          <span className="rounded-full bg-dd-brass-soft px-2.5 py-1 text-[11px] font-bold text-dd-brass-dark">
+          <span className="rounded-full bg-ed-mist px-2.5 py-1 text-[11px] font-bold text-ed-green">
             {promotion?.label}
           </span>
         </div>
       )}
       <strong
-        className={compact ? 'font-sans text-base text-dd-forest font-bold' : 'font-sans text-3xl sm:text-4xl tracking-tight text-dd-forest font-bold'}
+        className={compact ? 'font-sans text-base text-ed-green font-bold' : 'font-sans text-3xl sm:text-4xl tracking-tight text-ed-green font-bold'}
       >
         {formatRupiah(effectivePriceRp)}
       </strong>
       {promoted && !compact && (
-        <span className="text-xs font-semibold text-dd-brass-dark">
+        <span className="text-xs font-semibold text-ed-green">
           Hemat {formatRupiah(promotion?.discountRp ?? 0)}
         </span>
       )}
       {sessionCount && !compact && (
-        <span className="text-sm text-dd-muted">
+        <span className="text-sm text-ed-muted">
           {formatRupiah(Math.round(effectivePriceRp / sessionCount))} per sesi
         </span>
       )}

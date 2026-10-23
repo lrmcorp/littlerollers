@@ -18,6 +18,7 @@ import { useActiveBranchState, useSessionContext } from '../session-context';
 import { Button, ButtonLink } from '../components/actions';
 import { Drawer, Modal, useAppFeedback } from '../components/app-feedback';
 import { Badge, FilterBar, Pagination, Panel, StatCard, Tabs } from '../components/admin/admin-ui';
+import { ADMIN_PAGE_SIZE } from '../lib/pagination';
 import {
   AsyncSearchSelect,
   DateInput,
@@ -267,7 +268,7 @@ export function LedgerView({
         appliedStatus || undefined,
         customerUserId,
         balancePage,
-        20,
+        ADMIN_PAGE_SIZE,
       );
       if (request !== listRequest.current) return;
       setItems(result.items);
@@ -303,7 +304,7 @@ export function LedgerView({
         safeIsoDate(appliedAdjustmentUntil, true),
         undefined,
         adjustmentPage,
-        20,
+        ADMIN_PAGE_SIZE,
       );
       if (request !== adjustmentRequest.current) return;
       setAdjustments(result.items);
@@ -769,7 +770,7 @@ export function LedgerView({
                       : balancePage
                 }
                 totalItems={balanceTotalItems || (summary?.packageCount ?? items.length)}
-                pageSize={20}
+                pageSize={ADMIN_PAGE_SIZE}
                 showPageNumbers={balanceTotalPages > 1}
                 hasPrevious={balancePage > 1 || Boolean(balanceCursor) || Boolean(previousCursor)}
                 hasNext={Boolean(nextCursor) || balancePage < balanceTotalPages}
@@ -1055,7 +1056,7 @@ export function LedgerView({
                         : adjustmentPage
                   }
                   totalItems={adjustmentTotalItems || (adjustmentSummary?.total ?? adjustments.length)}
-                  pageSize={20}
+                  pageSize={ADMIN_PAGE_SIZE}
                   showPageNumbers={adjustmentTotalPages > 1}
                   hasPrevious={
                     adjustmentPage > 1 ||

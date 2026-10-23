@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AppFeedbackProvider } from '../components/app-feedback';
+import { ADMIN_PAGE_SIZE } from '../lib/pagination';
 import { IdentityReviewView } from './review-view';
 
 const reviewCase = {
@@ -125,7 +126,7 @@ describe('professional identity verification queue', () => {
 
     await waitFor(() =>
       expect(client.reviewQueue).toHaveBeenLastCalledWith(
-        expect.objectContaining({ q: 'Ayu', status: 'PENDING', limit: 20 }),
+        expect.objectContaining({ q: 'Ayu', status: 'PENDING', limit: ADMIN_PAGE_SIZE }),
       ),
     );
     expect(window.location.search).toContain('q=Ayu');

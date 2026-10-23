@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, SlidersHorizontal } from 'lucide-react';
 import {
   browserClassSlotClient,
   classSlotFailure,
@@ -95,11 +95,19 @@ export function ClassSlotView({
   const [busy, setBusy] = useState(false);
   const [panelDirty, setPanelDirty] = useState(false);
   const [selectedMobileDay, setSelectedMobileDay] = useState<string>('ALL');
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const displayTimezone = branch?.timezone ?? branches[0]?.timezone ?? 'Asia/Jakarta';
   const week = useMemo(
     () => (branch || globalMode ? weekWindow(reference, displayTimezone) : null),
     [branch, displayTimezone, globalMode, reference],
   );
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (statusFilter !== 'ALL') count++;
+    if (classTypeFilter) count++;
+    if (instructorFilter) count++;
+    return count;
+  }, [statusFilter, classTypeFilter, instructorFilter]);
 
   const load = useCallback(async () => {
     if (!canRead || (!branch && !globalMode) || !week) return;
@@ -273,7 +281,7 @@ export function ClassSlotView({
         key={slot.id}
         onClick={() => openPanel({ kind: 'detail', slot })}
       >
-        <div className="flex flex-col items-start gap-1 text-xs font-bold text-dd-ink">
+        <div className="flex items-center justify-between gap-1.5 w-full flex-wrap xl:flex-col xl:items-start 2xl:flex-row 2xl:items-center 2xl:justify-between text-xs font-bold text-dd-ink">
           <span className="whitespace-nowrap">
             {formatBranchTime(slot.startAt, slot.timezone)}–
             {formatBranchTime(slot.endAt, slot.timezone)}
@@ -343,36 +351,101 @@ export function ClassSlotView({
       )}
 
       {/* Toolbar & Filter Panel */}
-      <div className="rounded-2xl border border-dd-line/80 bg-white p-5 shadow-dd-card space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-dd-line/60" aria-label="Kontrol timetable">
-          <div className="flex items-center gap-2">
-            <Button variant="secondary" size="sm" onClick={() => setReference(shiftWeek(reference, -1))}>
-              <span className="inline-flex items-center gap-1">
-                <ChevronLeft className="size-4" />
-                <span className="hidden sm:inline">Minggu sebelumnya</span>
-              </span>
-            </Button>
-            <Button variant="secondary" size="sm" onClick={() => setReference(new Date())}>
-              Hari ini
-            </Button>
-            <Button variant="secondary" size="sm" onClick={() => setReference(shiftWeek(reference, 1))}>
-              <span className="inline-flex items-center gap-1">
-                <span className="hidden sm:inline">Minggu berikutnya</span>
-                <ChevronRight className="size-4" />
-              </span>
+      <div className="rounded-2xl border border-dd-line/80 bg-white p-4 sm:p-5 shadow-dd-card space-y-4">
+        <div
+          className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 pb-4 border-b border-dd-line/60"
+          aria-label="Kontrol timetable"
+        >
+          <div className="flex items-center justify-between gap-2 sm:gap-4 flex-1">
+            <div className="flex items-center gap-1.5 shrink-0">
+              <Button
+                variant="secondary"
+                size="sm"
+                aria-label="Minggu sebelumnya"
+                onClick={() => setReference(shiftWeek(reference, -1))}
+              >
+                <span className="inline-flex items-center gap-1">
+                  <ChevronLeft className="size-4" />
+                  <span className="hidden sm:inline">Minggu sebelumnya</span>
+                </span>
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setReference(new Date())}
+              >
+                Hari ini
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                aria-label="Minggu berikutnya"
+                onClick={() => setReference(shiftWeek(reference, 1))}
+              >
+                <span className="inline-flex items-center gap-1">
+                  <span className="hidden sm:inline">Minggu berikutnya</span>
+                  <ChevronRight className="size-4" />
+                </span>
+              </Button>
+            </div>
+            <strong
+              className="text-xs sm:text-base font-bold text-dd-ink text-right sm:text-center flex-1"
+              aria-live="polite"
+            >
+              {week?.label}
+            </strong>
+          </div>
+          <div className="shrink-0 w-full sm:w-auto">
+            <Button
+              className="w-full sm:w-auto min-h-[40px] sm:min-h-0"
+              disabled={!canCreateSlot}
+              title={
+                !canManage
+                  ? 'Akses membuat kelas memerlukan izin class-slot:manage'
+                  : undefined
+              }
+              onClick={() => openPanel({ kind: 'create' })}
+            >
+              Buat kelas
             </Button>
           </div>
-          <strong className="text-base font-bold text-dd-ink" aria-live="polite">{week?.label}</strong>
-          <Button
-            disabled={!canCreateSlot}
-            title={!canManage ? 'Akses membuat kelas memerlukan izin class-slot:manage' : undefined}
-            onClick={() => openPanel({ kind: 'create' })}
-          >
-            Buat kelas
-          </Button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3" aria-label="Filter timetable">
+        {/* Mobile Filter Toggle */}
+        <div className="sm:hidden flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => setIsFilterOpen((prev) => !prev)}
+            className="inline-flex items-center gap-2 text-xs font-semibold text-dd-forest bg-dd-forest/10 hover:bg-dd-forest/20 px-3 py-2 rounded-lg transition"
+            aria-expanded={isFilterOpen}
+          >
+            <SlidersHorizontal className="size-3.5" />
+            <span>{isFilterOpen ? 'Tutup filter' : 'Filter & pencarian'}</span>
+            {activeFilterCount > 0 && (
+              <span className="rounded-full bg-dd-forest text-white text-[10px] px-1.5 py-0.5 font-bold">
+                {activeFilterCount}
+              </span>
+            )}
+          </button>
+          {activeFilterCount > 0 && (
+            <button
+              type="button"
+              onClick={() => {
+                setStatusFilter('ALL');
+                setClassTypeFilter('');
+                setInstructorFilter('');
+              }}
+              className="text-xs text-dd-muted hover:text-dd-ink underline"
+            >
+              Reset filter
+            </button>
+          )}
+        </div>
+
+        <div
+          className={`${isFilterOpen ? 'grid' : 'hidden sm:grid'} grid-cols-1 sm:grid-cols-3 gap-3`}
+          aria-label="Filter timetable"
+        >
           <SelectInput
             label="Status"
             value={statusFilter}
@@ -416,8 +489,8 @@ export function ClassSlotView({
         />
       ) : (
         <>
-          {/* Desktop & Tablet 7-Column Grid with Horizontal Scroll on Medium Screens */}
-          <div className="hidden md:block overflow-x-auto pb-4 -mx-2 px-2 sm:mx-0 sm:px-0">
+          {/* Desktop 7-Column Grid (≥ xl, 1280px+) */}
+          <div className="hidden xl:block overflow-x-auto pb-4 -mx-2 px-2 sm:mx-0 sm:px-0">
             <div
               className="grid grid-cols-7 gap-3 items-start min-w-[940px] xl:min-w-0"
               role="region"
@@ -452,8 +525,8 @@ export function ClassSlotView({
             </div>
           </div>
 
-          {/* Mobile Agenda View with 1-Tap Day Filter */}
-          <div className="md:hidden flex flex-col gap-4" aria-label="Agenda kelas mingguan">
+          {/* Mobile & Tablet Agenda View with 1-Tap Day Filter (< xl) */}
+          <div className="xl:hidden flex flex-col gap-4" aria-label="Agenda kelas mingguan">
             {/* Quick Day Selector Strip */}
             <div
               className="flex items-center gap-1.5 overflow-x-auto pb-2 no-scrollbar"
@@ -463,7 +536,7 @@ export function ClassSlotView({
               <button
                 type="button"
                 onClick={() => setSelectedMobileDay('ALL')}
-                className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
                   selectedMobileDay === 'ALL'
                     ? 'bg-dd-forest text-white shadow-xs'
                     : 'bg-dd-surface-muted text-dd-muted hover:text-dd-ink border border-dd-line/60'
@@ -474,6 +547,9 @@ export function ClassSlotView({
               {week?.days.map((day) => {
                 const daySlots = grouped.get(day) ?? [];
                 const isSelected = selectedMobileDay === day;
+                const dayNum = day.slice(8, 10);
+                const dayName = formatBranchDay(day, displayTimezone).slice(0, 3);
+                const isToday = localDateKey(new Date(), displayTimezone) === day;
                 return (
                   <button
                     key={day}
@@ -485,7 +561,13 @@ export function ClassSlotView({
                         : 'bg-dd-surface-muted text-dd-muted hover:text-dd-ink border border-dd-line/60'
                     }`}
                   >
-                    <span>{formatBranchDay(day, displayTimezone).slice(0, 3)}</span>
+                    {isToday && (
+                      <span
+                        className={`size-1.5 rounded-full ${isSelected ? 'bg-white' : 'bg-dd-forest'}`}
+                        title="Hari ini"
+                      />
+                    )}
+                    <span>{dayName}, {dayNum}</span>
                     <span
                       className={`text-[10px] px-1 rounded-full ${
                         isSelected ? 'bg-white/25 text-white' : 'bg-dd-line text-dd-muted'
@@ -498,33 +580,52 @@ export function ClassSlotView({
               })}
             </div>
 
-            {week?.days
-              .filter((day) => selectedMobileDay === 'ALL' || selectedMobileDay === day)
-              .map((day) => {
-                const daySlots = grouped.get(day) ?? [];
-                return (
-                  <section
-                    key={day}
-                    className="rounded-2xl border border-dd-line bg-white p-4 shadow-xs flex flex-col gap-3"
-                  >
-                    <h2 className="text-sm font-bold text-dd-ink pb-2 border-b border-dd-line flex items-center justify-between">
-                      <span>{formatBranchDay(day, displayTimezone)}</span>
-                      <span className="text-xs font-normal text-dd-muted">
-                        {daySlots.length} sesi
-                      </span>
-                    </h2>
-                    <div className="flex flex-col gap-2.5">
-                      {daySlots.length ? (
-                        daySlots.map(slotCard)
-                      ) : (
-                        <p className="text-xs text-dd-muted italic py-2">
-                          Tidak ada kelas pada hari ini.
-                        </p>
-                      )}
-                    </div>
-                  </section>
-                );
-              })}
+            {/* Day Cards: 1-col on mobile, 2-col on tablet if ALL is active */}
+            <div
+              className={
+                selectedMobileDay === 'ALL'
+                  ? 'grid grid-cols-1 md:grid-cols-2 gap-4'
+                  : 'flex flex-col gap-4'
+              }
+            >
+              {week?.days
+                .filter((day) => selectedMobileDay === 'ALL' || selectedMobileDay === day)
+                .map((day) => {
+                  const daySlots = grouped.get(day) ?? [];
+                  const isToday = localDateKey(new Date(), displayTimezone) === day;
+                  return (
+                    <section
+                      key={day}
+                      className={`rounded-2xl border bg-white p-4 shadow-xs flex flex-col gap-3 ${
+                        isToday ? 'border-dd-forest/40 ring-1 ring-dd-forest/20' : 'border-dd-line'
+                      }`}
+                    >
+                      <h2 className="text-sm font-bold text-dd-ink pb-2 border-b border-dd-line flex items-center justify-between">
+                        <span className="flex items-center gap-1.5">
+                          {formatBranchDay(day, displayTimezone)}
+                          {isToday && (
+                            <span className="rounded-full bg-dd-forest/10 text-dd-forest text-[10px] font-semibold px-2 py-0.5">
+                              Hari ini
+                            </span>
+                          )}
+                        </span>
+                        <span className="text-xs font-normal text-dd-muted">
+                          {daySlots.length} sesi
+                        </span>
+                      </h2>
+                      <div className="flex flex-col gap-2.5">
+                        {daySlots.length ? (
+                          daySlots.map(slotCard)
+                        ) : (
+                          <p className="text-xs text-dd-muted italic py-2">
+                            Tidak ada kelas pada hari ini.
+                          </p>
+                        )}
+                      </div>
+                    </section>
+                  );
+                })}
+            </div>
           </div>
         </>
       )}

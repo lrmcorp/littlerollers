@@ -26,7 +26,6 @@ import {
   DetailHero,
   DetailLoading,
   PublicDetailFrame,
-  publicContainer,
   publicSecondaryButton,
 } from '../../components/public/public-detail-shared';
 import { PackagePrice } from '../../components/public/package-price';
@@ -110,16 +109,16 @@ export function ClassDetailView({
             imageKey={item.profile.heroImageKey}
             facts={
               <div className="flex flex-wrap gap-2.5 text-sm">
-                <span className="inline-flex items-center gap-2 rounded-full border border-dd-line bg-white px-3.5 py-2 font-medium text-dd-ink shadow-xs">
-                  <Gauge className="size-4 text-dd-forest" />
+                <span className="inline-flex items-center gap-2 rounded-full border border-ed-line bg-white px-3.5 py-2 font-medium text-ed-ink ">
+                  <Gauge className="size-4 text-ed-green" />
                   {classLevelLabel(item.profile.level)}
                 </span>
-                <span className="inline-flex items-center gap-2 rounded-full border border-dd-forest/30 bg-dd-success-soft px-3.5 py-2 font-semibold text-dd-forest shadow-xs">
-                  <Timer className="size-4 text-dd-forest" />
+                <span className="inline-flex items-center gap-2 rounded-full border border-ed-green/30 bg-dd-success-soft px-3.5 py-2 font-semibold text-ed-green ">
+                  <Timer className="size-4 text-ed-green" />
                   Durasi {item.profile.durationMinutes} Menit
                 </span>
-                <span className="inline-flex items-center gap-2 rounded-full border border-dd-line bg-white px-3.5 py-2 font-medium text-dd-ink shadow-xs">
-                  <MapPin className="size-4 text-dd-forest" />
+                <span className="inline-flex items-center gap-2 rounded-full border border-ed-line bg-white px-3.5 py-2 font-medium text-ed-ink ">
+                  <MapPin className="size-4 text-ed-green" />
                   {item.studios.length} Studio Tersedia
                 </span>
               </div>
@@ -138,37 +137,37 @@ export function ClassDetailView({
           />
 
           {/* Section 1: Tentang Kelas & Manfaat */}
-          <section className={`${publicContainer} grid gap-10 py-12 lg:grid-cols-[1fr_0.85fr]`}>
+          <section className={`ed-wrap grid gap-10 py-12 lg:grid-cols-[1fr_0.85fr]`}>
             <article className="space-y-8">
               <div>
-                <p className="text-xs font-bold tracking-[0.14em] text-dd-forest uppercase">
+                <p className="text-xs font-bold tracking-[0.14em] text-ed-green uppercase">
                   Tentang Kelas
                 </p>
-                <h2 className="mt-2 text-2xl font-bold text-dd-ink sm:text-3xl">
+                <h2 className="mt-2 text-2xl font-bold text-ed-ink sm:text-3xl">
                   Bergerak dengan Presisi & Tujuan
                 </h2>
-                <p className="mt-4 text-base leading-relaxed text-dd-muted">
+                <p className="mt-4 text-base leading-relaxed text-ed-muted">
                   {item.profile.description}
                 </p>
               </div>
 
               {/* Fokus Latihan */}
               <div className="grid gap-4 sm:grid-cols-2">
-                <div className="rounded-dd-lg border border-dd-line bg-white p-5 shadow-xs">
-                  <div className="flex size-9 items-center justify-center rounded-dd-sm bg-dd-forest/10 text-dd-forest">
+                <div className="rounded-none border border-ed-line bg-white p-5 ">
+                  <div className="flex size-9 items-center justify-center rounded-none bg-ed-green/10 text-ed-green">
                     <HeartPulse className="size-5" />
                   </div>
-                  <h3 className="mt-3 text-base font-semibold text-dd-ink">Kekuatan Inti (Core)</h3>
-                  <p className="mt-1 text-xs leading-relaxed text-dd-muted">
+                  <h3 className="mt-3 text-base font-semibold text-ed-ink">Kekuatan Inti (Core)</h3>
+                  <p className="mt-1 text-xs leading-relaxed text-ed-muted">
                     Melatih otot penopang tubuh bagian dalam untuk stabilitas maksimal.
                   </p>
                 </div>
-                <div className="rounded-dd-lg border border-dd-line bg-white p-5 shadow-xs">
-                  <div className="flex size-9 items-center justify-center rounded-dd-sm bg-dd-forest/10 text-dd-forest">
+                <div className="rounded-none border border-ed-line bg-white p-5 ">
+                  <div className="flex size-9 items-center justify-center rounded-none bg-ed-green/10 text-ed-green">
                     <Dumbbell className="size-5" />
                   </div>
-                  <h3 className="mt-3 text-base font-semibold text-dd-ink">Postur & Keselarasan</h3>
-                  <p className="mt-1 text-xs leading-relaxed text-dd-muted">
+                  <h3 className="mt-3 text-base font-semibold text-ed-ink">Postur & Keselarasan</h3>
+                  <p className="mt-1 text-xs leading-relaxed text-ed-muted">
                     Memperbaiki pola gerak harian dan meredakan ketegangan otot leher serta
                     punggung.
                   </p>
@@ -178,18 +177,18 @@ export function ClassDetailView({
               {/* Manfaat Kelas */}
               {item.profile.benefits && item.profile.benefits.length > 0 && (
                 <div>
-                  <h3 className="flex items-center gap-2 text-xl font-bold text-dd-ink">
-                    <CheckCircle2 className="size-5 text-dd-forest" />
+                  <h3 className="flex items-center gap-2 text-xl font-bold text-ed-ink">
+                    <CheckCircle2 className="size-5 text-ed-green" />
                     Manfaat Utama Latihan
                   </h3>
                   <ul className="mt-4 grid gap-3 sm:grid-cols-2">
                     {item.profile.benefits.map((benefit) => (
                       <li
-                        className="flex items-start gap-3 rounded-dd-md border border-dd-line bg-white p-4 shadow-xs"
+                        className="flex items-start gap-3 rounded-none border border-ed-line bg-white p-4 "
                         key={benefit}
                       >
-                        <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-dd-forest" />
-                        <span className="text-sm font-medium text-dd-ink">{benefit}</span>
+                        <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-ed-green" />
+                        <span className="text-sm font-medium text-ed-ink">{benefit}</span>
                       </li>
                     ))}
                   </ul>
@@ -200,45 +199,45 @@ export function ClassDetailView({
             {/* Sidebar Kanan: Perlengkapan & Studio */}
             <aside className="space-y-6">
               {/* Perlengkapan */}
-              <div className="rounded-dd-lg border border-dd-line bg-white p-6 shadow-dd-card">
-                <h3 className="flex items-center gap-2 text-lg font-bold text-dd-ink">
-                  <Info className="size-5 text-dd-forest" />
+              <div className="rounded-none border border-ed-line bg-white p-6 ">
+                <h3 className="flex items-center gap-2 text-lg font-bold text-ed-ink">
+                  <Info className="size-5 text-ed-green" />
                   Peralatan Kelas
                 </h3>
-                <p className="mt-2 text-xs leading-relaxed text-dd-muted">
+                <p className="mt-2 text-xs leading-relaxed text-ed-muted">
                   Peralatan berikut disediakan oleh studio untuk kelas ini:
                 </p>
                 <ul className="mt-4 space-y-2.5">
                   {item.profile.equipment.map((value) => (
-                    <li key={value} className="flex items-center gap-2.5 text-sm text-dd-ink">
-                      <span className="size-2 rounded-full bg-dd-forest" />
+                    <li key={value} className="flex items-center gap-2.5 text-sm text-ed-ink">
+                      <span className="size-2 rounded-full bg-ed-green" />
                       {value}
                     </li>
                   ))}
                 </ul>
-                <div className="mt-4 rounded-dd-sm border border-dd-line/80 bg-dd-paper p-3 text-xs leading-relaxed text-dd-muted">
-                  <strong className="block font-semibold text-dd-ink">Perlengkapan Peserta:</strong>
+                <div className="mt-4 rounded-none border border-ed-line/80 bg-ed-cream p-3 text-xs leading-relaxed text-ed-muted">
+                  <strong className="block font-semibold text-ed-ink">Perlengkapan Peserta:</strong>
                   Peralatan reformer dan perlengkapan latihan disediakan lengkap oleh studio. Anda cukup membawa kaus kaki antiselip (<em>grip socks</em>) dan pakaian olahraga yang nyaman.
                 </div>
               </div>
 
               {/* Studio Tersedia */}
-              <div className="rounded-dd-lg border border-dd-line bg-dd-paper p-6">
-                <h3 className="flex items-center gap-2 text-lg font-bold text-dd-ink">
-                  <MapPin className="size-5 text-dd-forest" />
+              <div className="rounded-none border border-ed-line bg-ed-cream p-6">
+                <h3 className="flex items-center gap-2 text-lg font-bold text-ed-ink">
+                  <MapPin className="size-5 text-ed-green" />
                   Studio yang Menyediakan Kelas Ini
                 </h3>
                 <div className="mt-4 space-y-2.5">
                   {item.studios.map((studio) => (
                     <Link
-                      className="block rounded-dd-md border border-dd-line bg-white p-4 no-underline transition-colors hover:border-dd-forest"
+                      className="block rounded-none border border-ed-line bg-white p-4 no-underline transition-colors hover:border-ed-green"
                       href={`/locations/${studio.publicProfile.slug}`}
                       key={studio.id}
                     >
-                      <strong className="block text-sm font-semibold text-dd-ink">
+                      <strong className="block text-sm font-semibold text-ed-ink">
                         {studio.name}
                       </strong>
-                      <span className="mt-1 block text-xs text-dd-muted">
+                      <span className="mt-1 block text-xs text-ed-muted">
                         {[studio.publicProfile.area, studio.publicProfile.city].filter(Boolean).join(', ')}
                       </span>
                     </Link>
@@ -250,14 +249,14 @@ export function ClassDetailView({
 
           {/* Section 2: Paket Kelas Terkait */}
           {item.packages.length > 0 && (
-            <section className="border-y border-dd-line bg-white py-12">
-              <div className={publicContainer}>
+            <section className="border-y border-ed-line bg-white py-12">
+              <div className="ed-wrap">
                 <div className="flex flex-wrap items-center justify-between gap-4">
                   <div>
-                    <p className="text-xs font-bold tracking-[0.14em] text-dd-forest uppercase">
+                    <p className="text-xs font-bold tracking-[0.14em] text-ed-green uppercase">
                       Pilihan Paket
                     </p>
-                    <h2 className="mt-1 text-2xl font-bold text-dd-ink sm:text-3xl">
+                    <h2 className="mt-1 text-2xl font-bold text-ed-ink sm:text-3xl">
                       Paket Terkait Kelas Ini
                     </h2>
                   </div>
@@ -269,15 +268,15 @@ export function ClassDetailView({
                 <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                   {item.packages.slice(0, 6).map((pkg) => (
                     <article
-                      className="flex flex-col justify-between rounded-dd-lg border border-dd-line bg-dd-paper p-6 shadow-xs transition-shadow hover:shadow-dd-card"
+                      className="flex flex-col justify-between rounded-none border border-ed-line bg-ed-cream p-6 transition-shadow hover:"
                       key={`${pkg.id}:${pkg.branch.id}`}
                     >
                       <div>
                         <span className="inline-block rounded-full bg-dd-success-soft px-2.5 py-0.5 text-[11px] font-bold text-dd-success uppercase">
                           {pkg.branch.name}
                         </span>
-                        <h3 className="mt-3 text-xl font-bold text-dd-ink">{pkg.name}</h3>
-                        <p className="mt-2 text-xs leading-relaxed text-dd-muted">
+                        <h3 className="mt-3 text-xl font-bold text-ed-ink">{pkg.name}</h3>
+                        <p className="mt-2 text-xs leading-relaxed text-ed-muted">
                           {pkg.publicProfile.summary}
                         </p>
                         <div className="mt-4">
@@ -289,7 +288,7 @@ export function ClassDetailView({
                           />
                         </div>
                       </div>
-                      <div className="mt-6 border-t border-dd-line pt-4">
+                      <div className="mt-6 border-t border-ed-line pt-4">
                         <Link
                           className={`${publicSecondaryButton} w-full justify-center`}
                           href={`/packages/${pkg.id}`}
@@ -306,13 +305,13 @@ export function ClassDetailView({
 
           {/* Section 3: Jadwal Mendatang */}
           {item.schedules.length > 0 && (
-            <section className={`${publicContainer} py-12`}>
+            <section className={`ed-wrap py-12`}>
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
-                  <p className="text-xs font-bold tracking-[0.14em] text-dd-forest uppercase">
+                  <p className="text-xs font-bold tracking-[0.14em] text-ed-green uppercase">
                     Jadwal Terdekat
                   </p>
-                  <h2 className="mt-1 text-2xl font-bold text-dd-ink sm:text-3xl">
+                  <h2 className="mt-1 text-2xl font-bold text-ed-ink sm:text-3xl">
                     Sesi {classNameFormatted} Mendatang
                   </h2>
                 </div>
@@ -333,11 +332,11 @@ export function ClassDetailView({
                     <Link
                       key={schedule.id}
                       href={`/schedule/${schedule.id}`}
-                      className="group flex flex-col justify-between rounded-dd-lg border border-dd-line bg-white p-5 no-underline shadow-xs transition-all hover:border-dd-forest hover:shadow-dd-card"
+                      className="group flex flex-col justify-between rounded-none border border-ed-line bg-white p-5 no-underline transition-all hover:border-ed-green hover:"
                     >
                       <div>
                         <div className="flex items-center justify-between gap-2">
-                          <span className="inline-flex items-center gap-1.5 text-xs font-bold text-dd-forest">
+                          <span className="inline-flex items-center gap-1.5 text-xs font-bold text-ed-green">
                             <CalendarDays className="size-4" />
                             {new Intl.DateTimeFormat('id-ID', {
                               weekday: 'short',
@@ -358,8 +357,8 @@ export function ClassDetailView({
                             {schedule.available < 1 ? 'Penuh' : `${schedule.available} tempat`}
                           </span>
                         </div>
-                        <div className="mt-3 flex items-center gap-2 text-sm font-semibold text-dd-ink">
-                          <Clock3 className="size-4 text-dd-muted" />
+                        <div className="mt-3 flex items-center gap-2 text-sm font-semibold text-ed-ink">
+                          <Clock3 className="size-4 text-ed-muted" />
                           <span>
                             {new Intl.DateTimeFormat('id-ID', {
                               hour: '2-digit',
@@ -374,17 +373,17 @@ export function ClassDetailView({
                             }).format(sEnd)}{' '}
                             WIB
                           </span>
-                          <span className="text-xs text-dd-muted">({sDuration}m)</span>
+                          <span className="text-xs text-ed-muted">({sDuration}m)</span>
                         </div>
                         {schedule.branch && (
-                          <div className="mt-2 flex items-center gap-1.5 text-xs text-dd-muted">
+                          <div className="mt-2 flex items-center gap-1.5 text-xs text-ed-muted">
                             <MapPin className="size-3.5" />
                             <span>{schedule.branch.name}</span>
                           </div>
                         )}
                       </div>
-                      <div className="mt-4 border-t border-dd-line pt-3 text-right">
-                        <span className="inline-flex items-center gap-1 text-xs font-bold text-dd-forest group-hover:underline">
+                      <div className="mt-4 border-t border-ed-line pt-3 text-right">
+                        <span className="inline-flex items-center gap-1 text-xs font-bold text-ed-green group-hover:underline">
                           <span>Detail & Booking</span>
                           <ArrowRight className="size-3.5" />
                         </span>

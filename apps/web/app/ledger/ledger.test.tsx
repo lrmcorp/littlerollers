@@ -6,6 +6,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { browserLedgerClient, type LedgerClient } from '@/api-clients/ledger-client';
 import { LedgerView } from '@/ledger/ledger-view';
 import { AppFeedbackProvider } from '@/components/app-feedback';
+import { ADMIN_PAGE_SIZE } from '../lib/pagination';
 
 const balance = {
   id: 'cp-1',
@@ -173,15 +174,15 @@ describe('synthetic ledger UI', () => {
         items: [balance],
         summary: { packageCount: 25, ledgerBalance: 10, reserved: 2, available: 8 },
         total: 25,
-        totalPages: 2,
+        totalPages: 3,
         currentPage: page ?? 1,
-        pageSize: 20,
+        pageSize: ADMIN_PAGE_SIZE,
         nextCursor: null,
       }),
     );
     renderLedger(<LedgerView client={fake({ list })} />);
-    expect(await screen.findByText(/Halaman 1 dari 2/)).toBeInTheDocument();
-    expect(screen.getByText(/Menampilkan 1–20 dari 25/)).toBeInTheDocument();
+    expect(await screen.findByText(/Halaman 1 dari 3/)).toBeInTheDocument();
+    expect(screen.getByText(/Menampilkan 1–10 dari 25/)).toBeInTheDocument();
     const page2Button = screen.getByRole('button', { name: 'Halaman 2' });
     await userEvent.click(page2Button);
     await waitFor(() => {
@@ -192,7 +193,7 @@ describe('synthetic ledger UI', () => {
         undefined,
         undefined,
         2,
-        20,
+        ADMIN_PAGE_SIZE,
       );
     });
   });
@@ -213,15 +214,15 @@ describe('synthetic ledger UI', () => {
         ],
         summary: { total: 35, pending: 35, posted: 0, rejected: 0 },
         total: 35,
-        totalPages: 2,
+        totalPages: 4,
         currentPage: page ?? 1,
-        pageSize: 20,
+        pageSize: ADMIN_PAGE_SIZE,
         nextCursor: null,
       }),
     );
     renderLedger(<LedgerView client={fake({ listAdjustments })} initialWorkspaceTab="adjustments" />);
-    expect(await screen.findByText(/Halaman 1 dari 2/)).toBeInTheDocument();
-    expect(screen.getByText(/Menampilkan 1–20 dari 35/)).toBeInTheDocument();
+    expect(await screen.findByText(/Halaman 1 dari 4/)).toBeInTheDocument();
+    expect(screen.getByText(/Menampilkan 1–10 dari 35/)).toBeInTheDocument();
     const page2Button = screen.getByRole('button', { name: 'Halaman 2' });
     await userEvent.click(page2Button);
     await waitFor(() => {
@@ -235,7 +236,7 @@ describe('synthetic ledger UI', () => {
         undefined,
         undefined,
         2,
-        20,
+        ADMIN_PAGE_SIZE,
       );
     });
   });

@@ -15,7 +15,6 @@ import {
   DetailLoading,
   PublicDetailFrame,
   RelatedSchedules,
-  publicContainer,
   publicSecondaryButton,
 } from '../../components/public/public-detail-shared';
 import { PackagePrice } from '../../components/public/package-price';
@@ -91,7 +90,7 @@ export function PackageDetailView({
             }
           />
           {item.promotion && (
-            <section className={`${publicContainer} pt-8`} aria-label="Promo paket aktif">
+            <section className={`ed-wrap pt-8`} aria-label="Promo paket aktif">
               <div className="flex flex-col gap-4 rounded-dd-lg border border-dd-brass/50 bg-dd-brass-soft p-5 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-xs font-bold tracking-[0.14em] text-dd-brass-dark uppercase">
@@ -114,7 +113,7 @@ export function PackageDetailView({
               </div>
             </section>
           )}
-          <section className={`${publicContainer} grid gap-8 py-10 lg:grid-cols-[1fr_0.78fr]`}>
+          <section className={`ed-wrap grid gap-8 py-10 lg:grid-cols-[1fr_0.78fr]`}>
             <div className="grid gap-8">
               <article>
                 <p className="text-xs font-bold tracking-[0.14em] text-dd-forest uppercase">

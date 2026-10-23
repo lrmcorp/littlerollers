@@ -43,8 +43,6 @@ import {
   type InstructorCostRealtimeData,
   type InstructorCostBreakdown,
   type InstructorSessionItem,
-  type InstructorCostProjectionData,
-  type ProjectionClassTypeBreakdown,
   type OtherCostReportData,
   type OtherCostItem,
   type MonthlyProfitData,
@@ -61,7 +59,6 @@ type ReportSubTab =
   | 'PROFIT_CLOSE'
   | 'OMSET'
   | 'INSTRUCTOR_REALTIME'
-  | 'INSTRUCTOR_PROJECTION'
   | 'OTHER_COST';
 
 export function FinanceView({
@@ -109,8 +106,6 @@ export function FinanceView({
   const [omsetData, setOmsetData] = useState<OmsetReportData | null>(null);
   const [instructorRealtimeData, setInstructorRealtimeData] =
     useState<InstructorCostRealtimeData | null>(null);
-  const [instructorProjectionData, setInstructorProjectionData] =
-    useState<InstructorCostProjectionData | null>(null);
   const [otherCostData, setOtherCostData] = useState<OtherCostReportData | null>(null);
   const [editingCost, setEditingCost] = useState<OtherCostItem | null>(null);
   const canManageCosts = Boolean(context?.hasCapability('finance:manage'));
@@ -151,31 +146,28 @@ export function FinanceView({
     }
   }, [allowed, client, context?.activeBranchId, from, until]);
 
-  // Load 5 Laporan Finansial
+  // Load Laporan Finansial
   const loadReports = useCallback(async () => {
     if (
       !selectedBranchId ||
       !client.getMonthlyProfit ||
       !client.getOmsetReport ||
       !client.getInstructorCostRealtime ||
-      !client.getInstructorCostProjection ||
       !client.getOtherCostReport
     )
       return;
     setReportLoading(true);
     setReportError(null);
     try {
-      const [profit, omset, realtime, projection, other] = await Promise.all([
+      const [profit, omset, realtime, other] = await Promise.all([
         client.getMonthlyProfit(selectedBranchId, selectedPeriod),
         client.getOmsetReport(selectedBranchId, selectedPeriod),
         client.getInstructorCostRealtime(selectedBranchId, selectedPeriod),
-        client.getInstructorCostProjection(selectedBranchId, selectedPeriod),
         client.getOtherCostReport(selectedBranchId, selectedPeriod),
       ]);
       setProfitData(profit);
       setOmsetData(omset);
       setInstructorRealtimeData(realtime);
-      setInstructorProjectionData(projection);
       setOtherCostData(other);
     } catch (err: any) {
       setReportError(err.message || 'Gagal memuat laporan finansial.');
@@ -432,19 +424,6 @@ export function FinanceView({
 
             <button
               type="button"
-              onClick={() => setReportTab('INSTRUCTOR_PROJECTION')}
-              className={`flex items-center gap-2 rounded-dd-sm px-4 py-2 text-sm font-semibold transition-colors ${
-                reportTab === 'INSTRUCTOR_PROJECTION'
-                  ? 'bg-dd-forest text-white shadow-dd-soft'
-                  : 'text-dd-muted hover:bg-dd-surface-muted hover:text-dd-ink'
-              }`}
-            >
-              <FileSpreadsheet className="h-4 w-4" />
-              4. Biaya Instruktur Proyeksi
-            </button>
-
-            <button
-              type="button"
               onClick={() => setReportTab('OTHER_COST')}
               className={`flex items-center gap-2 rounded-dd-sm px-4 py-2 text-sm font-semibold transition-colors ${
                 reportTab === 'OTHER_COST'
@@ -453,7 +432,7 @@ export function FinanceView({
               }`}
             >
               <DollarSign className="h-4 w-4" />
-              5. Biaya Operasional Lain
+              4. Biaya Operasional Lain
             </button>
           </div>
 
@@ -538,10 +517,6 @@ export function FinanceView({
                         <span>{formatRupiah(profitData.adjustedNetProfitRealtimeRp)}</span>
                       </div>
                     )}
-                    <div className="flex justify-between pt-3 text-xs text-dd-muted">
-                      <span>Sebagai pembanding, Beban Instruktur Projeksi (Sesi Terjual):</span>
-                      <span>{formatRupiah(profitData.costProjectionRp)}</span>
-                    </div>
                   </div>
                 </Panel>
 
@@ -974,71 +949,7 @@ export function FinanceView({
             </div>
           )}
 
-          {/* TAB 4: COST INSTRUKTUR PROJECTION */}
-          {reportTab === 'INSTRUCTOR_PROJECTION' && instructorProjectionData && (
-            <div className="space-y-6">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <StatCard
-                  label="Total Biaya Proyeksi Instruktur"
-                  value={formatRupiah(instructorProjectionData.totalProjectionCostRp)}
-                  tone="success"
-                />
-                <StatCard
-                  label="Total Sesi Terjual"
-                  value={`${instructorProjectionData.totalSessionsSold} Sesi`}
-                  tone="neutral"
-                />
-              </div>
 
-              <Panel className="space-y-4 p-5">
-                <h3 className="text-base font-semibold">
-                  Breakdown Projeksi Beban per Kategori Kelas
-                </h3>
-                <p className="text-xs text-dd-muted">
-                  Rumus: sesi paket terjual × tarif proyeksi per sesi sesuai tanggal berlaku.
-                </p>
-
-                {instructorProjectionData.breakdown.length === 0 ? (
-                  <AdminEmptyState
-                    title="Tidak Ada Sesi Terjual"
-                    description="Belum ada penjualan paket sesi pada periode bulan ini."
-                  />
-                ) : (
-                  <DataTable<ProjectionClassTypeBreakdown>
-                    items={instructorProjectionData.breakdown}
-                    rowKey={(b) => b.classTypeId}
-                    mobileCard={(b) => (
-                      <div className="flex items-center justify-between text-xs">
-                        <div>
-                          <span className="font-semibold text-sm text-dd-ink block">{b.classTypeId}</span>
-                          <span className="text-dd-muted">{b.sessionsSold} sesi terjual · {formatRupiah(b.ratePerSesiRp)}/sesi</span>
-                        </div>
-                        <span className="font-bold text-sm text-dd-forest">{formatRupiah(b.totalCostRp)}</span>
-                      </div>
-                    )}
-                    columns={[
-                      { id: 'classTypeId', header: 'ID Jenis Kelas', cell: (b) => b.classTypeId },
-                      { id: 'sessionsSold', header: 'Sesi Terjual', cell: (b) => b.sessionsSold },
-                      {
-                        id: 'ratePerSesiRp',
-                        header: 'Rate Projeksi / Sesi',
-                        cell: (b) => formatRupiah(b.ratePerSesiRp),
-                      },
-                      {
-                        id: 'totalCostRp',
-                        header: 'Total Biaya Projeksi',
-                        cell: (b) => (
-                          <span className="font-semibold text-dd-forest">
-                            {formatRupiah(b.totalCostRp)}
-                          </span>
-                        ),
-                      },
-                    ]}
-                  />
-                )}
-              </Panel>
-            </div>
-          )}
 
           {/* TAB 5: OTHER COST */}
           {reportTab === 'OTHER_COST' && otherCostData && (

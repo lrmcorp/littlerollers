@@ -361,7 +361,7 @@ export const frontendPages: FrontendPageDefinition[] = [
     href: '/master',
     label: 'Data Master',
     shortLabel: 'Data Master',
-    description: 'Katalog tipe kelas global, cakupan, fee, tarif proyeksi, quota, dan capacity.',
+    description: 'Katalog tipe kelas global, kuota/kapasitas sesi, dan honor instruktur.',
     group: 'Pengaturan & Sistem',
     capabilities: ['master:read'],
     mutationCapabilities: ['master:manage'],

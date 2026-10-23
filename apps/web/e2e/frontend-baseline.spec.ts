@@ -239,19 +239,17 @@ test('super owner manages users while permissions remain read-only', async ({ pa
   await expect(page.getByRole('link', { name: 'Admin Green Garden' }).first()).toBeVisible();
   await page.getByRole('link', { name: 'Admin Green Garden' }).first().click();
   await expect(page).toHaveURL('/users/user-1');
-  await expect(page.getByText('security.user_invited')).toBeVisible();
+  await expect(page.getByText('User invited')).toBeVisible();
   await page.getByRole('button', { name: 'Kelola role' }).click();
   await page.getByRole('checkbox', { name: /Admin cabang/ }).uncheck();
   await page.getByRole('checkbox', { name: /Manager cabang/ }).check();
-  const roleDialog = page.getByRole('dialog', { name: 'Kelola role dan scope' });
-  await roleDialog.locator('input[role="combobox"]').fill('Jakarta');
+  const roleDialog = page.getByRole('dialog', { name: 'Kelola Role dan Cabang Penugasan' });
+  await roleDialog.getByRole('combobox', { name: 'Cabang untuk Manager cabang' }).fill('Jakarta');
   await roleDialog.getByRole('option', { name: 'Jakarta' }).click();
-  await page.getByLabel('Alasan perubahan').fill('promosi operasional');
-  await page.getByRole('button', { name: 'Simpan role dan cabut sesi' }).click();
-  await expect(page.getByText(/Role dan scope berhasil diperbarui/)).toBeVisible();
+  await roleDialog.getByRole('button', { name: 'Simpan Perubahan Role' }).click();
+  await expect(page.getByText(/Role dan cakupan berhasil diperbarui/)).toBeVisible();
   await page.getByRole('button', { name: 'Nonaktifkan' }).click();
-  await page.getByLabel('Alasan deaktivasi').fill('akses sementara dihentikan');
-  await page.getByRole('button', { name: 'Konfirmasi nonaktifkan' }).click();
+  await page.getByRole('button', { name: 'Konfirmasi Nonaktifkan' }).click();
   await expect(page.getByText(/Pengguna dinonaktifkan dan seluruh sesi dicabut/)).toBeVisible();
 });
 
@@ -366,9 +364,9 @@ test('public catalog requires a studio then shows authoritative availability', a
   });
   await page.goto('/classes');
   await expect(page.getByText('Pilih studio untuk melihat kelas')).toBeVisible();
-  await selectSearchOption(page, 'Studio', 'Green Garden');
+  await selectSearchOption(page, 'Pilih Lokasi Studio', 'Green Garden');
   await expect(page.getByRole('heading', { name: 'Private Class', exact: true })).toBeVisible();
-  await expect(page.getByText('2/4 tempat')).toBeVisible();
+  await expect(page.getByText('Sisa 2 tempat')).toBeVisible();
   await expect(page.getByRole('link', { name: 'Buka workspace kelas' })).toHaveAttribute(
     'href',
     '/workspace/classes',
@@ -421,19 +419,23 @@ test('public information routes expose approved content and official support onl
   await page.goto('/locations');
   await expect(page.getByRole('heading', { name: 'Daily Dose Jakarta' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Daily Dose BSD' })).toBeVisible();
-  await expect(page.getByText(/Surabaya|PIK 2/)).toHaveCount(0);
-  await expect(page.getByText(/Alamat lengkap, jam operasional/)).toBeVisible();
+  // Studio yang tidak disetujui tidak boleh muncul sebagai kartu studio (teks marketing umum boleh menyebut kota).
+  await expect(page.getByRole('heading', { name: /Surabaya|PIK 2/ })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: /Lihat detail/ }).first()).toBeVisible();
   await page.goto('/contact');
   await expect(page.getByRole('heading', { name: 'Ada yang ingin Anda tanyakan?' })).toBeVisible();
-  await expect(page.getByRole('link', { name: /Buka kontak resmi/ })).toHaveAttribute(
+  await expect(page.getByRole('link', { name: /Chat WhatsApp CS/ })).toHaveAttribute(
     'href',
-    'https://dailydosepilates.com/contact-us',
+    /^https:\/\/wa\.me\/\d+/,
   );
 });
 
 for (const breakpoint of breakpoints) {
   test(`public landing ${breakpoint.name}`, async ({ page }) => {
     await page.setViewportSize({ width: breakpoint.width, height: breakpoint.height });
+    // Reveal (fade-in saat scroll) langsung tampil bila reduced-motion, sehingga screenshot
+    // fullPage deterministik; perilaku Reveal sendiri diuji di reveal.test.tsx.
+    await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/');
 
     await expect(
@@ -449,8 +451,9 @@ for (const breakpoint of breakpoints) {
     await expect(
       page.getByRole('heading', { name: 'Reformer Pilates', exact: true }),
     ).toBeVisible();
-    if (breakpoint.width >= 1024) {
-      await expect(page.getByText('Akun Saya', { exact: true }).first()).toBeVisible();
+    if (breakpoint.width >= 640) {
+      // Sesi mock adalah staf (SUPER_OWNER), jadi menu akun berlabel "Staf Panel".
+      await expect(page.getByText('Staf Panel', { exact: true }).first()).toBeVisible();
     } else {
       await expect(page.getByRole('link', { name: /Buka workspace/i })).toHaveAttribute(
         'href',
@@ -468,6 +471,7 @@ for (const breakpoint of breakpoints) {
     const studioShowcase = page.getByRole('img', {
       name: 'Reception Daily Dose Pilates dengan interior hangat',
     });
+    await studioShowcase.scrollIntoViewIfNeeded(); // gambar di bawah fold dimuat lazy
     await expect
       .poll(() =>
         studioShowcase.evaluate(
@@ -482,6 +486,7 @@ for (const breakpoint of breakpoints) {
       content: document.documentElement.scrollWidth,
     }));
     expect(dimensions.content).toBeLessThanOrEqual(dimensions.viewport);
+    await page.evaluate(() => window.scrollTo(0, 0));
     await page.keyboard.press('Tab');
     await expect(page.locator(':focus-visible')).toBeVisible();
     await expect(page).toHaveScreenshot(`public-${breakpoint.name}.png`, {

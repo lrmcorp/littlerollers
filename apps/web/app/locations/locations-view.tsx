@@ -5,48 +5,29 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 
 import { accountClient, type PreferredStudio } from '@/api-clients/account-client';
-import {
-  Award,
-  Building2,
-  Calendar,
-  ChevronRight,
-  Clock,
-  Layers,
-  MapPin,
-  Search,
-  Sparkles,
-  Users,
-} from 'lucide-react';
+import { ArrowRight, ArrowUpRight, MapPin, Search } from 'lucide-react';
 import { PublicFooter } from '../components/public/public-footer';
 import { PublicHeader } from '../components/public/public-header';
+import { PublicPageHero } from '../components/public/public-page';
 import { SearchSelect, SelectInput } from '../components/forms';
 import { useSessionContext } from '../session-context';
 import { isCustomerOnlySession } from '@/lib/session-audience';
-import {
-  publicContainer as container,
-  publicPrimaryButton as primary,
-  publicSecondaryButton as secondary,
-} from '../components/public/public-styles';
 import { resolvePublicImageUrl } from '../lib/public-image-url';
 
 const studioBenefits = [
   {
-    icon: <Sparkles className="size-5 text-dd-forest" />,
     title: 'Peralatan premium',
     description: 'Peralatan Pilates berkualitas untuk latihan yang terarah.',
   },
   {
-    icon: <Users className="size-5 text-dd-forest" />,
     title: 'Kelas berukuran kecil',
     description: 'Suasana latihan yang nyaman dan lebih personal.',
   },
   {
-    icon: <Award className="size-5 text-dd-forest" />,
     title: 'Instruktur berpengalaman',
     description: 'Pendampingan instruktur dalam setiap sesi.',
   },
   {
-    icon: <Building2 className="size-5 text-dd-forest" />,
     title: 'Pilihan studio strategis',
     description: 'Pilihan studio aktif di Jakarta, Tangerang & Surabaya.',
   },
@@ -107,52 +88,23 @@ export function LocationsView() {
   }, [query, region, sort, studios]);
 
   return (
-    <div className="min-w-0 overflow-hidden bg-dd-cream font-sans text-dd-ink">
+    <div className="ed-scope min-w-0 overflow-hidden bg-ed-cream text-ed-ink">
       <a className="skip-link" href="#studios-main">
         Langsung ke daftar studio
       </a>
-      {!inCustomerShell && <PublicHeader />}
+      {!inCustomerShell && <PublicHeader variant="editorial" />}
 
       <main id="studios-main">
-        <section
-          className="relative isolate min-h-[360px] overflow-hidden"
-          aria-labelledby="studio-hero-title"
-        >
-          <Image
-            className="-z-20 object-cover object-[68%_53%]"
-            src="/images/public/studios/studio-reception.png"
-            fill
-            priority
-            sizes="100vw"
-            alt="Interior studio Daily Dose Pilates yang hangat dan terang"
-          />
-          <div className="absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgba(248,246,241,0.98)_0%,rgba(248,246,241,0.9)_39%,rgba(248,246,241,0.12)_72%)]" />
-          <div className={`${container} flex min-h-[360px] items-center`}>
-            <div className="max-w-[520px] py-12">
-              <p className="text-xs font-bold tracking-[0.13em] text-dd-forest uppercase">
-                Daily Dose Pilates
-              </p>
-              <h1
-                className="mt-3 font-sans text-[clamp(3.6rem,7vw,6rem)] leading-none font-semibold"
-                id="studio-hero-title"
-              >
-                Studio Kami
-              </h1>
-              <p className="mt-5 text-base leading-7">
-                Temukan studio Daily Dose Pilates terdekat. Setiap ruang dirancang untuk
-                menginspirasi gerak dan mendukung perjalanan wellness Anda.
-              </p>
-            </div>
-          </div>
-        </section>
+        <PublicPageHero
+          eyebrow="Daily Dose Pilates"
+          title="Studio Kami"
+          description="Temukan studio Daily Dose Pilates terdekat. Setiap ruang dirancang untuk menginspirasi gerak dan mendukung perjalanan wellness Anda."
+          titleId="studio-hero-title"
+          variant={inCustomerShell ? 'compact' : 'default'}
+        />
 
-        <section
-          className="border-y border-dd-line bg-white/65 py-5"
-          aria-label="Cari dan filter studio"
-        >
-          <div
-            className={`${container} grid grid-cols-[1fr_1fr_1fr_auto] items-end gap-4 max-[900px]:grid-cols-2 max-[540px]:grid-cols-1`}
-          >
+        <section className="border-b border-ed-line bg-ed-mist/60 py-6" aria-label="Cari dan filter studio">
+          <div className="ed-wrap grid grid-cols-[1fr_1fr_auto] items-end gap-4 max-[900px]:grid-cols-2 max-[540px]:grid-cols-1">
             <SearchSelect
               label="Wilayah"
               value={region === 'Semua lokasi' ? '' : region}
@@ -161,14 +113,17 @@ export function LocationsView() {
               onChange={(value) => setRegion(value || 'Semua lokasi')}
             />
             <div className="grid min-w-0 gap-1.5">
-              <label htmlFor="studio-search-input" className="text-sm font-semibold text-dd-ink">
+              <label htmlFor="studio-search-input" className="text-sm font-semibold text-ed-ink">
                 Cari studio
               </label>
               <div className="relative min-w-0">
-                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-dd-muted" aria-hidden="true" />
+                <Search
+                  className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-ed-muted"
+                  aria-hidden="true"
+                />
                 <input
                   id="studio-search-input"
-                  className="min-h-11 w-full rounded-dd-md border border-dd-line bg-white pl-9 pr-4 py-2 font-sans text-sm text-dd-ink shadow-sm outline-none transition placeholder:text-dd-muted/75 hover:border-dd-forest/40 focus:border-dd-forest focus:ring-2 focus:ring-dd-forest/15"
+                  className="min-h-11 w-full rounded-none border border-ed-line bg-white py-2 pr-4 pl-9 text-sm text-ed-ink outline-none transition placeholder:text-ed-muted/75 hover:border-ed-green focus:border-ed-green"
                   type="search"
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
@@ -176,28 +131,15 @@ export function LocationsView() {
                 />
               </div>
             </div>
-            <div className="grid min-w-0 gap-1.5">
-              <span className="text-sm font-semibold text-dd-ink">Format latihan</span>
-              <div className="flex min-h-11 items-center gap-2.5 rounded-dd-md border border-dd-line bg-white px-4 text-sm text-dd-muted shadow-sm">
-                <Layers className="size-4 text-dd-forest shrink-0" aria-hidden="true" />
-                <span className="truncate">Private · Semi Private · Group</span>
-              </div>
-            </div>
-            <div className="flex items-end">
-              <Link
-                className={`${primary} min-h-11 inline-flex items-center gap-1.5 justify-center`}
-                href="/classes#schedule"
-              >
-                <span>Lihat Jadwal</span>
-                <Calendar className="size-4" />
-              </Link>
-            </div>
+            <Link className="ed-button" href="/classes#schedule">
+              Lihat Jadwal
+            </Link>
           </div>
         </section>
 
-        <section className={`${container} grid gap-7 py-10 lg:grid-cols-[minmax(0,1fr)_280px]`}>
-          <div>
-            <div className="mb-5 flex items-center justify-between gap-4">
+        <section className="py-[clamp(48px,7vw,100px)]">
+          <div className="ed-wrap">
+            <div className="mb-6 flex items-center justify-between gap-4">
               <p className="m-0 text-sm">
                 <strong>{visibleLocations.length}</strong> studio tersedia
               </p>
@@ -214,24 +156,29 @@ export function LocationsView() {
             </div>
 
             {loading ? (
-              <div className="rounded-dd-lg border border-dd-line bg-white p-10 text-center text-dd-muted">
+              <p className="m-0 border-y border-ed-line py-10 text-center text-ed-muted">
                 Memuat studio aktif…
-              </div>
+              </p>
             ) : loadError ? (
-              <div className="rounded-dd-lg border border-dd-line bg-white p-10 text-center">
-                <h2 className="font-sans text-2xl font-semibold">Studio belum dapat dimuat</h2>
-                <p className="mt-2 text-dd-muted">{loadError}</p>
+              <div className="border-y border-ed-line py-10 text-center">
+                <h2 className="m-0 text-2xl font-medium tracking-[-0.04em]">
+                  Studio belum dapat dimuat
+                </h2>
+                <p className="mt-2 text-ed-muted">{loadError}</p>
               </div>
             ) : visibleLocations.length ? (
-              <div className="grid gap-4">
-                {visibleLocations.map(({ code, id, name, publicProfile }) => {
+              <ol className="m-0 list-none border-t border-ed-line p-0">
+                {visibleLocations.map(({ code, id, name, publicProfile }, index) => {
                   if (!publicProfile) return null;
                   return (
-                    <article
-                      className="grid overflow-hidden rounded-dd-md border border-dd-line bg-white shadow-dd-card md:grid-cols-[220px_minmax(0,1fr)_170px]"
+                    <li
+                      className="grid gap-x-8 gap-y-6 border-b border-ed-line py-8 transition-colors duration-200 hover:bg-ed-tint md:grid-cols-[40px_220px_minmax(0,1fr)_auto]"
                       key={code}
                     >
-                      <div className="relative min-h-[190px]">
+                      <span aria-hidden="true" className="hidden text-xs font-bold text-ed-green md:block">
+                        {String(index + 1).padStart(2, '0')}
+                      </span>
+                      <div className="relative aspect-[4/3] w-full overflow-hidden bg-ed-mist">
                         <Image
                           className="object-cover"
                           src={resolvePublicImageUrl(publicProfile.heroImageKey)}
@@ -240,67 +187,68 @@ export function LocationsView() {
                           alt={`Studio Daily Dose Pilates ${name}`}
                         />
                       </div>
-                      <div className="p-5">
-                        <p className="text-xs font-bold tracking-wider text-dd-forest uppercase">
-                          Daily Dose Pilates
-                        </p>
-                        <h2 className="mt-1 font-sans text-2xl font-semibold">{name}</h2>
-                        <p className="mt-3 flex items-center gap-1.5 text-sm text-dd-muted">
-                          <MapPin className="size-3.5 text-dd-forest shrink-0" />
+                      <div className="min-w-0">
+                        <p className="ed-eyebrow text-ed-green">Daily Dose Pilates</p>
+                        <h2 className="m-0 mt-2 text-[clamp(24px,2.4vw,34px)] leading-[1.1] font-medium tracking-[-0.05em]">
+                          {name}
+                        </h2>
+                        <p className="m-0 mt-3 flex items-center gap-1.5 text-sm text-ed-muted">
+                          <MapPin aria-hidden="true" className="size-3.5 shrink-0 text-ed-green" />
                           <span>{publicProfile.area}</span>
                         </p>
                         {publicProfile.address && (
-                          <p className="mt-1 text-sm leading-6 text-dd-muted">
+                          <p className="m-0 mt-1 text-sm leading-6 text-ed-muted">
                             {publicProfile.address}
                           </p>
                         )}
-                        <p className="mt-2 text-sm leading-6 text-dd-muted">
+                        <p className="m-0 mt-2 text-sm leading-6 text-ed-muted">
                           {publicProfile.description}
                         </p>
-                        <p className="mt-2 flex items-center gap-1.5 text-sm text-dd-muted">
-                          <Clock className="size-3.5 text-dd-muted shrink-0" />
-                          <span>Jadwal tersedia pada halaman kelas</span>
+                        <p className="m-0 mt-2 text-sm text-ed-muted">
+                          Jadwal tersedia pada halaman kelas
                         </p>
                         <ul
-                          className="mt-4 flex list-none flex-wrap gap-2 p-0 text-xs text-dd-muted"
+                          className="m-0 mt-4 flex list-none flex-wrap gap-x-5 gap-y-1 p-0 text-xs font-semibold text-ed-green"
                           aria-label={`Format latihan di ${name}`}
                         >
                           {['Reformer', 'Private', 'Semi Private', 'Group'].map((format) => (
-                            <li className="rounded-full bg-[#edf1ec] px-2.5 py-1" key={format}>
-                              {format}
-                            </li>
+                            <li key={format}>{format}</li>
                           ))}
                         </ul>
                       </div>
-                      <div className="grid content-center gap-3 border-l border-dd-line p-4 max-[768px]:grid-cols-2 max-[768px]:border-t max-[768px]:border-l-0">
-                        <Link className={`${secondary} inline-flex items-center gap-1 justify-center`} href={`/locations/${publicProfile.slug}`}>
-                          <span>Lihat detail</span>
-                          <ChevronRight className="size-3.5" />
-                        </Link>
-                        <Link className={`${secondary} inline-flex items-center gap-1 justify-center`} href="/contact">
-                          <span>Hubungi studio</span>
-                          <ChevronRight className="size-3.5" />
-                        </Link>
+                      <div className="flex flex-col items-start gap-4 md:items-end">
                         <Link
-                          className={`${primary} inline-flex items-center gap-1.5 justify-center`}
+                          className="ed-button-compact"
                           href={`/classes?branch=${encodeURIComponent(id)}#schedule`}
                         >
-                          <span>Lihat Jadwal</span>
-                          <Calendar className="size-4" />
+                          Lihat Jadwal
+                        </Link>
+                        <Link
+                          className="inline-flex items-center gap-1.5 text-sm font-bold text-ed-green underline-offset-4 hover:underline"
+                          href={`/locations/${publicProfile.slug}`}
+                        >
+                          <span>Lihat detail</span>
+                          <ArrowUpRight aria-hidden="true" className="size-4" />
+                        </Link>
+                        <Link
+                          className="inline-flex items-center gap-1.5 text-sm font-bold text-ed-green underline-offset-4 hover:underline"
+                          href="/contact"
+                        >
+                          <span>Hubungi studio</span>
+                          <ArrowUpRight aria-hidden="true" className="size-4" />
                         </Link>
                       </div>
-                    </article>
+                    </li>
                   );
                 })}
-              </div>
+              </ol>
             ) : (
-              <div className="rounded-dd-lg border border-dd-line bg-white p-10 text-center">
-                <h2 className="font-sans text-3xl">Studio belum ditemukan</h2>
-                <p className="mt-2 text-dd-muted">
-                  Coba ubah pencarian atau tampilkan semua lokasi.
-                </p>
+              <div className="border-y border-ed-line py-10 text-center">
+                <h2 className="m-0 text-3xl font-medium tracking-[-0.04em]">Studio belum ditemukan</h2>
+                <p className="mt-2 text-ed-muted">Coba ubah pencarian atau tampilkan semua lokasi.</p>
                 <button
-                  className={`${secondary} mt-5`}
+                  className="ed-button mt-5"
+                  type="button"
                   onClick={() => {
                     setQuery('');
                     setRegion('Semua lokasi');
@@ -311,56 +259,54 @@ export function LocationsView() {
               </div>
             )}
           </div>
+        </section>
 
-          <aside className="grid content-start gap-5" aria-label="Informasi studio">
-            <div className="relative min-h-[210px] overflow-hidden rounded-dd-lg border border-dd-line bg-[#eef0e8]">
-              <span className="absolute top-1/2 left-0 h-2 w-full -rotate-12 bg-white" />
-              <span className="absolute top-0 left-1/2 h-full w-2 rotate-12 bg-white" />
-              {['top-12 left-16', 'top-24 right-16', 'bottom-10 left-1/2'].map((position) => (
-                <span
-                  className={`absolute ${position} size-3.5 rounded-full bg-dd-forest ring-4 ring-white shadow-sm`}
-                  key={position}
-                  aria-hidden="true"
-                />
+        <section className="border-t border-ed-line py-[clamp(64px,8vw,120px)]" aria-labelledby="studio-why-title">
+          <div className="ed-wrap">
+            <h2
+              className="ed-display text-[clamp(36px,4.6vw,64px)] text-balance"
+              id="studio-why-title"
+            >
+              Mengapa <span className="ed-serif">Daily Dose?</span>
+            </h2>
+            <ul className="m-0 mt-12 grid list-none grid-cols-1 border-t border-ed-line p-0 sm:grid-cols-2 lg:grid-cols-4">
+              {studioBenefits.map(({ title, description }, index) => (
+                <li
+                  className="border-b border-ed-line py-6 sm:pr-6 [&:nth-child(even)]:sm:border-l [&:nth-child(even)]:sm:pl-6 lg:border-l lg:pl-6 lg:first:border-l-0 lg:first:pl-0"
+                  key={title}
+                >
+                  <span className="text-xs font-bold text-ed-green">
+                    {String(index + 1).padStart(2, '0')}
+                  </span>
+                  <h3 className="m-0 mt-8 text-[clamp(20px,1.8vw,26px)] leading-[1.15] font-medium tracking-[-0.04em]">
+                    {title}
+                  </h3>
+                  <p className="m-0 mt-3 text-[15px] leading-[1.65] text-ed-muted">{description}</p>
+                </li>
               ))}
-              <strong className="absolute inset-x-4 bottom-4 text-sm">Jakarta · Tangerang · Surabaya</strong>
-            </div>
+            </ul>
+          </div>
+        </section>
 
-            <div className="rounded-dd-lg bg-white p-5 shadow-dd-card">
-              <h2 className="font-sans text-2xl font-semibold">Mengapa Daily Dose?</h2>
-              <div className="mt-5 grid gap-5">
-                {studioBenefits.map(({ icon, title, description }) => (
-                  <article className="grid grid-cols-[36px_1fr] items-start gap-3" key={title}>
-                    <span className="grid size-9 place-items-center rounded-lg bg-dd-surface-muted text-dd-forest shrink-0 mt-0.5" aria-hidden="true">
-                      {icon}
-                    </span>
-                    <div>
-                      <h3 className="text-sm font-bold text-dd-ink">{title}</h3>
-                      <p className="mt-1 text-[13px] leading-5 text-dd-muted">{description}</p>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            </div>
-
-            <div className="rounded-dd-lg bg-dd-forest p-6 text-white">
-              <h2 className="font-sans text-2xl">Belum menemukan studio terdekat?</h2>
-              <p className="mt-3 text-sm leading-6 text-white/80">
+        <section className="bg-ed-forest py-[clamp(64px,8vw,110px)] text-ed-cream">
+          <div className="ed-wrap grid items-end gap-8 lg:grid-cols-[1.25fr_0.75fr]">
+            <h2 className="ed-display text-[clamp(34px,4.2vw,60px)] text-balance">
+              Belum menemukan studio <span className="ed-serif">terdekat?</span>
+            </h2>
+            <div className="flex flex-col items-start gap-6">
+              <p className="m-0 max-w-[440px] text-[17px] leading-[1.7] text-ed-mint">
                 Sampaikan area Anda dan tim kami akan membantu menemukan pilihan terdekat.
               </p>
-              <Link
-                className="mt-5 inline-flex min-h-11 items-center gap-1.5 rounded-dd-sm border border-white/50 px-5 text-sm font-bold text-white transition hover:bg-white/10"
-                href="/contact"
-              >
+              <Link className="ed-link" href="/contact">
                 <span>Hubungi kami</span>
-                <ChevronRight className="size-3.5" />
+                <ArrowRight aria-hidden="true" className="size-4" />
               </Link>
             </div>
-          </aside>
+          </div>
         </section>
       </main>
 
-      {!inCustomerShell && <PublicFooter />}
+      {!inCustomerShell && <PublicFooter variant="editorial" />}
     </div>
   );
 }

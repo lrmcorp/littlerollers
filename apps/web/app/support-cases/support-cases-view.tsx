@@ -19,6 +19,8 @@ import {
   supportStatusLabel,
   supportStatusLabels,
 } from './support-labels';
+import { Drawer } from '../components/app-feedback';
+import { ADMIN_PAGE_SIZE } from '../lib/pagination';
 import { supportApi as api, supportFailure } from './support-api';
 
 type Summary = {
@@ -60,6 +62,7 @@ export function SupportCasesView() {
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
   const [customer, setCustomer] = useState<SearchSelectOption>();
   const [statusFilter, setStatusFilter] = useState('');
   const [priorityFilter, setPriorityFilter] = useState('');
@@ -77,6 +80,7 @@ export function SupportCasesView() {
       if (priorityFilter) params.set('priority', priorityFilter);
       if (mineOnly) params.set('assignedUserId', 'me');
       if (appliedSearch) params.set('q', appliedSearch);
+      params.set('limit', String(ADMIN_PAGE_SIZE));
       if (cursor) params.set('cursor', cursor);
       const text = params.toString();
       return `/support-cases${text ? `?${text}` : ''}`;
@@ -154,63 +158,91 @@ export function SupportCasesView() {
       <AdminPageHeader
         title="Bantuan Pelanggan"
         description="Case, catatan internal, tag, prioritas, status, penugasan, dan tautan ke timeline pelanggan. Transaksi tidak dapat diubah dari sini."
+        actions={
+          <Button onClick={() => setCreateOpen(true)}>
+            + Buat kasus bantuan
+          </Button>
+        }
       />
       {error && <Feedback kind="error">{error}</Feedback>}
-      <form
-        onSubmit={create}
-        className="grid gap-3 rounded-dd-lg border border-dd-line bg-white p-5 sm:grid-cols-2"
+
+      <Drawer
+        open={createOpen}
+        title="Buat Kasus Bantuan"
+        description="Catat permintaan bantuan, pertanyaan, atau keluhan pelanggan ke dalam tiket internal."
+        busy={busy}
+        onClose={() => setCreateOpen(false)}
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={busy}
+              onClick={() => setCreateOpen(false)}
+            >
+              Batal
+            </Button>
+            <Button type="submit" form="create-support-case-form" loading={busy}>
+              Buat kasus bantuan
+            </Button>
+          </div>
+        }
       >
-        <AsyncSearchSelect
-          label="Pelanggan"
-          required
-          name="customerUserId"
-          value={customer?.id ?? ''}
-          selectedOption={customer}
-          onChange={(_id, option) => setCustomer(option)}
-          placeholder="Ketik nama, email, atau telepon pelanggan"
-          searchPlaceholder="Cari pelanggan…"
-          loadOptions={searchCustomers}
-        />
-        <TextInput
-          label="Subjek Case"
-          required
-          name="subject"
-          placeholder="Contoh: Permintaan reschedule sesi"
-        />
-        <SearchSelect
-          label="Studio/Cabang"
-          name="branchId"
-          placeholder="Tanpa Studio/Cabang"
-          options={(session?.branches ?? []).map((branch) => ({
-            id: branch.id,
-            label: branch.name,
-          }))}
-        />
-        <SelectInput label="Prioritas" name="priority" defaultValue="NORMAL">
-          {Object.entries(supportPriorityLabels).map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </SelectInput>
-        <TextInput
-          label="Tags"
-          name="tags"
-          placeholder="Tag dipisahkan koma, misal: reschedule, vip"
-        />
-        <TextInput
-          label="Catatan awal (opsional)"
-          name="note"
-          maxLength={5000}
-          wrapperClassName="sm:col-span-2"
-          placeholder="Ringkasan permintaan pelanggan; hanya terlihat oleh staf"
-        />
-        <div className="flex items-end">
-          <Button type="submit" loading={busy}>
-            Buat kasus bantuan
-          </Button>
-        </div>
-      </form>
+        <form
+          id="create-support-case-form"
+          onSubmit={async (e) => {
+            await create(e);
+            setCreateOpen(false);
+          }}
+          className="grid gap-3 sm:grid-cols-2"
+        >
+          <AsyncSearchSelect
+            label="Pelanggan"
+            required
+            name="customerUserId"
+            value={customer?.id ?? ''}
+            selectedOption={customer}
+            onChange={(_id, option) => setCustomer(option)}
+            placeholder="Ketik nama, email, atau telepon pelanggan"
+            searchPlaceholder="Cari pelanggan…"
+            loadOptions={searchCustomers}
+          />
+          <TextInput
+            label="Subjek Case"
+            required
+            name="subject"
+            placeholder="Contoh: Permintaan reschedule sesi"
+          />
+          <SearchSelect
+            label="Studio/Cabang"
+            name="branchId"
+            placeholder="Tanpa Studio/Cabang"
+            options={(session?.branches ?? []).map((branch) => ({
+              id: branch.id,
+              label: branch.name,
+            }))}
+          />
+          <SelectInput label="Prioritas" name="priority" defaultValue="NORMAL">
+            {Object.entries(supportPriorityLabels).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </SelectInput>
+          <TextInput
+            label="Tags"
+            name="tags"
+            placeholder="Tag dipisahkan koma, misal: reschedule, vip"
+          />
+          <TextInput
+            label="Catatan awal (opsional)"
+            name="note"
+            maxLength={5000}
+            wrapperClassName="sm:col-span-2"
+            placeholder="Ringkasan permintaan pelanggan; hanya terlihat oleh staf"
+          />
+        </form>
+      </Drawer>
       <div className="grid gap-3 rounded-dd-lg border border-dd-line bg-white p-5">
         <div className="flex flex-wrap gap-2" role="group" aria-label="Filter status kasus">
           {statusFilters.map(([value, label]) => (

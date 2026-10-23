@@ -146,7 +146,7 @@ export function IdentityReviewView({
       until: until ? `${until}T23:59:59.999Z` : undefined,
       cursor,
       page,
-      limit: 20,
+      limit: ADMIN_PAGE_SIZE,
       customerUserId: customerUserId || undefined,
     }),
     [cursor, customerUserId, from, kind, page, q, scanStatus, status, until],

@@ -7,7 +7,7 @@ import { ArrowRight, CalendarDays, MapPin } from 'lucide-react';
 import { PublicFooter } from './public-footer';
 import { PublicHeader } from './public-header';
 import { PublicStatePanel } from './public-page';
-import { publicContainer, publicPrimaryButton, publicSecondaryButton } from './public-styles';
+import { publicPrimaryButton, publicSecondaryButton } from './public-styles';
 import { useSessionContext } from '../../session-context';
 import { isCustomerOnlySession, packageAudienceState } from '@/lib/session-audience';
 import { resolvePublicImageUrl } from '../../lib/public-image-url';
@@ -22,21 +22,21 @@ export function PublicDetailFrame({
   const session = useSessionContext()?.session;
   const customer = isCustomerOnlySession(session);
   return (
-    <div className="min-w-0 bg-dd-cream text-dd-ink">
-      {!customer && <PublicHeader />}
+    <div className="ed-scope min-w-0 bg-ed-cream text-ed-ink">
+      {!customer && <PublicHeader variant="editorial" />}
       <main id="public-detail-main">
         <nav
           aria-label="Breadcrumb"
-          className={`${publicContainer} flex flex-wrap items-center gap-2 py-4 text-xs text-dd-muted`}
+          className={`ed-wrap flex flex-wrap items-center gap-2 py-4 text-xs text-ed-muted`}
         >
-          <Link href="/" className="font-semibold text-dd-forest no-underline">
+          <Link href="/" className="font-semibold text-ed-green no-underline">
             Beranda
           </Link>
           {breadcrumb.map((item) => (
             <span className="flex items-center gap-2" key={`${item.label}:${item.href ?? ''}`}>
               <span aria-hidden="true">/</span>
               {item.href ? (
-                <Link href={item.href} className="font-semibold text-dd-forest no-underline">
+                <Link href={item.href} className="font-semibold text-ed-green no-underline">
                   {item.label}
                 </Link>
               ) : (
@@ -47,19 +47,19 @@ export function PublicDetailFrame({
         </nav>
         {children}
       </main>
-      {!customer && <PublicFooter />}
+      {!customer && <PublicFooter variant="editorial" />}
     </div>
   );
 }
 
 export function DetailLoading({ label }: { label: string }) {
   return (
-    <div className={`${publicContainer} py-16`} aria-live="polite">
-      <div className="h-4 w-32 animate-pulse rounded bg-dd-line" />
-      <div className="mt-4 h-12 max-w-xl animate-pulse rounded bg-dd-line" />
+    <div className={`ed-wrap py-16`} aria-live="polite">
+      <div className="h-4 w-32 animate-pulse rounded bg-ed-line" />
+      <div className="mt-4 h-12 max-w-xl animate-pulse rounded bg-ed-line" />
       <div className="mt-8 grid gap-6 lg:grid-cols-2">
-        <div className="min-h-80 animate-pulse rounded-dd-lg bg-dd-line" />
-        <div className="min-h-80 animate-pulse rounded-dd-lg bg-dd-line" />
+        <div className="min-h-80 animate-pulse rounded-none bg-ed-line" />
+        <div className="min-h-80 animate-pulse rounded-none bg-ed-line" />
       </div>
       <span className="sr-only">Memuat {label}</span>
     </div>
@@ -76,7 +76,7 @@ export function DetailFailure({
   listHref: string;
 }) {
   return (
-    <div className={`${publicContainer} py-16`}>
+    <div className={`ed-wrap py-16`}>
       <PublicStatePanel
         title={message === 'NOT_FOUND' ? 'Detail tidak ditemukan' : 'Belum dapat memuat detail'}
         tone={message === 'NOT_FOUND' ? 'neutral' : 'error'}
@@ -117,20 +117,20 @@ export function DetailHero({
   actions?: ReactNode;
 }) {
   return (
-    <section className="border-y border-dd-line bg-dd-paper">
+    <section className="border-y border-ed-line bg-ed-cream">
       <div
-        className={`${publicContainer} grid items-center gap-8 py-8 lg:grid-cols-[1fr_0.88fr] lg:py-12`}
+        className={`ed-wrap grid items-center gap-8 py-8 lg:grid-cols-[1fr_0.88fr] lg:py-12`}
       >
         <div>
-          <p className="text-xs font-bold tracking-[0.14em] text-dd-forest uppercase">{eyebrow}</p>
+          <p className="text-xs font-bold tracking-[0.14em] text-ed-green uppercase">{eyebrow}</p>
           <h1 className="mt-3 max-w-3xl text-[clamp(2.5rem,5vw,4.8rem)] leading-[0.98] font-semibold tracking-[-0.04em]">
             {title}
           </h1>
-          <p className="mt-5 max-w-2xl text-base leading-7 text-dd-muted sm:text-lg">{summary}</p>
+          <p className="mt-5 max-w-2xl text-base leading-7 text-ed-muted sm:text-lg">{summary}</p>
           {facts && <div className="mt-6">{facts}</div>}
           {actions && <div className="mt-7 flex flex-wrap gap-3">{actions}</div>}
         </div>
-        <div className="relative min-h-[300px] overflow-hidden rounded-dd-lg border border-dd-line bg-dd-surface-muted shadow-dd-card sm:min-h-[400px]">
+        <div className="relative min-h-[300px] overflow-hidden rounded-none border border-ed-line bg-ed-tint sm:min-h-[400px]">
           <Image
             src={resolvePublicImageUrl(imageKey)}
             alt={`Visual ${title}`}
@@ -165,7 +165,7 @@ export function AudienceAction({
   if (disabled)
     return (
       <span
-        className="inline-flex min-h-11 items-center rounded-dd-sm bg-dd-line px-5 text-sm font-bold text-dd-muted"
+        className="inline-flex min-h-11 items-center rounded-none bg-ed-line px-5 text-sm font-bold text-ed-muted"
         aria-disabled="true"
       >
         {disabledLabel}
@@ -220,18 +220,18 @@ export function RelatedSchedules({
   }>;
 }) {
   if (!items.length)
-    return <p className="text-sm text-dd-muted">Jadwal berikutnya belum tersedia.</p>;
+    return <p className="text-sm text-ed-muted">Jadwal berikutnya belum tersedia.</p>;
   return (
     <div className="grid gap-3 md:grid-cols-2">
       {items.map((item) => (
         <Link
           key={item.id}
           href={`/schedule/${item.id}`}
-          className="flex items-center justify-between gap-4 rounded-dd-md border border-dd-line bg-white p-4 text-dd-ink no-underline hover:border-dd-forest"
+          className="flex items-center justify-between gap-4 rounded-none border border-ed-line bg-white p-4 text-ed-ink no-underline hover:border-ed-green"
         >
           <span>
             <strong className="flex items-center gap-2 text-sm">
-              <CalendarDays className="size-4 text-dd-forest" />
+              <CalendarDays className="size-4 text-ed-green" />
               {new Intl.DateTimeFormat('id-ID', {
                 dateStyle: 'medium',
                 timeStyle: 'short',
@@ -239,7 +239,7 @@ export function RelatedSchedules({
               }).format(new Date(item.startAt))}
             </strong>
             {item.branch && (
-              <span className="mt-1 flex items-center gap-1 text-xs text-dd-muted">
+              <span className="mt-1 flex items-center gap-1 text-xs text-ed-muted">
                 <MapPin className="size-3" />
                 {item.branch.name}
               </span>
@@ -262,4 +262,4 @@ export function RelatedSchedules({
   );
 }
 
-export { publicContainer, publicPrimaryButton, publicSecondaryButton };
+export { publicPrimaryButton, publicSecondaryButton };

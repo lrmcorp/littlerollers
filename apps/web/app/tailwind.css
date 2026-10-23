@@ -44,6 +44,24 @@
   --shadow-dd-soft: 0 14px 30px rgb(31 68 53 / 14%);
   --shadow-dd-card: 0 16px 42px rgb(31 68 53 / 8%);
   --shadow-dd-float: 0 24px 64px rgb(17 43 33 / 18%);
+
+  /* Editorial Calm — token landing page baru. Namespace `ed-` sengaja terpisah dari `dd-*`
+     agar aplikasi internal tidak berubah. Nilai mengikuti konsep desain referensi. */
+  --color-ed-green: #396552;
+  --color-ed-forest: #173d2e;
+  --color-ed-deep: #102b21;
+  --color-ed-cream: #f3f1e9;
+  --color-ed-ink: #18392c;
+  --color-ed-muted: #4f6255;
+  --color-ed-line: #bdcabc;
+  --color-ed-tint: #e9eee6;
+  --color-ed-mint: #d2e6cf;
+  --color-ed-mist: #e2ebe1;
+  --color-ed-focus: #d5a53e;
+  --color-ed-select: #b8d5ba;
+
+  --font-editorial: var(--font-dm-sans), 'DM Sans', Arial, sans-serif;
+  --font-editorial-serif: Georgia, 'Times New Roman', serif;
 }
 
 @layer base {
@@ -89,3 +107,189 @@
   animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+/* ---------------------------------------------------------------------------
+   Editorial Calm — utility landing page.
+   Dipakai hanya oleh komponen landing (app/components/public/landing/*).
+   --------------------------------------------------------------------------- */
+
+@keyframes ed-drift {
+  from {
+    transform: scale(1.02) translateX(-1%);
+  }
+  to {
+    transform: scale(1.08) translateX(1%);
+  }
+}
+
+/* Kontainer & ritme vertikal */
+@utility ed-wrap {
+  width: min(100% - 8vw, 1440px);
+  margin-inline: auto;
+  @media (max-width: 650px) {
+    width: calc(100% - 40px);
+  }
+}
+
+@utility ed-section {
+  padding-block: clamp(78px, 10vw, 150px);
+  @media (max-width: 650px) {
+    padding-block: 74px;
+  }
+}
+
+/* Tipografi */
+@utility ed-display {
+  margin: 0;
+  font-weight: 400;
+  letter-spacing: -0.072em;
+  /* Spasi antarkata sedikit dilonggarkan: judul Indonesia lebih panjang dari referensi. */
+  word-spacing: 0.05em;
+  line-height: 0.93;
+}
+
+@utility ed-serif {
+  font-family: var(--font-editorial-serif);
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.07em;
+}
+
+@utility ed-eyebrow {
+  display: block;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* Tautan teks dengan garis bawah; jarak ke panah melebar saat hover */
+@utility ed-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 22px;
+  padding-bottom: 7px;
+  border-bottom: 1px solid currentColor;
+  font-size: 15px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: gap 0.2s;
+  &:hover {
+    gap: 30px;
+  }
+}
+
+/* Tombol persegi, tanpa radius dan tanpa bayangan */
+@utility ed-button {
+  display: inline-flex;
+  min-height: 50px;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 22px;
+  border: 1px solid var(--color-ed-green);
+  background: var(--color-ed-green);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background 0.2s;
+  &:hover {
+    background: var(--color-ed-forest);
+  }
+}
+
+/* Varian ringkas untuk header (menggantikan override `!important`). */
+@utility ed-button-compact {
+  display: inline-flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 18px;
+  border: 1px solid var(--color-ed-green);
+  background: var(--color-ed-green);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background 0.2s;
+  &:hover {
+    background: var(--color-ed-forest);
+  }
+}
+
+@utility ed-button-light {
+  display: inline-flex;
+  min-height: 50px;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 22px;
+  border: 1px solid var(--color-ed-cream);
+  background: var(--color-ed-cream);
+  color: var(--color-ed-forest);
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background 0.2s;
+  &:hover {
+    background: #dce8d8;
+  }
+}
+
+/* Baris daftar bergaris (kelas, langkah, lokasi). Kolom grid ditentukan pemakai. */
+@utility ed-row {
+  display: grid;
+  gap: 30px;
+  padding-block: 29px;
+  border-bottom: 1px solid var(--color-ed-line);
+  transition: background 0.2s;
+  &:hover {
+    background: var(--color-ed-tint);
+  }
+}
+
+/* Scope landing: font, seleksi teks, dan focus ring emas. Dipasang pada wrapper
+   section yang sudah beralih ke gaya editorial (bukan pada seluruh halaman di Fase 1). */
+/* Hanya font-family: CSS tanpa @layer mengalahkan utility Tailwind, sehingga warna dan
+   latar tidak boleh diatur di sini (diatur lewat utility `bg-ed-*` / `text-ed-*`). */
+.ed-scope {
+  font-family: var(--font-editorial);
+  /* Halaman publik lama memakai utility `font-sans`, yang di-inline sebagai
+     `var(--font-ui), Poppins`. Menimpa --font-ui di scope membuatnya ikut DM Sans. */
+  --font-ui: var(--font-dm-sans);
+}
+
+.ed-scope ::selection {
+  background: var(--color-ed-select);
+  color: var(--color-ed-deep);
+}
+
+.ed-scope :where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 3px solid var(--color-ed-focus);
+  outline-offset: 4px;
+}
+
+/* Reveal: terlihat secara default (SSR / tanpa JS). Komponen <Reveal> menandai
+   "armed" hanya untuk elemen di bawah layar, lalu "visible" saat masuk viewport. */
+[data-reveal='armed'] {
+  opacity: 0;
+  transform: translateY(25px);
+  transition:
+    opacity 0.75s ease,
+    transform 0.75s ease;
+}
+
+[data-reveal='visible'] {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 0.75s ease,
+    transform 0.75s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal] {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+}

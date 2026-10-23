@@ -166,8 +166,8 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
     Boolean(session) && !customerOnly && !isPublicExperiencePath(pathname),
   );
   if (isPublicExperiencePath(pathname) && !customerCatalog) return children;
-  // Tamu di URL yang tidak dikenal: tampilkan halaman 404 saja, tanpa rangka navigasi internal.
-  if (!session && !isRecognizedProtectedPath(pathname)) return children;
+  // Tamu atau sesi belum terautentikasi: jangan render rangka navigasi internal.
+  if (!session) return children;
   if (customerOnly) {
     const approved = session?.identityVerificationStatus === 'APPROVED';
     return (
@@ -270,17 +270,19 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
               >
                 <CircleHelp className="size-[18px]" />
               </Link>
-              <NotificationCenter
-                compact
-                open={notificationOpen}
-                onOpenChange={(open) => {
-                  setNotificationOpen(open);
-                  if (open) {
-                    setProfileOpen(false);
-                    setCommandOpen(false);
-                  }
-                }}
-              />
+              {Boolean(session) && (
+                <NotificationCenter
+                  compact
+                  open={notificationOpen}
+                  onOpenChange={(open) => {
+                    setNotificationOpen(open);
+                    if (open) {
+                      setProfileOpen(false);
+                      setCommandOpen(false);
+                    }
+                  }}
+                />
+              )}
               <span className="hidden max-w-40 truncate text-sm font-semibold text-dd-ink xl:block">
                 {session?.displayName}
               </span>
@@ -544,16 +546,18 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
                   <CircleHelp className="size-[18px]" />
                 </Link>
               )}
-              <NotificationCenter
-                open={notificationOpen}
-                onOpenChange={(open) => {
-                  setNotificationOpen(open);
-                  if (open) {
-                    setProfileOpen(false);
-                    setCommandOpen(false);
-                  }
-                }}
-              />
+              {Boolean(session) && (
+                <NotificationCenter
+                  open={notificationOpen}
+                  onOpenChange={(open) => {
+                    setNotificationOpen(open);
+                    if (open) {
+                      setProfileOpen(false);
+                      setCommandOpen(false);
+                    }
+                  }}
+                />
+              )}
               <span className="hidden max-w-40 truncate text-sm font-semibold text-dd-ink xl:block">
                 {session?.displayName}
               </span>

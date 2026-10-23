@@ -3,13 +3,8 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, Sparkles, Star } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { HeroCarouselPayload, HeroSlideItem } from '@/api-clients/account-client';
-import {
-  publicContainer as container,
-  publicPrimaryButton as primaryButton,
-  publicSecondaryButton as secondaryButton,
-} from './public-styles';
 
 const DEFAULT_SLIDES: HeroSlideItem[] = [
   {
@@ -71,6 +66,13 @@ const DEFAULT_SLIDES: HeroSlideItem[] = [
   },
 ];
 
+const pad = (value: number) => String(value).padStart(2, '0');
+
+/**
+ * Hero beranda bergaya "Editorial Calm": foto full-bleed dengan overlay hijau gelap,
+ * judul display + kata serif, satu tombol utama dan satu tautan teks, serta kontrol
+ * minimalis (penanda garis + nomor). Data slide tetap berasal dari CMS.
+ */
 export function HeroCarousel({ config }: { config?: HeroCarouselPayload | null }) {
   const slides = useMemo(() => {
     if (!config?.slides || config.slides.length === 0) return DEFAULT_SLIDES;
@@ -81,7 +83,8 @@ export function HeroCarousel({ config }: { config?: HeroCarouselPayload | null }
   }, [config]);
 
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isHovered, setIsHovered] = useState(false);
+  const [paused, setPaused] = useState(false);
+  const [reduceMotion, setReduceMotion] = useState(false);
   const touchStartX = useRef<number | null>(null);
   const touchEndX = useRef<number | null>(null);
 
@@ -101,14 +104,24 @@ export function HeroCarousel({ config }: { config?: HeroCarouselPayload | null }
     setCurrentIndex(index);
   };
 
-  // Autoplay Timer
+  // Hormati preferensi gerak: tanpa autoplay bila pengguna meminta gerak dikurangi.
   useEffect(() => {
-    if (!autoplay || total <= 1 || isHovered) return;
+    if (typeof window.matchMedia !== 'function') return;
+    const query = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const update = () => setReduceMotion(query.matches);
+    update();
+    query.addEventListener?.('change', update);
+    return () => query.removeEventListener?.('change', update);
+  }, []);
+
+  // Autoplay Timer (dijeda saat hover atau fokus berada di dalam hero)
+  useEffect(() => {
+    if (!autoplay || reduceMotion || total <= 1 || paused) return;
     const timer = setInterval(() => {
       nextSlide();
     }, intervalMs);
     return () => clearInterval(timer);
-  }, [autoplay, total, isHovered, intervalMs, nextSlide]);
+  }, [autoplay, reduceMotion, total, paused, intervalMs, nextSlide]);
 
   // Touch Swipe Handlers for Mobile
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -133,169 +146,159 @@ export function HeroCarousel({ config }: { config?: HeroCarouselPayload | null }
     touchEndX.current = null;
   };
 
+  const controlButton =
+    'grid size-11 place-items-center border border-white/60 bg-transparent text-white transition-colors hover:bg-white/15 sm:size-12';
+
   return (
     <section
-      className="relative isolate min-h-[580px] sm:min-h-[620px] lg:min-h-[660px] overflow-hidden select-none"
+      className="ed-scope relative isolate flex min-h-[690px] items-end overflow-hidden bg-ed-deep text-white select-none sm:min-h-[760px] lg:min-h-[min(820px,calc(100svh-86px))]"
       aria-roledescription="carousel"
       aria-label="Sorotan Kelas dan Penawaran Daily Dose"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      onFocus={() => setPaused(true)}
+      onBlur={() => setPaused(false)}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
-      {/* Background Images with Cross-Fade */}
+      {/* Background Images with Cross-Fade + slow drift */}
       {slides.map((slide, index) => {
         const isActive = index === currentIndex;
         return (
           <div
             key={slide.id || index}
-            className={`absolute inset-0 z-0 transition-opacity duration-1000 ease-in-out ${
-              isActive ? 'opacity-100' : 'opacity-0 pointer-events-none'
+            className={`absolute inset-0 -z-20 transition-opacity duration-1000 ease-in-out ${
+              isActive ? 'opacity-100' : 'pointer-events-none opacity-0'
             }`}
             aria-hidden={!isActive}
           >
-            <Image
-              className="object-cover object-[65%_center] lg:object-[60%_center]"
-              src={slide.imageSrc || '/images/public/landing/hero-pilates.png'}
-              fill
-              priority={index === 0}
-              sizes="100vw"
-              alt={slide.title}
-            />
+            <div
+              className={`absolute -inset-[3%] ${
+                isActive
+                  ? '[animation:ed-drift_17s_ease-in-out_infinite_alternate] motion-reduce:[animation:none]'
+                  : ''
+              }`}
+            >
+              <Image
+                className="object-cover object-[65%_center] lg:object-[60%_center]"
+                src={slide.imageSrc || '/images/public/landing/hero-pilates.png'}
+                fill
+                priority={index === 0}
+                sizes="100vw"
+                alt={slide.title}
+              />
+            </div>
           </div>
         );
       })}
 
-      {/* Gradients */}
-      <div className="absolute inset-0 z-10 bg-gradient-to-r from-dd-cream/98 via-dd-cream/92 to-transparent lg:via-dd-cream/80 pointer-events-none" />
-      <div className="absolute inset-0 z-10 bg-gradient-to-t from-dd-cream via-transparent to-transparent lg:hidden pointer-events-none" />
+      {/* Overlay hijau gelap: horizontal + bawah (desktop), bawah saja (mobile) */}
+      <div
+        className="pointer-events-none absolute inset-0 -z-10 max-sm:hidden bg-[linear-gradient(90deg,rgba(7,28,20,0.9),rgba(7,28,20,0.4)_72%),linear-gradient(0deg,rgba(7,28,20,0.55),transparent_62%)]"
+        aria-hidden="true"
+      />
+      <div
+        className="pointer-events-none absolute inset-0 -z-10 sm:hidden bg-[linear-gradient(0deg,rgba(7,28,20,0.95),rgba(7,28,20,0.3)_90%)]"
+        aria-hidden="true"
+      />
 
       {/* Slide Content */}
-      <div className={`${container} relative z-20 flex min-h-[580px] sm:min-h-[620px] lg:min-h-[660px] items-center py-16 sm:py-20`}>
-        <div className="max-w-[560px] space-y-6">
-          {slides.map((slide, index) => {
-            const isActive = index === currentIndex;
-            if (!isActive) return null;
+      <div className="ed-wrap relative z-20 pt-[85px] pb-12 sm:pt-[115px] sm:pb-[73px]">
+        {slides.map((slide, index) => {
+          if (index !== currentIndex) return null;
 
-            return (
-              <div key={slide.id || index} className="space-y-6 transition-all duration-300">
-                {/* Badge */}
-                {slide.badge && (
-                  <div className="inline-flex items-center gap-2 rounded-full border border-dd-brass/30 bg-white/90 px-4 py-1 text-xs font-semibold text-dd-brass-dark tracking-wider uppercase shadow-2xs backdrop-blur-md">
-                    <span className="size-1.5 rounded-full bg-dd-brass" />
-                    <span>{slide.badge}</span>
-                  </div>
+          return (
+            <div key={slide.id || index}>
+              {slide.badge && <span className="ed-eyebrow text-ed-mint">{slide.badge}</span>}
+
+              <h1
+                id="marketing-hero-title"
+                className="ed-display mt-7 mb-8 max-w-[1050px] text-[clamp(50px,7.4vw,124px)] text-balance"
+              >
+                {slide.title}{' '}
+                {slide.highlightTitle && (
+                  <span className="ed-serif block text-ed-mint">{slide.highlightTitle}</span>
                 )}
+              </h1>
 
-                {/* Title */}
-                <h1
-                  id="marketing-hero-title"
-                  className="m-0 font-sans text-4xl sm:text-5xl lg:text-6xl font-bold leading-[1.08] tracking-tight text-dd-ink text-balance"
-                >
-                  {slide.title}{' '}
-                  {slide.highlightTitle && (
-                    <span className="font-bold text-dd-forest block sm:inline">
-                      {slide.highlightTitle}
-                    </span>
-                  )}
-                </h1>
-
-                {/* Description */}
-                <p className="max-w-[500px] text-base sm:text-lg leading-relaxed text-dd-muted">
+              <div className="flex max-w-[1010px] flex-col gap-8 sm:flex-row sm:items-end sm:justify-between sm:gap-10">
+                <p className="m-0 max-w-[430px] text-[clamp(17px,1.8vw,22px)] leading-[1.55] text-white">
                   {slide.description}
                 </p>
-
-                {/* Action Buttons */}
-                <div className="flex flex-wrap items-center gap-3 pt-2">
+                <div className="flex flex-wrap items-center gap-x-8 gap-y-5">
                   {slide.primaryCta?.href && (
-                    <Link className={`${primaryButton} inline-flex items-center gap-1 justify-center`} href={slide.primaryCta.href}>
-                      <span>{slide.primaryCta.label || 'Lihat Jadwal'}</span>
-                      <ChevronRight className="size-3.5" />
+                    <Link className="ed-button-light" href={slide.primaryCta.href}>
+                      {slide.primaryCta.label || 'Lihat Jadwal'}
                     </Link>
                   )}
                   {slide.secondaryCta?.href && (
-                    <Link className={`${secondaryButton} inline-flex items-center gap-1 justify-center`} href={slide.secondaryCta.href}>
+                    <Link className="ed-link text-white" href={slide.secondaryCta.href}>
                       <span>{slide.secondaryCta.label || 'Lihat Paket'}</span>
-                      <ChevronRight className="size-3.5" />
+                      <span aria-hidden="true">↗</span>
                     </Link>
                   )}
-                  <Link
-                    className="inline-flex min-h-11 items-center justify-center gap-1 px-3 text-xs sm:text-sm font-bold text-dd-forest no-underline transition hover:underline"
-                    href="/locations"
-                  >
-                    <span>Jelajahi Studio</span>
-                    <ChevronRight className="size-3.5" />
-                  </Link>
                 </div>
               </div>
-            );
-          })}
-
-          {/* Trust Badge */}
-          <div className="flex flex-wrap items-center gap-3 pt-4 text-xs font-medium text-dd-muted border-t border-dd-line/60">
-            <span>Latihan personal dan kelompok kecil</span>
-            <span className="text-dd-line">•</span>
-            <div
-              role="img"
-              aria-label="Rating 5 bintang"
-              className="flex items-center gap-1 text-dd-brass"
-            >
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Star key={i} className="size-3.5 fill-dd-brass text-dd-brass" aria-hidden="true" />
-              ))}
             </div>
-            <span className="text-dd-line">•</span>
-            <span>Move with intention</span>
-          </div>
+          );
+        })}
+
+        {/* Baris bawah: catatan + kontrol */}
+        <div className="mt-12 flex flex-wrap items-center justify-between gap-x-8 gap-y-5 border-t border-white/35 pt-5 sm:mt-[72px]">
+          <span className="text-[11px] tracking-[0.12em] text-white/80 uppercase">
+            Latihan personal dan kelompok kecil · Move with intention
+          </span>
+
+          {total > 1 && (
+            <div className="flex items-center gap-4">
+              <span
+                className="hidden text-[13px] font-bold tabular-nums sm:inline"
+                aria-hidden="true"
+              >
+                {pad(currentIndex + 1)} / {pad(total)}
+              </span>
+              <nav className="flex items-center" aria-label="Pilih slide">
+                {slides.map((_, index) => {
+                  const isActive = index === currentIndex;
+                  return (
+                    <button
+                      key={index}
+                      type="button"
+                      onClick={() => goToSlide(index)}
+                      aria-label={`Buka slide ${index + 1} dari ${total}`}
+                      aria-current={isActive}
+                      className="group relative h-11 w-9 bg-transparent sm:h-12 sm:w-10"
+                    >
+                      <span
+                        className={`absolute inset-x-1 top-1/2 h-[3px] -translate-y-1/2 transition-colors ${
+                          isActive ? 'bg-white' : 'bg-white/35 group-hover:bg-white/70'
+                        }`}
+                      />
+                    </button>
+                  );
+                })}
+              </nav>
+              <button
+                type="button"
+                onClick={prevSlide}
+                aria-label="Slide sebelumnya"
+                className={controlButton}
+              >
+                <ChevronLeft className="size-5" aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                onClick={nextSlide}
+                aria-label="Slide berikutnya"
+                className={controlButton}
+              >
+                <ChevronRight className="size-5" aria-hidden="true" />
+              </button>
+            </div>
+          )}
         </div>
       </div>
-
-      {/* Navigation Chevrons (Desktop & Tablet) */}
-      {total > 1 && (
-        <>
-          <button
-            type="button"
-            onClick={prevSlide}
-            aria-label="Slide sebelumnya"
-            className="absolute left-4 sm:left-6 top-1/2 -translate-y-1/2 z-30 size-11 rounded-full border border-dd-line/70 bg-white/80 hover:bg-white text-dd-forest shadow-dd-card backdrop-blur-md flex items-center justify-center transition-all hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-dd-forest/40"
-          >
-            <ChevronLeft className="size-6" />
-          </button>
-          <button
-            type="button"
-            onClick={nextSlide}
-            aria-label="Slide berikutnya"
-            className="absolute right-4 sm:right-6 top-1/2 -translate-y-1/2 z-30 size-11 rounded-full border border-dd-line/70 bg-white/80 hover:bg-white text-dd-forest shadow-dd-card backdrop-blur-md flex items-center justify-center transition-all hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-dd-forest/40"
-          >
-            <ChevronRight className="size-6" />
-          </button>
-        </>
-      )}
-
-      {/* Dot Indicators */}
-      {total > 1 && (
-        <nav
-          className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/70 backdrop-blur-md border border-dd-line/60 shadow-dd-soft"
-          aria-label="Pilih slide"
-        >
-          {slides.map((_, index) => {
-            const isActive = index === currentIndex;
-            return (
-              <button
-                key={index}
-                type="button"
-                onClick={() => goToSlide(index)}
-                aria-label={`Buka slide ${index + 1} dari ${total}`}
-                aria-current={isActive}
-                className={`transition-all duration-300 rounded-full ${
-                  isActive ? 'w-6 h-2.5 bg-dd-forest' : 'w-2.5 h-2.5 bg-dd-line hover:bg-dd-forest/50'
-                }`}
-              />
-            );
-          })}
-        </nav>
-      )}
     </section>
   );
 }

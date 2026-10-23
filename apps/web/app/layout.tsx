@@ -19,6 +19,16 @@ const poppins = localFont({
   display: 'swap',
 });
 
+// Font editorial untuk landing page (konsep "Editorial Calm"). Variable font OFL,
+// bobot 100–1000 dalam satu berkas. `preload: false` agar halaman internal tidak
+// ikut mengunduhnya; browser hanya memuatnya saat ada teks yang memakai font ini.
+const dmSans = localFont({
+  src: [{ path: './fonts/dm-sans-variable.ttf', weight: '100 1000', style: 'normal' }],
+  variable: '--font-dm-sans',
+  display: 'swap',
+  preload: false,
+});
+
 export const metadata: Metadata = {
   metadataBase: new URL('https://dailydosepilates.com'),
   title: {
@@ -58,7 +68,11 @@ export const metadata: Metadata = {
 };
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="id" className={poppins.variable} data-scroll-behavior="smooth">
+    <html
+      lang="id"
+      className={`${poppins.variable} ${dmSans.variable}`}
+      data-scroll-behavior="smooth"
+    >
       <body suppressHydrationWarning>
         <AppLoadingProvider>
           <AppFeedbackProvider>

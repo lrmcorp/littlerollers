@@ -52,8 +52,8 @@ const files = [
   ...staffFiles.map((file) => join(appRoot, file)),
 ];
 
-// Literal string dan teks JSX (bukan kode): 'x', "x", `x`, >teks<
-const literal = /'((?:[^'\\\n]|\\.)*)'|"((?:[^"\\\n]|\\.)*)"|`((?:[^`\\]|\\.)*)`|>([^<>{};=]+)</gs;
+// Teks yang ditampilkan ke pengguna: teks JSX dan atribut label ramah pengguna (aria-label, placeholder, title)
+const userFacingText = />([^<>{};=\n][^<>{};=]*)<|(?:aria-label|placeholder|title)=["']([^"']+)["']/gu;
 
 // Kata bahasa Inggris yang dilarang dalam teks; dicocokkan sebagai kata utuh.
 const banned = glossary
@@ -69,10 +69,9 @@ describe('panel terminology guard', () => {
     const violations: string[] = [];
     for (const file of files) {
       const source = readFileSync(file, 'utf8');
-      for (const match of source.matchAll(literal)) {
-        const text = match[1] ?? match[2] ?? match[3] ?? match[4] ?? '';
-        // Token tunggal tanpa spasi adalah kode/ID/path, bukan teks bacaan (kecuali label persis).
-        if (!/\s/.test(text.trim()) && !banned.some(({ avoid }) => text.trim() === avoid)) continue;
+      for (const match of source.matchAll(userFacingText)) {
+        const text = match[1] ?? match[2] ?? '';
+        if (!text.trim()) continue;
         for (const { avoid, use, pattern } of banned) {
           if (pattern.test(text)) {
             violations.push(

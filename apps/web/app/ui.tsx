@@ -125,18 +125,27 @@ export function Feedback({
   );
 }
 
-export function EmptyState({ title, description }: { title: string; description: string }) {
+export function EmptyState({
+  title,
+  description,
+  action,
+}: {
+  title: string;
+  description: string;
+  action?: ReactNode;
+}) {
   return (
     <div className="grid min-h-52 place-items-center rounded-dd-lg border border-dashed border-dd-line bg-dd-surface-muted p-8 text-center">
       <div className="max-w-md">
         <span
-          className="mx-auto mb-4 grid size-10 place-items-center rounded-full bg-dd-brass-soft text-dd-brass"
+          className="mx-auto mb-4 grid size-12 place-items-center rounded-full bg-dd-brass-soft text-dd-brass"
           aria-hidden="true"
         >
-          <Inbox className="size-5" />
+          <Inbox className="size-6" />
         </span>
         <strong className="text-base text-dd-ink">{title}</strong>
         <p className="mt-2 text-sm leading-6 text-dd-muted">{description}</p>
+        {action && <div className="mt-5">{action}</div>}
       </div>
     </div>
   );

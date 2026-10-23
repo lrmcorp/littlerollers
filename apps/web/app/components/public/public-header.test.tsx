@@ -49,3 +49,59 @@ describe('PublicHeader', () => {
     );
   });
 });
+
+describe('PublicHeader — varian editorial', () => {
+  it('menampilkan navigasi, CTA Booking Kelas, dan Masuk/Daftar tanpa kelas gaya lama', async () => {
+    navigation.pathname = '/packages';
+    window.history.replaceState({}, '', '/packages');
+    const view = render(<PublicHeader variant="editorial" />);
+
+    const desktop = screen.getByRole('navigation', { name: 'Navigasi publik' });
+    expect(within(desktop).getByRole('link', { name: 'Paket' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    expect(screen.getByRole('link', { name: 'Booking Kelas' })).toHaveAttribute(
+      'href',
+      '/classes#schedule',
+    );
+    expect(screen.getByRole('link', { name: 'Masuk' })).toHaveAttribute('href', '/sign-in');
+    expect(screen.getByRole('link', { name: 'Daftar' })).toHaveAttribute('href', '/register');
+    expect(screen.queryByRole('link', { name: 'Lihat Paket' })).not.toBeInTheDocument();
+    expect(view.container.querySelector('header')).toHaveClass('ed-scope');
+    expect(view.container.querySelector('[class*="rounded-full"]')).toBeNull();
+    expect((await axe(view.container)).violations).toHaveLength(0);
+  });
+
+  it('membuka drawer mobile yang aksesibel dan menutupnya dengan Escape', async () => {
+    navigation.pathname = '/packages';
+    const user = userEvent.setup();
+    const view = render(<PublicHeader variant="editorial" />);
+    const trigger = screen.getByRole('button', { name: 'Buka menu navigasi' });
+    expect(trigger).toHaveTextContent('Menu');
+
+    await user.click(trigger);
+    const dialog = screen.getByRole('dialog', { name: 'Menu navigasi' });
+    expect(trigger).toHaveAttribute('aria-expanded', 'true');
+    expect(within(dialog).getByRole('button', { name: 'Tutup menu navigasi' })).toHaveTextContent(
+      'Tutup',
+    );
+    expect(within(dialog).getByRole('link', { name: 'Booking Kelas' })).toHaveAttribute(
+      'href',
+      '/classes#schedule',
+    );
+    expect(within(dialog).getByRole('link', { name: 'Lihat Paket' })).toHaveAttribute(
+      'href',
+      '/packages',
+    );
+    expect(document.body.style.overflow).toBe('hidden');
+
+    await user.keyboard('{Escape}');
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: 'Menu navigasi' })).not.toBeInTheDocument(),
+    );
+    expect(trigger).toHaveFocus();
+    expect(document.body.style.overflow).toBe('');
+    expect((await axe(view.container)).violations).toHaveLength(0);
+  });
+});
