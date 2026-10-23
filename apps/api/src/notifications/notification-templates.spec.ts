@@ -268,6 +268,17 @@ describe('NotificationManagementService', () => {
     await expect(service.transition(owner, templateId, 'DELETED' as never, 'c')).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
   });
 
+  it('archiving a version needs a typed reason and changes nothing without it', async () => {
+    const { service, db } = managementSetup({ status: 'PUBLISHED' });
+    for (const reason of [undefined, '', '  ', 'ab'])
+      await expect(service.transition(owner, templateId, 'ARCHIVED', 'c', reason)).rejects.toMatchObject({
+        code: 'VALIDATION_ERROR',
+      });
+    expect(db.notificationTemplate.updateMany).not.toHaveBeenCalled();
+    await service.transition(owner, templateId, 'ARCHIVED', 'c', 'Kembali ke teks bawaan');
+    expect(db.notificationTemplate.updateMany).toHaveBeenCalledTimes(1);
+  });
+
   describe('email templates (subject + intro; the action button always keeps its default label and link)', () => {
     const emailRow = (overrides: Record<string, unknown> = {}) => ({
       id: templateId,

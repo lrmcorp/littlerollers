@@ -119,21 +119,21 @@ describe('deleting a fee or rate', () => {
   it('needs master:manage and finance:manage', async () => {
     const { service, tx } = setup();
     await expect(
-      service.remove(principalFor(['master:manage']), 'INSTRUCTOR_FEE', rowId, 'c'),
+      service.remove(principalFor(['master:manage']), 'INSTRUCTOR_FEE', rowId, 'c', 'Salah input'),
     ).rejects.toMatchObject({ code: 'FORBIDDEN' });
     await expect(
-      service.remove(principalFor(['finance:manage']), 'INSTRUCTOR_FEE', rowId, 'c'),
+      service.remove(principalFor(['finance:manage']), 'INSTRUCTOR_FEE', rowId, 'c', 'Salah input'),
     ).rejects.toMatchObject({ code: 'FORBIDDEN' });
     expect(tx.instructorFee.delete).not.toHaveBeenCalled();
   });
 
   it('removes a not-yet-effective fee and rate', async () => {
     const { service, tx } = setup();
-    await expect(service.remove(finance, 'INSTRUCTOR_FEE', rowId, 'c')).resolves.toEqual({
+    await expect(service.remove(finance, 'INSTRUCTOR_FEE', rowId, 'c', 'Salah input')).resolves.toEqual({
       id: rowId,
       deleted: true,
     });
-    await service.remove(finance, 'PROJECTION_RATE', rowId, 'c');
+    await service.remove(finance, 'PROJECTION_RATE', rowId, 'c', 'Salah input');
     expect(tx.instructorFee.delete).toHaveBeenCalledWith({ where: { id: rowId } });
     expect(tx.projectionRate.delete).toHaveBeenCalledWith({ where: { id: rowId } });
   });
@@ -141,7 +141,7 @@ describe('deleting a fee or rate', () => {
   it('refuses a rate that already applies (today or earlier)', async () => {
     for (const days of [0, -1, -90]) {
       const { service, tx } = setup(dayFromToday(days));
-      await expect(service.remove(finance, 'PROJECTION_RATE', rowId, 'c')).rejects.toMatchObject({
+      await expect(service.remove(finance, 'PROJECTION_RATE', rowId, 'c', 'Salah input')).rejects.toMatchObject({
         code: 'RATE_IN_EFFECT',
       });
       expect(tx.projectionRate.delete).not.toHaveBeenCalled();
@@ -151,10 +151,21 @@ describe('deleting a fee or rate', () => {
   it('hides rates of another branch and malformed ids', async () => {
     const { service } = setup();
     await expect(
-      service.remove(principalFor(['master:manage', 'finance:manage'], [id(9)]), 'INSTRUCTOR_FEE', rowId, 'c'),
+      service.remove(principalFor(['master:manage', 'finance:manage'], [id(9)]), 'INSTRUCTOR_FEE', rowId, 'c', 'Salah input'),
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });
-    await expect(service.remove(finance, 'INSTRUCTOR_FEE', 'x', 'c')).rejects.toMatchObject({
+    await expect(service.remove(finance, 'INSTRUCTOR_FEE', 'x', 'c', 'Salah input')).rejects.toMatchObject({
       code: 'NOT_FOUND',
     });
+  });
+});
+
+describe('deleting a tariff needs a typed reason', () => {
+  it('refuses without one, before touching anything', async () => {
+    const { service, tx } = setup();
+    for (const reason of [undefined, '', '  ', 'ab'])
+      await expect(service.remove(finance, 'INSTRUCTOR_FEE', rowId, 'c', reason)).rejects.toMatchObject({
+        code: 'VALIDATION_ERROR',
+      });
+    expect(tx.instructorFee.delete).not.toHaveBeenCalled();
   });
 });

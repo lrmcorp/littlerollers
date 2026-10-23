@@ -43,7 +43,8 @@ export class NotificationManagementController {
     @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Param('status') status: 'PUBLISHED' | 'ARCHIVED',
+    @Body() body?: { reason?: string },
   ) {
-    return this.management.transition(req.principal, id, status, req.correlationId ?? 'unknown');
+    return this.management.transition(req.principal, id, status, req.correlationId ?? 'unknown', body?.reason);
   }
 }

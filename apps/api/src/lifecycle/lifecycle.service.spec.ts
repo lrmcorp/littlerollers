@@ -296,7 +296,7 @@ describe('the delete routes that existed before (branch, studio, room, class typ
 
   it('branch: keeps its legacy error code and a full sentence the current UI already shows', async () => {
     const { service, delegate } = build({ row: { id: branchA }, counts: { studio: 2, slot_kelas: 5 } });
-    await expect(service.remove(superOwner as never, 'branch', branchA, undefined, 'c')).rejects.toMatchObject({
+    await expect(service.remove(superOwner as never, 'branch', branchA, 'Alasan uji', 'c')).rejects.toMatchObject({
       code: 'CANNOT_DELETE_BRANCH_WITH_DEPENDENCIES',
       status: 409,
       details: [
@@ -324,7 +324,7 @@ describe('the delete routes that existed before (branch, studio, room, class typ
     '%s: refused with its legacy error code when something still points at it, deleted through the same checker when clean',
     async (kind, code, label) => {
       const blocked = build({ row: { id: branchA }, counts: { [child[kind]!]: 2 } });
-      await expect(blocked.service.remove(superOwner as never, kind, branchA, undefined, 'c')).rejects.toMatchObject({
+      await expect(blocked.service.remove(superOwner as never, kind, branchA, 'Alasan uji', 'c')).rejects.toMatchObject({
         code,
         status: 409,
         details: [{ field: 'id', issue: expect.stringContaining(`${label} tidak dapat dihapus karena masih memiliki data terkait (2 `) }, expect.anything()],
@@ -332,7 +332,7 @@ describe('the delete routes that existed before (branch, studio, room, class typ
       expect(blocked.delegate.delete).not.toHaveBeenCalled();
 
       const clean = build({ row: { id: branchA } });
-      await expect(clean.service.remove(superOwner as never, kind, branchA, undefined, 'c')).resolves.toMatchObject({
+      await expect(clean.service.remove(superOwner as never, kind, branchA, 'Alasan uji', 'c')).resolves.toMatchObject({
         kind,
         deleted: true,
         success: true,
@@ -341,23 +341,24 @@ describe('the delete routes that existed before (branch, studio, room, class typ
     },
   );
 
-  it('does not demand a reason yet (the current buttons send none) but records one when given', async () => {
-    const { service, audit } = build({ row: { id: branchA, code: 'GG', name: 'Green' } });
-    await expect(service.remove(superOwner as never, 'branch', branchA, undefined, 'c')).resolves.toMatchObject({ deleted: true });
-    expect(audit.catat.mock.calls[0]![1]).toMatchObject({ action: 'lifecycle.branch_deleted', objectType: 'Branch', reason: null });
-    await service.remove(superOwner as never, 'branch', branchA, 'Cabang tutup', 'c');
-    expect(audit.catat.mock.calls[1]![1]).toMatchObject({ reason: 'Cabang tutup' });
-    // Tetap menolak alasan yang ada tetapi terlalu pendek.
-    await expect(service.remove(superOwner as never, 'branch', branchA, 'ab', 'c')).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
+  it('demands a reason like every other delete, for all five old kinds', async () => {
+    for (const [kind] of cases) {
+      const { service, delegate } = build({ row: { id: branchA, code: 'GG', name: 'Green' } });
+      for (const reason of [undefined, '', '  ', 'ab'])
+        await expect(service.remove(superOwner as never, kind, branchA, reason, 'c')).rejects.toMatchObject({
+          code: 'VALIDATION_ERROR',
+        });
+      expect(delegate.delete).not.toHaveBeenCalled();
+    }
   });
 
   it('respects branch scope like the old routes did', async () => {
     const { service, delegate } = build({ row: { id: branchA, code: 'GG', name: 'Green' } });
     await expect(
-      service.remove({ ...branchAdmin, branchIds: [id(99)] } as never, 'branch', branchA, undefined, 'c'),
+      service.remove({ ...branchAdmin, branchIds: [id(99)] } as never, 'branch', branchA, 'Alasan uji', 'c'),
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });
     await expect(
-      service.remove({ ...branchAdmin, capabilities: [] } as never, 'branch', branchA, undefined, 'c'),
+      service.remove({ ...branchAdmin, capabilities: [] } as never, 'branch', branchA, 'Alasan uji', 'c'),
     ).rejects.toMatchObject({ code: 'FORBIDDEN' });
     expect(delegate.delete).not.toHaveBeenCalled();
   });

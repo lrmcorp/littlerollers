@@ -89,7 +89,7 @@ function setup(current = promoRow(), clash: unknown = null) {
   const idempotency = {
     execute: jest.fn(async (_c: unknown, action: (t: typeof tx) => Promise<unknown>) => action(tx)),
   };
-  const audit = { record: jest.fn() };
+  const audit = { record: jest.fn(), catat: jest.fn().mockResolvedValue(undefined) };
   const service = new PackagePromotionService(
     db as never,
     new PackageAccessService({} as never, new PolicyService(), audit as never),
@@ -233,11 +233,30 @@ describe('package promotions: update and transitions', () => {
     await expect(
       setup(promoRow({ status: 'PAUSED', activeUntil: new Date(NOW - 1000) })).service.transition(manager, promoId, 'ACTIVE', { expectedVersion: 1 }, 'k-12345678', 'c'),
     ).rejects.toMatchObject({ code: 'PROMOTION_EXPIRED' });
-    await setup(promoRow({ status: 'PAUSED' })).service.transition(manager, promoId, 'ARCHIVED', { expectedVersion: 1 }, 'k-12345678', 'c');
+    await setup(promoRow({ status: 'PAUSED' })).service.transition(manager, promoId, 'ARCHIVED', { expectedVersion: 1, reason: 'Promo selesai' }, 'k-12345678', 'c');
     for (const target of ['ACTIVE', 'PAUSED', 'ARCHIVED'] as const)
       await expect(
-        setup(promoRow({ status: 'ARCHIVED' })).service.transition(manager, promoId, target, { expectedVersion: 1 }, 'k-12345678', 'c'),
+        setup(promoRow({ status: 'ARCHIVED' })).service.transition(manager, promoId, target, { expectedVersion: 1, reason: 'Ulang' }, 'k-12345678', 'c'),
       ).rejects.toMatchObject({ code: 'INVALID_STATE' });
+  });
+});
+
+describe('package promotions: pausing and archiving need a typed reason', () => {
+  it('refuses without one, changes nothing, and stores the reason in the permanent audit when given', async () => {
+    const blocked = setup();
+    for (const target of ['PAUSED', 'ARCHIVED'] as const)
+      for (const reason of [undefined, '', '  ', 'ab'])
+        await expect(
+          blocked.service.transition(manager, promoId, target, { expectedVersion: 1, reason }, 'k-12345678', 'c'),
+        ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
+    expect(blocked.tx.packagePromotion.updateMany).not.toHaveBeenCalled();
+
+    const ok = setup();
+    await ok.service.transition(manager, promoId, 'PAUSED', { expectedVersion: 1, reason: ' Jeda sementara ' }, 'k-12345678', 'c');
+    expect(ok.audit.catat).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ action: 'package-promotion.paused', reason: 'Jeda sementara', beforeMasked: { status: 'ACTIVE' }, afterMasked: { status: 'PAUSED' } }),
+    );
   });
 });
 

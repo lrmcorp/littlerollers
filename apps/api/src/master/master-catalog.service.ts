@@ -353,6 +353,7 @@ export class MasterCatalogService {
         const current = await tx.cabang.findUnique({ where: { id } });
         if (!current) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
         if (status === 'INACTIVE' && current.active) {
+          this.requiredReason(input.reason);
           const upcoming = await this.upcomingSlotCount(tx, { branchId: id });
           if (upcoming > 0) throw new ApiProblem('HAS_UPCOMING_SLOTS', HttpStatus.CONFLICT);
         }
@@ -400,6 +401,16 @@ export class MasterCatalogService {
   // ============================================================================
   // STUDIO & RUANGAN (STUDIOS & ROOMS)
   // ============================================================================
+
+  /** Alasan wajib (3–500 karakter) untuk menonaktifkan; tidak ada alasan bawaan buatan server. */
+  private requiredReason(reason: string | undefined) {
+    const text = typeof reason === 'string' ? reason.trim() : '';
+    if (text.length < 3 || text.length > 500)
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, false, [
+        { field: 'reason', issue: text.length === 0 ? 'REQUIRED' : text.length < 3 ? 'TOO_SHORT' : 'TOO_LONG' },
+      ]);
+    return text;
+  }
 
   /** Kelas terjadwal (belum selesai/dibatalkan) yang masih memakai studio/ruangan; menghalangi penonaktifan. */
   private async upcomingSlotCount(
@@ -489,6 +500,7 @@ export class MasterCatalogService {
       contactPhoneE164?: string | null;
       imageKey?: string | null;
       active?: boolean;
+      reason?: string;
     },
     correlationId: string,
   ) {
@@ -500,7 +512,9 @@ export class MasterCatalogService {
 
       if (input.name !== undefined && input.name.trim().length < 2)
         throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
-      if (input.active === false && current.active) {
+      const deactivating = input.active === false && current.active;
+      const reason = deactivating ? this.requiredReason(input.reason) : undefined;
+      if (deactivating) {
         const upcoming = await this.upcomingSlotCount(tx, { studioId: id });
         if (upcoming > 0) throw new ApiProblem('HAS_UPCOMING_SLOTS', HttpStatus.CONFLICT);
       }
@@ -529,6 +543,9 @@ export class MasterCatalogService {
         'Studio',
         id,
         current.branchId,
+        input.active === undefined ? undefined : { active: current.active },
+        input.active === undefined ? undefined : { active: updated.active },
+        reason,
       );
       return updated;
     });
@@ -590,7 +607,7 @@ export class MasterCatalogService {
   async updateRoom(
     principal: SessionPrincipal,
     id: string,
-    input: { name: string; capacity?: number | null; active?: boolean },
+    input: { name: string; capacity?: number | null; active?: boolean; reason?: string },
     correlationId: string,
   ) {
     this.access.authorize(principal, true);
@@ -605,7 +622,9 @@ export class MasterCatalogService {
         throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
       if (input.capacity !== undefined && input.capacity !== null && (!Number.isInteger(input.capacity) || input.capacity < 1 || input.capacity > 100))
         throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
-      if (input.active === false && current.active) {
+      const deactivating = input.active === false && current.active;
+      const reason = deactivating ? this.requiredReason(input.reason) : undefined;
+      if (deactivating) {
         const upcoming = await this.upcomingSlotCount(tx, { roomId: id });
         if (upcoming > 0) throw new ApiProblem('HAS_UPCOMING_SLOTS', HttpStatus.CONFLICT);
       }
@@ -627,6 +646,9 @@ export class MasterCatalogService {
         'Room',
         id,
         current.studio.branchId,
+        input.active === undefined ? undefined : { active: current.active },
+        input.active === undefined ? undefined : { active: updated.active },
+        reason,
       );
       return updated;
     });
@@ -761,6 +783,7 @@ export class MasterCatalogService {
         const current = await tx.jenisKelas.findUnique({ where: { id } });
         if (!current) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
         if (current.active) {
+          this.requiredReason(input.reason);
           const upcoming = await this.upcomingSlotCount(tx, { classTypeId: id });
           if (upcoming > 0) throw new ApiProblem('HAS_UPCOMING_SLOTS', HttpStatus.CONFLICT);
         }

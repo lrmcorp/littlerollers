@@ -265,18 +265,6 @@ export const GENERIC_REMOVABLE: readonly LifecycleKind[] = [
   'user',
 ];
 
-/**
- * Jenis yang sudah punya tombol Hapus di UI lama tanpa dialog alasan. Alasannya opsional SEMENTARA
- * agar tombol itu tidak patah; hapus entri ini bersamaan dengan dialog alasan di UI (Tahap 3).
- */
-const REASON_OPTIONAL_UNTIL_UI: ReadonlySet<LifecycleKind> = new Set([
-  'branch',
-  'studio',
-  'room',
-  'class-type',
-  'package',
-]);
-
 /** Kode galat yang dibaca klien web untuk rute hapus lama. */
 const LEGACY_CODES: Partial<Record<LifecycleKind, string>> = {
   branch: 'CANNOT_DELETE_BRANCH_WITH_DEPENDENCIES',
@@ -422,8 +410,7 @@ export class LifecycleService {
   /** Hapus permanen satu entitas yang bersih; dihitung ulang di dalam transaksi untuk menutup balapan. */
   async remove(principal: SessionPrincipal, kind: LifecycleKind, id: string, reasonInput: unknown, correlationId: string) {
     if (!GENERIC_REMOVABLE.includes(kind)) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
-    const optional = REASON_OPTIONAL_UNTIL_UI.has(kind) && (reasonInput === undefined || reasonInput === null || reasonInput === '');
-    const reason = optional ? null : reasonOf(reasonInput);
+    const reason = reasonOf(reasonInput);
     const spec = SPECS[kind];
     try {
       return await this.db.$transaction(async (tx) => {

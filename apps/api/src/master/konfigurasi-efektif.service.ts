@@ -309,11 +309,18 @@ export class EffectiveSettingsService {
     kind: 'INSTRUCTOR_FEE' | 'PROJECTION_RATE',
     id: string,
     correlationId: string,
+    reasonInput?: string,
   ) {
     this.access.authorize(principal, true);
     if (!principal.capabilities.includes('finance:manage'))
       throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);
     if (!ENTITY_ID_REGEX.test(id)) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+    // Menghapus tarif wajib beralasan (K4).
+    const reason = typeof reasonInput === 'string' ? reasonInput.trim() : '';
+    if (reason.length < 3 || reason.length > 500)
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, false, [
+        { field: 'reason', issue: reason.length === 0 ? 'REQUIRED' : reason.length < 3 ? 'TOO_SHORT' : 'TOO_LONG' },
+      ]);
 
     return this.db.$transaction(async (tx) => {
       const row =
@@ -341,6 +348,8 @@ export class EffectiveSettingsService {
           effectiveDate: dateKey(row.effectiveDate),
           ...('feePerJamRp' in row ? { feePerJamRp: row.feePerJamRp } : { ratePerSesiRp: (row as { ratePerSesiRp: number }).ratePerSesiRp }),
         },
+        undefined,
+        reason,
       );
       return { id, deleted: true };
     });

@@ -104,7 +104,7 @@ describe('lifecycle deletability on a real MySQL', () => {
 
   it('deletes bottom-up for real, refuses out of order with the legacy code, and leaves a permanent audit trail', async () => {
     // Urutan salah: cabang masih punya studio.
-    await expect(service.remove(principal as never, 'branch', branchId, undefined, 'corr-1')).rejects.toMatchObject({
+    await expect(service.remove(principal as never, 'branch', branchId, 'Uji urutan salah', 'corr-1')).rejects.toMatchObject({
       code: 'CANNOT_DELETE_BRANCH_WITH_DEPENDENCIES',
       status: 409,
     });
@@ -112,7 +112,7 @@ describe('lifecycle deletability on a real MySQL', () => {
 
     await service.remove(principal as never, 'room', roomId, 'Ruangan salah input', 'corr-2');
     await service.remove(principal as never, 'studio', studioId, 'Studio salah input', 'corr-3');
-    await service.remove(principal as never, 'branch', branchId, undefined, 'corr-4');
+    await service.remove(principal as never, 'branch', branchId, 'Cabang uji selesai', 'corr-4');
     expect(await db.cabang.count({ where: { id: branchId } })).toBe(0);
     expect(await db.studio.count({ where: { id: studioId } })).toBe(0);
 
@@ -124,7 +124,7 @@ describe('lifecycle deletability on a real MySQL', () => {
       expect.arrayContaining([
         ['lifecycle.room_deleted', 'Room', 'Ruangan salah input'],
         ['lifecycle.studio_deleted', 'Studio', 'Studio salah input'],
-        ['lifecycle.branch_deleted', 'Branch', null],
+        ['lifecycle.branch_deleted', 'Branch', 'Cabang uji selesai'],
       ]),
     );
     const branchEntry = trail.find((row) => row.objectId === branchId)!;

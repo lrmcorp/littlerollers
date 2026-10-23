@@ -46,7 +46,8 @@ export class PublicContentManagementController {
     @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Param('status') status: 'PUBLISHED' | 'ARCHIVED',
+    @Body() body?: { reason?: string },
   ) {
-    return this.content.transition(req.principal, id, status, req.correlationId ?? 'unknown');
+    return this.content.transition(req.principal, id, status, req.correlationId ?? 'unknown', body?.reason);
   }
 }

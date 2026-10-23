@@ -251,3 +251,18 @@ Diputuskan mengikuti rekomendasi K1: **memperluas `audit_log`** (tidak membuat t
 **Masih menunggu keputusan:** menolak arsip/nonaktif cabang atau tipe kelas bila masih punya kelas mendatang yang belum dibatalkan (studio sudah punya `HAS_UPCOMING_SLOTS`). Rekomendasi: tolak dengan pesan "batalkan atau pindahkan kelas dulu".
 
 **Cakupan yang bukan bagian server ini:** tombol dan dialog di UI (Hapus hanya bila `deletable`, penjelasan penghalang, dialog alasan seragam) = Tahap 3.
+
+---
+
+## 11. Status Tahap 3 — tampilan (dikerjakan 2026-10-24)
+
+**Keputusan tambahan:** arsip atau nonaktif cabang/tipe kelas **ditolak** (`409 HAS_UPCOMING_SLOTS`) selama masih ada kelas DRAFT/PUBLISHED/CONFIRMED yang belum selesai; batalkan atau pindahkan kelasnya dulu (sama seperti studio/ruangan).
+
+**Komponen bersama:** `components/admin/lifecycle-dialog.tsx` (satu dialog untuk Nonaktifkan/Jeda, Arsipkan, Hapus; alasan selalu wajib; Hapus lebih dulu bertanya ke `GET /lifecycle/:kind/:id/deletability` dan, bila ada data terkait, menampilkan daftarnya tanpa menawarkan hapus) dan `api-clients/lifecycle-client.ts` (+ pesan galat). Hook `useBranchLifecycle` dan `useVoucherLifecycle` untuk daftar + detail.
+
+**Per modul:** cabang (daftar + detail; status Diarsipkan + filter), tipe kelas (menu aksi, filter Diarsipkan, daftar kini meminta `status=ALL`), studio, ruangan, paket (daftar + detail), promosi paket (jeda/arsip/hapus), voucher (jeda ≠ arsip, hapus, buka arsip), rekening pembayaran (hapus), akun pengguna (nonaktifkan beralasan; hapus akun hanya Super Owner), konten publik (arsip beralasan, hapus draf), template notifikasi (arsip/"kembali ke teks bawaan" beralasan, hapus draf), tarif honor/proyeksi (hapus beralasan).
+
+**Server (K4 dinyalakan):** alasan kini **wajib** (3–500 karakter, 422) untuk: semua `DELETE` lifecycle (termasuk cabang/studio/ruangan/tipe kelas/paket), nonaktifkan cabang/tipe kelas/studio/ruangan/paket/akun, jeda/arsip promosi dan voucher, arsip konten publik dan template, hapus tarif. Aktifkan kembali/terbitkan tetap tanpa alasan. Alasan bawaan buatan klien dihapus dari klien cabang, tipe kelas, paket, promosi, voucher, pengguna. `REASON_OPTIONAL_UNTIL_UI` dihapus. Audit paket/promosi/voucher/konten/template kini menyimpan alasan di kolom `reason` audit permanen.
+
+**Belum dikerjakan:** hapus pengaturan kuota minimum (belum jelas kaitan baris UI "Kuota & Kapasitas" dengan tabel `min_quota_setting`), tombol hapus kasus bantuan, alasan wajib untuk tolak/batalkan/ubah peran/akhiri penugasan di UI selain yang sudah ada, `customer setStatus` (cek cabang + alasan), dan aksi yang belum tercatat audit (profil pelanggan, reschedule, kasus bantuan, retry email).
+

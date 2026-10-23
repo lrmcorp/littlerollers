@@ -586,6 +586,12 @@ export class UserAdministrationService {
     this.policy.requireCapability(principal.capabilities, 'user:admin');
     if (targetId === principal.userId)
       throw new ApiProblem('SEPARATION_OF_DUTIES_VIOLATION', HttpStatus.CONFLICT);
+    // Menonaktifkan akun wajib beralasan (K4); mengaktifkan kembali tidak.
+    const trimmed = typeof reason === 'string' ? reason.trim() : '';
+    if (trimmed.length < 3 || trimmed.length > 500)
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, false, [
+        { field: 'reason', issue: trimmed.length === 0 ? 'REQUIRED' : trimmed.length < 3 ? 'TOO_SHORT' : 'TOO_LONG' },
+      ]);
 
     const user = await this.db.user.update({
       where: { id: targetId },
@@ -597,7 +603,7 @@ export class UserAdministrationService {
       principal,
       targetUserId: targetId,
       correlationId,
-      reason,
+      reason: trimmed,
     });
 
     return { id: user.id, status: user.status };

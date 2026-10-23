@@ -37,6 +37,7 @@ export class PublicContentManagementService {
     action: string,
     row: { id: string; contentKey: string; kind: string; version: number; status: string },
     before?: { status: string },
+    reason?: string | null,
   ) {
     await this.audit?.catat(null, {
       actorId: principal.userId,
@@ -44,6 +45,7 @@ export class PublicContentManagementService {
       action,
       objectType: 'PublicContent',
       objectId: row.id,
+      reason: reason ?? null,
       beforeMasked: before,
       afterMasked: {
         contentKey: row.contentKey,
@@ -214,8 +216,13 @@ export class PublicContentManagementService {
     id: string,
     status: 'PUBLISHED' | 'ARCHIVED',
     _correlationId: string,
+    reasonInput?: string,
   ) {
     if (status !== 'PUBLISHED' && status !== 'ARCHIVED') throw invalid('status');
+    // Mengarsipkan wajib beralasan (K4); menerbitkan tidak.
+    const reason = typeof reasonInput === 'string' ? reasonInput.trim() : '';
+    if (status === 'ARCHIVED' && (reason.length < 3 || reason.length > 500))
+      throw invalid('reason', reason.length === 0 ? 'REQUIRED' : reason.length < 3 ? 'TOO_SHORT' : 'TOO_LONG');
     const current = await this.load(id);
     this.assertManage(principal, current.branchId);
     const now = new Date();
@@ -252,6 +259,7 @@ export class PublicContentManagementService {
       status === 'PUBLISHED' ? 'public_content.published' : 'public_content.archived',
       result,
       { status: current.status },
+      reason || null,
     );
     return result;
   }

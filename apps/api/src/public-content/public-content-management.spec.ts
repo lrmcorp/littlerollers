@@ -207,11 +207,20 @@ describe('PublicContentManagementService', () => {
     });
     expect(tx.publicContent.updateMany).toHaveBeenCalledTimes(1);
     db.publicContent.updateMany.mockResolvedValue({ count: 0 });
-    await expect(service.transition(owner, contentId, 'ARCHIVED', 'c')).rejects.toMatchObject({
+    await expect(service.transition(owner, contentId, 'ARCHIVED', 'c', 'Konten usang')).rejects.toMatchObject({
       code: 'INVALID_STATE',
     });
     await expect(
       service.transition(owner, contentId, 'DELETED' as never, 'c'),
     ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
+  });
+
+  it('archiving needs a typed reason (and changes nothing without it); publishing needs none', async () => {
+    const { service, db } = setup();
+    for (const reason of [undefined, '', '  ', 'ab'])
+      await expect(service.transition(owner, contentId, 'ARCHIVED', 'c', reason)).rejects.toMatchObject({
+        code: 'VALIDATION_ERROR',
+      });
+    expect(db.publicContent.updateMany).not.toHaveBeenCalled();
   });
 });

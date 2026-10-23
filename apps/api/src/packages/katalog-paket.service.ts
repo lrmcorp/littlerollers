@@ -401,18 +401,29 @@ export class PackageCatalogService {
         const pkg = await tx.paket.findUnique({ where: { id } });
         if (!pkg) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
 
+        // Menonaktifkan/mengarsipkan wajib beralasan (K4); mengaktifkan kembali tidak.
+        const trimmed = typeof body?.reason === 'string' ? body.reason.trim() : '';
+        if (targetStatus !== 'ACTIVE' && (trimmed.length < 3 || trimmed.length > 500))
+          throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, false, [
+            { field: 'reason', issue: trimmed.length === 0 ? 'REQUIRED' : trimmed.length < 3 ? 'TOO_SHORT' : 'TOO_LONG' },
+          ]);
+
         const updated = await tx.paket.update({
           where: { id },
           data: { status: targetStatus },
           include: { classType: true },
         });
 
-        this.auditService.record({
+        await this.auditService.catat(tx, {
           action: `PACKAGE_${targetStatus}`,
-          resourceType: 'Package',
-          resourceId: id,
-          actorUserId: principal.userId,
+          objectType: 'Package',
+          objectId: id,
+          actorId: principal.userId,
+          branchId: pkg.branchId ?? null,
           correlationId,
+          reason: trimmed || null,
+          beforeMasked: { status: pkg.status },
+          afterMasked: { status: targetStatus },
         });
 
         return {

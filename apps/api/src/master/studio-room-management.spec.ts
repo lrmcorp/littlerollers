@@ -71,7 +71,7 @@ describe('deactivating a studio', () => {
   it('is refused while unfinished classes still use it', async () => {
     const { service, tx } = setup({}, 3);
     await expect(
-      service.updateStudio(superOwner, studioId, { name: 'Studio 1', active: false }, 'c'),
+      service.updateStudio(superOwner, studioId, { name: 'Studio 1', active: false, reason: 'Renovasi' }, 'c'),
     ).rejects.toMatchObject({ code: 'HAS_UPCOMING_SLOTS' });
     expect(tx.studio.update).not.toHaveBeenCalled();
     expect(tx.slotKelas.count).toHaveBeenCalledWith({
@@ -85,7 +85,7 @@ describe('deactivating a studio', () => {
 
   it('succeeds with no upcoming classes and reactivating never needs the check', async () => {
     const { service, tx } = setup();
-    await service.updateStudio(superOwner, studioId, { name: 'Studio 1', active: false }, 'c');
+    await service.updateStudio(superOwner, studioId, { name: 'Studio 1', active: false, reason: 'Renovasi' }, 'c');
     expect(tx.studio.update).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ active: false }) }),
     );
@@ -116,7 +116,7 @@ describe('deactivating a room', () => {
   it('is refused while unfinished classes are booked into it', async () => {
     const { service, tx } = setup({}, 2);
     await expect(
-      service.updateRoom(superOwner, roomId, { name: 'Ruang A', active: false }, 'c'),
+      service.updateRoom(superOwner, roomId, { name: 'Ruang A', active: false, reason: 'Renovasi' }, 'c'),
     ).rejects.toMatchObject({ code: 'HAS_UPCOMING_SLOTS' });
     expect(tx.ruangan.update).not.toHaveBeenCalled();
     expect(tx.slotKelas.count).toHaveBeenCalledWith({
@@ -130,9 +130,28 @@ describe('deactivating a room', () => {
       await expect(
         service.updateRoom(superOwner, roomId, { name: 'Ruang A', capacity }, 'c'),
       ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
-    await service.updateRoom(superOwner, roomId, { name: 'Ruang A', capacity: 8, active: false }, 'c');
+    await service.updateRoom(superOwner, roomId, { name: 'Ruang A', capacity: 8, active: false, reason: 'Renovasi' }, 'c');
     expect(tx.ruangan.update).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ capacityBed: 8, active: false }) }),
     );
+  });
+});
+
+describe('deactivating needs a typed reason, reactivating does not', () => {
+  it.each([
+    ['studio', (s: ReturnType<typeof setup>, reason?: string) => s.service.updateStudio(superOwner, studioId, { name: 'Studio 1', active: false, reason }, 'c')],
+    ['room', (s: ReturnType<typeof setup>, reason?: string) => s.service.updateRoom(superOwner, roomId, { name: 'Ruang A', active: false, reason }, 'c')],
+  ] as const)('refuses to deactivate a %s without a reason and changes nothing', async (_kind, call) => {
+    const state = setup();
+    for (const reason of [undefined, '', '  ', 'ab'])
+      await expect(call(state, reason)).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
+    expect(state.tx.studio.update).not.toHaveBeenCalled();
+    expect(state.tx.ruangan.update).not.toHaveBeenCalled();
+  });
+
+  it('reactivating an inactive studio needs no reason', async () => {
+    const { service, tx } = setup({ active: false });
+    await service.updateStudio(superOwner, studioId, { name: 'Studio 1', active: true }, 'c');
+    expect(tx.studio.update).toHaveBeenCalled();
   });
 });

@@ -67,6 +67,7 @@ export class MasterController {
       contactPhoneE164?: string | null;
       imageKey?: string | null;
       active?: boolean;
+      reason?: string;
     },
   ) {
     return this.catalog.updateStudio(req.principal, id, body, req.correlationId ?? 'unknown');
@@ -88,7 +89,7 @@ export class MasterController {
   @Patch('rooms/:id') updateRoom(
     @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
-    @Body() body: { name: string; capacity?: number | null; active?: boolean },
+    @Body() body: { name: string; capacity?: number | null; active?: boolean; reason?: string },
   ) {
     return this.catalog.updateRoom(req.principal, id, body, req.correlationId ?? 'unknown');
   }
@@ -260,8 +261,12 @@ export class MasterController {
       req.correlationId ?? 'unknown',
     );
   }
-  @Delete('instructor-fees/:id') deleteFee(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
-    return this.settings.remove(req.principal, 'INSTRUCTOR_FEE', id, req.correlationId ?? 'unknown');
+  @Delete('instructor-fees/:id') deleteFee(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() body?: { reason?: string },
+  ) {
+    return this.settings.remove(req.principal, 'INSTRUCTOR_FEE', id, req.correlationId ?? 'unknown', body?.reason);
   }
   @Get('projection-rates') listRates(
     @Req() req: AuthenticatedRequest,
@@ -279,8 +284,12 @@ export class MasterController {
       req.correlationId ?? 'unknown',
     );
   }
-  @Delete('projection-rates/:id') deleteRate(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
-    return this.settings.remove(req.principal, 'PROJECTION_RATE', id, req.correlationId ?? 'unknown');
+  @Delete('projection-rates/:id') deleteRate(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() body?: { reason?: string },
+  ) {
+    return this.settings.remove(req.principal, 'PROJECTION_RATE', id, req.correlationId ?? 'unknown', body?.reason);
   }
   @Get('quota-capacity-settings') listQuota(
     @Req() req: AuthenticatedRequest,

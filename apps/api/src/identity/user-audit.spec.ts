@@ -72,6 +72,15 @@ describe('riwayat audit akun staf', () => {
     expect(created[1]).toMatchObject({ reason: 'cuti', correlationId: 'corr-3' });
   });
 
+  it('menolak nonaktifkan akun tanpa alasan dan tidak mengubah apa pun', async () => {
+    const { service, created } = setup();
+    for (const reason of [undefined, '', '  ', 'ab'])
+      await expect(service.deactivate(principal, 'target-1', reason, undefined, 'corr-x')).rejects.toMatchObject({
+        code: 'VALIDATION_ERROR',
+      });
+    expect(created).toHaveLength(0);
+  });
+
   it('mencatat perubahan profil', async () => {
     const { service, created } = setup();
     await service.updateUserProfile(principal, 'target-1', { displayName: 'Rina Baru' } as never, 'corr-5');

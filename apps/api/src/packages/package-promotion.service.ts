@@ -362,6 +362,10 @@ export class PackagePromotionService {
   ) {
     this.requireManage(principal);
     if (!Number.isInteger(body?.expectedVersion)) throw invalid('expectedVersion', 'REQUIRED');
+    // Jeda dan arsip wajib beralasan (K4); mengaktifkan kembali tidak.
+    const reason = typeof body.reason === 'string' ? body.reason.trim() : '';
+    if (status !== 'ACTIVE' && (reason.length < 3 || reason.length > 500))
+      throw invalid('reason', reason.length === 0 ? 'REQUIRED' : reason.length < 3 ? 'TOO_SHORT' : 'TOO_LONG');
     const current = await this.promotionOrThrow(id);
     const allowed: Record<PackagePromotionStatus, PackagePromotionStatus[]> = {
       ACTIVE: ['PAUSED'],
@@ -392,13 +396,15 @@ export class PackagePromotionService {
         });
         if (claimed.count !== 1) throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
         const updated = await tx.packagePromotion.findUniqueOrThrow({ where: { id } });
-        this.auditService.record({
+        await this.auditService.catat(tx, {
           action: `package-promotion.${status.toLowerCase()}`,
-          resourceType: 'PackagePromotion',
-          resourceId: id,
-          actorUserId: principal.userId,
+          objectType: 'PackagePromotion',
+          objectId: id,
+          actorId: principal.userId,
           correlationId,
-          details: { reason: body.reason?.slice(0, 200) },
+          reason: reason || null,
+          beforeMasked: { status: from },
+          afterMasked: { status },
         });
         return {
           status: HttpStatus.OK,
