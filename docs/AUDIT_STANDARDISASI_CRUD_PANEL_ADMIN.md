@@ -241,6 +241,13 @@ Diputuskan mengikuti rekomendasi K1: **memperluas `audit_log`** (tidak membuat t
 
 **Verifikasi:** `tsc` bersih; jest API seluruh suite hijau (89 suite / 679 tes, 6 dilewati lama); spec baru `lifecycle/lifecycle.service.spec.ts`; spec voucher diperbarui. Uji hidup di database sandbox (MySQL nyata): pelanggan ber-riwayat ditolak dengan rincian yang benar, pelanggan bersih terhapus, cabang bersih → arsip → hilang dari daftar kerja → muncul di filter ARCHIVED → aktifkan kembali → hapus; voucher: hapus tanpa alasan 422, hapus dengan alasan 200, jeda ≠ arsip, arsip tersembunyi; tipe kelas arsip/aktifkan; draf konten & template, kuota minimum, promosi, rekening terhapus; konten terbit ditolak; hapus diri sendiri ditolak. Semua tercatat di `/audit-logs` (`lifecycle.*`).
 
-**Catatan temuan:** respons `POST /vouchers` membungkus hasil sebagai `{ status, body }` (idempotency tidak di-unwrap di controller, berbeda dari rute lain); belum diperbaiki.
+**Perbaikan pra-UI (2026-10-24, setelah tinjauan):**
+1. Label jejak audit untuk semua kode `lifecycle.*` dan jenis objek baru ada di `apps/web/app/lib/audit-labels.ts`; tes penjaga memindai `apps/api/src` agar kode audit baru tanpa label langsung gagal.
+2. Rute hapus lama (cabang, studio, ruangan, tipe kelas, paket) kini lewat pemeriksa `LifecycleService` yang sama (satu aturan, FK dibaca dari database), dengan kode galat lama (`CANNOT_DELETE_*_WITH_DEPENDENCIES`) dan kalimat lengkap di `details[0]`; alasan masih opsional di sana. Handler dan spec hapus lama dihapus.
+3. `POST/PATCH/transition` voucher tidak lagi membocorkan amplop idempotency `{ status, body }`.
+4. Kegagalan membaca daftar FK tidak lagi disimpan di cache.
+5. Tes integrasi MySQL nyata `lifecycle/lifecycle.integration.spec.ts` (RESTRICT / SET NULL / CASCADE, hapus bertingkat, jejak audit, hapus akun beserta sesi).
+
+**Masih menunggu keputusan:** menolak arsip/nonaktif cabang atau tipe kelas bila masih punya kelas mendatang yang belum dibatalkan (studio sudah punya `HAS_UPCOMING_SLOTS`). Rekomendasi: tolak dengan pesan "batalkan atau pindahkan kelas dulu".
 
 **Cakupan yang bukan bagian server ini:** tombol dan dialog di UI (Hapus hanya bila `deletable`, penjelasan penghalang, dialog alasan seragam) = Tahap 3.

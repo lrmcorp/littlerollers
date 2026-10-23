@@ -40,6 +40,8 @@ type Db = PrismaService | Prisma.TransactionClient;
 interface Spec {
   table: string;
   delegate: string;
+  /** Nama teknis objek di jejak audit; sama dengan yang dipakai modul lain (mis. `Branch`, `Voucher`). */
+  objectType: string;
   label: string;
   capability: string;
   /** Tanpa cabang → wajib pemegang izin lintas cabang (selain yang katalog bersama). */
@@ -108,6 +110,7 @@ const draftOnly = (noun: string) => async (_db: Db, row: { status: string }): Pr
 
 const SPECS: Record<LifecycleKind, Spec> = {
   branch: {
+    objectType: 'Branch',
     table: 'cabang',
     delegate: 'cabang',
     label: 'Cabang',
@@ -120,6 +123,7 @@ const SPECS: Record<LifecycleKind, Spec> = {
     snapshot: (row) => ({ code: row.code, name: row.name, timezone: row.timezone }),
   },
   studio: {
+    objectType: 'Studio',
     table: 'studio',
     delegate: 'studio',
     label: 'Studio',
@@ -128,6 +132,7 @@ const SPECS: Record<LifecycleKind, Spec> = {
     snapshot: (row) => ({ code: row.code, name: row.name, branchId: row.branchId }),
   },
   room: {
+    objectType: 'Room',
     table: 'ruangan',
     delegate: 'ruangan',
     label: 'Ruangan',
@@ -137,6 +142,7 @@ const SPECS: Record<LifecycleKind, Spec> = {
     snapshot: (row) => ({ name: row.name, studioId: row.studioId }),
   },
   'class-type': {
+    objectType: 'ClassType',
     table: 'jenis_kelas',
     delegate: 'jenisKelas',
     label: 'Tipe kelas',
@@ -144,6 +150,7 @@ const SPECS: Record<LifecycleKind, Spec> = {
     snapshot: (row) => ({ code: row.code, name: row.name }),
   },
   package: {
+    objectType: 'Package',
     table: 'paket',
     delegate: 'paket',
     label: 'Paket',
@@ -152,6 +159,7 @@ const SPECS: Record<LifecycleKind, Spec> = {
     snapshot: (row) => ({ name: row.name, branchId: row.branchId ?? null, status: row.status }),
   },
   promotion: {
+    objectType: 'PackagePromotion',
     table: 'package_promotion',
     delegate: 'packagePromotion',
     label: 'Promosi paket',
@@ -166,6 +174,7 @@ const SPECS: Record<LifecycleKind, Spec> = {
     snapshot: (row) => ({ name: row.name, packageId: row.packageId, status: row.status }),
   },
   voucher: {
+    objectType: 'Voucher',
     table: 'voucher',
     delegate: 'voucher',
     label: 'Voucher',
@@ -176,6 +185,7 @@ const SPECS: Record<LifecycleKind, Spec> = {
     snapshot: (row) => ({ code: row.code, name: row.name, usedCount: row.usedCount }),
   },
   'payment-account': {
+    objectType: 'PaymentAccount',
     table: 'rekening_pembayaran',
     delegate: 'rekeningPembayaran',
     label: 'Rekening pembayaran',
@@ -186,6 +196,7 @@ const SPECS: Record<LifecycleKind, Spec> = {
     snapshot: (row) => ({ bankName: row.bankName, holder: row.accountHolder, branchId: row.branchId ?? null }),
   },
   'min-quota': {
+    objectType: 'MinQuotaSetting',
     table: 'min_quota_setting',
     delegate: 'minQuotaSetting',
     label: 'Pengaturan kuota minimum',
@@ -199,6 +210,7 @@ const SPECS: Record<LifecycleKind, Spec> = {
     }),
   },
   'public-content': {
+    objectType: 'PublicContent',
     table: 'public_content',
     delegate: 'publicContent',
     label: 'Konten publik',
@@ -208,6 +220,7 @@ const SPECS: Record<LifecycleKind, Spec> = {
     snapshot: (row) => ({ contentKey: row.contentKey, kind: row.kind, version: row.version, status: row.status }),
   },
   'notification-template': {
+    objectType: 'NotificationTemplate',
     table: 'notification_template',
     delegate: 'notificationTemplate',
     label: 'Template notifikasi',
@@ -217,6 +230,7 @@ const SPECS: Record<LifecycleKind, Spec> = {
     snapshot: (row) => ({ templateKey: row.templateKey, channel: row.channel, version: row.version, status: row.status }),
   },
   user: {
+    objectType: 'User',
     table: 'user',
     delegate: 'user',
     label: 'Akun pengguna',
@@ -235,8 +249,13 @@ const SPECS: Record<LifecycleKind, Spec> = {
   },
 };
 
-/** Kind yang punya rute DELETE generik di modul ini; sisanya punya rute hapus sendiri di modulnya. */
+/** Jenis yang bisa dihapus lewat modul ini. Tarif honor/proyeksi punya aturan tanggal sendiri (`konfigurasi-efektif`). */
 export const GENERIC_REMOVABLE: readonly LifecycleKind[] = [
+  'branch',
+  'studio',
+  'room',
+  'class-type',
+  'package',
   'voucher',
   'promotion',
   'payment-account',
@@ -245,6 +264,40 @@ export const GENERIC_REMOVABLE: readonly LifecycleKind[] = [
   'notification-template',
   'user',
 ];
+
+/**
+ * Jenis yang sudah punya tombol Hapus di UI lama tanpa dialog alasan. Alasannya opsional SEMENTARA
+ * agar tombol itu tidak patah; hapus entri ini bersamaan dengan dialog alasan di UI (Tahap 3).
+ */
+const REASON_OPTIONAL_UNTIL_UI: ReadonlySet<LifecycleKind> = new Set([
+  'branch',
+  'studio',
+  'room',
+  'class-type',
+  'package',
+]);
+
+/** Kode galat yang dibaca klien web untuk rute hapus lama. */
+const LEGACY_CODES: Partial<Record<LifecycleKind, string>> = {
+  branch: 'CANNOT_DELETE_BRANCH_WITH_DEPENDENCIES',
+  studio: 'CANNOT_DELETE_STUDIO_WITH_DEPENDENCIES',
+  room: 'CANNOT_DELETE_ROOM_WITH_DEPENDENCIES',
+  'class-type': 'CANNOT_DELETE_CLASS_TYPE_WITH_DEPENDENCIES',
+  package: 'CANNOT_DELETE_PACKAGE_WITH_DEPENDENCIES',
+};
+
+/** Petunjuk jalan keluar yang benar untuk tiap jenis; jenis tanpa jalan keluar tidak diberi petunjuk. */
+const NONACTIVATE_HINT: Partial<Record<LifecycleKind, string>> = {
+  branch: 'Gunakan Nonaktifkan, atau Arsipkan bila cabang tidak dipakai lagi.',
+  'class-type': 'Gunakan Nonaktifkan, atau Arsipkan bila tipe kelas tidak dipakai lagi.',
+  package: 'Gunakan Nonaktifkan, atau Arsipkan bila paket tidak dijual lagi.',
+  promotion: 'Gunakan Jeda, atau Arsipkan bila promo sudah selesai.',
+  voucher: 'Gunakan Jeda, atau Arsipkan bila voucher tidak dipakai lagi.',
+  studio: 'Gunakan Nonaktifkan.',
+  room: 'Gunakan Nonaktifkan.',
+  'payment-account': 'Gunakan Nonaktifkan.',
+  user: 'Gunakan Nonaktifkan.',
+};
 
 export const isLifecycleKind = (value: string): value is LifecycleKind => value in SPECS;
 
@@ -281,7 +334,12 @@ export class LifecycleService {
         rows
           .filter((row) => SAFE_IDENT.test(row.t) && SAFE_IDENT.test(row.c) && SAFE_IDENT.test(row.rt))
           .map((row): Edge => ({ table: row.t, column: row.c, deleteRule: row.d, parent: row.rt })),
-      );
+      )
+      .catch((error: unknown) => {
+        // Jangan menyimpan kegagalan: pemeriksaan berikutnya harus mencoba membaca lagi.
+        this.edges = undefined;
+        throw error;
+      });
     return this.edges;
   }
 
@@ -339,19 +397,33 @@ export class LifecycleService {
     return { kind, id, deletable: blockers.length === 0, blockers };
   }
 
-  private blocked(blockers: Blocker[]) {
+  /**
+   * 409 dengan rincian. Jenis yang sudah punya rute hapus sebelumnya tetap memakai kode galat lamanya
+   * dan kalimat lengkap di `details[0]`, karena klien web membaca pesan dari sana.
+   */
+  private blocked(kind: LifecycleKind | null, blockers: Blocker[]) {
+    const list = blockers.map((item) => `${item.count} ${item.label}`).join(', ');
+    const spec = kind ? SPECS[kind] : null;
+    const hint = kind && NONACTIVATE_HINT[kind] ? ` ${NONACTIVATE_HINT[kind]}` : '';
     return new ApiProblem(
-      'CANNOT_DELETE_WITH_DEPENDENCIES',
+      (kind && LEGACY_CODES[kind]) || 'CANNOT_DELETE_WITH_DEPENDENCIES',
       HttpStatus.CONFLICT,
       false,
-      blockers.map((item) => ({ field: item.kind, issue: `${item.count} ${item.label}` })),
+      [
+        {
+          field: 'id',
+          issue: `${spec?.label ?? 'Data'} tidak dapat dihapus karena masih memiliki data terkait (${list}).${hint}`,
+        },
+        ...blockers.map((item) => ({ field: item.kind, issue: `${item.count} ${item.label}` })),
+      ],
     );
   }
 
   /** Hapus permanen satu entitas yang bersih; dihitung ulang di dalam transaksi untuk menutup balapan. */
   async remove(principal: SessionPrincipal, kind: LifecycleKind, id: string, reasonInput: unknown, correlationId: string) {
     if (!GENERIC_REMOVABLE.includes(kind)) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
-    const reason = reasonOf(reasonInput);
+    const optional = REASON_OPTIONAL_UNTIL_UI.has(kind) && (reasonInput === undefined || reasonInput === null || reasonInput === '');
+    const reason = optional ? null : reasonOf(reasonInput);
     const spec = SPECS[kind];
     try {
       return await this.db.$transaction(async (tx) => {
@@ -361,7 +433,7 @@ export class LifecycleService {
         if (kind === 'user' && id === principal.userId)
           throw new ApiProblem('CANNOT_DELETE_SELF', HttpStatus.FORBIDDEN);
         const blockers = await this.blockers(tx, kind, row);
-        if (blockers.length > 0) throw this.blocked(blockers);
+        if (blockers.length > 0) throw this.blocked(kind, blockers);
 
         await (tx as any)[spec.delegate].delete({ where: { id } });
         await this.audit.catat(tx, {
@@ -370,17 +442,17 @@ export class LifecycleService {
           correlationId,
           action: `lifecycle.${kind.replace(/-/gu, '_')}_deleted`,
           targetUserId: kind === 'user' ? id : undefined,
-          objectType: spec.label,
+          objectType: spec.objectType,
           objectId: id,
           reason,
           beforeMasked: spec.snapshot(row) as Prisma.InputJsonValue,
         });
-        return { id, kind, deleted: true as const };
+        return { id, kind, deleted: true as const, success: true as const };
       });
     } catch (error) {
       // FK yang tidak terdeteksi pemindaian (mis. dibuat setelah pembacaan) tetap ditolak database.
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003')
-        throw this.blocked([{ kind: 'relasi', label: 'data terkait lain', count: 1 }]);
+        throw this.blocked(kind, [{ kind: 'relasi', label: 'data terkait lain', count: 1 }]);
       throw error;
     }
   }
@@ -409,7 +481,7 @@ export class LifecycleService {
         branchId,
         correlationId,
         action: `lifecycle.${kind.replace(/-/gu, '_')}_archived`,
-        objectType: spec.label,
+        objectType: spec.objectType,
         objectId: id,
         reason,
         beforeMasked: { active: row.active, archived: false },

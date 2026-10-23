@@ -26,6 +26,9 @@ import { VoucherService } from './voucher.service';
 import { PackagePromotionService } from './package-promotion.service';
 import { ApiProblem } from '../identity/security';
 import { HttpStatus } from '@nestjs/common';
+/** Hasil `IdempotencyService.execute` berbentuk `{ status, body, replay }`; klien hanya butuh isinya. */
+const unwrap = <T>(result: T): T extends { body: infer B } ? B : T => ((result as any)?.body ?? result) as any;
+
 @Controller()
 @UseGuards(AuthGuard)
 export class PackagesController {
@@ -67,20 +70,20 @@ export class PackagesController {
   @Get('vouchers/:id') getVoucher(@Req() r: AuthenticatedRequest, @Param('id') id: string) {
     return this.vouchers.detail(r.principal, id);
   }
-  @Post('vouchers') createVoucher(
+  @Post('vouchers') async createVoucher(
     @Req() r: AuthenticatedRequest,
     @Headers('idempotency-key') key: string,
     @Body() body: any,
   ) {
-    return this.vouchers.create(r.principal, body, key, r.correlationId ?? 'unknown');
+    return unwrap(await this.vouchers.create(r.principal, body, key, r.correlationId ?? 'unknown'));
   }
-  @Patch('vouchers/:id') updateVoucher(
+  @Patch('vouchers/:id') async updateVoucher(
     @Req() r: AuthenticatedRequest,
     @Headers('idempotency-key') key: string,
     @Param('id') id: string,
     @Body() body: any,
   ) {
-    return this.vouchers.update(r.principal, id, body, key, r.correlationId ?? 'unknown');
+    return unwrap(await this.vouchers.update(r.principal, id, body, key, r.correlationId ?? 'unknown'));
   }
   @Get('vouchers/:id/redemptions') voucherRedemptions(
     @Req() r: AuthenticatedRequest,
@@ -90,7 +93,7 @@ export class PackagesController {
   ) {
     return this.vouchers.redemptions(r.principal, id, cursor, limit);
   }
-  @Post('vouchers/:id/:action') transitionVoucher(
+  @Post('vouchers/:id/:action') async transitionVoucher(
     @Req() r: AuthenticatedRequest,
     @Param('id') id: string,
     @Param('action') action: 'activate' | 'pause' | 'archive',
@@ -100,13 +103,8 @@ export class PackagesController {
     const statuses = { activate: 'ACTIVE', pause: 'PAUSED', archive: 'ARCHIVED' } as const;
     const status = statuses[action];
     if (!status) throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
-    return this.vouchers.transition(
-      r.principal,
-      id,
-      status,
-      body,
-      key,
-      r.correlationId ?? 'unknown',
+    return unwrap(
+      await this.vouchers.transition(r.principal, id, status, body, key, r.correlationId ?? 'unknown'),
     );
   }
   @SelfService()
@@ -269,12 +267,6 @@ export class PackagesController {
       r.correlationId ?? 'unknown',
     );
     return (result as any).body ?? result;
-  }
-  @Delete('packages/:id') async deletePackage(
-    @Req() r: AuthenticatedRequest,
-    @Param('id') id: string,
-  ) {
-    return this.catalog.deletePackage(r.principal, id, r.correlationId ?? 'unknown');
   }
   @Get('payment-accounts') paymentAccounts(
     @Req() r: AuthenticatedRequest,

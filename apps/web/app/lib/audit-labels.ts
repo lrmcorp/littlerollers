@@ -85,11 +85,30 @@ const auditActionLabels: Record<string, string> = {
   CUSTOMER_PACKAGE_EXTEND: 'Masa berlaku paket pelanggan diperpanjang',
   CUSTOMER_PACKAGE_FREEZE: 'Paket pelanggan dibekukan',
   CUSTOMER_PACKAGE_UNFREEZE: 'Paket pelanggan diaktifkan kembali',
+  PAYMENT_PROOF_ISSUED: 'Unggahan bukti pembayaran disiapkan',
+  PAYMENT_PROOF_FINALIZED: 'Bukti pembayaran diterima',
+  PAYMENT_PROOF_REPLACED: 'Bukti pembayaran diganti',
+  PAYMENT_PROOF_ATTACHED: 'Bukti pembayaran dilampirkan ke pesanan',
+  ORDER_CREATED: 'Pesanan paket dibuat',
   'package-promotion.create': 'Promosi paket dibuat',
   'package-promotion.update': 'Promosi paket diubah',
   'package-promotion.active': 'Promosi paket diaktifkan',
   'package-promotion.paused': 'Promosi paket dijeda',
   'package-promotion.archived': 'Promosi paket diarsipkan',
+  'lifecycle.branch_deleted': 'Cabang dihapus permanen',
+  'lifecycle.branch_archived': 'Cabang diarsipkan',
+  'lifecycle.studio_deleted': 'Studio dihapus permanen',
+  'lifecycle.room_deleted': 'Ruangan dihapus permanen',
+  'lifecycle.class_type_deleted': 'Tipe kelas dihapus permanen',
+  'lifecycle.class_type_archived': 'Tipe kelas diarsipkan',
+  'lifecycle.package_deleted': 'Paket dihapus permanen',
+  'lifecycle.promotion_deleted': 'Promosi paket dihapus permanen',
+  'lifecycle.voucher_deleted': 'Voucher dihapus permanen',
+  'lifecycle.payment_account_deleted': 'Rekening pembayaran dihapus permanen',
+  'lifecycle.min_quota_deleted': 'Pengaturan kuota minimum dihapus',
+  'lifecycle.public_content_deleted': 'Draf konten publik dihapus',
+  'lifecycle.notification_template_deleted': 'Draf template notifikasi dihapus',
+  'lifecycle.user_deleted': 'Akun pengguna dihapus permanen',
 };
 
 const auditObjectLabels: Record<string, string> = {
@@ -111,13 +130,19 @@ const auditObjectLabels: Record<string, string> = {
   InstructorFee: 'Tarif honor',
   ProjectionRate: 'Tarif proyeksi',
   MinQuotaSetting: 'Kuota minimum',
+  PackagePromotion: 'Promosi paket',
 };
+
+export const hasAuditObjectLabel = (objectType: string) => objectType in auditObjectLabels;
 
 /** Nama objek yang diubah; tipe yang belum dikenal ditulis apa adanya dengan huruf kapital awal. */
 export function auditObjectLabel(objectType?: string | null): string {
   if (!objectType) return '—';
   return auditObjectLabels[objectType] ?? objectType.replace(/([a-z])([A-Z])/gu, '$1 $2');
 }
+
+/** Apakah kode aksi punya label tertulis (bukan hasil tebakan dari kodenya). */
+export const hasAuditActionLabel = (action: string) => action in auditActionLabels;
 
 export function auditActionLabel(action: string): string {
   return (

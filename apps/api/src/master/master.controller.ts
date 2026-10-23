@@ -92,18 +92,6 @@ export class MasterController {
   ) {
     return this.catalog.updateRoom(req.principal, id, body, req.correlationId ?? 'unknown');
   }
-  @Delete('studios/:id') deleteStudio(
-    @Req() req: AuthenticatedRequest,
-    @Param('id') id: string,
-  ) {
-    return this.catalog.deleteStudio(req.principal, id, req.correlationId ?? 'unknown');
-  }
-  @Delete('rooms/:id') deleteRoom(
-    @Req() req: AuthenticatedRequest,
-    @Param('id') id: string,
-  ) {
-    return this.catalog.deleteRoom(req.principal, id, req.correlationId ?? 'unknown');
-  }
   @Post('branches') createBranch(
     @Req() req: AuthenticatedRequest,
     @Headers('idempotency-key') key: string | undefined,
@@ -171,12 +159,6 @@ export class MasterController {
     },
   ) {
     return this.catalog.updateBranch(req.principal, id, body, key, req.correlationId ?? 'unknown');
-  }
-  @Delete('branches/:id') deleteBranch(
-    @Req() req: AuthenticatedRequest,
-    @Param('id') id: string,
-  ) {
-    return this.catalog.deleteBranch(req.principal, id, req.correlationId ?? 'unknown');
   }
   @Get('class-types') listClassTypes(
     @Req() req: AuthenticatedRequest,
@@ -264,12 +246,6 @@ export class MasterController {
       key,
       req.correlationId ?? 'unknown',
     );
-  }
-  @Delete('class-types/:id') deleteClassType(
-    @Req() req: AuthenticatedRequest,
-    @Param('id') id: string,
-  ) {
-    return this.catalog.deleteClassType(req.principal, id, req.correlationId ?? 'unknown');
   }
   @Get('instructor-fees') listFees(
     @Req() req: AuthenticatedRequest,

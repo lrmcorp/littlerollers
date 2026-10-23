@@ -35,6 +35,10 @@ const fkRows = [
   { t: 'user_session', c: 'userId', rt: 'user', d: 'CASCADE' },
   { t: 'pembelian', c: 'userId', rt: 'user', d: 'RESTRICT' },
   { t: 'bad; DROP TABLE x', c: 'id', rt: 'user', d: 'RESTRICT' },
+  { t: 'ruangan', c: 'studioId', rt: 'studio', d: 'RESTRICT' },
+  { t: 'slot_kelas', c: 'roomId', rt: 'ruangan', d: 'SET NULL' },
+  { t: 'paket', c: 'classTypeId', rt: 'jenis_kelas', d: 'RESTRICT' },
+  { t: 'pembelian', c: 'packageId', rt: 'paket', d: 'RESTRICT' },
 ];
 
 function build(opts: { counts?: Record<string, number>; row?: Record<string, unknown>; kind?: string } = {}) {
@@ -55,7 +59,13 @@ function build(opts: { counts?: Record<string, number>; row?: Record<string, unk
     cabang: delegate,
     user: { ...delegate, count: jest.fn().mockResolvedValue(counts.preferred ?? 0) },
     packagePromotion: delegate,
-    paket: { findUnique: jest.fn().mockResolvedValue({ branchId: null }) },
+    studio: delegate,
+    ruangan: delegate,
+    jenisKelas: delegate,
+    paket: {
+      findUnique: jest.fn().mockImplementation(async () => ({ ...(opts.row ?? {}), branchId: null })),
+      delete: delegate.delete,
+    },
     pembelian: { count: jest.fn().mockResolvedValue(counts.promoPurchases ?? 0) },
     rekeningPembayaran: delegate,
     publicContent: delegate,
@@ -145,7 +155,7 @@ describe('LifecycleService.remove', () => {
     const { service, delegate, audit, db } = build({ row: { id: id(5), code: 'HEMAT', name: 'Hemat', usedCount: 0 } });
     await expect(
       service.remove(superOwner as never, 'voucher', id(5), 'Salah buat, belum dipakai', 'corr-1'),
-    ).resolves.toEqual({ id: id(5), kind: 'voucher', deleted: true });
+    ).resolves.toEqual({ id: id(5), kind: 'voucher', deleted: true, success: true });
     expect(db.$transaction).toHaveBeenCalledTimes(1);
     expect(delegate.delete).toHaveBeenCalledWith({ where: { id: id(5) } });
     expect(audit.catat).toHaveBeenCalledWith(
@@ -172,6 +182,11 @@ describe('LifecycleService.remove', () => {
       code: 'CANNOT_DELETE_WITH_DEPENDENCIES',
       status: 409,
       details: [
+        {
+          field: 'id',
+          issue:
+            'Voucher tidak dapat dihapus karena masih memiliki data terkait (3 pembelian, 3 pemakaian voucher). Gunakan Jeda, atau Arsipkan bila voucher tidak dipakai lagi.',
+        },
         { field: 'pembelian', issue: '3 pembelian' },
         { field: 'voucher_used', issue: '3 pemakaian voucher' },
       ],
@@ -211,9 +226,9 @@ describe('LifecycleService.remove', () => {
     expect(JSON.stringify(entry)).not.toContain('rina@example.test');
   });
 
-  it('has no generic delete for kinds that keep their own route', async () => {
+  it('refuses a kind that has no delete in this module (rates keep their own date rule)', async () => {
     const { service } = build({ row: { id: branchA } });
-    await expect(service.remove(superOwner as never, 'branch', branchA, 'alasan', 'c')).rejects.toMatchObject({
+    await expect(service.remove(superOwner as never, 'unknown' as never, branchA, 'alasan', 'c')).rejects.toMatchObject({
       code: 'NOT_FOUND',
     });
   });
@@ -246,5 +261,96 @@ describe('LifecycleService.archive', () => {
     await expect(
       service.archive(superOwner as never, 'branch', branchA, 'ulang', 'c'),
     ).rejects.toMatchObject({ code: 'INVALID_STATE_TRANSITION' });
+  });
+});
+
+describe('the delete routes that existed before (branch, studio, room, class type, package)', () => {
+  const cases = [
+    ['branch', 'CANNOT_DELETE_BRANCH_WITH_DEPENDENCIES', 'Cabang'],
+    ['studio', 'CANNOT_DELETE_STUDIO_WITH_DEPENDENCIES', 'Studio'],
+    ['room', 'CANNOT_DELETE_ROOM_WITH_DEPENDENCIES', 'Ruangan'],
+    ['class-type', 'CANNOT_DELETE_CLASS_TYPE_WITH_DEPENDENCIES', 'Tipe kelas'],
+    ['package', 'CANNOT_DELETE_PACKAGE_WITH_DEPENDENCIES', 'Paket'],
+  ] as const;
+
+  it('branch: keeps its legacy error code and a full sentence the current UI already shows', async () => {
+    const { service, delegate } = build({ row: { id: branchA }, counts: { studio: 2, slot_kelas: 5 } });
+    await expect(service.remove(superOwner as never, 'branch', branchA, undefined, 'c')).rejects.toMatchObject({
+      code: 'CANNOT_DELETE_BRANCH_WITH_DEPENDENCIES',
+      status: 409,
+      details: [
+        {
+          field: 'id',
+          issue:
+            'Cabang tidak dapat dihapus karena masih memiliki data terkait (2 studio, 5 jadwal kelas). Gunakan Nonaktifkan, atau Arsipkan bila cabang tidak dipakai lagi.',
+        },
+        { field: 'studio', issue: '2 studio' },
+        { field: 'slot_kelas', issue: '5 jadwal kelas' },
+      ],
+    });
+    expect(delegate.delete).not.toHaveBeenCalled();
+  });
+
+  // Tabel anak per jenis pada daftar FK tiruan di atas.
+  const child: Record<string, string> = {
+    studio: 'ruangan',
+    room: 'slot_kelas',
+    'class-type': 'paket',
+    package: 'pembelian',
+  };
+
+  it.each(cases.filter(([kind]) => kind !== 'branch'))(
+    '%s: refused with its legacy error code when something still points at it, deleted through the same checker when clean',
+    async (kind, code, label) => {
+      const blocked = build({ row: { id: branchA }, counts: { [child[kind]!]: 2 } });
+      await expect(blocked.service.remove(superOwner as never, kind, branchA, undefined, 'c')).rejects.toMatchObject({
+        code,
+        status: 409,
+        details: [{ field: 'id', issue: expect.stringContaining(`${label} tidak dapat dihapus karena masih memiliki data terkait (2 `) }, expect.anything()],
+      });
+      expect(blocked.delegate.delete).not.toHaveBeenCalled();
+
+      const clean = build({ row: { id: branchA } });
+      await expect(clean.service.remove(superOwner as never, kind, branchA, undefined, 'c')).resolves.toMatchObject({
+        kind,
+        deleted: true,
+        success: true,
+      });
+      expect(clean.audit.catat.mock.calls[0]![1]).toMatchObject({ action: `lifecycle.${kind.replace('-', '_')}_deleted` });
+    },
+  );
+
+  it('does not demand a reason yet (the current buttons send none) but records one when given', async () => {
+    const { service, audit } = build({ row: { id: branchA, code: 'GG', name: 'Green' } });
+    await expect(service.remove(superOwner as never, 'branch', branchA, undefined, 'c')).resolves.toMatchObject({ deleted: true });
+    expect(audit.catat.mock.calls[0]![1]).toMatchObject({ action: 'lifecycle.branch_deleted', objectType: 'Branch', reason: null });
+    await service.remove(superOwner as never, 'branch', branchA, 'Cabang tutup', 'c');
+    expect(audit.catat.mock.calls[1]![1]).toMatchObject({ reason: 'Cabang tutup' });
+    // Tetap menolak alasan yang ada tetapi terlalu pendek.
+    await expect(service.remove(superOwner as never, 'branch', branchA, 'ab', 'c')).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
+  });
+
+  it('respects branch scope like the old routes did', async () => {
+    const { service, delegate } = build({ row: { id: branchA, code: 'GG', name: 'Green' } });
+    await expect(
+      service.remove({ ...branchAdmin, branchIds: [id(99)] } as never, 'branch', branchA, undefined, 'c'),
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    await expect(
+      service.remove({ ...branchAdmin, capabilities: [] } as never, 'branch', branchA, undefined, 'c'),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    expect(delegate.delete).not.toHaveBeenCalled();
+  });
+});
+
+describe('LifecycleService foreign-key cache', () => {
+  it('does not remember a failed read: the next check tries again', async () => {
+    const { service, db } = build({ row: { id: branchA, code: 'GG', name: 'x' } });
+    const original = db.$queryRawUnsafe.getMockImplementation()!;
+    db.$queryRawUnsafe.mockImplementationOnce(async () => {
+      throw new Error('db down');
+    });
+    await expect(service.inspect(superOwner as never, 'branch', branchA)).rejects.toThrow('db down');
+    db.$queryRawUnsafe.mockImplementation(original);
+    await expect(service.inspect(superOwner as never, 'branch', branchA)).resolves.toMatchObject({ deletable: true });
   });
 });

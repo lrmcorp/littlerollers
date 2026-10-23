@@ -33,6 +33,31 @@ export class LifecycleController {
     return this.lifecycle.archive(req.principal, 'class-type', id, body?.reason, req.correlationId ?? 'unknown');
   }
 
+  @Delete('branches/:id')
+  removeBranch(@Req() req: AuthenticatedRequest, @Param('id') id: string, @Body() body: { reason?: string }) {
+    return this.lifecycle.remove(req.principal, 'branch', id, body?.reason, req.correlationId ?? 'unknown');
+  }
+
+  @Delete('studios/:id')
+  removeStudio(@Req() req: AuthenticatedRequest, @Param('id') id: string, @Body() body: { reason?: string }) {
+    return this.lifecycle.remove(req.principal, 'studio', id, body?.reason, req.correlationId ?? 'unknown');
+  }
+
+  @Delete('rooms/:id')
+  removeRoom(@Req() req: AuthenticatedRequest, @Param('id') id: string, @Body() body: { reason?: string }) {
+    return this.lifecycle.remove(req.principal, 'room', id, body?.reason, req.correlationId ?? 'unknown');
+  }
+
+  @Delete('class-types/:id')
+  removeClassType(@Req() req: AuthenticatedRequest, @Param('id') id: string, @Body() body: { reason?: string }) {
+    return this.lifecycle.remove(req.principal, 'class-type', id, body?.reason, req.correlationId ?? 'unknown');
+  }
+
+  @Delete('packages/:id')
+  removePackage(@Req() req: AuthenticatedRequest, @Param('id') id: string, @Body() body: { reason?: string }) {
+    return this.lifecycle.remove(req.principal, 'package', id, body?.reason, req.correlationId ?? 'unknown');
+  }
+
   @Delete('vouchers/:id')
   removeVoucher(@Req() req: AuthenticatedRequest, @Param('id') id: string, @Body() body: { reason?: string }) {
     return this.lifecycle.remove(req.principal, 'voucher', id, body?.reason, req.correlationId ?? 'unknown');
