@@ -179,6 +179,8 @@ model Cabang {
   longitude           Decimal? @db.Decimal(10, 7)
   geofenceRadiusMeters Int     @default(100)
   active              Boolean  @default(true) @map("isActive")
+  /// Diisi saat diarsipkan: disembunyikan dari daftar kerja, riwayat tetap utuh. Beda dari sekadar nonaktif.
+  archivedAt          DateTime?
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
@@ -251,6 +253,8 @@ model JenisKelas {
   heroImageKey    String?       @map("hero_image_key") @db.VarChar(255)
   galleryImageKeys Json?        @map("gallery_image_keys")
   active          Boolean       @default(true) @map("isActive")
+  /// Diisi saat diarsipkan (lihat Cabang.archivedAt).
+  archivedAt      DateTime?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
@@ -531,6 +535,8 @@ model Voucher {
   usedCount     Int       @default(0)
   validUntil    DateTime?
   active        Boolean   @default(true) @map("isActive")
+  /// Diisi saat diarsipkan; Jeda hanya `active=false`, arsip permanen dan tersembunyi.
+  archivedAt    DateTime?
   createdAt     DateTime  @default(now())
 
   purchases Pembelian[]

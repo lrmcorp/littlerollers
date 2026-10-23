@@ -1,0 +1,421 @@
+import { HttpStatus, Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
+import { PrismaService } from '../database/prisma.service';
+import { AuditService } from '../foundation/audit.service';
+import type { SessionPrincipal } from '../identity/identity.service';
+import { PolicyService } from '../identity/policy.service';
+import { ApiProblem, ENTITY_ID_REGEX } from '../identity/security';
+
+export type LifecycleKind =
+  | 'branch'
+  | 'studio'
+  | 'room'
+  | 'class-type'
+  | 'package'
+  | 'promotion'
+  | 'voucher'
+  | 'payment-account'
+  | 'min-quota'
+  | 'public-content'
+  | 'notification-template'
+  | 'user';
+
+export interface Blocker {
+  /** Nama tabel yang merujuk entitas ini, atau kode alasan non-relasi. */
+  kind: string;
+  /** Teks yang dapat langsung ditampilkan ke staf. */
+  label: string;
+  count: number;
+}
+
+export interface Deletability {
+  kind: LifecycleKind;
+  id: string;
+  deletable: boolean;
+  blockers: Blocker[];
+}
+
+type Db = PrismaService | Prisma.TransactionClient;
+
+interface Spec {
+  table: string;
+  delegate: string;
+  label: string;
+  capability: string;
+  /** Tanpa cabang → wajib pemegang izin lintas cabang (selain yang katalog bersama). */
+  globalOnly?: boolean;
+  branchOf?: (db: Db, row: any) => Promise<string | null>;
+  extra?: (db: Db, row: any) => Promise<Blocker[]>;
+  snapshot: (row: any) => Record<string, unknown>;
+}
+
+/** Nama yang ramah untuk tabel yang bisa menjadi penghalang. Tabel yang belum terdaftar tampil apa adanya. */
+const TABLE_LABELS: Record<string, string> = {
+  cabang: 'cabang',
+  studio: 'studio',
+  ruangan: 'ruangan',
+  jenis_kelas: 'tipe kelas',
+  paket: 'paket',
+  paket_pelanggan: 'paket milik pelanggan',
+  pembelian: 'pembelian',
+  slot_kelas: 'jadwal kelas',
+  pemesanan_kelas: 'booking',
+  penugasan_instruktur: 'penugasan instruktur',
+  owner_cabang: 'penugasan owner',
+  rekening_pembayaran: 'rekening pembayaran',
+  min_quota_setting: 'pengaturan kuota',
+  instructor_fee: 'tarif honor',
+  projection_rate: 'tarif proyeksi',
+  other_cost: 'biaya operasional',
+  monthly_close: 'tutup buku',
+  correction_journal: 'koreksi keuangan',
+  instructor_availability: 'ketersediaan instruktur',
+  support_case: 'kasus bantuan',
+  support_case_note: 'catatan kasus bantuan',
+  session_ledger: 'catatan saldo sesi',
+  session_adjust_request: 'penyesuaian sesi',
+  kehadiran_pelanggan: 'catatan kehadiran',
+  kehadiran_instruktur: 'catatan kehadiran instruktur',
+  instructor_check_in_token: 'token check-in instruktur',
+  ubah_jadwal: 'permintaan reschedule',
+  bukti_pembayaran: 'bukti pembayaran',
+  mutasi_bank: 'mutasi bank',
+  package_promotion: 'promosi paket',
+  user: 'pengguna',
+};
+
+const labelOf = (table: string) => TABLE_LABELS[table] ?? table.replace(/_/gu, ' ');
+const SAFE_IDENT = /^[A-Za-z0-9_]+$/u;
+
+interface Edge {
+  table: string;
+  column: string;
+  deleteRule: string;
+  /** Tabel yang dirujuk. */
+  parent: string;
+}
+
+const maskEmail = (email?: string | null) => {
+  if (!email) return null;
+  const [local, domain] = email.split('@');
+  return local && domain ? `${local.slice(0, 2)}***@${domain}` : '***';
+};
+
+const draftOnly = (noun: string) => async (_db: Db, row: { status: string }): Promise<Blocker[]> =>
+  row.status === 'DRAFT'
+    ? []
+    : [{ kind: 'status', label: `${noun} yang sudah pernah terbit atau diarsipkan`, count: 1 }];
+
+const SPECS: Record<LifecycleKind, Spec> = {
+  branch: {
+    table: 'cabang',
+    delegate: 'cabang',
+    label: 'Cabang',
+    capability: 'master:manage',
+    branchOf: async (_db, row) => row.id,
+    extra: async (db, row) => {
+      const count = await (db as any).user.count({ where: { preferredBranchId: row.id } });
+      return count ? [{ kind: 'user_preferred_branch', label: 'member/user yang memilih cabang ini', count }] : [];
+    },
+    snapshot: (row) => ({ code: row.code, name: row.name, timezone: row.timezone }),
+  },
+  studio: {
+    table: 'studio',
+    delegate: 'studio',
+    label: 'Studio',
+    capability: 'master:manage',
+    branchOf: async (_db, row) => row.branchId,
+    snapshot: (row) => ({ code: row.code, name: row.name, branchId: row.branchId }),
+  },
+  room: {
+    table: 'ruangan',
+    delegate: 'ruangan',
+    label: 'Ruangan',
+    capability: 'master:manage',
+    branchOf: async (db, row) =>
+      (await (db as any).studio.findUnique({ where: { id: row.studioId }, select: { branchId: true } }))?.branchId ?? null,
+    snapshot: (row) => ({ name: row.name, studioId: row.studioId }),
+  },
+  'class-type': {
+    table: 'jenis_kelas',
+    delegate: 'jenisKelas',
+    label: 'Tipe kelas',
+    capability: 'master:manage',
+    snapshot: (row) => ({ code: row.code, name: row.name }),
+  },
+  package: {
+    table: 'paket',
+    delegate: 'paket',
+    label: 'Paket',
+    capability: 'master:manage',
+    branchOf: async (_db, row) => row.branchId ?? null,
+    snapshot: (row) => ({ name: row.name, branchId: row.branchId ?? null, status: row.status }),
+  },
+  promotion: {
+    table: 'package_promotion',
+    delegate: 'packagePromotion',
+    label: 'Promosi paket',
+    capability: 'package-promotion:manage',
+    branchOf: async (db, row) =>
+      (await (db as any).paket.findUnique({ where: { id: row.packageId }, select: { branchId: true } }))?.branchId ?? null,
+    // `pembelian.promotionId` hanya snapshot tanpa FK; tetap menjadi riwayat transaksi.
+    extra: async (db, row) => {
+      const count = await (db as any).pembelian.count({ where: { promotionId: row.id } });
+      return count ? [{ kind: 'pembelian', label: 'pembelian yang memakai promosi ini', count }] : [];
+    },
+    snapshot: (row) => ({ name: row.name, packageId: row.packageId, status: row.status }),
+  },
+  voucher: {
+    table: 'voucher',
+    delegate: 'voucher',
+    label: 'Voucher',
+    capability: 'voucher:manage',
+    // Pembelian.voucherId bersifat SetNull: menghapus voucher bekas pakai menghapus jejaknya dari pembelian.
+    extra: async (_db, row) =>
+      row.usedCount > 0 ? [{ kind: 'voucher_used', label: 'pemakaian voucher', count: row.usedCount }] : [],
+    snapshot: (row) => ({ code: row.code, name: row.name, usedCount: row.usedCount }),
+  },
+  'payment-account': {
+    table: 'rekening_pembayaran',
+    delegate: 'rekeningPembayaran',
+    label: 'Rekening pembayaran',
+    capability: 'payment-account:manage',
+    globalOnly: true,
+    branchOf: async (_db, row) => row.branchId ?? null,
+    // Pembelian tidak menyimpan rujukan rekening, jadi rekening selalu "bersih" secara data.
+    snapshot: (row) => ({ bankName: row.bankName, holder: row.accountHolder, branchId: row.branchId ?? null }),
+  },
+  'min-quota': {
+    table: 'min_quota_setting',
+    delegate: 'minQuotaSetting',
+    label: 'Pengaturan kuota minimum',
+    capability: 'master:manage',
+    branchOf: async (_db, row) => row.branchId,
+    snapshot: (row) => ({
+      branchId: row.branchId,
+      classTypeId: row.classTypeId,
+      minQuota: row.minQuota,
+      cutoffHours: row.cutoffHours,
+    }),
+  },
+  'public-content': {
+    table: 'public_content',
+    delegate: 'publicContent',
+    label: 'Konten publik',
+    capability: 'public-content:manage',
+    globalOnly: true,
+    extra: draftOnly('konten'),
+    snapshot: (row) => ({ contentKey: row.contentKey, kind: row.kind, version: row.version, status: row.status }),
+  },
+  'notification-template': {
+    table: 'notification_template',
+    delegate: 'notificationTemplate',
+    label: 'Template notifikasi',
+    capability: 'notification:manage',
+    globalOnly: true,
+    extra: draftOnly('template'),
+    snapshot: (row) => ({ templateKey: row.templateKey, channel: row.channel, version: row.version, status: row.status }),
+  },
+  user: {
+    table: 'user',
+    delegate: 'user',
+    label: 'Akun pengguna',
+    capability: 'user:admin',
+    globalOnly: true,
+    extra: async (_db, row) =>
+      ['SUPER_OWNER', 'SUPERADMIN'].includes(row.role)
+        ? [{ kind: 'protected_account', label: 'akun Super Owner (dilindungi)', count: 1 }]
+        : [],
+    snapshot: (row) => ({
+      displayName: row.displayName,
+      role: row.role,
+      status: row.status,
+      email: maskEmail(row.email),
+    }),
+  },
+};
+
+/** Kind yang punya rute DELETE generik di modul ini; sisanya punya rute hapus sendiri di modulnya. */
+export const GENERIC_REMOVABLE: readonly LifecycleKind[] = [
+  'voucher',
+  'promotion',
+  'payment-account',
+  'min-quota',
+  'public-content',
+  'notification-template',
+  'user',
+];
+
+export const isLifecycleKind = (value: string): value is LifecycleKind => value in SPECS;
+
+const reasonOf = (reason: unknown) => {
+  const text = typeof reason === 'string' ? reason.trim() : '';
+  if (text.length < 3 || text.length > 500)
+    throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, false, [
+      { field: 'reason', issue: text.length === 0 ? 'REQUIRED' : text.length < 3 ? 'TOO_SHORT' : 'TOO_LONG' },
+    ]);
+  return text;
+};
+
+@Injectable()
+export class LifecycleService {
+  private edges?: Promise<Edge[]>;
+
+  constructor(
+    private readonly db: PrismaService,
+    private readonly policy: PolicyService,
+    private readonly audit: AuditService,
+  ) {}
+
+  /** Semua FK di database; skema tidak berubah selama proses hidup, jadi cukup dibaca sekali. */
+  private foreignKeys(): Promise<Edge[]> {
+    this.edges ??= this.db
+      .$queryRawUnsafe<Array<{ t: string; c: string; rt: string; d: string }>>(
+        `SELECT k.TABLE_NAME AS t, k.COLUMN_NAME AS c, k.REFERENCED_TABLE_NAME AS rt, r.DELETE_RULE AS d
+           FROM information_schema.KEY_COLUMN_USAGE k
+           JOIN information_schema.REFERENTIAL_CONSTRAINTS r
+             ON r.CONSTRAINT_NAME = k.CONSTRAINT_NAME AND r.CONSTRAINT_SCHEMA = k.CONSTRAINT_SCHEMA
+          WHERE k.TABLE_SCHEMA = DATABASE() AND k.REFERENCED_TABLE_NAME IS NOT NULL`,
+      )
+      .then((rows) =>
+        rows
+          .filter((row) => SAFE_IDENT.test(row.t) && SAFE_IDENT.test(row.c) && SAFE_IDENT.test(row.rt))
+          .map((row): Edge => ({ table: row.t, column: row.c, deleteRule: row.d, parent: row.rt })),
+      );
+    return this.edges;
+  }
+
+  private async authorize(principal: SessionPrincipal, kind: LifecycleKind, branchId: string | null) {
+    const spec = SPECS[kind];
+    this.policy.requireCapability(principal.capabilities, spec.capability);
+    if (branchId) {
+      if (
+        !this.policy.hasCapability(principal, 'branch:all', branchId) &&
+        !this.policy.hasCapability(principal, spec.capability, branchId)
+      )
+        throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+    } else if (spec.globalOnly && !this.policy.hasGlobalCapability(principal, spec.capability)) {
+      throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+    }
+    if (kind === 'user' && !principal.roles.some(({ role }) => ['SUPER_OWNER', 'SUPERADMIN'].includes(role as string)))
+      throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);
+  }
+
+  private async load(db: Db, kind: LifecycleKind, id: string) {
+    if (!ENTITY_ID_REGEX.test(id)) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+    const row = await (db as any)[SPECS[kind].delegate].findUnique({ where: { id } });
+    if (!row) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+    return row;
+  }
+
+  /** Penghalang hapus: baris yang masih merujuk entitas lewat FK (selain yang ikut terhapus) + aturan khusus. */
+  async blockers(db: Db, kind: LifecycleKind, row: { id: string }): Promise<Blocker[]> {
+    const spec = SPECS[kind];
+    const edges = (await this.foreignKeys()).filter(
+      (edge) => edge.parent === spec.table && edge.deleteRule !== 'CASCADE',
+    );
+    const found: Blocker[] = [];
+    for (const edge of edges) {
+      const [{ c }] = await (db as any).$queryRawUnsafe(
+        `SELECT COUNT(*) AS c FROM \`${edge.table}\` WHERE \`${edge.column}\` = ?`,
+        row.id,
+      );
+      const count = Number(c);
+      if (count > 0) {
+        const existing = found.find((item) => item.kind === edge.table);
+        if (existing) existing.count += count;
+        else found.push({ kind: edge.table, label: labelOf(edge.table), count });
+      }
+    }
+    if (spec.extra) found.push(...(await spec.extra(db, row)));
+    return found;
+  }
+
+  async inspect(principal: SessionPrincipal, kind: LifecycleKind, id: string): Promise<Deletability> {
+    const row = await this.load(this.db, kind, id);
+    const branchId = (await SPECS[kind].branchOf?.(this.db, row)) ?? null;
+    await this.authorize(principal, kind, branchId);
+    const blockers = await this.blockers(this.db, kind, row);
+    return { kind, id, deletable: blockers.length === 0, blockers };
+  }
+
+  private blocked(blockers: Blocker[]) {
+    return new ApiProblem(
+      'CANNOT_DELETE_WITH_DEPENDENCIES',
+      HttpStatus.CONFLICT,
+      false,
+      blockers.map((item) => ({ field: item.kind, issue: `${item.count} ${item.label}` })),
+    );
+  }
+
+  /** Hapus permanen satu entitas yang bersih; dihitung ulang di dalam transaksi untuk menutup balapan. */
+  async remove(principal: SessionPrincipal, kind: LifecycleKind, id: string, reasonInput: unknown, correlationId: string) {
+    if (!GENERIC_REMOVABLE.includes(kind)) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+    const reason = reasonOf(reasonInput);
+    const spec = SPECS[kind];
+    try {
+      return await this.db.$transaction(async (tx) => {
+        const row = await this.load(tx, kind, id);
+        const branchId = (await spec.branchOf?.(tx, row)) ?? null;
+        await this.authorize(principal, kind, branchId);
+        if (kind === 'user' && id === principal.userId)
+          throw new ApiProblem('CANNOT_DELETE_SELF', HttpStatus.FORBIDDEN);
+        const blockers = await this.blockers(tx, kind, row);
+        if (blockers.length > 0) throw this.blocked(blockers);
+
+        await (tx as any)[spec.delegate].delete({ where: { id } });
+        await this.audit.catat(tx, {
+          actorId: principal.userId,
+          branchId,
+          correlationId,
+          action: `lifecycle.${kind.replace(/-/gu, '_')}_deleted`,
+          targetUserId: kind === 'user' ? id : undefined,
+          objectType: spec.label,
+          objectId: id,
+          reason,
+          beforeMasked: spec.snapshot(row) as Prisma.InputJsonValue,
+        });
+        return { id, kind, deleted: true as const };
+      });
+    } catch (error) {
+      // FK yang tidak terdeteksi pemindaian (mis. dibuat setelah pembacaan) tetap ditolak database.
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003')
+        throw this.blocked([{ kind: 'relasi', label: 'data terkait lain', count: 1 }]);
+      throw error;
+    }
+  }
+
+  /** Arsipkan: nonaktif permanen yang disembunyikan dari daftar kerja; riwayat dan relasi tetap utuh. */
+  async archive(
+    principal: SessionPrincipal,
+    kind: 'branch' | 'class-type',
+    id: string,
+    reasonInput: unknown,
+    correlationId: string,
+  ) {
+    const reason = reasonOf(reasonInput);
+    const spec = SPECS[kind];
+    return this.db.$transaction(async (tx) => {
+      const row = await this.load(tx, kind, id);
+      const branchId = (await spec.branchOf?.(tx, row)) ?? null;
+      await this.authorize(principal, kind, branchId);
+      if (row.archivedAt) throw new ApiProblem('INVALID_STATE_TRANSITION', HttpStatus.CONFLICT);
+      const updated = await (tx as any)[spec.delegate].update({
+        where: { id },
+        data: { active: false, archivedAt: new Date() },
+      });
+      await this.audit.catat(tx, {
+        actorId: principal.userId,
+        branchId,
+        correlationId,
+        action: `lifecycle.${kind.replace(/-/gu, '_')}_archived`,
+        objectType: spec.label,
+        objectId: id,
+        reason,
+        beforeMasked: { active: row.active, archived: false },
+        afterMasked: { active: false, archived: true },
+      });
+      return updated;
+    });
+  }
+}

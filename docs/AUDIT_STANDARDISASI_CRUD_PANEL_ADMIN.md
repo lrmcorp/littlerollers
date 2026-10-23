@@ -103,20 +103,20 @@ Ringkasan mekanisme: `feedback.confirm` dipakai di 37 berkas non-tes; `ReasonDia
 
 ## 4. Kosakata aksi saat ini vs usulan
 
-Keputusan Ridho (handoff 2026-10-23): cabang, paket, dan tipe kelas **diarsipkan**, hapus permanen hanya untuk draf tanpa riwayat.
+Keputusan Ridho (handoff 2026-10-23, disempurnakan 2026-10-24 — lihat §7): entitas dengan riwayat **dinonaktifkan/diarsipkan**; entitas **bersih** (tanpa data turunan) boleh **dihapus permanen**.
 
 | Konsep | Dipakai sekarang | Usulan standar |
 |---|---|---|
 | Berhenti sementara, bisa dipulihkan | Nonaktifkan · Jeda · Akhiri · "Nonaktifkan untuk mengarsipkan" | **Nonaktifkan** (+ **Aktifkan kembali**) |
 | Sembunyikan permanen dari daftar kerja, riwayat tetap | Arsipkan (paket, promosi, konten, template, voucher*) | **Arsipkan** — hanya untuk cabang, paket, tipe kelas, voucher, promosi, konten, template |
-| Hapus data | Hapus cabang/paket/tipe kelas permanen · Hapus (studio, ruangan, tarif, biaya) | **Hapus** — hanya entitas tanpa riwayat (draf, tarif belum berlaku, studio/ruangan kosong) |
+| Hapus data | Hapus cabang/paket/tipe kelas permanen · Hapus (studio, ruangan, tarif, biaya) | **Hapus** — hanya entitas **bersih** (tanpa data turunan; ditentukan server, lihat §7.1) |
 | Mengakhiri hubungan berjangka | Akhiri penugasan | tetap **Akhiri** (bukan lifecycle entitas) |
 | Menolak permintaan | Tolak | tetap **Tolak** |
 
 \* Voucher belum punya status ARCHIVED di DB — lihat keputusan K3.
 
 Aturan turunan yang diusulkan:
-- Tombol "Hapus" tidak ditampilkan bila API menyatakan entitas punya riwayat; yang tampil adalah "Arsipkan" (atau "Nonaktifkan" bila entitas tidak diarsipkan).
+- Tombol "Hapus" tampil hanya bila API menyatakan `deletable`; bila punya turunan, yang tampil "Arsipkan"/"Nonaktifkan" disertai alasan penghalangnya.
 - Label tombol, judul dialog, pesan sukses, dan istilah di riwayat audit memakai verba yang sama (`lib/glossary.ts` diperluas, dijaga tes).
 
 ---
@@ -148,16 +148,51 @@ Urutan sengaja menaruh audit (tahap 1) lebih dulu: ia tidak mengubah tampilan da
 
 ---
 
-## 7. Keputusan yang dibutuhkan dari Ridho
+## 7. Keputusan (Ridho, 2026-10-24)
 
-| # | Pertanyaan | Rekomendasi |
+**Prinsip yang ditetapkan:** data yang **tidak punya data turunan** dan **bukan induk bagi data lain** *boleh dihapus permanen demi kebersihan data* — baik data master maupun bukan master. Bila punya riwayat/turunan, yang tersedia hanya **Nonaktifkan** atau **Arsipkan**. Konsekuensinya Standar §5 butir 2 dan §4 diubah: "Hapus" bukan lagi hanya untuk draf; ia ditentukan oleh **ada/tidaknya data turunan**, dan diputuskan server (bukan ditebak UI).
+
+| # | Keputusan | Dasar |
 |---|---|---|
-| K1 | Apakah audit tersimpan di tabel `audit_log` yang ada (perluas kolom) atau tabel baru khusus objek? | perluas `audit_log` (satu tempat untuk halaman Audit) |
-| K2 | Cabang dan tipe kelas belum punya status ARCHIVED (hanya `active`). Cukup UI "Arsipkan" = nonaktif permanen tanpa tombol aktifkan kembali, atau tambah status nyata? | tambah kolom status additive agar "Nonaktifkan" dan "Arsipkan" bisa dibedakan di data |
-| K3 | Voucher: pisahkan Jeda dan Arsipkan di DB (tambah status), atau hapus tombol "Arsipkan"? | tambah status (konsisten dengan paket & promosi) |
-| K4 | Aksi mana yang wajib alasan? Usulan: semua nonaktifkan/arsipkan/hapus/tolak/batalkan/ubah role/akhiri penugasan; **tidak** wajib untuk terbitkan draf dan aktifkan kembali. | setuju seperti usulan |
-| K5 | Rute lama (`/:action`, `/:status`, `POST …/delete`) dipertahankan sebagai alias berapa lama? | 1 rilis, lalu dihapus |
-| K6 | `owner-branches DELETE` dan `identity-verifications/:id/delete`: dipertahankan hapus keras (dengan alasan + audit) atau diganti "akhiri/arsipkan"? | owner-cabang → "akhiri" (ada tanggal), verifikasi → tetap hapus keras dengan alasan (kebutuhan privasi) |
+| K2 | Cabang dan tipe kelas: **Nonaktifkan** (reversibel, tetap tampil di daftar nonaktif) · **Arsipkan** (disembunyikan dari daftar kerja, riwayat utuh, hanya bila punya turunan) · **Hapus** (hanya bila bersih). Status Arsip nyata di data lewat kolom `archivedAt` (additive) — bukan sekadar nama tombol. | prinsip di atas; penjaga hapus cabang & tipe kelas sudah ada dan lengkap |
+| K3 | Voucher: **Hapus** bila belum pernah dipakai (`usedCount = 0` dan tidak ada pembelian yang merujuknya); bila pernah dipakai → **Jeda** (sementara) atau **Arsipkan** (permanen, `archivedAt`). Jeda dan Arsip dibedakan di data. | `Pembelian.voucherId` bersifat `SetNull`: menghapus voucher yang pernah dipakai akan diam-diam menghapus jejaknya dari pembelian |
+| K4 | Alasan **wajib** untuk: nonaktifkan, arsipkan, hapus, tolak, batalkan, ubah peran, akhiri penugasan, hapus biaya/tarif. **Tidak wajib**: terbitkan draf, aktifkan kembali. Tidak ada alasan bawaan yang diisi server. | rekomendasi sebelumnya (belum Anda ubah) |
+| K5 | Rute lama (`/:action`, `/:status`, `POST …/delete`) dipertahankan sebagai alias **satu rilis**, lalu dihapus. | rekomendasi sebelumnya (belum Anda ubah) |
+| K6 | `owner-branches DELETE`: tetap hapus keras karena baris relasi tanpa turunan (sesuai prinsip), tetapi **wajib alasan + sudah diaudit** (Tahap 1). Hapus verifikasi identitas: tetap hapus keras dengan alasan (kebutuhan privasi), sudah memakai alasan. | prinsip + Tahap 1 |
+
+K4 dan K5 saya isi dengan rekomendasi karena Anda tidak mengubahnya; beri tahu bila ingin lain.
+
+### 7.1 Matriks "bisa dihapus?" per entitas (berdasar relasi FK di `schema.prisma`)
+
+"Bersih" = tidak ada baris lain yang merujuknya. Kolom *Penjaga sekarang* menunjukkan apakah server sudah menolak hapus saat tidak bersih.
+
+| Entitas | Turunan yang membuatnya tidak bersih | Penjaga sekarang | Tindakan yang perlu |
+|---|---|---|---|
+| Cabang | studio, slot kelas, booking, pembelian, paket, rekening, penugasan instruktur & owner, kuota, tarif, biaya lain, tutup buku, koreksi, ketersediaan, kasus bantuan, pengguna ber-cabang utama | **ada, lengkap** (`CANNOT_DELETE_BRANCH_WITH_DEPENDENCIES`) | tambah `archivedAt`; API menyertakan daftar penghalang |
+| Studio | ruangan, slot kelas | ada | tampilkan penghalang |
+| Ruangan | slot kelas (`SetNull`) | ada | – |
+| Tipe kelas | paket, slot kelas, kuota, tarif honor/proyeksi | ada, lengkap | tambah `archivedAt` |
+| Paket | pembelian, paket pelanggan; promosi ikut terhapus (`Cascade`) | ada (pembelian + paket pelanggan) | tambah arsip tetap (status `ARCHIVED` sudah ada) |
+| Promosi paket | pembelian yang memakainya (kolom `promotionId` tanpa FK, hanya snapshot nama) | **tidak ada hapus** | boleh hapus bila tidak ada pembelian ber-`promotionId` tsb; selain itu Arsipkan |
+| Voucher | pembelian (`voucherId`, `SetNull`) | **tidak ada hapus** | boleh hapus bila `usedCount=0` dan tanpa pembelian; selain itu Jeda/Arsipkan |
+| Rekening pembayaran | tidak ada FK turunan | **tidak ada hapus** | boleh hapus bila bersih (belum dipakai di pembelian/mutasi bank, *perlu dicek kolom rujukan teks*); selain itu Nonaktifkan |
+| Tarif honor / proyeksi | tidak ada (dipakai perhitungan sesudah berlaku) | ada (hanya yang belum berlaku) | sesuai |
+| Kuota minimum | tidak ada | tidak ada hapus | boleh hapus (kembali ke bawaan sistem) |
+| Biaya lain | tidak ada | ada (periode terkunci) | sesuai |
+| Penugasan instruktur | tidak ada FK turunan, tapi menyimpan riwayat | – | tetap **Akhiri** (riwayat), tidak dihapus |
+| Owner ↔ cabang | tidak ada | tidak ada (hapus langsung) | sesuai prinsip; tambah alasan wajib |
+| Konten publik | tidak ada | – | draf yang **belum pernah terbit** boleh dihapus; yang pernah terbit → Arsipkan |
+| Template notifikasi | tidak ada | – | idem konten publik |
+| Kasus bantuan | catatan (`Cascade`) | – | boleh dihapus bila status OPEN tanpa catatan; selain itu hanya Tutup |
+| Pengguna / pelanggan | sesi, pembelian, booking, paket, ledger, kehadiran, kasus, dll. (±25 relasi) | tidak ada hapus | hanya Nonaktifkan; **hapus hanya** akun yang tidak punya satu pun turunan selain sesi/profil (mis. undangan salah ketik) — *opsional, lihat pertanyaan di bawah* |
+| Kelas, booking, pembelian, ledger, audit | jejak transaksi | – | tidak pernah dihapus (dibatalkan/dikoreksi) |
+
+Aturan teknis: server yang menentukan kebolehan hapus. Setiap respons daftar/detail entitas di atas membawa `deletable: boolean` dan `blockers: [{ kind, count }]`; UI menampilkan tombol **Hapus** hanya bila `deletable`, dan bila tidak, menampilkan **Arsipkan/Nonaktifkan** dengan penjelasan ("punya 12 slot kelas, 3 pembelian"). Hapus dieksekusi dalam satu transaksi yang menghitung ulang penghalang (menutup balapan) dan menulis audit permanen berisi snapshot data yang dihapus.
+
+### 7.2 Pertanyaan yang tadinya terbuka — sudah terjawab (2026-10-24)
+
+1. **Hapus pengguna/pelanggan yang bersih:** disetujui (rekomendasi diikuti): hanya Super Owner, bukan akun sendiri, bukan akun Super Owner, alasan wajib, snapshot audit (email disamarkan).
+2. **Rekening pembayaran:** sudah diverifikasi — `Pembelian` tidak menyimpan rujukan rekening sama sekali (bukti bayar tidak memuat rekening; `mutasi_bank` hanya teks), sehingga rekening selalu bersih secara data dan boleh dihapus (alasan wajib + audit).
 
 ---
 
@@ -183,3 +218,29 @@ Diputuskan mengikuti rekomendasi K1: **memperluas `audit_log`** (tidak membuat t
 **Belum tercakup Tahap 1 (tetap terbuka):** buat/ubah profil pelanggan, reschedule, support case, e-mail retry (hanya log), paket pelanggan (hanya entri ledger 0-sesi), `identity-verifications` delete, serta pengguna-lama yang sudah tercatat sebelum tahap ini. Entri `AuditService.record()` dipanggil tanpa `await` oleh beberapa modul paket; bila transaksi pemanggil dibatalkan sesudahnya, baris audit tetap ada (tercatat sebagai percobaan, bukan bukti perubahan berhasil).
 
 **Verifikasi:** `tsc` bersih; jest API seluruh suite hijau (unit + integrasi; kegagalan sesaat di beban mesin tinggi hilang saat diulang); spec baru `foundation/audit-trail.spec.ts` (8 tes) dan 2 tes cakupan di `identity/user-audit.spec.ts`; uji hidup di database sandbox sementara: ubah cabang (sebelumnya tidak tercatat), draf+terbit konten publik, draf template email — semuanya muncul di `/audit-logs` dengan aktor, objek, sebelum/sesudah; filter `objectType=PublicContent` bekerja.
+
+---
+
+## 10. Status Tahap 2 — sisi server (dikerjakan 2026-10-24)
+
+**Skema (additive, sudah diterapkan ke DB dev):** `cabang.archivedAt`, `jenis_kelas.archivedAt`, `voucher.archivedAt`.
+
+**Modul baru `apps/api/src/lifecycle`**
+- `GET /lifecycle/:kind/:id/deletability` → `{ deletable, blockers: [{ kind, label, count }] }` untuk 12 jenis: cabang, studio, ruangan, tipe kelas, paket, promosi, voucher, rekening, kuota minimum, konten publik, template notifikasi, pengguna. Penghalang dihitung **otomatis dari foreign key di database** (`information_schema`), bukan daftar tulisan tangan, sehingga relasi baru ikut terhitung; anak ber-`CASCADE` diabaikan, anak `SET NULL`/`RESTRICT` dihitung (karena membawa riwayat). Ditambah aturan non-FK: pembelian yang memakai promosi, voucher yang pernah dipakai, konten/template yang sudah pernah terbit, akun Super Owner, member yang memilih cabang itu sebagai cabang utama.
+- `DELETE` baru (semua dengan `{ reason }` **wajib**, dihitung ulang di dalam transaksi, audit permanen berisi snapshot): `/vouchers/:id`, `/package-promotions/:id`, `/payment-accounts/:id`, `/min-quota-settings/:id`, `/public-content-management/:id`, `/notification-management/templates/:id`, `/users/:id`. Gagal bersih → `409 CANNOT_DELETE_WITH_DEPENDENCIES` dengan rincian ("3 pembelian, 1 booking"); pelanggaran FK yang lolos pemindaian (P2003) dijawab sama.
+- `POST /branches/:id/archive` dan `POST /class-types/:id/archive` (alasan wajib; nonaktif + `archivedAt`; ulang → 409).
+- Hapus pengguna: hanya Super Owner, bukan akun sendiri (`CANNOT_DELETE_SELF`), bukan akun Super Owner.
+
+**Arsip nyata**
+- Cabang: daftar kerja menyembunyikan yang diarsipkan; filter `status=ARCHIVED`; ringkasan memuat `archived`. Tipe kelas: `GET /class-types?status=ACTIVE|INACTIVE|ARCHIVED|ALL` (bawaan ACTIVE; dulu hanya aktif tanpa pilihan). Aktifkan kembali membuka arsip.
+- Voucher: Jeda (`active=false`) dan Arsip (`archivedAt`) kini berbeda di data; status tampilan `ARCHIVED`; daftar kerja dan `total` ringkasan tidak menghitung arsip; filter `status=ARCHIVED` menampilkannya (sebelumnya "ARCHIVED" dianggap "PAUSED"). Aktifkan kembali membuka arsip.
+
+**Alasan:** alasan bawaan buatan server dihapus (`'Menonaktifkan cabang'`, `'Menonaktifkan tipe kelas'`, `'Deactivated via API'`); alasan yang dikirim kini sampai ke audit untuk nonaktifkan/aktifkan cabang dan tipe kelas, jeda/arsip voucher.
+
+**Sengaja ditunda ke tahap tampilan (agar UI yang ada tidak patah):** alasan masih **opsional** pada rute lama (nonaktifkan/aktifkan cabang dan tipe kelas, `DELETE` cabang/studio/ruangan/tipe kelas/paket yang sudah ada, jeda/arsip voucher). Rute baru (arsip, hapus) sudah mewajibkannya. Alasan wajib di rute lama dinyalakan bersamaan dengan dialog alasan di UI.
+
+**Verifikasi:** `tsc` bersih; jest API seluruh suite hijau (89 suite / 679 tes, 6 dilewati lama); spec baru `lifecycle/lifecycle.service.spec.ts`; spec voucher diperbarui. Uji hidup di database sandbox (MySQL nyata): pelanggan ber-riwayat ditolak dengan rincian yang benar, pelanggan bersih terhapus, cabang bersih → arsip → hilang dari daftar kerja → muncul di filter ARCHIVED → aktifkan kembali → hapus; voucher: hapus tanpa alasan 422, hapus dengan alasan 200, jeda ≠ arsip, arsip tersembunyi; tipe kelas arsip/aktifkan; draf konten & template, kuota minimum, promosi, rekening terhapus; konten terbit ditolak; hapus diri sendiri ditolak. Semua tercatat di `/audit-logs` (`lifecycle.*`).
+
+**Catatan temuan:** respons `POST /vouchers` membungkus hasil sebagai `{ status, body }` (idempotency tidak di-unwrap di controller, berbeda dari rute lain); belum diperbaiki.
+
+**Cakupan yang bukan bagian server ini:** tombol dan dialog di UI (Hapus hanya bila `deletable`, penjelasan penghalang, dialog alasan seragam) = Tahap 3.

@@ -85,7 +85,7 @@ export class MasterCatalogService {
   ) {
     this.access.authorize(principal);
     const scope = this.access.branchScope(principal);
-    if (query.status && !['ACTIVE', 'INACTIVE'].includes(query.status))
+    if (query.status && !['ACTIVE', 'INACTIVE', 'ARCHIVED'].includes(query.status))
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
     const limit = Math.min(50, Math.max(1, Number(query.limit ?? 20)));
     if (!Number.isInteger(limit)) throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
@@ -96,8 +96,10 @@ export class MasterCatalogService {
         : {}
       : { id: { in: scope.included } };
 
+    // Cabang yang diarsipkan tidak tampil di daftar kerja; hanya lewat filter status ARCHIVED.
     const where: Prisma.CabangWhereInput = {
       ...branchScope,
+      archivedAt: query.status === 'ARCHIVED' ? { not: null } : null,
       active: query.status === 'ACTIVE' ? true : query.status === 'INACTIVE' ? false : undefined,
       OR: query.q?.trim()
         ? [
@@ -107,7 +109,7 @@ export class MasterCatalogService {
         : undefined,
     };
 
-    const [rows, active, inactive] = await Promise.all([
+    const [rows, active, inactive, archived] = await Promise.all([
       this.db.cabang.findMany({
         where,
         orderBy: [{ code: 'asc' }, { id: 'asc' }],
@@ -117,6 +119,7 @@ export class MasterCatalogService {
       }),
       this.db.cabang.count({ where: { ...where, active: true } }),
       this.db.cabang.count({ where: { ...where, active: false } }),
+      this.db.cabang.count({ where: { ...branchScope, archivedAt: { not: null } } }),
     ]);
 
     const hasMore = rows.length > limit;
@@ -132,7 +135,7 @@ export class MasterCatalogService {
     });
     return {
       items,
-      summary: { total: active + inactive, active, inactive },
+      summary: { total: active + inactive, active, inactive, archived },
       page: { nextCursor: hasMore ? (items.at(-1)?.id ?? null) : null, hasMore },
     };
   }
@@ -350,9 +353,10 @@ export class MasterCatalogService {
         const current = await tx.cabang.findUnique({ where: { id } });
         if (!current) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
 
+        // Mengaktifkan kembali juga membuka arsip.
         const updated = await tx.cabang.update({
           where: { id },
-          data: { active: status === 'ACTIVE' },
+          data: status === 'ACTIVE' ? { active: true, archivedAt: null } : { active: false },
         });
 
         await this.access.audit(
@@ -363,8 +367,9 @@ export class MasterCatalogService {
           'Branch',
           id,
           id,
-          { active: current.active },
-          { active: updated.active },
+          { active: current.active, archived: Boolean(current.archivedAt) },
+          { active: updated.active, archived: Boolean(updated.archivedAt) },
+          input.reason,
         );
         return updated;
       },
@@ -376,15 +381,121 @@ export class MasterCatalogService {
     id: string,
     expectedVersion?: number,
     correlationId: string = 'unknown',
+    reason?: string,
   ) {
     return this.transitionBranch(
       principal,
       id,
       'INACTIVE',
-      { expectedVersion: expectedVersion ?? 1, reason: 'Deactivated via API' },
+      { expectedVersion: expectedVersion ?? 1, reason },
       undefined,
       correlationId,
     );
+  }
+
+  async deleteBranch(
+    principal: SessionPrincipal,
+    id: string,
+    correlationId: string = 'unknown',
+  ): Promise<{ success: boolean; id: string; name: string }> {
+    this.access.authorize(principal, true);
+    this.access.ensureBranchScope(principal, id, true);
+
+    const branch = await this.db.cabang.findUnique({
+      where: { id },
+      include: {
+        _count: {
+          select: {
+            studios: true,
+            classSlots: true,
+            instructorAssignments: true,
+            purchases: true,
+            paymentAccounts: true,
+            supportCases: true,
+            ownerAssignments: true,
+            minQuotaSettings: true,
+            instructorFees: true,
+            projectionRates: true,
+            otherCosts: true,
+            monthlyCloses: true,
+            correctionJournals: true,
+            instructorAvailabilities: true,
+            packages: true,
+            bookings: true,
+          },
+        },
+      },
+    });
+
+    if (!branch) {
+      throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+    }
+
+    const preferredUsersCount = await this.db.user.count({
+      where: { preferredBranchId: id },
+    });
+
+    const counts = branch._count;
+    const totalRelations =
+      counts.studios +
+      counts.classSlots +
+      counts.instructorAssignments +
+      counts.purchases +
+      counts.paymentAccounts +
+      counts.supportCases +
+      counts.ownerAssignments +
+      counts.minQuotaSettings +
+      counts.instructorFees +
+      counts.projectionRates +
+      counts.otherCosts +
+      counts.monthlyCloses +
+      counts.correctionJournals +
+      counts.instructorAvailabilities +
+      counts.packages +
+      counts.bookings +
+      preferredUsersCount;
+
+    if (totalRelations > 0) {
+      const activeRelations: string[] = [];
+      if (counts.studios > 0) activeRelations.push(`${counts.studios} studio`);
+      if (counts.classSlots > 0) activeRelations.push(`${counts.classSlots} slot kelas`);
+      if (counts.bookings > 0) activeRelations.push(`${counts.bookings} booking`);
+      if (counts.purchases > 0) activeRelations.push(`${counts.purchases} transaksi`);
+      if (counts.packages > 0) activeRelations.push(`${counts.packages} paket`);
+      if (counts.paymentAccounts > 0) activeRelations.push(`${counts.paymentAccounts} rekening pembayaran`);
+      if (counts.ownerAssignments > 0) activeRelations.push(`${counts.ownerAssignments} penugasan owner`);
+      if (counts.instructorAssignments > 0) activeRelations.push(`${counts.instructorAssignments} penugasan instruktur`);
+      if (preferredUsersCount > 0) activeRelations.push(`${preferredUsersCount} member/user`);
+
+      throw new ApiProblem(
+        'CANNOT_DELETE_BRANCH_WITH_DEPENDENCIES',
+        HttpStatus.CONFLICT,
+        false,
+        [
+          {
+            field: 'id',
+            issue: `Cabang tidak dapat dihapus karena masih memiliki data terkait (${activeRelations.join(', ')}). Gunakan fitur Nonaktifkan untuk mengarsipkan cabang ini.`,
+          },
+        ],
+      );
+    }
+
+    await this.db.$transaction(async (tx) => {
+      await tx.cabang.delete({ where: { id } });
+      await this.access.audit(
+        tx,
+        principal,
+        correlationId,
+        'master.branch_deleted',
+        'Branch',
+        id,
+        id,
+        { code: branch.code, name: branch.name },
+        undefined,
+      );
+    });
+
+    return { success: true, id: branch.id, name: branch.name };
   }
 
   // ============================================================================
@@ -524,6 +635,68 @@ export class MasterCatalogService {
     });
   }
 
+  async deleteStudio(
+    principal: SessionPrincipal,
+    id: string,
+    correlationId: string = 'unknown',
+  ): Promise<{ success: boolean; id: string; name: string }> {
+    this.access.authorize(principal, true);
+
+    const studio = await this.db.studio.findUnique({
+      where: { id },
+      include: {
+        _count: {
+          select: {
+            rooms: true,
+            classSlots: true,
+          },
+        },
+      },
+    });
+
+    if (!studio) {
+      throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+    }
+    this.access.ensureBranchScope(principal, studio.branchId, true);
+
+    const counts = studio._count;
+    const totalRelations = counts.rooms + counts.classSlots;
+    if (totalRelations > 0) {
+      const activeRelations: string[] = [];
+      if (counts.rooms > 0) activeRelations.push(`${counts.rooms} ruangan`);
+      if (counts.classSlots > 0) activeRelations.push(`${counts.classSlots} slot kelas`);
+
+      throw new ApiProblem(
+        'CANNOT_DELETE_STUDIO_WITH_DEPENDENCIES',
+        HttpStatus.CONFLICT,
+        false,
+        [
+          {
+            field: 'id',
+            issue: `Studio tidak dapat dihapus karena masih memiliki data terkait (${activeRelations.join(', ')}). Gunakan fitur Nonaktifkan untuk mengarsipkan studio ini.`,
+          },
+        ],
+      );
+    }
+
+    await this.db.$transaction(async (tx) => {
+      await tx.studio.delete({ where: { id } });
+      await this.access.audit(
+        tx,
+        principal,
+        correlationId,
+        'master.studio_deleted',
+        'Studio',
+        id,
+        studio.branchId,
+        { code: studio.code, name: studio.name },
+        undefined,
+      );
+    });
+
+    return { success: true, id: studio.id, name: studio.name };
+  }
+
   async listRooms(principal: SessionPrincipal, studioId: string, includeInactive = false) {
     this.access.authorize(principal);
     const studio = await this.db.studio.findUnique({ where: { id: studioId } });
@@ -622,21 +795,92 @@ export class MasterCatalogService {
     });
   }
 
+  async deleteRoom(
+    principal: SessionPrincipal,
+    id: string,
+    correlationId: string = 'unknown',
+  ): Promise<{ success: boolean; id: string; name: string }> {
+    this.access.authorize(principal, true);
+
+    const room = await this.db.ruangan.findUnique({
+      where: { id },
+      include: {
+        studio: true,
+        _count: {
+          select: {
+            classSlots: true,
+          },
+        },
+      },
+    });
+
+    if (!room) {
+      throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+    }
+    this.access.ensureBranchScope(principal, room.studio.branchId, true);
+
+    const counts = room._count;
+    if (counts.classSlots > 0) {
+      throw new ApiProblem(
+        'CANNOT_DELETE_ROOM_WITH_DEPENDENCIES',
+        HttpStatus.CONFLICT,
+        false,
+        [
+          {
+            field: 'id',
+            issue: `Ruangan tidak dapat dihapus karena masih memiliki data terkait (${counts.classSlots} slot kelas). Gunakan fitur Nonaktifkan untuk mengarsipkan ruangan ini.`,
+          },
+        ],
+      );
+    }
+
+    await this.db.$transaction(async (tx) => {
+      await tx.ruangan.delete({ where: { id } });
+      await this.access.audit(
+        tx,
+        principal,
+        correlationId,
+        'master.room_deleted',
+        'Room',
+        id,
+        room.studio.branchId,
+        { code: room.code, name: room.name, studioId: room.studioId },
+        undefined,
+      );
+    });
+
+    return { success: true, id: room.id, name: room.name };
+  }
+
   // ============================================================================
   // JENIS KELAS (CLASS TYPES)
   // ============================================================================
 
-  async listClassTypes(principal: SessionPrincipal, branchId?: string) {
+  async listClassTypes(
+    principal: SessionPrincipal,
+    branchId?: string,
+    status: 'ACTIVE' | 'INACTIVE' | 'ARCHIVED' | 'ALL' = 'ACTIVE',
+  ) {
     this.access.authorizeCatalogRead(principal);
     if (branchId) this.access.ensureCatalogBranchScope(principal, branchId);
+    if (!['ACTIVE', 'INACTIVE', 'ARCHIVED', 'ALL'].includes(status))
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
 
     const branches = await this.db.cabang.findMany({
       where: { active: true },
       select: { id: true, code: true, name: true, active: true },
     });
 
+    // Bawaan hanya yang aktif (form jadwal/paket); status lain untuk halaman Master.
     const items = await this.db.jenisKelas.findMany({
-      where: { active: true },
+      where:
+        status === 'ACTIVE'
+          ? { active: true, archivedAt: null }
+          : status === 'INACTIVE'
+            ? { active: false, archivedAt: null }
+            : status === 'ARCHIVED'
+              ? { archivedAt: { not: null } }
+              : { archivedAt: null },
       orderBy: { code: 'asc' },
     });
 
@@ -750,6 +994,9 @@ export class MasterCatalogService {
           'ClassType',
           id,
           null,
+          { active: current.active },
+          { active: false },
+          input.reason,
         );
         return updated;
       },
@@ -811,9 +1058,10 @@ export class MasterCatalogService {
         const current = await tx.jenisKelas.findUnique({ where: { id } });
         if (!current) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
 
+        // Mengaktifkan kembali juga membuka arsip.
         const updated = await tx.jenisKelas.update({
           where: { id },
-          data: { active: true },
+          data: { active: true, archivedAt: null },
         });
 
         await this.access.audit(
@@ -824,6 +1072,9 @@ export class MasterCatalogService {
           'ClassType',
           id,
           null,
+          { active: current.active, archived: Boolean(current.archivedAt) },
+          { active: true, archived: false },
+          input.reason,
         );
         return updated;
       },
@@ -840,6 +1091,79 @@ export class MasterCatalogService {
     return this.db.jenisKelas.findUniqueOrThrow({
       where: { id },
     });
+  }
+
+  async deleteClassType(
+    principal: SessionPrincipal,
+    id: string,
+    correlationId: string = 'unknown',
+  ): Promise<{ success: boolean; id: string; name: string }> {
+    this.access.authorize(principal, true);
+
+    const classType = await this.db.jenisKelas.findUnique({
+      where: { id },
+      include: {
+        _count: {
+          select: {
+            packages: true,
+            classSlots: true,
+            minQuotaSettings: true,
+            instructorFees: true,
+            projectionRates: true,
+          },
+        },
+      },
+    });
+
+    if (!classType) {
+      throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+    }
+
+    const counts = classType._count;
+    const totalRelations =
+      counts.packages +
+      counts.classSlots +
+      counts.minQuotaSettings +
+      counts.instructorFees +
+      counts.projectionRates;
+
+    if (totalRelations > 0) {
+      const activeRelations: string[] = [];
+      if (counts.packages > 0) activeRelations.push(`${counts.packages} paket`);
+      if (counts.classSlots > 0) activeRelations.push(`${counts.classSlots} slot kelas`);
+      if (counts.minQuotaSettings > 0) activeRelations.push(`${counts.minQuotaSettings} pengaturan kuota`);
+      if (counts.instructorFees > 0) activeRelations.push(`${counts.instructorFees} tarif honor`);
+      if (counts.projectionRates > 0) activeRelations.push(`${counts.projectionRates} tarif proyeksi`);
+
+      throw new ApiProblem(
+        'CANNOT_DELETE_CLASS_TYPE_WITH_DEPENDENCIES',
+        HttpStatus.CONFLICT,
+        false,
+        [
+          {
+            field: 'id',
+            issue: `Tipe kelas tidak dapat dihapus karena masih memiliki data terkait (${activeRelations.join(', ')}). Gunakan fitur Nonaktifkan untuk mengarsipkan tipe kelas ini.`,
+          },
+        ],
+      );
+    }
+
+    await this.db.$transaction(async (tx) => {
+      await tx.jenisKelas.delete({ where: { id } });
+      await this.access.audit(
+        tx,
+        principal,
+        correlationId,
+        'master.class_type_deleted',
+        'ClassType',
+        id,
+        null,
+        { code: classType.code, name: classType.name },
+        undefined,
+      );
+    });
+
+    return { success: true, id: classType.id, name: classType.name };
   }
 
   // ============================================================================

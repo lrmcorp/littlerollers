@@ -92,6 +92,18 @@ export class MasterController {
   ) {
     return this.catalog.updateRoom(req.principal, id, body, req.correlationId ?? 'unknown');
   }
+  @Delete('studios/:id') deleteStudio(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+  ) {
+    return this.catalog.deleteStudio(req.principal, id, req.correlationId ?? 'unknown');
+  }
+  @Delete('rooms/:id') deleteRoom(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+  ) {
+    return this.catalog.deleteRoom(req.principal, id, req.correlationId ?? 'unknown');
+  }
   @Post('branches') createBranch(
     @Req() req: AuthenticatedRequest,
     @Headers('idempotency-key') key: string | undefined,
@@ -117,7 +129,7 @@ export class MasterController {
           req.principal,
           id,
           'INACTIVE',
-          { expectedVersion: body?.expectedVersion ?? 1, reason: body?.reason ?? 'Menonaktifkan cabang' },
+          { expectedVersion: body?.expectedVersion ?? 1, reason: body?.reason },
           key,
           req.correlationId ?? 'unknown',
         )
@@ -126,6 +138,7 @@ export class MasterController {
           id,
           body?.expectedVersion,
           req.correlationId ?? 'unknown',
+          body?.reason,
         );
   }
   @Post('branches/:id/reactivate') reactivateBranch(
@@ -138,7 +151,7 @@ export class MasterController {
       req.principal,
       id,
       'ACTIVE',
-      { expectedVersion: body?.expectedVersion ?? 1, reason: body?.reason ?? 'Mengaktifkan kembali cabang' },
+      { expectedVersion: body?.expectedVersion ?? 1, reason: body?.reason },
       key,
       req.correlationId ?? 'unknown',
     );
@@ -159,11 +172,18 @@ export class MasterController {
   ) {
     return this.catalog.updateBranch(req.principal, id, body, key, req.correlationId ?? 'unknown');
   }
+  @Delete('branches/:id') deleteBranch(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+  ) {
+    return this.catalog.deleteBranch(req.principal, id, req.correlationId ?? 'unknown');
+  }
   @Get('class-types') listClassTypes(
     @Req() req: AuthenticatedRequest,
     @Query('branchId') branchId?: string,
+    @Query('status') status?: 'ACTIVE' | 'INACTIVE' | 'ARCHIVED' | 'ALL',
   ) {
-    return this.catalog.listClassTypes(req.principal, branchId);
+    return this.catalog.listClassTypes(req.principal, branchId, status);
   }
   @Post('class-types') createClassType(
     @Req() req: AuthenticatedRequest,
@@ -205,7 +225,7 @@ export class MasterController {
           id,
           {
             expectedVersion: body.expectedVersion,
-            reason: body.reason ?? 'Menonaktifkan tipe kelas',
+            reason: body.reason,
           },
           key,
           req.correlationId ?? 'unknown',
@@ -244,6 +264,12 @@ export class MasterController {
       key,
       req.correlationId ?? 'unknown',
     );
+  }
+  @Delete('class-types/:id') deleteClassType(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+  ) {
+    return this.catalog.deleteClassType(req.principal, id, req.correlationId ?? 'unknown');
   }
   @Get('instructor-fees') listFees(
     @Req() req: AuthenticatedRequest,

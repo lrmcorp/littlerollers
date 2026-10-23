@@ -12,17 +12,19 @@ export type VoucherDiscountType = 'PERCENTAGE' | 'FIXED_AMOUNT';
 /** Status yang dapat diminta lewat perintah (transition). */
 export type VoucherStatus = 'ACTIVE' | 'PAUSED' | 'ARCHIVED';
 /** Status yang ditampilkan: turunan dari kolom `active`, `validUntil`, `quota`, dan `usedCount`. */
-export type VoucherDisplayStatus = 'ACTIVE' | 'PAUSED' | 'EXPIRED' | 'EXHAUSTED';
+export type VoucherDisplayStatus = 'ACTIVE' | 'PAUSED' | 'EXPIRED' | 'EXHAUSTED' | 'ARCHIVED';
 
 export function deriveVoucherStatus(
   voucher: {
     active: boolean;
+    archivedAt?: Date | string | null;
     validUntil?: Date | string | null;
     quota?: number | null;
     usedCount?: number | null;
   },
   now: Date = new Date(),
 ): VoucherDisplayStatus {
+  if (voucher.archivedAt) return 'ARCHIVED';
   if (!voucher.active) return 'PAUSED';
   if (voucher.validUntil && new Date(voucher.validUntil).getTime() < now.getTime())
     return 'EXPIRED';
@@ -51,12 +53,14 @@ const PAGE_SIZE = 20;
 
 /**
  * Ringkasan per status (dari seluruh hasil pencarian), filter status, dan halaman berbasis cursor.
- * Status `ARCHIVED` dari klien lama diperlakukan sama dengan `PAUSED`.
+ * Voucher berstatus `ARCHIVED` (kolom `archivedAt`) tidak tampil kecuali diminta lewat filter status; jumlah
+ * dan `total` di ringkasan hanya menghitung yang belum diarsipkan.
  */
 export function paginateVouchers<
   T extends {
     id: string;
     active: boolean;
+    archivedAt?: Date | string | null;
     validUntil?: Date | string | null;
     quota?: number | null;
     usedCount?: number | null;
@@ -80,12 +84,15 @@ export function paginateVouchers<
     PAUSED: 0,
     EXPIRED: 0,
     EXHAUSTED: 0,
-    total: rows.length,
+    ARCHIVED: 0,
+    total: rows.filter((row) => !row.archivedAt).length,
   };
   for (const row of rows) summary[deriveVoucherStatus(row, now)] += 1;
 
-  const wanted = options.status === 'ARCHIVED' ? 'PAUSED' : options.status;
-  const filtered = wanted ? rows.filter((row) => deriveVoucherStatus(row, now) === wanted) : rows;
+  const wanted = options.status;
+  const filtered = wanted
+    ? rows.filter((row) => deriveVoucherStatus(row, now) === wanted)
+    : rows.filter((row) => !row.archivedAt);
   const total = filtered.length;
   const totalPages = Math.ceil(total / options.limit) || 1;
   const pageNumber = options.page && Number(options.page) > 0 ? Number(options.page) : undefined;
@@ -474,17 +481,27 @@ export class VoucherService {
         const voucher = await tx.voucher.findUnique({ where: { id } });
         if (!voucher) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
 
+        // Jeda = sementara (`active=false`); Arsip = permanen dan tersembunyi (`archivedAt`).
+        // Mengaktifkan kembali juga membuka arsip.
         const updated = await tx.voucher.update({
           where: { id },
-          data: { active: status === 'ACTIVE' },
+          data:
+            status === 'ARCHIVED'
+              ? { active: false, archivedAt: voucher.archivedAt ?? new Date() }
+              : status === 'ACTIVE'
+                ? { active: true, archivedAt: null }
+                : { active: false },
         });
 
-        this.auditService.record({
+        await this.auditService.catat(tx, {
           action: `VOUCHER_${status}`,
-          resourceType: 'Voucher',
-          resourceId: id,
-          actorUserId: principal.userId,
+          objectType: 'Voucher',
+          objectId: id,
+          actorId: principal.userId,
           correlationId,
+          reason: body?.reason,
+          beforeMasked: { active: voucher.active, archived: Boolean(voucher.archivedAt) },
+          afterMasked: { active: updated.active, archived: Boolean(updated.archivedAt) },
         });
 
         return {

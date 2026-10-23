@@ -1,0 +1,250 @@
+import { PolicyService } from '../identity/policy.service';
+import { LifecycleService } from './lifecycle.service';
+
+const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
+const branchA = id(2);
+
+const superOwner = {
+  sessionId: 's',
+  userId: id(1),
+  roles: [{ role: 'SUPER_OWNER' as const, branchId: null }],
+  capabilities: [
+    'branch:all',
+    'master:manage',
+    'voucher:manage',
+    'payment-account:manage',
+    'package-promotion:manage',
+    'public-content:manage',
+    'notification:manage',
+    'user:admin',
+  ],
+  branchIds: [] as string[],
+};
+const branchAdmin = {
+  ...superOwner,
+  roles: [{ role: 'ADMIN' as const, branchId: branchA }],
+  capabilities: ['master:manage', 'payment-account:manage', 'user:admin'],
+  branchIds: [branchA],
+};
+
+/** Daftar FK ala information_schema: voucher<-pembelian (SetNull), cabang<-studio (Restrict), user<-session (Cascade). */
+const fkRows = [
+  { t: 'pembelian', c: 'voucherId', rt: 'voucher', d: 'SET NULL' },
+  { t: 'studio', c: 'branchId', rt: 'cabang', d: 'RESTRICT' },
+  { t: 'slot_kelas', c: 'branchId', rt: 'cabang', d: 'RESTRICT' },
+  { t: 'user_session', c: 'userId', rt: 'user', d: 'CASCADE' },
+  { t: 'pembelian', c: 'userId', rt: 'user', d: 'RESTRICT' },
+  { t: 'bad; DROP TABLE x', c: 'id', rt: 'user', d: 'RESTRICT' },
+];
+
+function build(opts: { counts?: Record<string, number>; row?: Record<string, unknown>; kind?: string } = {}) {
+  const counts = opts.counts ?? {};
+  const delegate = {
+    findUnique: jest.fn().mockResolvedValue(opts.row ?? null),
+    delete: jest.fn().mockResolvedValue({}),
+    update: jest.fn().mockImplementation(async ({ data }) => ({ ...(opts.row ?? {}), ...data })),
+  };
+  const queryRawUnsafe = jest.fn(async (sql: string, ..._args: unknown[]) => {
+    if (sql.includes('information_schema')) return fkRows;
+    const table = /FROM `([^`]+)`/u.exec(sql)?.[1] ?? '';
+    return [{ c: BigInt(counts[table] ?? 0) }];
+  });
+  const db: any = {
+    $queryRawUnsafe: queryRawUnsafe,
+    voucher: delegate,
+    cabang: delegate,
+    user: { ...delegate, count: jest.fn().mockResolvedValue(counts.preferred ?? 0) },
+    packagePromotion: delegate,
+    paket: { findUnique: jest.fn().mockResolvedValue({ branchId: null }) },
+    pembelian: { count: jest.fn().mockResolvedValue(counts.promoPurchases ?? 0) },
+    rekeningPembayaran: delegate,
+    publicContent: delegate,
+    $transaction: jest.fn(async (fn: (tx: unknown) => unknown) => fn(db)),
+  };
+  const audit = { catat: jest.fn().mockResolvedValue(undefined) };
+  const service = new LifecycleService(db, new PolicyService(), audit as never);
+  return { service, db, delegate, audit, queryRawUnsafe };
+}
+
+describe('LifecycleService.inspect', () => {
+  it('counts foreign-key children (except CASCADE ones), names them in Indonesian and ignores unsafe identifiers', async () => {
+    const { service, queryRawUnsafe } = build({
+      row: { id: branchA, code: 'GG', name: 'Green Garden' },
+      counts: { studio: 3, slot_kelas: 12 },
+    });
+    const result = await service.inspect(superOwner as never, 'branch', branchA);
+    expect(result).toMatchObject({ deletable: false });
+    expect(result.blockers).toEqual([
+      { kind: 'studio', label: 'studio', count: 3 },
+      { kind: 'slot_kelas', label: 'jadwal kelas', count: 12 },
+    ]);
+    const sqls = queryRawUnsafe.mock.calls.map(([sql]) => String(sql));
+    expect(sqls.some((sql) => sql.includes('DROP TABLE'))).toBe(false);
+    // Anak CASCADE tidak dihitung untuk user; ini kind cabang, jadi hanya dua tabel yang diperiksa.
+    expect(sqls.filter((sql) => sql.includes('SELECT COUNT'))).toHaveLength(2);
+  });
+
+  it('reports a clean entity as deletable', async () => {
+    const { service } = build({ row: { id: branchA, code: 'GG', name: 'x' } });
+    await expect(service.inspect(superOwner as never, 'branch', branchA)).resolves.toMatchObject({
+      deletable: true,
+      blockers: [],
+    });
+  });
+
+  it('adds non-FK blockers: a used voucher, a protected Super Owner account, a published draft-only item', async () => {
+    const voucher = build({ row: { id: id(5), code: 'HEMAT', name: 'Hemat', usedCount: 4 }, counts: { pembelian: 4 } });
+    const v = await voucher.service.inspect(superOwner as never, 'voucher', id(5));
+    expect(v.blockers.map((item) => item.kind)).toEqual(['pembelian', 'voucher_used']);
+
+    const owner = build({ row: { id: id(6), role: 'SUPER_OWNER', displayName: 'Boss', status: 'ACTIVE' } });
+    const o = await owner.service.inspect(superOwner as never, 'user', id(6));
+    expect(o.blockers).toEqual([{ kind: 'protected_account', label: 'akun Super Owner (dilindungi)', count: 1 }]);
+
+    const content = build({ row: { id: id(7), status: 'PUBLISHED', contentKey: 'K', kind: 'FAQ', version: 1 } });
+    const c = await content.service.inspect(superOwner as never, 'public-content', id(7));
+    expect(c.deletable).toBe(false);
+    const draft = build({ row: { id: id(7), status: 'DRAFT', contentKey: 'K', kind: 'FAQ', version: 1 } });
+    expect((await draft.service.inspect(superOwner as never, 'public-content', id(7))).deletable).toBe(true);
+  });
+
+  it('a promotion is blocked by the purchases that used it even though no FK points at it', async () => {
+    const { service } = build({
+      row: { id: id(8), packageId: id(9), name: 'Promo', status: 'ACTIVE' },
+      counts: { promoPurchases: 2 },
+    });
+    const result = await service.inspect(superOwner as never, 'promotion', id(8));
+    expect(result.blockers).toEqual([{ kind: 'pembelian', label: 'pembelian yang memakai promosi ini', count: 2 }]);
+  });
+
+  it('hides entities outside the caller scope and refuses callers without the capability', async () => {
+    const other = build({ row: { id: branchA, code: 'GG', name: 'x' } });
+    await expect(
+      other.service.inspect({ ...branchAdmin, branchIds: [id(99)] } as never, 'branch', branchA),
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    await expect(
+      other.service.inspect({ ...branchAdmin, capabilities: [] } as never, 'branch', branchA),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    await expect(other.service.inspect(superOwner as never, 'branch', 'x')).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    });
+  });
+});
+
+describe('LifecycleService.remove', () => {
+  it('requires a reason before touching anything', async () => {
+    const { service, delegate } = build({ row: { id: id(5), code: 'X', name: 'x', usedCount: 0 } });
+    for (const reason of [undefined, '', '  ', 'ab', 'x'.repeat(501)])
+      await expect(service.remove(superOwner as never, 'voucher', id(5), reason, 'c')).rejects.toMatchObject({
+        code: 'VALIDATION_ERROR',
+      });
+    expect(delegate.delete).not.toHaveBeenCalled();
+  });
+
+  it('deletes a clean entity in one transaction and writes a permanent audit entry with a snapshot and the reason', async () => {
+    const { service, delegate, audit, db } = build({ row: { id: id(5), code: 'HEMAT', name: 'Hemat', usedCount: 0 } });
+    await expect(
+      service.remove(superOwner as never, 'voucher', id(5), 'Salah buat, belum dipakai', 'corr-1'),
+    ).resolves.toEqual({ id: id(5), kind: 'voucher', deleted: true });
+    expect(db.$transaction).toHaveBeenCalledTimes(1);
+    expect(delegate.delete).toHaveBeenCalledWith({ where: { id: id(5) } });
+    expect(audit.catat).toHaveBeenCalledWith(
+      db,
+      expect.objectContaining({
+        action: 'lifecycle.voucher_deleted',
+        objectType: 'Voucher',
+        objectId: id(5),
+        reason: 'Salah buat, belum dipakai',
+        correlationId: 'corr-1',
+        beforeMasked: { code: 'HEMAT', name: 'Hemat', usedCount: 0 },
+      }),
+    );
+  });
+
+  it('refuses with CANNOT_DELETE_WITH_DEPENDENCIES and a readable list when something still points at it', async () => {
+    const { service, delegate, audit } = build({
+      row: { id: id(5), code: 'HEMAT', name: 'Hemat', usedCount: 3 },
+      counts: { pembelian: 3 },
+    });
+    await expect(
+      service.remove(superOwner as never, 'voucher', id(5), 'Bersih-bersih', 'c'),
+    ).rejects.toMatchObject({
+      code: 'CANNOT_DELETE_WITH_DEPENDENCIES',
+      status: 409,
+      details: [
+        { field: 'pembelian', issue: '3 pembelian' },
+        { field: 'voucher_used', issue: '3 pemakaian voucher' },
+      ],
+    });
+    expect(delegate.delete).not.toHaveBeenCalled();
+    expect(audit.catat).not.toHaveBeenCalled();
+  });
+
+  it('turns a database FK rejection (P2003) into the same dependency error', async () => {
+    const { Prisma } = await import('@prisma/client');
+    const { service, delegate } = build({ row: { id: id(5), code: 'X', name: 'x', usedCount: 0 } });
+    delegate.delete.mockRejectedValueOnce(
+      new Prisma.PrismaClientKnownRequestError('fk', { code: 'P2003', clientVersion: 'test' }),
+    );
+    await expect(service.remove(superOwner as never, 'voucher', id(5), 'alasan', 'c')).rejects.toMatchObject({
+      code: 'CANNOT_DELETE_WITH_DEPENDENCIES',
+    });
+  });
+
+  it('only a Super Owner may delete an account, never their own, and the audit shows the person masked', async () => {
+    const row = { id: id(6), role: 'MEMBER', displayName: 'Rina', status: 'INACTIVE', email: 'rina@example.test' };
+    const admin = build({ row });
+    await expect(
+      admin.service.remove({ ...superOwner, roles: [{ role: 'ADMIN', branchId: null }] } as never, 'user', id(6), 'salah undang', 'c'),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' });
+
+    const self = build({ row: { ...row, id: superOwner.userId } });
+    await expect(
+      self.service.remove(superOwner as never, 'user', superOwner.userId, 'coba hapus diri', 'c'),
+    ).rejects.toMatchObject({ code: 'CANNOT_DELETE_SELF' });
+
+    const ok = build({ row });
+    await ok.service.remove(superOwner as never, 'user', id(6), 'undangan salah ketik', 'c');
+    const entry = ok.audit.catat.mock.calls[0]![1];
+    expect(entry).toMatchObject({ action: 'lifecycle.user_deleted', targetUserId: id(6) });
+    expect(entry.beforeMasked).toMatchObject({ displayName: 'Rina', email: 'ri***@example.test' });
+    expect(JSON.stringify(entry)).not.toContain('rina@example.test');
+  });
+
+  it('has no generic delete for kinds that keep their own route', async () => {
+    const { service } = build({ row: { id: branchA } });
+    await expect(service.remove(superOwner as never, 'branch', branchA, 'alasan', 'c')).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    });
+  });
+});
+
+describe('LifecycleService.archive', () => {
+  it('requires a reason, hides the entity (inactive + archivedAt) and audits the change', async () => {
+    const { service, delegate, audit } = build({ row: { id: branchA, active: true, archivedAt: null } });
+    await expect(service.archive(superOwner as never, 'branch', branchA, '', 'c')).rejects.toMatchObject({
+      code: 'VALIDATION_ERROR',
+    });
+    await service.archive(superOwner as never, 'branch', branchA, 'Cabang ditutup permanen', 'c');
+    expect(delegate.update).toHaveBeenCalledWith({
+      where: { id: branchA },
+      data: { active: false, archivedAt: expect.any(Date) },
+    });
+    expect(audit.catat).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        action: 'lifecycle.branch_archived',
+        reason: 'Cabang ditutup permanen',
+        beforeMasked: { active: true, archived: false },
+        afterMasked: { active: false, archived: true },
+      }),
+    );
+  });
+
+  it('refuses to archive something already archived', async () => {
+    const { service } = build({ row: { id: branchA, active: false, archivedAt: new Date() } });
+    await expect(
+      service.archive(superOwner as never, 'branch', branchA, 'ulang', 'c'),
+    ).rejects.toMatchObject({ code: 'INVALID_STATE_TRANSITION' });
+  });
+});

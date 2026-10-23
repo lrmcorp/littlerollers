@@ -60,6 +60,7 @@ export class MasterAccessService {
     branchId: string | null,
     before?: Prisma.InputJsonValue,
     after?: Prisma.InputJsonValue,
+    reason?: string | null,
   ) {
     await this.auditService?.catat(tx, {
       actorId: principal.userId,
@@ -68,6 +69,7 @@ export class MasterAccessService {
       action,
       objectType,
       objectId,
+      reason,
       beforeMasked: before,
       afterMasked: after,
     });

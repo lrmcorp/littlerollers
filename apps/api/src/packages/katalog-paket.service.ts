@@ -423,6 +423,64 @@ export class PackageCatalogService {
     );
   }
 
+  async deletePackage(
+    principal: SessionPrincipal,
+    id: string,
+    correlationId: string = 'unknown',
+  ): Promise<{ success: boolean; id: string; name: string }> {
+    this.access.catalog(principal, true);
+
+    const pkg = await this.db.paket.findUnique({
+      where: { id },
+      include: {
+        _count: {
+          select: {
+            purchases: true,
+            customerPackages: true,
+          },
+        },
+      },
+    });
+
+    if (!pkg) {
+      throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+    }
+
+    const counts = pkg._count;
+    const totalRelations = counts.purchases + counts.customerPackages;
+
+    if (totalRelations > 0) {
+      const activeRelations: string[] = [];
+      if (counts.purchases > 0) activeRelations.push(`${counts.purchases} transaksi pembelian`);
+      if (counts.customerPackages > 0) activeRelations.push(`${counts.customerPackages} paket aktif/terpakai member`);
+
+      throw new ApiProblem(
+        'CANNOT_DELETE_PACKAGE_WITH_DEPENDENCIES',
+        HttpStatus.CONFLICT,
+        false,
+        [
+          {
+            field: 'id',
+            issue: `Paket tidak dapat dihapus karena sudah memiliki riwayat data (${activeRelations.join(', ')}). Gunakan fitur Nonaktifkan untuk mengarsipkan paket ini.`,
+          },
+        ],
+      );
+    }
+
+    await this.db.$transaction(async (tx) => {
+      await tx.paket.delete({ where: { id } });
+      this.auditService.record({
+        action: 'PACKAGE_DELETED',
+        resourceType: 'Package',
+        resourceId: id,
+        actorUserId: principal.userId,
+        correlationId,
+      });
+    });
+
+    return { success: true, id: pkg.id, name: pkg.name };
+  }
+
   // --- Indonesian Domain Aliases ---
   async daftarPaket(
     principal: SessionPrincipal,

@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Headers,
   HttpCode,
@@ -268,6 +269,12 @@ export class PackagesController {
       r.correlationId ?? 'unknown',
     );
     return (result as any).body ?? result;
+  }
+  @Delete('packages/:id') async deletePackage(
+    @Req() r: AuthenticatedRequest,
+    @Param('id') id: string,
+  ) {
+    return this.catalog.deletePackage(r.principal, id, r.correlationId ?? 'unknown');
   }
   @Get('payment-accounts') paymentAccounts(
     @Req() r: AuthenticatedRequest,

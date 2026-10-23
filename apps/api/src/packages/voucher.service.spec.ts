@@ -86,7 +86,7 @@ describe('voucher list pagination and summary', () => {
 
   it('counts every status across the whole result set, keyed by status', () => {
     const { summary } = paginateVouchers(rows, { limit: 2, now });
-    expect(summary).toEqual({ ACTIVE: 2, PAUSED: 1, EXPIRED: 1, EXHAUSTED: 1, total: 5 });
+    expect(summary).toEqual({ ACTIVE: 2, PAUSED: 1, EXPIRED: 1, EXHAUSTED: 1, ARCHIVED: 0, total: 5 });
   });
 
   it('keeps the summary independent from the status filter', () => {
@@ -110,9 +110,22 @@ describe('voucher list pagination and summary', () => {
     expect(last.nextCursor).toBeNull();
   });
 
-  it('treats the legacy ARCHIVED filter as PAUSED', () => {
-    const result = paginateVouchers(rows, { status: 'ARCHIVED', limit: 10, now });
-    expect(result.items.map((row) => row.id)).toEqual(['v3']);
+  it('keeps archived vouchers out of the working list and counts, but shows them under the ARCHIVED filter', () => {
+    const withArchived = [
+      ...rows,
+      { id: 'v6', active: false, archivedAt: new Date('2026-09-01'), validUntil: null, quota: 100, usedCount: 4 },
+    ];
+    const working = paginateVouchers(withArchived, { limit: 10, now });
+    expect(working.items.map((row) => row.id)).toEqual(['v1', 'v2', 'v3', 'v4', 'v5']);
+    expect(working.summary).toMatchObject({ total: 5, PAUSED: 1, ARCHIVED: 1 });
+    const archived = paginateVouchers(withArchived, { status: 'ARCHIVED', limit: 10, now });
+    expect(archived.items.map((row) => row.id)).toEqual(['v6']);
+  });
+
+  it('tells a paused voucher (temporary) from an archived one (permanent)', () => {
+    const base = { active: false, validUntil: null, quota: 10, usedCount: 0 };
+    expect(deriveVoucherStatus(base, now)).toBe('PAUSED');
+    expect(deriveVoucherStatus({ ...base, archivedAt: new Date('2026-09-01') }, now)).toBe('ARCHIVED');
   });
 
   it('supports numbered page pagination with total and totalPages', () => {
