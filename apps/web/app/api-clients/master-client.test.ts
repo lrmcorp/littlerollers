@@ -209,12 +209,12 @@ describe('tarif settings client', () => {
 
   it('deletes by kind and never sends an end date when creating', async () => {
     const spy = vi.spyOn(globalThis, 'fetch').mockImplementation(async () => mockResponse({}));
-    await browserMasterClient.deleteSetting('PROJECTION_RATE', 'rate-1');
+    await browserMasterClient.deleteSetting('PROJECTION_RATE', 'rate-1', 'Salah input');
     expect(spy).toHaveBeenLastCalledWith(
       '/api/v1/projection-rates/rate-1',
-      expect.objectContaining({ method: 'DELETE' }),
+      expect.objectContaining({ method: 'DELETE', body: JSON.stringify({ reason: 'Salah input' }) }),
     );
-    await browserMasterClient.deleteSetting('INSTRUCTOR_FEE', 'fee-1');
+    await browserMasterClient.deleteSetting('INSTRUCTOR_FEE', 'fee-1', 'Salah input');
     expect(spy).toHaveBeenLastCalledWith(
       '/api/v1/instructor-fees/fee-1',
       expect.objectContaining({ method: 'DELETE' }),

@@ -22,6 +22,7 @@ import {
   X,
 } from 'lucide-react';
 import { Button, ButtonLink } from '../components/actions';
+import { LifecycleDialog, type LifecycleAction } from '../components/admin/lifecycle-dialog';
 import { SearchSelect } from '../components/forms';
 import { Feedback, Skeleton, StatusBadge } from '../ui';
 import { AdminPageHeader } from '../components/admin/admin-page-header';
@@ -64,6 +65,11 @@ export function PublicContentManagementView() {
   // Image Upload State
   const [uploadingImage, setUploadingImage] = useState(false);
   const [draftId, setDraftId] = useState<string | null>(null);
+  const [lifecycle, setLifecycle] = useState<{
+    id: string;
+    name: string;
+    action: LifecycleAction;
+  } | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string>('');
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -291,7 +297,7 @@ export function PublicContentManagementView() {
     }
   }
 
-  async function transition(id: string, status: 'PUBLISHED' | 'ARCHIVED') {
+  async function transition(id: string, status: 'PUBLISHED') {
     setBusy(true);
     setError('');
     try {
@@ -927,9 +933,25 @@ export function PublicContentManagementView() {
                         size="sm"
                         variant="ghost"
                         disabled={busy}
-                        onClick={() => void transition(item.id, 'ARCHIVED')}
+                        onClick={() =>
+                          setLifecycle({ id: item.id, name: `${item.contentKey} v${item.version}`, action: 'archive' })
+                        }
                       >
                         Arsipkan
+                      </Button>
+                    )}
+                    {item.status === 'DRAFT' && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-dd-danger hover:text-dd-danger"
+                        disabled={busy}
+                        aria-label={`Hapus draf ${item.contentKey} v${item.version}`}
+                        onClick={() =>
+                          setLifecycle({ id: item.id, name: `${item.contentKey} v${item.version}`, action: 'delete' })
+                        }
+                      >
+                        Hapus
                       </Button>
                     )}
                   </div>
@@ -939,6 +961,22 @@ export function PublicContentManagementView() {
           </div>
         </section>
       )}
+      <LifecycleDialog
+        request={lifecycle ? { kind: 'public-content', ...lifecycle } : null}
+        archive={(reason) =>
+          request(`/public-content-management/${lifecycle!.id}/ARCHIVED`, {
+            method: 'POST',
+            body: JSON.stringify({ reason }),
+          })
+        }
+        onClose={() => setLifecycle(null)}
+        onDone={async (message) => {
+          setLifecycle(null);
+          setError('');
+          await load();
+          setSuccessMessage(message);
+        }}
+      />
     </main>
   );
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, Eye, KeyRound, RefreshCw, ShieldCheck, Upload, UserRoundCog } from 'lucide-react';
+import { ArrowLeft, Eye, KeyRound, RefreshCw, ShieldCheck, Trash2, Upload, UserRoundCog } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import {
   browserIdentityClient,
@@ -20,8 +20,9 @@ import {
   type LedgerClient,
 } from '@/api-clients/ledger-client';
 import { Button, ButtonLink } from '../../components/actions';
+import { LifecycleDialog } from '../../components/admin/lifecycle-dialog';
 import { AdminPageState, Badge, Panel } from '../../components/admin/admin-ui';
-import { Feedback, Skeleton, StatusBadge } from '../../ui';
+import { EmptyState, Feedback, Skeleton, StatusBadge } from '../../ui';
 import { AdminPageHeader } from '../../components/admin/admin-page-header';
 import { useSessionContext } from '../../session-context';
 import { roleSummary, statusLabels } from '../user-admin-controls';
@@ -72,6 +73,10 @@ export function UserDetailView({
   const capabilities = capabilitiesOverride ?? context?.session?.capabilities ?? [];
   const sessionReady = Boolean(capabilitiesOverride || context?.session);
   const canAdmin = sessionReady && capabilities.includes('user:admin');
+  // Hapus akun hanya untuk Super Owner (server juga menegakkannya).
+  const canDelete = Boolean(context?.session?.roles?.includes('SUPER_OWNER'));
+  const [removing, setRemoving] = useState(false);
+  const [removed, setRemoved] = useState(false);
   const canAudit = sessionReady && capabilities.includes('audit:read');
   const canReadLedger = sessionReady && capabilities.includes('ledger:read');
   const globalCapabilities =
@@ -175,6 +180,14 @@ export function UserDetailView({
       />
     );
   if (!user) return null;
+  if (removed)
+    return (
+      <EmptyState
+        title="Akun telah dihapus"
+        description={`Akun ${user.displayName} dihapus permanen. Salinan datanya tersimpan di catatan audit.`}
+        action={<ButtonLink href="/users">Kembali ke Pengguna</ButtonLink>}
+      />
+    );
 
   const directRoles = user.directRoles;
   const assignmentRoles = user.assignmentRoles;
@@ -239,6 +252,11 @@ export function UserDetailView({
               onClick={() => setAction('status')}
             >
               {user.status === 'ACTIVE' ? 'Nonaktifkan' : 'Aktifkan kembali'}
+            </Button>
+          )}
+          {canDelete && (
+            <Button variant="danger" onClick={() => setRemoving(true)}>
+              <Trash2 className="size-4" aria-hidden="true" /> Hapus akun
             </Button>
           )}
           {user.audience === 'CUSTOMER' && (
@@ -562,17 +580,25 @@ export function UserDetailView({
         user={user}
         submitting={submitting}
         onClose={closeAction}
-        onSubmit={() =>
+        onSubmit={(reason) =>
           runMutation(
             () =>
               user.status === 'ACTIVE'
-                ? client.deactivate(user.id, user.version)
+                ? client.deactivate(user.id, user.version, reason)
                 : client.reactivate(user.id, user.version),
             user.status === 'ACTIVE'
               ? 'Pengguna dinonaktifkan dan seluruh sesi dicabut.'
               : 'Pengguna berhasil diaktifkan kembali.',
           )
         }
+      />
+      <LifecycleDialog
+        request={removing ? { kind: 'user', id: user.id, name: user.displayName, action: 'delete' } : null}
+        onClose={() => setRemoving(false)}
+        onDone={() => {
+          setRemoving(false);
+          setRemoved(true);
+        }}
       />
     </section>
   );

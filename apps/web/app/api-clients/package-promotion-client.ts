@@ -143,16 +143,19 @@ export const browserPackagePromotionClient = {
       body: JSON.stringify(input),
     });
   },
-  transition(id: string, action: 'activate' | 'pause' | 'archive', expectedVersion: number) {
+  /** Jeda dan arsip wajib beralasan; aktifkan tidak. Tidak ada alasan bawaan buatan klien. */
+  transition(
+    id: string,
+    action: 'activate' | 'pause' | 'archive',
+    expectedVersion: number,
+    reason?: string,
+  ) {
     return request<PackagePromotionRecord>(
       `/package-promotions/${encodeURIComponent(id)}/${action}`,
       {
         method: 'POST',
         headers: headers(),
-        body: JSON.stringify({
-          expectedVersion,
-          reason: `Perubahan status promo paket melalui workspace: ${action}`,
-        }),
+        body: JSON.stringify({ expectedVersion, ...(reason ? { reason } : {}) }),
       },
     );
   },
@@ -199,12 +202,13 @@ export const browserPackagePromotionClient = {
     id: string,
     action: 'deactivate' | 'reactivate',
     expectedVersion: number,
-    reason: string,
+    /** Wajib saat menonaktifkan; aktifkan kembali tanpa alasan. */
+    reason?: string,
   ) {
     const res = await request<any>(`/packages/${encodeURIComponent(id)}/${action}`, {
       method: 'POST',
       headers: headers(),
-      body: JSON.stringify({ expectedVersion, reason }),
+      body: JSON.stringify({ expectedVersion, ...(reason ? { reason } : {}) }),
     });
     return (res?.package ? { ...res.package, ...res } : (res?.body ?? res)) as InternalPackageRecord;
   },
@@ -218,6 +222,8 @@ const promotionMessages: Record<string, string> = {
   INVALID_STATE: 'Status promo tidak mengizinkan perubahan ini (mis. sudah diarsipkan).',
   FORBIDDEN: 'Anda tidak memiliki izin mengelola promo paket.',
   RESOURCE_NOT_FOUND: 'Promo atau paket tidak ditemukan.',
+  CANNOT_DELETE_PACKAGE_WITH_DEPENDENCIES:
+    'Paket tidak dapat dihapus karena sudah memiliki riwayat data. Gunakan fitur Nonaktifkan untuk mengarsipkan paket ini.',
 };
 
 /** Pesan Indonesia untuk kegagalan promo; membaca kode dari respons problem-details. */
@@ -229,15 +235,19 @@ export async function promotionFailure(error: unknown, fallback: string): Promis
     .json()
     .catch(() => ({}))) as {
     error?: { code?: string; details?: Array<{ field?: string; issue?: string }> };
+    code?: string;
+    details?: Array<{ field?: string; issue?: string }>;
   };
-  const code = body.error?.code;
-  const issue = body.error?.details?.[0]?.issue;
+  const code = body.error?.code ?? body.code;
+  const issue = body.error?.details?.[0]?.issue ?? body.details?.[0]?.issue;
+
   if (code === 'VALIDATION_ERROR') {
     if (issue === 'TOO_LARGE') return 'Nilai diskon terlalu besar (persen maks. 90; nominal harus di bawah harga paket).';
     if (issue === 'BEFORE_START') return 'Tanggal berakhir harus setelah tanggal mulai.';
     if (issue === 'IN_THE_PAST') return 'Tanggal berakhir promo sudah lewat.';
     return 'Isian promo belum valid. Periksa nama, nilai diskon, dan periode.';
   }
+  if (issue) return issue;
   if (code && promotionMessages[code]) return promotionMessages[code]!;
   if (response.status === 403) return promotionMessages.FORBIDDEN!;
   if (response.status === 404) return promotionMessages.RESOURCE_NOT_FOUND!;

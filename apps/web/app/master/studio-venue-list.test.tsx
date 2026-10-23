@@ -45,9 +45,9 @@ const setup = (canManage = true) => {
 describe('StudioVenueList', () => {
   it('labels inactive areas and rooms and offers to reactivate them', () => {
     setup();
-    expect(screen.getByText('Ruang B · R2 (nonaktif)')).toBeVisible();
-    expect(screen.getByRole('button', { name: 'Aktifkan ruangan Ruang B' })).toBeVisible();
-    expect(screen.getByRole('button', { name: 'Aktifkan kembali' })).toBeVisible();
+    expect(screen.getAllByText('Ruang B · R2 (nonaktif)')[0]).toBeVisible();
+    expect(screen.getAllByRole('button', { name: 'Aktifkan ruangan Ruang B' })[0]).toBeVisible();
+    expect(screen.getAllByRole('button', { name: 'Aktifkan kembali' })[0]).toBeVisible();
   });
 
   it('hides every action without master:manage', () => {
@@ -73,32 +73,51 @@ describe('StudioVenueList', () => {
     await waitFor(() => expect(onChanged).toHaveBeenCalledWith('Area studio diperbarui.'));
   });
 
-  it('deactivates a room only after confirming, and shows the readable refusal when classes remain', async () => {
+  it('deactivates a room only with a reason, and keeps the dialog open with the readable refusal when classes remain', async () => {
     const user = userEvent.setup();
     const { client, onFailure } = setup();
     client.updateRoom.mockImplementation(async () => {
       throw { status: 409, data: { code: 'HAS_UPCOMING_SLOTS' } };
     });
-    await user.click(screen.getByRole('button', { name: 'Nonaktifkan ruangan Ruang A' }));
-    const confirm = await screen.findByRole('dialog', { name: 'Nonaktifkan ruangan?' });
+    await user.click(screen.getAllByRole('button', { name: 'Nonaktifkan ruangan Ruang A' })[0]!);
+    const dialog = await screen.findByRole('dialog', { name: 'Nonaktifkan ruangan?' });
     expect(client.updateRoom).not.toHaveBeenCalled();
-    await user.click(within(confirm).getByRole('button', { name: 'Nonaktifkan' }));
+    expect(within(dialog).getByRole('button', { name: 'Nonaktifkan' })).toBeDisabled();
+    await user.type(within(dialog).getByLabelText('Alasan'), 'Ruangan direnovasi');
+    await user.click(within(dialog).getByRole('button', { name: 'Nonaktifkan' }));
     await waitFor(() =>
       expect(client.updateRoom).toHaveBeenCalledWith('room-1', {
         name: 'Ruang A',
         capacity: 5,
         active: false,
+        reason: 'Ruangan direnovasi',
       }),
     );
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('Batalkan atau pindahkan kelas');
+    expect(onFailure).not.toHaveBeenCalled();
+  });
+
+  it('deactivates an area with a reason and reports success', async () => {
+    const user = userEvent.setup();
+    const { client, onChanged } = setup();
+    await user.click(screen.getAllByRole('button', { name: 'Nonaktifkan' })[0]!);
+    const dialog = await screen.findByRole('dialog', { name: 'Nonaktifkan studio?' });
+    await user.type(within(dialog).getByLabelText('Alasan'), 'Studio ditutup');
+    await user.click(within(dialog).getByRole('button', { name: 'Nonaktifkan' }));
     await waitFor(() =>
-      expect(onFailure).toHaveBeenCalledWith(expect.stringContaining('kelas terjadwal')),
+      expect(client.updateStudio).toHaveBeenCalledWith('studio-1', {
+        name: 'Studio 1',
+        active: false,
+        reason: 'Studio ditutup',
+      }),
     );
+    await waitFor(() => expect(onChanged).toHaveBeenCalledWith('Studio "Studio 1" berhasil dinonaktifkan.'));
   });
 
   it('reactivates an area after confirming without resending its equipment', async () => {
     const user = userEvent.setup();
     const { client } = setup();
-    await user.click(screen.getByRole('button', { name: 'Aktifkan kembali' }));
+    await user.click(screen.getAllByRole('button', { name: 'Aktifkan kembali' })[0]!);
     const confirm = await screen.findByRole('dialog', { name: 'Aktifkan area studio?' });
     await user.click(within(confirm).getByRole('button', { name: 'Aktifkan' }));
     await waitFor(() =>

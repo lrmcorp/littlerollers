@@ -6,6 +6,7 @@ import { Textarea, TextInput } from '../components/forms';
 import { EmptyState, Feedback, Skeleton, StatusBadge } from '../ui';
 import { AdminPageHeader } from '../components/admin/admin-page-header';
 import { statusLabel } from '../lib/status-labels';
+import { LifecycleDialog, type LifecycleAction } from '../components/admin/lifecycle-dialog';
 
 const MAX_BODY = 1000;
 const MAX_EMAIL_SUBJECT = 200;
@@ -63,6 +64,29 @@ export function templateFailure(error: unknown, fallback: string) {
   return fallback;
 }
 
+/** Arsipkan (wajib beralasan) dan Hapus draf untuk satu versi template; dipakai kedua kartu. */
+function useTemplateLifecycle(run: (action: () => Promise<unknown>, success: string) => Promise<boolean>) {
+  const [target, setTarget] = useState<{ id: string; name: string; action: LifecycleAction } | null>(null);
+  const dialog = (
+    <LifecycleDialog
+      request={target ? { kind: 'notification-template', ...target } : null}
+      archive={(reason) =>
+        api(`/notification-management/templates/${target!.id}/ARCHIVED`, {
+          method: 'POST',
+          body: JSON.stringify({ reason }),
+        })
+      }
+      onClose={() => setTarget(null)}
+      onDone={async (message) => {
+        setTarget(null);
+        // Aksi sudah dijalankan dialog; `run` hanya memuat ulang daftar dan menampilkan pesan.
+        await run(async () => undefined, message);
+      }}
+    />
+  );
+  return { open: (id: string, name: string, action: LifecycleAction) => setTarget({ id, name, action }), dialog };
+}
+
 type CatalogItem = {
   templateKey: string;
   label: string;
@@ -96,6 +120,7 @@ function TemplateCard({
 }) {
   const sorted = [...versions].sort((a, b) => b.version - a.version);
   const draft = sorted.find((item) => item.status === 'DRAFT');
+  const lifecycle = useTemplateLifecycle(run);
   const published = sorted.find((item) => item.status === 'PUBLISHED');
   const [open, setOpen] = useState(false);
   const [body, setBody] = useState('');
@@ -166,10 +191,7 @@ function TemplateCard({
             variant="ghost"
             disabled={busy}
             onClick={() =>
-              void run(
-                () => api(`/notification-management/templates/${published.id}/ARCHIVED`, { method: 'POST' }),
-                'Kembali memakai teks bawaan.',
-              )
+              lifecycle.open(published.id, `${entry.label} (terbit)`, 'archive')
             }
           >
             Kembali ke teks bawaan
@@ -308,14 +330,21 @@ function TemplateCard({
                       size="sm"
                       variant="ghost"
                       disabled={busy}
-                      onClick={() =>
-                        void run(
-                          () => api(`/notification-management/templates/${item.id}/ARCHIVED`, { method: 'POST' }),
-                          'Versi diarsipkan.',
-                        )
-                      }
+                      onClick={() => lifecycle.open(item.id, `${entry.label} v${item.version}`, 'archive')}
                     >
                       Arsipkan
+                    </Button>
+                  )}
+                  {item.status === 'DRAFT' && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-dd-danger hover:text-dd-danger"
+                      disabled={busy}
+                      aria-label={`Hapus draf ${entry.label} v${item.version}`}
+                      onClick={() => lifecycle.open(item.id, `${entry.label} v${item.version}`, 'delete')}
+                    >
+                      Hapus
                     </Button>
                   )}
                 </span>
@@ -324,6 +353,7 @@ function TemplateCard({
           </ul>
         </details>
       )}
+      {lifecycle.dialog}
     </li>
   );
 }
@@ -341,6 +371,7 @@ function EmailTemplateCard({
 }) {
   const sorted = [...versions].sort((a, b) => b.version - a.version);
   const draft = sorted.find((item) => item.status === 'DRAFT');
+  const lifecycle = useTemplateLifecycle(run);
   const published = sorted.find((item) => item.status === 'PUBLISHED');
   const [open, setOpen] = useState(false);
   const [subject, setSubject] = useState('');
@@ -419,10 +450,7 @@ function EmailTemplateCard({
             variant="ghost"
             disabled={busy}
             onClick={() =>
-              void run(
-                () => api(`/notification-management/templates/${published.id}/ARCHIVED`, { method: 'POST' }),
-                'Kembali memakai teks bawaan.',
-              )
+              lifecycle.open(published.id, `${entry.label} (terbit)`, 'archive')
             }
           >
             Kembali ke teks bawaan
@@ -562,14 +590,21 @@ function EmailTemplateCard({
                       size="sm"
                       variant="ghost"
                       disabled={busy}
-                      onClick={() =>
-                        void run(
-                          () => api(`/notification-management/templates/${item.id}/ARCHIVED`, { method: 'POST' }),
-                          'Versi diarsipkan.',
-                        )
-                      }
+                      onClick={() => lifecycle.open(item.id, `${entry.label} v${item.version}`, 'archive')}
                     >
                       Arsipkan
+                    </Button>
+                  )}
+                  {item.status === 'DRAFT' && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-dd-danger hover:text-dd-danger"
+                      disabled={busy}
+                      aria-label={`Hapus draf ${entry.label} v${item.version}`}
+                      onClick={() => lifecycle.open(item.id, `${entry.label} v${item.version}`, 'delete')}
+                    >
+                      Hapus
                     </Button>
                   )}
                 </span>
@@ -578,6 +613,7 @@ function EmailTemplateCard({
           </ul>
         </details>
       )}
+      {lifecycle.dialog}
     </li>
   );
 }

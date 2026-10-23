@@ -80,12 +80,17 @@ export interface MasterClient {
     cursor?: string;
     limit?: number;
   }): Promise<MasterBranchPage>;
-  listClassTypes(branchId?: string): Promise<
+  /** `status` kosong = hanya yang aktif (untuk pilihan di form); `ALL` = aktif + nonaktif; `ARCHIVED` = arsip. */
+  listClassTypes(
+    branchId?: string,
+    status?: 'ACTIVE' | 'INACTIVE' | 'ARCHIVED' | 'ALL',
+  ): Promise<
     Array<{
       id: string;
       code: string;
       name: string;
       active: boolean;
+      archivedAt?: string | null;
       version: number;
       branchScopes: Array<{ branchId: string; active: boolean; branch?: { name: string } }>;
     }>
@@ -121,6 +126,8 @@ export interface MasterClient {
       contactPhoneE164?: string;
       imageKey?: string | null;
       active?: boolean;
+      /** Wajib saat menonaktifkan. */
+      reason?: string;
     },
   ): Promise<Studio>;
   createRoom(
@@ -129,7 +136,7 @@ export interface MasterClient {
   ): Promise<Room>;
   updateRoom(
     id: string,
-    input: { name: string; capacity?: number; active?: boolean },
+    input: { name: string; capacity?: number; active?: boolean; reason?: string },
   ): Promise<Room>;
   replaceClassTypeScopes(
     id: string,
@@ -137,17 +144,17 @@ export interface MasterClient {
   ): Promise<void>;
   updateClassType(
     id: string,
-    input: { name: string; expectedVersion: number; reason: string },
+    input: { name: string; expectedVersion: number; reason?: string },
   ): Promise<void>;
   deactivateBranch(id: string, expectedVersion: number): Promise<void>;
-  deactivateClassType(id: string, expectedVersion: number): Promise<void>;
+  deactivateClassType(id: string, expectedVersion: number, reason: string): Promise<void>;
   reactivateClassType(
     id: string,
-    input: { expectedVersion: number; reason: string },
+    input: { expectedVersion: number; reason?: string },
   ): Promise<void>;
   listSettings(kind: MasterKind, branchId?: string): Promise<MasterSetting[]>;
   createSetting(input: MasterSettingInput): Promise<void>;
-  deleteSetting(kind: 'INSTRUCTOR_FEE' | 'PROJECTION_RATE', id: string): Promise<void>;
+  deleteSetting(kind: 'INSTRUCTOR_FEE' | 'PROJECTION_RATE', id: string, reason: string): Promise<void>;
 }
 
 const date = (value?: string) => (value ? new Date(`${value}T00:00:00Z`) : undefined);
@@ -174,13 +181,17 @@ export const browserMasterClient: MasterClient = {
     };
   },
 
-  async listClassTypes(branchId) {
-    const qs = branchId ? `?branchId=${encodeURIComponent(branchId)}` : '';
+  async listClassTypes(branchId, status) {
+    const query = new URLSearchParams();
+    if (branchId) query.set('branchId', branchId);
+    if (status) query.set('status', status);
+    const qs = query.size ? `?${query}` : '';
     const res = await apiFetch<{ items: Array<{
       id: string;
       code: string;
       name: string;
       active: boolean;
+      archivedAt?: string | null;
       version: number;
       branchScopes: Array<{ branchId: string; active: boolean; branch?: { name: string } }>;
     }> }>(`/class-types${qs}`, {
@@ -295,14 +306,14 @@ export const browserMasterClient: MasterClient = {
     });
   },
 
-  async deactivateClassType(id, expectedVersion) {
+  async deactivateClassType(id, expectedVersion, reason) {
     await apiFetch(`/class-types/${encodeURIComponent(id)}/deactivate`, {
       method: 'POST',
       idempotent: true,
       label: 'Menonaktifkan tipe kelas…',
       body: JSON.stringify({
         expectedVersion,
-        reason: 'Menonaktifkan tipe kelas melalui Master Data.',
+        reason,
       }),
     });
   },
@@ -372,10 +383,10 @@ export const browserMasterClient: MasterClient = {
     }));
   },
 
-  async deleteSetting(kind, id) {
+  async deleteSetting(kind, id, reason) {
     await apiFetch(
       `/${kind === 'INSTRUCTOR_FEE' ? 'instructor-fees' : 'projection-rates'}/${encodeURIComponent(id)}`,
-      { method: 'DELETE', label: 'Menghapus tarif…' },
+      { method: 'DELETE', label: 'Menghapus tarif…', body: JSON.stringify({ reason }) },
     );
   },
 
@@ -451,12 +462,29 @@ const masterMessages: Record<string, string> = {
     'Data berubah atau periode berlaku bertabrakan. Muat ulang lalu coba lagi.',
   VALIDATION_ERROR: 'Data belum valid. Periksa isian lalu coba lagi.',
   CONFIGURATION_REQUIRED: 'Fitur ini belum dikonfigurasi di server.',
+  CANNOT_DELETE_BRANCH_WITH_DEPENDENCIES:
+    'Cabang tidak dapat dihapus karena masih memiliki data terkait. Gunakan fitur Nonaktifkan untuk mengarsipkan cabang.',
+  CANNOT_DELETE_STUDIO_WITH_DEPENDENCIES:
+    'Studio tidak dapat dihapus karena masih memiliki data terkait. Gunakan fitur Nonaktifkan untuk mengarsipkan studio.',
+  CANNOT_DELETE_ROOM_WITH_DEPENDENCIES:
+    'Ruangan tidak dapat dihapus karena masih memiliki data terkait. Gunakan fitur Nonaktifkan untuk mengarsipkan ruangan.',
+  CANNOT_DELETE_CLASS_TYPE_WITH_DEPENDENCIES:
+    'Tipe kelas tidak dapat dihapus karena masih memiliki data terkait. Gunakan fitur Nonaktifkan untuk mengarsipkan tipe kelas.',
   REQUEST_FAILED: 'Permintaan gagal. Periksa koneksi lalu coba lagi.',
 };
 
-/** Pesan Indonesia untuk pengguna; kode spesifik API (mis. HAS_UPCOMING_SLOTS) diprioritaskan. */
+/** Pesan Indonesia untuk pengguna; pesan rinci dari server (mis. rincian dependensi) diprioritaskan. */
 export function masterFailureMessage(error: unknown): string {
-  const data = (error as { data?: { code?: string; error?: { code?: string } } })?.data;
+  const data = (error as {
+    data?: {
+      code?: string;
+      details?: Array<{ issue?: string }>;
+      error?: { code?: string; details?: Array<{ issue?: string }> };
+    };
+  })?.data;
+  const issue = data?.details?.[0]?.issue ?? data?.error?.details?.[0]?.issue;
+  if (issue) return issue;
+
   const code = data?.code ?? data?.error?.code;
   if (code && masterMessages[code]) return masterMessages[code]!;
   const generic = masterFailure(error);

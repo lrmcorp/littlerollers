@@ -187,7 +187,8 @@ export interface IdentityClient {
     expectedVersion?: number,
     reason?: string,
   ): Promise<UserSummary>;
-  deactivate(id: string, expectedVersion?: number, reason?: string): Promise<void>;
+  /** Alasan wajib saat menonaktifkan; aktifkan kembali tanpa alasan. */
+  deactivate(id: string, expectedVersion: number | undefined, reason: string): Promise<void>;
   reactivate(id: string, expectedVersion?: number, reason?: string): Promise<void>;
 }
 
@@ -494,16 +495,16 @@ export const browserIdentityClient: IdentityClient = {
       throw error;
     }
   },
-  async deactivate(id, expectedVersion = 1, reason = 'Deaktivasi via Web Admin') {
+  async deactivate(id, expectedVersion = 1, reason) {
     await request(`/users/${encodeURIComponent(id)}/deactivate`, {
       method: 'POST',
       body: JSON.stringify({ reason, expectedVersion }),
     });
   },
-  async reactivate(id, expectedVersion = 1, reason = 'Reaktivasi via Web Admin') {
+  async reactivate(id, expectedVersion = 1, reason) {
     await request(`/users/${encodeURIComponent(id)}/reactivate`, {
       method: 'POST',
-      body: JSON.stringify({ reason, expectedVersion }),
+      body: JSON.stringify({ ...(reason ? { reason } : {}), expectedVersion }),
     });
   },
 };

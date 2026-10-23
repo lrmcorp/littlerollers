@@ -106,14 +106,17 @@ export const browserVoucherClient = {
       body: JSON.stringify(input),
     });
   },
-  transition(id: string, action: 'activate' | 'pause' | 'archive', expectedVersion: number) {
+  /** Jeda dan arsip wajib beralasan; aktifkan tidak. Tidak ada alasan bawaan buatan klien. */
+  transition(
+    id: string,
+    action: 'activate' | 'pause' | 'archive',
+    expectedVersion: number,
+    reason?: string,
+  ) {
     return request<VoucherRecord>(`/vouchers/${encodeURIComponent(id)}/${action}`, {
       method: 'POST',
       headers: commandHeaders(),
-      body: JSON.stringify({
-        expectedVersion,
-        reason: `Perubahan status voucher melalui workspace: ${action}`,
-      }),
+      body: JSON.stringify({ expectedVersion, ...(reason ? { reason } : {}) }),
     });
   },
   redemptions(id: string, cursor?: string) {

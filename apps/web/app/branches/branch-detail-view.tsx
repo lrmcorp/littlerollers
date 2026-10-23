@@ -1,30 +1,36 @@
 'use client';
 
-import { ArrowLeft, ExternalLink, MapPin, Pencil, Plus, Power, PowerOff } from 'lucide-react';
+import { ArrowLeft, ExternalLink, MapPin, Pencil, Plus } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useTrackedRouter } from '../components/app-loading';
 import { Button, ButtonLink } from '../components/actions';
 import { Drawer, useAppFeedback } from '../components/app-feedback';
-import { Badge, Panel, StatCard } from '../components/admin/admin-ui';
+import { Badge, Panel, StatCard, TableActionMenu } from '../components/admin/admin-ui';
 import { TextInput } from '../components/forms';
 import { useSessionContext } from '../session-context';
 import { browserBranchClient, type BranchManagementDetail } from '@/api-clients/branch-client';
 import { Skeleton } from '../ui';
 import { AdminPageHeader } from '../components/admin/admin-page-header';
 import { resolvePublicImageUrl } from '../lib/public-image-url';
-import { BranchPaymentAccountsPanel } from './branch-payment-accounts-panel';
-import { BranchVenuesPanel } from './branch-venues-panel';
+import { PaymentAccountsView } from '../master/payment-accounts-view';
+import { StudioVenueList } from '../master/studio-venue-list';
 import { BranchPublicProfileDrawer } from './branch-public-profile-drawer';
+import { useBranchLifecycle } from './use-branch-lifecycle';
 
 const auditLabels: Record<string, string> = {
   'master.branch_created': 'Cabang dibuat',
   'master.branch_updated': 'Informasi cabang diperbarui',
   'master.branch_deactivated': 'Cabang dinonaktifkan',
   'master.branch_reactivated': 'Cabang diaktifkan kembali',
+  'master.branch_activated': 'Cabang diaktifkan kembali',
+  'lifecycle.branch_archived': 'Cabang diarsipkan',
+  'lifecycle.branch_deleted': 'Cabang dihapus',
   'master.public_branch_profile_updated': 'Profil publik diperbarui',
 };
 
 export function BranchDetailView({ id }: { id: string }) {
   const session = useSessionContext();
+  const router = useTrackedRouter();
   const feedback = useAppFeedback();
   const [branch, setBranch] = useState<BranchManagementDetail | null>(null);
   const [failure, setFailure] = useState('');
@@ -54,6 +60,11 @@ export function BranchDetailView({ id }: { id: string }) {
       .then(setBranch)
       .catch(() => setFailure('Detail cabang tidak dapat dimuat atau berada di luar cakupan Anda.'));
 
+  const lifecycle = useBranchLifecycle((action) => {
+    if (action === 'delete') router.push('/workspace/branches');
+    else return load();
+  });
+
   useEffect(() => {
     if (canRead) void load();
   }, [canRead, id]);
@@ -67,53 +78,6 @@ export function BranchDetailView({ id }: { id: string }) {
     );
   if (failure) return <div className="rounded-dd-lg border border-dd-danger/30 bg-dd-danger-soft p-4 text-dd-danger">{failure}</div>;
   if (!branch) return <Skeleton label="Memuat detail cabang" />;
-
-  const blockingDependencies =
-    branch.dependencies.assignments +
-    branch.dependencies.futureClasses +
-    branch.dependencies.packages +
-    branch.dependencies.paymentAccounts;
-
-  const transition = async () => {
-    const action = branch.active ? 'deactivate' : 'reactivate';
-    const reason = branch.active
-      ? 'Menonaktifkan cabang melalui Branch Management'
-      : 'Mengaktifkan kembali cabang melalui Branch Management';
-    const accepted = await feedback.confirm({
-      tone: branch.active ? 'danger' : 'warning',
-      title: branch.active ? 'Nonaktifkan cabang?' : 'Aktifkan kembali cabang?',
-      message: branch.active
-        ? blockingDependencies
-          ? `Terdapat ${blockingDependencies} dependency operasional aktif (penugasan instruktur, kelas mendatang, paket, atau rekening). Seluruh dependency harus diselesaikan sebelum cabang dapat dinonaktifkan.`
-          : 'Cabang tidak lagi tersedia untuk operasi dan katalog baru.'
-        : 'Cabang akan kembali tersedia untuk konfigurasi dan operasi baru.',
-      confirmLabel: branch.active ? 'Nonaktifkan' : 'Aktifkan kembali',
-    });
-    if (!accepted) return;
-    setBusy(true);
-    try {
-      await browserBranchClient.transition(branch.id, action, {
-        expectedVersion: branch.version,
-        reason,
-      });
-      await load();
-      feedback.showToast({
-        tone: 'success',
-        title: 'Status cabang diperbarui',
-        message: 'Perubahan tercatat pada audit trail.',
-      });
-    } catch {
-      feedback.showAlert({
-        tone: 'danger',
-        title: 'Status belum berubah',
-        message: branch.active
-          ? 'Cabang masih memiliki dependency aktif atau datanya telah berubah.'
-          : 'Konfigurasi cabang belum valid atau datanya telah berubah.',
-      });
-    } finally {
-      setBusy(false);
-    }
-  };
 
   const heroImageKey = branch.heroImageKey || branch.publicProfile?.heroImageKey;
   const heroImageUrl = heroImageKey ? resolvePublicImageUrl(heroImageKey) : null;
@@ -158,7 +122,7 @@ export function BranchDetailView({ id }: { id: string }) {
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <Badge tone={branch.active ? 'success' : 'neutral'}>
-                {branch.active ? 'Cabang Aktif' : 'Tidak aktif'}
+                {branch.archivedAt ? 'Diarsipkan' : branch.active ? 'Cabang Aktif' : 'Tidak aktif'}
               </Badge>
               {canManage && (
                 <>
@@ -171,21 +135,11 @@ export function BranchDetailView({ id }: { id: string }) {
                   >
                     Edit cabang
                   </Button>
-                  <Button
-                    variant={branch.active ? 'danger' : 'primary'}
-                    size="sm"
-                    leadingIcon={
-                      branch.active ? (
-                        <PowerOff className="size-4" aria-hidden="true" />
-                      ) : (
-                        <Power className="size-4" aria-hidden="true" />
-                      )
-                    }
-                    loading={busy}
-                    onClick={transition}
-                  >
-                    {branch.active ? 'Nonaktifkan' : 'Aktifkan'}
-                  </Button>
+                  <TableActionMenu
+                    ariaLabel={`Status cabang ${branch.name}`}
+                    label="Status & penghapusan"
+                    items={lifecycle.items(branch)}
+                  />
                 </>
               )}
             </div>
@@ -201,7 +155,7 @@ export function BranchDetailView({ id }: { id: string }) {
           actions={
             <div className="flex flex-wrap items-center gap-2">
               <Badge tone={branch.active ? 'success' : 'neutral'}>
-                {branch.active ? 'Aktif' : 'Tidak aktif'}
+                {branch.archivedAt ? 'Diarsipkan' : branch.active ? 'Aktif' : 'Tidak aktif'}
               </Badge>
               {canManage && (
                 <>
@@ -212,20 +166,11 @@ export function BranchDetailView({ id }: { id: string }) {
                   >
                     Edit cabang
                   </Button>
-                  <Button
-                    variant={branch.active ? 'danger' : 'primary'}
-                    leadingIcon={
-                      branch.active ? (
-                        <PowerOff className="size-4" aria-hidden="true" />
-                      ) : (
-                        <Power className="size-4" aria-hidden="true" />
-                      )
-                    }
-                    loading={busy}
-                    onClick={transition}
-                  >
-                    {branch.active ? 'Nonaktifkan' : 'Aktifkan kembali'}
-                  </Button>
+                  <TableActionMenu
+                    ariaLabel={`Status cabang ${branch.name}`}
+                    label="Status & penghapusan"
+                    items={lifecycle.items(branch)}
+                  />
                 </>
               )}
             </div>
@@ -344,7 +289,7 @@ export function BranchDetailView({ id }: { id: string }) {
         </Panel>
       </div>
 
-      <BranchPaymentAccountsPanel
+      <PaymentAccountsView
         branchId={branch.id}
         canManage={Boolean(canManage)}
         onAccountsChange={(count) =>
@@ -359,10 +304,13 @@ export function BranchDetailView({ id }: { id: string }) {
         }
       />
 
-      <BranchVenuesPanel
-        branchId={branch.id}
-        canManage={Boolean(canManage)}
-      />
+      <Panel className="p-5">
+        <StudioVenueList
+          branchId={branch.id}
+          canManage={Boolean(canManage)}
+          allowCreate
+        />
+      </Panel>
       <Panel className="p-5">
         <h2 className="text-lg font-semibold">Dependency operasional</h2>
         <dl className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -469,6 +417,7 @@ export function BranchDetailView({ id }: { id: string }) {
         onClose={() => setPublicProfileOpen(false)}
         onSaved={() => void load()}
       />
+      {lifecycle.dialog}
     </section>
   );
 }

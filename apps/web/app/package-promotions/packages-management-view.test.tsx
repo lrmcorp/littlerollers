@@ -6,11 +6,26 @@ import { PackagesManagementView } from './packages-management-view';
 import { browserPackagePromotionClient } from '@/api-clients/package-promotion-client';
 import { browserMasterClient } from '@/api-clients/master-client';
 
+const mockDeletability = vi.fn();
+const mockRemove = vi.fn();
+vi.mock('../api-clients/lifecycle-client', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../api-clients/lifecycle-client')>();
+  return {
+    ...actual,
+    lifecycleClient: {
+      deletability: (...args: unknown[]) => mockDeletability(...args),
+      remove: (...args: unknown[]) => mockRemove(...args),
+      archive: vi.fn(),
+    },
+  };
+});
+
 const mockPush = vi.fn();
 const mockReplace = vi.fn();
 
 vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(),
+  usePathname: () => '/workspace/packages',
 }));
 
 vi.mock('../components/app-loading', () => ({
@@ -35,11 +50,15 @@ vi.mock('../session-context', () => ({
   }),
 }));
 
-vi.mock('@/api-clients/package-promotion-client', () => ({
+    vi.mock('@/api-clients/package-promotion-client', () => ({
   browserPackagePromotionClient: {
     packages: vi.fn(),
     createPackage: vi.fn(),
+    updatePackage: vi.fn(),
+    revisePackage: vi.fn(),
+    transitionPackage: vi.fn(),
   },
+  promotionFailure: vi.fn((_, fallback) => Promise.resolve(fallback)),
 }));
 
 vi.mock('@/api-clients/master-client', () => ({
@@ -93,10 +112,11 @@ describe('PackagesManagementView duplicate feature', () => {
 
     expect((await screen.findAllByText('10x Group Reformer'))[0]).toBeInTheDocument();
 
-    const duplicateBtns = screen.getAllByRole('button', { name: /Duplikasi/i });
-    expect(duplicateBtns.length).toBeGreaterThan(0);
+    const actionMenu = screen.getAllByRole('button', { name: /Pilihan tindakan untuk 10x Group Reformer/i })[0]!;
+    await user.click(actionMenu);
 
-    await user.click(duplicateBtns[0]!);
+    const duplicateBtn = (await screen.findAllByRole('menuitem', { name: /Duplikasi/i }))[0]!;
+    await user.click(duplicateBtn);
 
     expect(await screen.findByRole('heading', { name: 'Duplikasi paket' })).toBeInTheDocument();
     expect(screen.getByText(/Mode Duplikasi/i)).toBeInTheDocument();
@@ -118,5 +138,108 @@ describe('PackagesManagementView duplicate feature', () => {
 
     const reasonInput = screen.getByLabelText('Alasan') as HTMLInputElement;
     expect(reasonInput.value).toBe('Duplikasi dari paket 10x Group Reformer');
+  });
+
+  it('renders Edit button and opens EditPackageModal, submitting updates successfully', async () => {
+    (browserPackagePromotionClient.updatePackage as unknown as { mockResolvedValue(v: unknown): void }).mockResolvedValue({
+      id: 'pkg-1',
+      name: '10x Group Reformer Updated',
+      version: 1,
+    });
+
+    const user = userEvent.setup();
+    render(
+      <AppFeedbackProvider>
+        <PackagesManagementView />
+      </AppFeedbackProvider>,
+    );
+
+    expect((await screen.findAllByText('10x Group Reformer'))[0]).toBeInTheDocument();
+
+    const actionMenu = screen.getAllByRole('button', { name: /Pilihan tindakan untuk 10x Group Reformer/i })[0]!;
+    await user.click(actionMenu);
+
+    const editBtn = (await screen.findAllByRole('menuitem', { name: /Edit/i }))[0]!;
+    await user.click(editBtn);
+
+    expect(await screen.findByRole('heading', { name: 'Ubah Paket: 10x Group Reformer' })).toBeInTheDocument();
+
+    const nameInput = screen.getByLabelText('Nama paket') as HTMLInputElement;
+    expect(nameInput.value).toBe('10x Group Reformer');
+
+    const priceInput = screen.getByLabelText('Harga normal') as HTMLInputElement;
+    expect(priceInput.value).toBe('1500000');
+
+    const reasonInput = screen.getByLabelText('Alasan perubahan (Audit Log)') as HTMLInputElement;
+    await user.type(reasonInput, 'Pembaruan nama paket kuartal 2');
+
+    const submitBtn = screen.getByRole('button', { name: 'Simpan perubahan' });
+    await user.click(submitBtn);
+
+    // Confirm dialog button is the last one in DOM
+    const confirmBtns = await screen.findAllByRole('button', { name: 'Simpan perubahan' });
+    await user.click(confirmBtns[confirmBtns.length - 1]!);
+
+    await waitFor(() => {
+      expect(browserPackagePromotionClient.updatePackage).toHaveBeenCalledWith(
+        'pkg-1',
+        expect.objectContaining({
+          name: '10x Group Reformer',
+          reason: 'Pembaruan nama paket kuartal 2',
+        }),
+      );
+    });
+  });
+
+  const openPackageMenu = async (itemName: RegExp) => {
+    const user = userEvent.setup();
+    render(
+      <AppFeedbackProvider>
+        <PackagesManagementView />
+      </AppFeedbackProvider>,
+    );
+    expect((await screen.findAllByText('10x Group Reformer'))[0]).toBeInTheDocument();
+    await user.click(screen.getAllByRole('button', { name: /Pilihan tindakan untuk 10x Group Reformer/i })[0]!);
+    await user.click((await screen.findAllByRole('menuitem', { name: itemName }))[0]!);
+    return user;
+  };
+
+  it('deletes a clean package only with a reason, after the server confirms nothing depends on it', async () => {
+    mockDeletability.mockResolvedValue({ kind: 'package', id: 'pkg-1', deletable: true, blockers: [] });
+    mockRemove.mockResolvedValue({ id: 'pkg-1', deleted: true });
+    const user = await openPackageMenu(/Hapus/i);
+    expect(await screen.findByRole('heading', { name: 'Hapus paket permanen?' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Hapus permanen' })).toBeDisabled();
+    await user.type(screen.getByLabelText('Alasan'), 'Salah input paket');
+    await user.click(screen.getByRole('button', { name: 'Hapus permanen' }));
+    await waitFor(() => expect(mockRemove).toHaveBeenCalledWith('package', 'pkg-1', 'Salah input paket'));
+  });
+
+  it('explains what blocks deleting a package that has purchases', async () => {
+    mockDeletability.mockResolvedValue({
+      kind: 'package',
+      id: 'pkg-1',
+      deletable: false,
+      blockers: [{ kind: 'pembelian', label: 'pembelian', count: 4 }],
+    });
+    await openPackageMenu(/Hapus/i);
+    expect(await screen.findByText('Paket belum dapat dihapus')).toBeInTheDocument();
+    expect(screen.getByText('Pembelian')).toBeInTheDocument();
+    expect(mockRemove).not.toHaveBeenCalled();
+  });
+
+  it('deactivates a package with a typed reason and no invented default', async () => {
+    (browserPackagePromotionClient.transitionPackage as unknown as { mockResolvedValue(v: unknown): void }).mockResolvedValue({});
+    const user = await openPackageMenu(/^Nonaktifkan$/);
+    await user.type(await screen.findByLabelText('Alasan'), 'Paket tidak dijual lagi');
+    await user.click(screen.getByRole('button', { name: 'Nonaktifkan' }));
+    await waitFor(() =>
+      expect(browserPackagePromotionClient.transitionPackage).toHaveBeenCalledWith(
+        'pkg-1',
+        'deactivate',
+        undefined, // fixture tanpa versi
+        'Paket tidak dijual lagi',
+      ),
+    );
   });
 });

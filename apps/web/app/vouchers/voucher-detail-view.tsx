@@ -13,6 +13,8 @@ import { Button } from '../components/actions';
 import { AlertBanner, Drawer, useAppFeedback } from '../components/app-feedback';
 import { Badge, Pagination, Panel } from '../components/admin/admin-ui';
 import { Skeleton } from '../ui';
+import { useTrackedRouter } from '../components/app-loading';
+import { useVoucherLifecycle } from './use-voucher-lifecycle';
 import {
   AsyncMultiSearchSelect,
   SearchSelect,
@@ -94,42 +96,15 @@ export function VoucherDetailView({ id }: { id: string }) {
       setEditOpen(false);
     }
   };
-  const transition = async (action: 'activate' | 'pause' | 'archive') => {
-    if (!voucher || busy) return;
-    const labels = {
-      activate: ['Aktifkan voucher?', 'Voucher dapat digunakan pelanggan yang memenuhi syarat.'],
-      pause: ['Jeda voucher?', 'Voucher tidak dapat dipakai untuk pesanan baru selama dijeda.'],
-      archive: [
-        'Arsipkan voucher?',
-        'Voucher tidak dapat diaktifkan kembali melalui workflow ini.',
-      ],
-    } as const;
-    const accepted = await feedback.confirm({
-      tone: action === 'archive' ? 'danger' : 'warning',
-      title: labels[action][0],
-      message: `${labels[action][1]} Cakupan: ${voucher.branch?.name ?? 'semua cabang'}.`,
-      confirmLabel: action === 'archive' ? 'Arsipkan' : 'Lanjutkan',
-    });
-    if (!accepted) return;
-    setBusy(true);
-    try {
-      const updated = await browserVoucherClient.transition(voucher.id, action, voucher.version);
-      setVoucher(updated);
-      feedback.showToast({
-        tone: 'success',
-        title: 'Status voucher diperbarui',
-        message: `${updated.code} sekarang berstatus ${statusLabel[updated.status]}.`,
-      });
-    } catch {
-      feedback.showAlert({
-        tone: 'danger',
-        title: 'Perubahan belum tersimpan',
-        message: 'Muat ulang data voucher lalu coba kembali.',
-      });
-    } finally {
-      setBusy(false);
+  const router = useTrackedRouter();
+  const lifecycle = useVoucherLifecycle(async (action, updated) => {
+    if (action === 'delete') {
+      router.push('/workspace/vouchers');
+      return;
     }
-  };
+    if (updated) setVoucher(updated);
+    else await browserVoucherClient.detail(id).then(setVoucher);
+  });
   if (!session || session.status === 'loading') return <Skeleton label="Memuat detail voucher" />;
   if (error) return <AlertBanner tone="danger" title="Voucher tidak tersedia" message={error} />;
   if (!voucher) return <Skeleton label="Memuat detail voucher" />;
@@ -236,20 +211,34 @@ export function VoucherDetailView({ id }: { id: string }) {
           </Button>
           {/* Kedaluwarsa/kuota habis tetap "menyala" di data, jadi hanya PAUSED yang perlu diaktifkan. */}
           {voucher.status === 'PAUSED' && (
-            <Button disabled={busy} onClick={() => void transition('activate')}>
+            <Button disabled={busy} onClick={() => void lifecycle.activate(voucher)}>
               Aktifkan
             </Button>
           )}
           {voucher.status === 'ACTIVE' && (
-            <Button variant="secondary" disabled={busy} onClick={() => void transition('pause')}>
+            <Button variant="secondary" disabled={busy} onClick={() => lifecycle.open(voucher, 'deactivate')}>
               Jeda
             </Button>
           )}
-          <Button variant="danger" disabled={busy} onClick={() => void transition('archive')}>
+          <Button variant="secondary" disabled={busy} onClick={() => lifecycle.open(voucher, 'archive')}>
             Arsipkan
+          </Button>
+          <Button variant="danger" disabled={busy} onClick={() => lifecycle.open(voucher, 'delete')}>
+            Hapus
           </Button>
         </div>
       )}
+      {canManage && voucher.status === 'ARCHIVED' && (
+        <div className="flex flex-wrap gap-2">
+          <Button disabled={busy} onClick={() => void lifecycle.activate(voucher)}>
+            Buka arsip &amp; aktifkan
+          </Button>
+          <Button variant="danger" disabled={busy} onClick={() => lifecycle.open(voucher, 'delete')}>
+            Hapus
+          </Button>
+        </div>
+      )}
+      {lifecycle.dialog}
       <Panel className="overflow-hidden p-0">
         <div className="border-b border-dd-line px-5 py-4">
           <h2 className="text-lg font-semibold">Riwayat penggunaan</h2>

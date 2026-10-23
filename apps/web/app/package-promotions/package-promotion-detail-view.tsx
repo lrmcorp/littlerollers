@@ -1,11 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, History, Pencil, Plus, Power, PowerOff } from 'lucide-react';
+import { ArrowLeft, History, Pencil, Plus, Power, PowerOff, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Button } from '../components/actions';
 import { Badge, DataTable, Pagination, Panel } from '../components/admin/admin-ui';
 import { AlertBanner, Drawer, useAppFeedback } from '../components/app-feedback';
+import { useTrackedRouter } from '../components/app-loading';
+import { LifecycleDialog, type LifecycleAction } from '../components/admin/lifecycle-dialog';
 import { DateInput, SelectInput, TextInput } from '../components/forms';
 import { Skeleton } from '../ui';
 import { useSessionContext } from '../session-context';
@@ -58,7 +60,13 @@ function hasRevisionOverlap(items: PackageRevision[]) {
 export function PackagePromotionDetailView({ id }: { id: string }) {
   const session = useSessionContext();
   const feedback = useAppFeedback();
+  const router = useTrackedRouter();
   const [pkg, setPackage] = useState<InternalPackageRecord | null>(null);
+  const [packageDelete, setPackageDelete] = useState(false);
+  const [promoLifecycle, setPromoLifecycle] = useState<{
+    promotion: PackagePromotionRecord;
+    action: LifecycleAction;
+  } | null>(null);
   const [promotionPage, setPromotionPage] = useState<PackagePromotionPage | null>(null);
   const [promotionCursor, setPromotionCursor] = useState<string>();
   const [promotionHistory, setPromotionHistory] = useState<Array<string | undefined>>([]);
@@ -99,20 +107,17 @@ export function PackagePromotionDetailView({ id }: { id: string }) {
   if (error) return <AlertBanner tone="danger" title="Paket tidak tersedia" message={error} />;
   if (!pkg) return <Skeleton label="Memuat detail paket" />;
 
-  const transition = async (
-    promotion: PackagePromotionRecord,
-    action: 'activate' | 'pause' | 'archive',
-  ) => {
+  const activate = async (promotion: PackagePromotionRecord) => {
     const accepted = await feedback.confirm({
-      tone: action === 'archive' ? 'danger' : 'warning',
-      title: `${action === 'activate' ? 'Aktifkan' : action === 'pause' ? 'Jeda' : 'Arsipkan'} promo?`,
+      tone: 'warning',
+      title: 'Aktifkan promo?',
       message: `${promotion.name} untuk ${pkg.name}. Harga order lama tidak akan berubah.`,
-      confirmLabel: action === 'archive' ? 'Arsipkan' : 'Lanjutkan',
+      confirmLabel: 'Aktifkan',
     });
     if (!accepted) return;
     setBusy(true);
     try {
-      await browserPackagePromotionClient.transition(promotion.id, action, promotion.version);
+      await browserPackagePromotionClient.transition(promotion.id, 'activate', promotion.version);
       await load();
       feedback.showToast({
         tone: 'success',
@@ -257,6 +262,14 @@ export function PackagePromotionDetailView({ id }: { id: string }) {
             onClick={() => setPackageEditor('lifecycle')}
           >
             {pkg.status === 'ACTIVE' ? 'Nonaktifkan paket' : 'Aktifkan kembali'}
+          </Button>
+          <Button
+            variant="danger"
+            disabled={busy}
+            leadingIcon={<Trash2 className="size-4" aria-hidden="true" />}
+            onClick={() => setPackageDelete(true)}
+          >
+            Hapus paket
           </Button>
         </div>
       )}
@@ -403,7 +416,7 @@ export function PackagePromotionDetailView({ id }: { id: string }) {
                     <Button
                       size="sm"
                       disabled={busy}
-                      onClick={() => void transition(item, 'activate')}
+                      onClick={() => void activate(item)}
                     >
                       Aktifkan
                     </Button>
@@ -413,7 +426,7 @@ export function PackagePromotionDetailView({ id }: { id: string }) {
                       size="sm"
                       variant="secondary"
                       disabled={busy}
-                      onClick={() => void transition(item, 'pause')}
+                      onClick={() => setPromoLifecycle({ promotion: item, action: 'deactivate' })}
                     >
                       Jeda
                     </Button>
@@ -423,9 +436,21 @@ export function PackagePromotionDetailView({ id }: { id: string }) {
                       size="sm"
                       variant="danger"
                       disabled={busy}
-                      onClick={() => void transition(item, 'archive')}
+                      onClick={() => setPromoLifecycle({ promotion: item, action: 'archive' })}
                     >
                       Arsipkan
+                    </Button>
+                  )}
+                  {canManage && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-dd-danger hover:text-dd-danger"
+                      disabled={busy}
+                      aria-label={`Hapus promo ${item.name}`}
+                      onClick={() => setPromoLifecycle({ promotion: item, action: 'delete' })}
+                    >
+                      Hapus
                     </Button>
                   )}
                   {(item.usageCount ?? 0) > 0 && (
@@ -643,6 +668,50 @@ export function PackagePromotionDetailView({ id }: { id: string }) {
             title: 'Paket diperbarui',
             message: 'Perubahan tersimpan dan tercatat pada audit trail.',
           });
+        }}
+      />
+      <LifecycleDialog
+        request={packageDelete ? { kind: 'package', id: pkg.id, name: pkg.name, action: 'delete' } : null}
+        onClose={() => setPackageDelete(false)}
+        onDone={(message) => {
+          setPackageDelete(false);
+          feedback.showToast({ tone: 'success', title: 'Paket dihapus', message });
+          router.push('/workspace/packages');
+        }}
+      />
+      <LifecycleDialog
+        request={
+          promoLifecycle
+            ? {
+                kind: 'promotion',
+                id: promoLifecycle.promotion.id,
+                name: promoLifecycle.promotion.name,
+                action: promoLifecycle.action,
+              }
+            : null
+        }
+        deactivate={(reason) =>
+          browserPackagePromotionClient.transition(
+            promoLifecycle!.promotion.id,
+            'pause',
+            promoLifecycle!.promotion.version,
+            reason,
+          )
+        }
+        archive={(reason) =>
+          browserPackagePromotionClient.transition(
+            promoLifecycle!.promotion.id,
+            'archive',
+            promoLifecycle!.promotion.version,
+            reason,
+          )
+        }
+        onClose={() => setPromoLifecycle(null)}
+        onDone={async (message) => {
+          setPromoLifecycle(null);
+          feedback.showToast({ tone: 'success', title: 'Promo diperbarui', message });
+          await load();
+          await browserPackagePromotionClient.promotions(id, promotionCursor).then(setPromotionPage);
         }}
       />
     </section>

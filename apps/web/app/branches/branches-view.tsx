@@ -1,12 +1,20 @@
 'use client';
 
-import { Building2, Plus, Search } from 'lucide-react';
+import { Building2, Pencil, Plus, Search } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useTrackedRouter } from '../components/app-loading';
 import { Button, ButtonLink } from '../components/actions';
 import { AlertBanner, Drawer, useAppFeedback } from '../components/app-feedback';
-import { Badge, DataTable, Pagination, Panel, StatCard } from '../components/admin/admin-ui';
+import {
+  Badge,
+  DataTable,
+  Pagination,
+  Panel,
+  StatCard,
+  TableActionMenu,
+  type ActionMenuItem,
+} from '../components/admin/admin-ui';
 import { SearchInput, SelectInput, TextInput } from '../components/forms';
 import { useSessionContext } from '../session-context';
 import {
@@ -17,12 +25,16 @@ import {
 import { Skeleton } from '../ui';
 import { AdminPageHeader } from '../components/admin/admin-page-header';
 import { ADMIN_PAGE_SIZE, pageOffset } from '../lib/pagination';
+import { useBranchLifecycle } from './use-branch-lifecycle';
 
 const emptyPage: BranchManagementPage = {
   items: [],
-  summary: { total: 0, active: 0, inactive: 0 },
+  summary: { total: 0, active: 0, inactive: 0, archived: 0 },
   page: { hasMore: false, nextCursor: null },
 };
+
+const branchStatusLabel = (item: BranchManagementItem) =>
+  item.archivedAt ? 'Diarsipkan' : item.active ? 'Aktif' : 'Tidak aktif';
 
 export function BranchesView() {
   const session = useSessionContext();
@@ -34,6 +46,7 @@ export function BranchesView() {
   const [failure, setFailure] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
   const [createDirty, setCreateDirty] = useState(false);
+  const [editingBranch, setEditingBranch] = useState<BranchManagementItem | null>(null);
   const [busy, setBusy] = useState(false);
   const [cursorHistory, setCursorHistory] = useState<string[]>([]);
   const q = params.get('q') ?? '';
@@ -85,7 +98,7 @@ export function BranchesView() {
     setLoading(true);
     setFailure('');
     return browserBranchClient
-      .list({ q, status, cursor, limit: 20 })
+      .list({ q, status, cursor, limit: ADMIN_PAGE_SIZE })
       .then((result) => {
         if (result.items.length === 0 && cursorHistory.length > 0) {
           movePage('previous');
@@ -96,6 +109,8 @@ export function BranchesView() {
       .catch(() => setFailure('Daftar cabang belum dapat dimuat.'))
       .finally(() => setLoading(false));
   };
+
+  const lifecycle = useBranchLifecycle(load);
 
   useEffect(() => {
     if (canRead) void load();
@@ -153,6 +168,7 @@ export function BranchesView() {
           <option value="">Semua status</option>
           <option value="ACTIVE">Aktif</option>
           <option value="INACTIVE">Tidak aktif</option>
+          <option value="ARCHIVED">Diarsipkan</option>
         </SelectInput>
       </Panel>
       {failure && <AlertBanner tone="danger" title="Cabang belum tersedia" message={failure} />}
@@ -163,7 +179,15 @@ export function BranchesView() {
         rowKey={(item) => item.id}
         rowDescription={(item) => `Buka detail ${item.name}`}
         onRowClick={(item) => router.push(`/workspace/branches/${item.code.toLowerCase()}`)}
-        mobileCard={(item) => <BranchCard item={item} />}
+        mobileCard={(item) => (
+          <BranchCard
+            item={item}
+            canManage={canManage}
+            busy={busy}
+            onEdit={(b) => setEditingBranch(b)}
+            lifecycleItems={lifecycle.items}
+          />
+        )}
         columns={[
           {
             id: 'branch',
@@ -190,24 +214,42 @@ export function BranchesView() {
             id: 'status',
             header: 'Status',
             cell: (item) => (
-              <Badge tone={item.active ? 'success' : 'neutral'}>
-                {item.active ? 'Aktif' : 'Tidak aktif'}
-              </Badge>
+              <Badge tone={item.active ? 'success' : 'neutral'}>{branchStatusLabel(item)}</Badge>
             ),
           },
           {
             id: 'action',
             header: 'Tindakan',
+            className: 'whitespace-nowrap',
             cell: (item) => (
-              <ButtonLink
-                href={`/workspace/branches/${item.code.toLowerCase()}`}
-                size="sm"
-                variant="secondary"
-                leadingIcon={<Building2 className="size-4" aria-hidden="true" />}
+              <div
+                className="flex items-center gap-1.5"
                 onClick={(event) => event.stopPropagation()}
               >
-                Lihat detail
-              </ButtonLink>
+                <ButtonLink
+                  href={`/workspace/branches/${item.code.toLowerCase()}`}
+                  size="sm"
+                  variant="secondary"
+                  leadingIcon={<Building2 className="size-4" aria-hidden="true" />}
+                >
+                  Detail
+                </ButtonLink>
+                {canManage && (
+                  <TableActionMenu
+                    ariaLabel={`Aksi cabang ${item.name}`}
+                    disabled={busy}
+                    items={[
+                      {
+                        key: 'edit',
+                        label: 'Edit',
+                        icon: <Pencil className="size-4" aria-hidden="true" />,
+                        onClick: () => setEditingBranch(item),
+                      },
+                      ...lifecycle.items(item),
+                    ]}
+                  />
+                )}
+              </div>
             ),
           },
         ]}
@@ -271,11 +313,107 @@ export function BranchesView() {
           }}
         />
       </Drawer>
+
+      <Drawer
+        open={Boolean(editingBranch)}
+        className="max-w-xl"
+        title={editingBranch ? `Edit cabang: ${editingBranch.name}` : 'Edit cabang'}
+        description="Perbarui informasi nama cabang, zona waktu, dan WhatsApp support."
+        busy={busy}
+        onClose={() => setEditingBranch(null)}
+        footer={
+          <div className="flex justify-end gap-3">
+            <Button variant="secondary" disabled={busy} onClick={() => setEditingBranch(null)}>
+              Batal
+            </Button>
+            <Button type="submit" form="branch-edit-form" loading={busy}>
+              Simpan perubahan
+            </Button>
+          </div>
+        }
+      >
+        {editingBranch && (
+          <form
+            id="branch-edit-form"
+            className="grid gap-4"
+            onSubmit={async (event) => {
+              event.preventDefault();
+              const data = new FormData(event.currentTarget);
+              const name = String(data.get('name')).trim();
+              const timezone = String(data.get('timezone')).trim();
+              const supportWhatsappE164 = String(data.get('supportWhatsappE164')).trim() || null;
+              setBusy(true);
+              try {
+                await browserBranchClient.update(editingBranch.id, {
+                  name,
+                  timezone,
+                  supportWhatsappE164,
+                });
+                setEditingBranch(null);
+                feedback.showToast({
+                  tone: 'success',
+                  title: 'Cabang diperbarui',
+                  message: `Perubahan data cabang "${name}" berhasil disimpan.`,
+                });
+                await load();
+              } catch {
+                feedback.showAlert({
+                  tone: 'danger',
+                  title: 'Gagal memperbarui cabang',
+                  message: 'Periksa kembali nama, zona waktu, dan format nomor WhatsApp.',
+                });
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            <TextInput
+              name="code"
+              label="Kode cabang"
+              defaultValue={editingBranch.code}
+              disabled
+              description="Kode cabang adalah identitas permanen dan tidak dapat diubah."
+            />
+            <TextInput
+              name="name"
+              label="Nama cabang"
+              defaultValue={editingBranch.name}
+              required
+            />
+            <TextInput
+              name="timezone"
+              label="Zona waktu"
+              defaultValue={editingBranch.timezone || 'Asia/Jakarta'}
+              required
+            />
+            <TextInput
+              name="supportWhatsappE164"
+              label="WhatsApp support"
+              defaultValue={editingBranch.supportWhatsappE164 || ''}
+              placeholder="+628123456789"
+              description="Gunakan format internasional E.164, misalnya +628123456789."
+            />
+          </form>
+        )}
+      </Drawer>
+      {lifecycle.dialog}
     </section>
   );
 }
 
-function BranchCard({ item }: { item: BranchManagementItem }) {
+function BranchCard({
+  item,
+  canManage,
+  busy,
+  onEdit,
+  lifecycleItems,
+}: {
+  item: BranchManagementItem;
+  canManage?: boolean;
+  busy?: boolean;
+  onEdit?(item: BranchManagementItem): void;
+  lifecycleItems?(item: BranchManagementItem): ActionMenuItem[];
+}) {
   return (
     <div className="grid gap-2">
       <div className="flex items-start justify-between gap-3">
@@ -283,15 +421,44 @@ function BranchCard({ item }: { item: BranchManagementItem }) {
           <strong>{item.name}</strong>
           <p className="text-xs text-dd-muted">{item.code}</p>
         </div>
-        <Badge tone={item.active ? 'success' : 'neutral'}>
-          {item.active ? 'Aktif' : 'Tidak aktif'}
-        </Badge>
+        <Badge tone={item.active ? 'success' : 'neutral'}>{branchStatusLabel(item)}</Badge>
       </div>
       <p className="text-sm text-dd-muted">
         {item.publicProfile?.area && item.publicProfile?.city
           ? `${item.publicProfile.area}, ${item.publicProfile.city}`
           : item.publicProfile?.address || (item as { address?: string | null }).address || 'Lokasi belum diatur'}
       </p>
+      <div
+        className="mt-2 flex flex-wrap gap-2 border-t border-dd-line/50 pt-2"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <ButtonLink
+          href={`/workspace/branches/${item.code.toLowerCase()}`}
+          size="sm"
+          variant="secondary"
+        >
+          Detail
+        </ButtonLink>
+        {canManage && (
+          <TableActionMenu
+            ariaLabel={`Aksi cabang ${item.name}`}
+            disabled={busy}
+            items={[
+              ...(onEdit
+                ? [
+                    {
+                      key: 'edit',
+                      label: 'Edit',
+                      icon: <Pencil className="size-4" aria-hidden="true" />,
+                      onClick: () => onEdit(item),
+                    },
+                  ]
+                : []),
+              ...(lifecycleItems ? lifecycleItems(item) : []),
+            ]}
+          />
+        )}
+      </div>
     </div>
   );
 }

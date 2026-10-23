@@ -366,10 +366,15 @@ export function StatusDialog({
   user: UserSummary;
   submitting: boolean;
   onClose(): void;
-  onSubmit(): Promise<void>;
+  onSubmit(reason: string): Promise<void>;
 }) {
   const deactivate = user.status === 'ACTIVE';
   const guard = useDialogFormGuard(open, onClose, 'perubahan status pengguna');
+  const [reason, setReason] = useState('');
+  useEffect(() => {
+    if (open) setReason('');
+  }, [open]);
+  const reasonValid = !deactivate || (reason.trim().length >= 3 && reason.trim().length <= 500);
   return (
     <DestructiveDialog
       open={open}
@@ -399,6 +404,7 @@ export function StatusDialog({
             form="staff-status-form"
             variant={deactivate ? 'danger' : 'primary'}
             loading={submitting}
+            disabled={!reasonValid}
           >
             {deactivate ? 'Konfirmasi Nonaktifkan' : 'Konfirmasi Aktifkan'}
           </Button>
@@ -411,12 +417,22 @@ export function StatusDialog({
         onChange={() => guard.setDirty(true)}
         onSubmit={(event) => {
           event.preventDefault();
-          void onSubmit();
+          if (reasonValid) void onSubmit(reason.trim());
         }}
       >
         <p className="text-sm text-dd-muted">
           Apakah Anda yakin ingin {deactivate ? 'menonaktifkan' : 'mengaktifkan kembali'} akun <strong>{user.displayName}</strong>?
         </p>
+        {deactivate && (
+          <Textarea
+            label="Alasan"
+            value={reason}
+            maxLength={500}
+            placeholder="Minimal 3 karakter"
+            onChange={(event) => setReason(event.target.value)}
+            description="Alasan tersimpan pada catatan audit."
+          />
+        )}
       </form>
     </DestructiveDialog>
   );

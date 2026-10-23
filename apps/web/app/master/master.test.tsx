@@ -6,6 +6,47 @@ import { MasterView } from './master-view';
 import { AppFeedbackProvider } from '../components/app-feedback';
 import type { MasterClient } from '@/api-clients/master-client';
 
+const mockDeletability = vi.fn();
+const mockRemove = vi.fn();
+const mockArchive = vi.fn();
+vi.mock('../api-clients/lifecycle-client', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../api-clients/lifecycle-client')>();
+  return {
+    ...actual,
+    lifecycleClient: {
+      deletability: (...args: unknown[]) => mockDeletability(...args),
+      remove: (...args: unknown[]) => mockRemove(...args),
+      archive: (...args: unknown[]) => mockArchive(...args),
+    },
+  };
+});
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), prefetch: vi.fn(), back: vi.fn() }),
+  usePathname: () => '/master',
+  useSearchParams: () => new URLSearchParams(),
+}));
+
+
+vi.mock('../session-context', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../session-context')>();
+  return {
+    ...actual,
+    useSessionContext: () => ({
+      status: 'authenticated',
+      activeBranchId: 'branch-1',
+      hasCapability: () => true,
+      session: {
+        status: 'authenticated',
+        hasCapability: () => true,
+        branches: [
+          { id: 'branch-1', name: 'Daily Dose Jakarta', code: 'DD-JKT' },
+        ],
+      },
+    }),
+  };
+});
+
 function fakeMasterClient(overrides: Partial<MasterClient> = {}): MasterClient {
   return {
     listBranches: vi.fn().mockResolvedValue({
@@ -136,7 +177,7 @@ describe('MasterView Redesign Tests', () => {
 
     // Verify StatCards
     expect(screen.getByText('Tipe kelas aktif')).toBeVisible();
-    expect(screen.getByText('Area studio cabang')).toBeVisible();
+    expect(screen.getByText('Cabang aktif')).toBeVisible();
     expect(screen.getByText('Konfigurasi aktif')).toBeVisible();
 
     // Verify Table Header, Search Input, and Add Button
@@ -145,6 +186,7 @@ describe('MasterView Redesign Tests', () => {
     expect(screen.getByRole('button', { name: /Tambah tipe kelas/i })).toBeVisible();
 
     // Load master data to populate rows
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Muat master data' })).toBeEnabled());
     await userEvent.click(screen.getByRole('button', { name: 'Muat master data' }));
     expect(await screen.findByText('REFORMER')).toBeVisible();
     expect(screen.getByText('Reformer Pilates')).toBeVisible();
@@ -175,19 +217,15 @@ describe('MasterView Redesign Tests', () => {
     expect(await screen.findByRole('status')).toHaveTextContent('Tipe kelas berhasil dibuat.');
   });
 
-  it('renders package management workspace card on packages tab', async () => {
+  it('renders quota and capacity settings tab', async () => {
     const client = fakeMasterClient();
     render(
       <AppFeedbackProvider>
-        <MasterView client={client} activeTab="packages" access={{ canManage: true, canFinance: true }} />
+        <MasterView client={client} activeTab="capacity" access={{ canManage: true, canFinance: true }} />
       </AppFeedbackProvider>,
     );
 
-    expect(screen.getByRole('heading', { name: 'Manajemen Paket Sesi' })).toBeVisible();
-    expect(screen.getByRole('link', { name: 'Buka Manajemen Paket' })).toHaveAttribute(
-      'href',
-      '/workspace/packages',
-    );
+    expect(await screen.findByRole('heading', { name: 'Kuota & kapasitas kelas' })).toBeVisible();
   });
 
   it('has zero accessibility violations', async () => {
@@ -237,7 +275,7 @@ describe('MasterView tarif list', () => {
         <MasterView client={client} activeTab="fees" access={{ canManage: true, canFinance: true }} />
       </AppFeedbackProvider>,
     );
-    await user.click(screen.getByRole('tab', { name: 'Honor' }));
+    await user.click(screen.getByRole('tab', { name: /Honor/i }));
     await user.click(screen.getByRole('button', { name: 'Muat master data' }));
     expect((await screen.findAllByText('Ayu Instruktur', { selector: 'span' })).length).toBe(2);
     expect(screen.getByText('Rp 180.000')).toBeVisible();
@@ -248,8 +286,13 @@ describe('MasterView tarif list', () => {
     expect(deleteButtons).toHaveLength(1);
     await user.click(deleteButtons[0]!);
     expect(client.deleteSetting).not.toHaveBeenCalled();
-    await user.click(await screen.findByRole('button', { name: 'Hapus tarif' }));
-    await waitFor(() => expect(client.deleteSetting).toHaveBeenCalledWith('INSTRUCTOR_FEE', 'fee-1'));
+    const confirmDelete = await screen.findByRole('button', { name: 'Hapus tarif' });
+    expect(confirmDelete).toBeDisabled();
+    await user.type(screen.getByLabelText('Alasan'), 'Tarif salah input');
+    await user.click(confirmDelete);
+    await waitFor(() =>
+      expect(client.deleteSetting).toHaveBeenCalledWith('INSTRUCTOR_FEE', 'fee-1', 'Tarif salah input'),
+    );
     expect(await screen.findByText('Tarif dihapus.')).toBeVisible();
   });
 
@@ -261,7 +304,7 @@ describe('MasterView tarif list', () => {
         <MasterView client={client} activeTab="fees" access={{ canManage: true, canFinance: false }} />
       </AppFeedbackProvider>,
     );
-    await user.click(screen.getByRole('tab', { name: 'Honor' }));
+    await user.click(screen.getByRole('tab', { name: /Honor/i }));
     await user.click(screen.getByRole('button', { name: 'Muat master data' }));
     await screen.findByText('Akan berlaku');
     expect(screen.queryByRole('button', { name: 'Hapus' })).toBeNull();
@@ -276,7 +319,7 @@ describe('MasterView tarif list', () => {
       </AppFeedbackProvider>,
     );
 
-    await user.click(screen.getByRole('tab', { name: 'Honor' }));
+    await user.click(screen.getByRole('tab', { name: /Honor/i }));
     await user.click(screen.getByRole('button', { name: 'Muat master data' }));
     // Verify branch selector is visible inside the operational settings tab
     expect(screen.getByRole('combobox', { name: 'Pilih cabang operasional' })).toBeVisible();
@@ -302,7 +345,7 @@ describe('MasterView tarif list', () => {
       </AppFeedbackProvider>,
     );
 
-    await user.click(screen.getByRole('tab', { name: 'Honor' }));
+    await user.click(screen.getByRole('tab', { name: /Honor/i }));
     await user.click(screen.getByRole('button', { name: /\+ Atur honor baru/i }));
 
     const effectiveFromInput = screen.getByLabelText(/Efektif mulai/) as HTMLInputElement;
@@ -329,7 +372,7 @@ describe('MasterView tarif list', () => {
       </AppFeedbackProvider>,
     );
 
-    await user.click(screen.getByRole('tab', { name: 'Honor' }));
+    await user.click(screen.getByRole('tab', { name: /Honor/i }));
     await user.click(screen.getByRole('button', { name: 'Muat master data' }));
     expect(screen.getByText('Rp 150.000')).toBeVisible();
 
@@ -357,150 +400,73 @@ describe('MasterView tarif list', () => {
     expect(await screen.findByText('Konfigurasi berhasil diperbarui.')).toBeVisible();
   });
 
-  it('renders self-contained branch selector on venues tab and allows switching branch studios', async () => {
+
+  const openClassTypeMenu = async (client: MasterClient, itemName: RegExp) => {
+    const user = userEvent.setup();
+    render(
+      <AppFeedbackProvider>
+        <MasterView client={client} activeTab="classTypes" access={{ canManage: true, canFinance: true }} />
+      </AppFeedbackProvider>,
+    );
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Muat master data' })).toBeEnabled());
+    await user.click(screen.getByRole('button', { name: 'Muat master data' }));
+    expect(await screen.findByText('Reformer Pilates')).toBeVisible();
+    await user.click(screen.getByRole('button', { name: /Aksi tipe kelas Reformer Pilates/ }));
+    await user.click(screen.getByRole('menuitem', { name: itemName }));
+    return user;
+  };
+
+  it('asks the server for every non-archived class type (inactive ones included)', async () => {
     const client = fakeMasterClient();
-    const user = userEvent.setup();
-    render(
-      <AppFeedbackProvider>
-        <MasterView client={client} activeTab="venues" access={{ canManage: true, canFinance: true }} />
-      </AppFeedbackProvider>,
-    );
-
-    await user.click(screen.getByRole('tab', { name: 'Area/Ruangan' }));
-    await user.click(screen.getByRole('button', { name: 'Muat master data' }));
-
-    // Verify branch selector is visible in venues tab
-    expect(screen.getByRole('combobox', { name: 'Pilih cabang studio' })).toBeVisible();
-    // Verify Area Studio heading and list are visible
-    expect(screen.getByRole('heading', { name: 'Area Studio & Ruangan' })).toBeVisible();
-    expect(screen.getByText('Main Studio')).toBeVisible();
+    await openClassTypeMenu(client, /^Nonaktifkan$/);
+    const calls = vi.mocked(client.listClassTypes).mock.calls;
+    expect(calls.length).toBeGreaterThan(0);
+    for (const [, status] of calls) expect(status).toBe('ALL');
   });
 
-  it('opens modal to create a new studio area and calls createStudio', async () => {
+  it('deactivates a class type only with a typed reason and passes it on', async () => {
     const client = fakeMasterClient();
-    const user = userEvent.setup();
-    render(
-      <AppFeedbackProvider>
-        <MasterView client={client} activeTab="venues" access={{ canManage: true, canFinance: true }} />
-      </AppFeedbackProvider>,
+    const user = await openClassTypeMenu(client, /^Nonaktifkan$/);
+    const confirm = await screen.findByRole('button', { name: 'Nonaktifkan' });
+    expect(confirm).toBeDisabled();
+    await user.type(screen.getByLabelText('Alasan'), 'Kelas tidak dibuka lagi');
+    await user.click(confirm);
+    await waitFor(() =>
+      expect(client.deactivateClassType).toHaveBeenCalledWith('class-1', 0, 'Kelas tidak dibuka lagi'),
     );
-
-    await user.click(screen.getByRole('tab', { name: 'Area/Ruangan' }));
-    await user.click(screen.getByRole('button', { name: 'Muat master data' }));
-
-    // Click "+ Tambah Area Studio" button
-    const addStudioBtn = screen.getByRole('button', { name: '+ Tambah Area Studio' });
-    expect(addStudioBtn).toBeVisible();
-    await user.click(addStudioBtn);
-
-    // Modal dialog opens
-    expect(screen.getByRole('heading', { name: 'Tambah Area Studio' })).toBeVisible();
-
-    await user.type(screen.getByLabelText('Kode area'), 'REFORMER');
-    await user.type(screen.getByLabelText('Nama area'), 'Reformer Studio');
-    await user.type(screen.getByLabelText('Equipment'), 'Reformer bed 6 unit, Box');
-
-    await user.click(screen.getByRole('button', { name: 'Simpan Area Studio' }));
-
-    expect(client.createStudio).toHaveBeenCalledWith(
-      'branch-1',
-      expect.objectContaining({
-        code: 'REFORMER',
-        name: 'Reformer Studio',
-        equipmentText: 'Reformer bed 6 unit, Box',
-      }),
-    );
-    expect(await screen.findByText('Area Studio berhasil ditambahkan.')).toBeVisible();
   });
 
-  it('opens modal to create a new room from row action and pre-selects target studio', async () => {
-    const client = fakeMasterClient({
-      listStudios: vi.fn().mockResolvedValue([
-        {
-          id: 'studio-1',
-          code: 'MAIN',
-          name: 'Main Studio',
-          active: true,
-          version: 0,
-          rooms: [
-            { id: 'room-1', code: 'R1', name: 'Ruang A', active: true, version: 0 },
-          ],
-        },
-      ]),
-    });
-    const user = userEvent.setup();
-    render(
-      <AppFeedbackProvider>
-        <MasterView client={client} activeTab="venues" access={{ canManage: true, canFinance: true }} />
-      </AppFeedbackProvider>,
-    );
-
-    await user.click(screen.getByRole('tab', { name: 'Area/Ruangan' }));
-    await user.click(screen.getByRole('button', { name: 'Muat master data' }));
-
-    // Click "+ Ruangan" button on the Main Studio row
-    const addRoomRowBtn = screen.getByRole('button', { name: '+ Ruangan' });
-    expect(addRoomRowBtn).toBeVisible();
-    await user.click(addRoomRowBtn);
-
-    // Modal opens with heading Tambah Ruangan
-    expect(screen.getByRole('heading', { name: 'Tambah Ruangan' })).toBeVisible();
-
-    await user.type(screen.getByLabelText('Kode ruangan'), 'R2');
-    await user.type(screen.getByLabelText('Nama ruangan'), 'Ruang B');
-
-    await user.click(screen.getByRole('button', { name: 'Simpan Ruangan' }));
-
-    expect(client.createRoom).toHaveBeenCalledWith(
-      'studio-1',
-      expect.objectContaining({
-        code: 'R2',
-        name: 'Ruang B',
-      }),
-    );
-    expect(await screen.findByText('Ruangan berhasil ditambahkan.')).toBeVisible();
+  it('archives a class type through the lifecycle endpoint with a reason', async () => {
+    mockArchive.mockResolvedValue({});
+    const client = fakeMasterClient();
+    const user = await openClassTypeMenu(client, /Arsipkan/);
+    await user.type(await screen.findByLabelText('Alasan'), 'Tidak dipakai lagi');
+    await user.click(screen.getByRole('button', { name: 'Arsipkan' }));
+    await waitFor(() => expect(mockArchive).toHaveBeenCalledWith('class-type', 'class-1', 'Tidak dipakai lagi'));
   });
 
-  it('filters studio venues based on search query', async () => {
-    const client = fakeMasterClient({
-      listStudios: vi.fn().mockResolvedValue([
-        {
-          id: 'studio-1',
-          code: 'MAIN',
-          name: 'Main Studio',
-          active: true,
-          version: 0,
-          rooms: [{ id: 'room-1', code: 'R1', name: 'Cadillac Room', active: true, version: 0 }],
-        },
-        {
-          id: 'studio-2',
-          code: 'REFORM',
-          name: 'Reformer Area',
-          active: true,
-          version: 0,
-          rooms: [{ id: 'room-2', code: 'R2', name: 'Private Room', active: true, version: 0 }],
-        },
-      ]),
+  it('explains what still uses a class type instead of deleting it', async () => {
+    mockDeletability.mockResolvedValue({
+      kind: 'class-type',
+      id: 'class-1',
+      deletable: false,
+      blockers: [
+        { kind: 'paket', label: 'paket', count: 2 },
+        { kind: 'slot_kelas', label: 'jadwal kelas', count: 8 },
+      ],
     });
-    const user = userEvent.setup();
-    render(
-      <AppFeedbackProvider>
-        <MasterView client={client} activeTab="venues" access={{ canManage: true, canFinance: true }} />
-      </AppFeedbackProvider>,
-    );
+    await openClassTypeMenu(fakeMasterClient(), /Hapus/);
+    expect(await screen.findByText('Tipe kelas belum dapat dihapus')).toBeVisible();
+    expect(screen.getByText('Jadwal kelas')).toBeVisible();
+    expect(mockRemove).not.toHaveBeenCalled();
+  });
 
-    await user.click(screen.getByRole('tab', { name: 'Area/Ruangan' }));
-    await user.click(screen.getByRole('button', { name: 'Muat master data' }));
-
-    expect(screen.getByText('Main Studio')).toBeVisible();
-    expect(screen.getByText('Reformer Area')).toBeVisible();
-
-    // Type in search query to match only "Reformer"
-    const searchInput = screen.getByLabelText('Cari area studio atau ruangan');
-    await user.type(searchInput, 'Reformer');
-
-    expect(screen.queryByText('Main Studio')).toBeNull();
-    expect(screen.getByText('Reformer Area')).toBeVisible();
+  it('deletes a clean class type with a reason', async () => {
+    mockDeletability.mockResolvedValue({ kind: 'class-type', id: 'class-1', deletable: true, blockers: [] });
+    mockRemove.mockResolvedValue({ id: 'class-1', deleted: true });
+    const user = await openClassTypeMenu(fakeMasterClient(), /Hapus/);
+    await user.type(await screen.findByLabelText('Alasan'), 'Salah input');
+    await user.click(screen.getByRole('button', { name: 'Hapus permanen' }));
+    await waitFor(() => expect(mockRemove).toHaveBeenCalledWith('class-type', 'class-1', 'Salah input'));
   });
 });
-

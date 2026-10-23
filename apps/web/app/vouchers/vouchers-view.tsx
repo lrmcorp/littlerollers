@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Plus, TicketPercent } from 'lucide-react';
+import { Pencil, Plus, TicketPercent } from 'lucide-react';
+import { usePathname } from 'next/navigation';
 import { browserVoucherClient, type VoucherRecord } from '@/api-clients/voucher-client';
 import { useSessionContext } from '../session-context';
 import { Button } from '../components/actions';
@@ -12,14 +13,14 @@ import {
   TextInput,
   SelectInput,
 } from '../components/forms';
-import { AlertBanner, Drawer } from '../components/app-feedback';
-import { DataTable, Badge, Pagination, Panel, StatCard } from '../components/admin/admin-ui';
+import { AlertBanner, Drawer, useAppFeedback } from '../components/app-feedback';
+import { DataTable, Badge, Pagination, Panel, StatCard, TableActionMenu } from '../components/admin/admin-ui';
 import { EmptyState, Skeleton } from '../ui';
 import { useTrackedRouter } from '../components/app-loading';
-import { useAppFeedback } from '../components/app-feedback';
 import { browserPackagePromotionClient } from '@/api-clients/package-promotion-client';
 import { browserMasterClient } from '@/api-clients/master-client';
-import { pageOffset } from '../lib/pagination';
+import { ADMIN_PAGE_SIZE, pageOffset } from '../lib/pagination';
+import { useVoucherLifecycle } from './use-voucher-lifecycle';
 
 const labels: Record<string, string> = {
   DRAFT: 'Draft',
@@ -33,6 +34,7 @@ const labels: Record<string, string> = {
 export function VouchersView() {
   const session = useSessionContext();
   const router = useTrackedRouter();
+  const pathname = usePathname() ?? '/workspace/vouchers';
   const feedback = useAppFeedback();
   const canRead = session?.status === 'authenticated' && session.hasCapability('voucher:read');
   const canManage = session?.status === 'authenticated' && session.hasCapability('voucher:manage');
@@ -46,6 +48,7 @@ export function VouchersView() {
   const [error, setError] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
   const [createDirty, setCreateDirty] = useState(false);
+  const [editingVoucher, setEditingVoucher] = useState<VoucherRecord | null>(null);
   const [summary, setSummary] = useState<Partial<Record<VoucherRecord['status'], number>>>({});
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [cursor, setCursor] = useState<string>();
@@ -86,7 +89,7 @@ export function VouchersView() {
     setBusy(true);
     setError('');
     try {
-      const result = await browserVoucherClient.list({ q, status, page: pageNumber, pageSize: 20 });
+      const result = await browserVoucherClient.list({ q, status, page: pageNumber, pageSize: ADMIN_PAGE_SIZE });
       setItems(result.items);
       setSummary(result.summary ?? {});
       setTotalPages(result.totalPages ?? result.page?.totalPages ?? 1);
@@ -102,43 +105,7 @@ export function VouchersView() {
     void load(page);
   }, [canRead, page, q, status]);
 
-  const handleTransition = async (
-    voucher: VoucherRecord,
-    action: 'activate' | 'pause' | 'archive',
-  ) => {
-    if (!canManage || busy) return;
-    const actionText =
-      action === 'activate' ? 'Aktifkan' : action === 'pause' ? 'Jeda' : 'Arsipkan';
-    const accepted = await feedback.confirm({
-      tone: action === 'archive' ? 'danger' : 'warning',
-      title: `${actionText} voucher ${voucher.code}?`,
-      message:
-        action === 'activate'
-          ? `Voucher "${voucher.name}" akan dapat digunakan oleh pelanggan sesuai kuota dan periode.`
-          : action === 'pause'
-            ? `Voucher "${voucher.name}" akan dijeda sementara dan tidak dapat digunakan hingga diaktifkan kembali.`
-            : `Voucher "${voucher.name}" akan diarsipkan permanen.`,
-      confirmLabel: actionText,
-    });
-    if (!accepted) return;
-    setBusy(true);
-    try {
-      await browserVoucherClient.transition(voucher.id, action, voucher.version);
-      feedback.showToast({
-        tone: 'success',
-        title: `Voucher berhasil ${action === 'activate' ? 'diaktifkan' : action === 'pause' ? 'dijeda' : 'diarsipkan'}`,
-      });
-      await load(page);
-    } catch {
-      feedback.showToast({
-        tone: 'danger',
-        title: 'Gagal mengubah status voucher',
-        message: 'Silakan muat ulang atau coba beberapa saat lagi.',
-      });
-    } finally {
-      setBusy(false);
-    }
-  };
+  const lifecycle = useVoucherLifecycle(() => load(page));
 
   if (!session || session.status === 'loading') return <Skeleton label="Memuat voucher" />;
   if (!canRead)
@@ -308,47 +275,24 @@ export function VouchersView() {
                   >
                     Lihat detail
                   </Button>
-                  {canManage && item.status === 'ACTIVE' && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
+                  {canManage && (
+                    <TableActionMenu
+                      ariaLabel={`Aksi voucher ${item.code}`}
                       disabled={busy}
-                      className="text-dd-warning hover:bg-dd-warning-soft"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        void handleTransition(item, 'pause');
-                      }}
-                    >
-                      Jeda
-                    </Button>
-                  )}
-                  {canManage && (item.status === 'PAUSED' || item.status === 'DRAFT') && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      disabled={busy}
-                      className="text-dd-forest hover:bg-dd-success-soft"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        void handleTransition(item, 'activate');
-                      }}
-                    >
-                      Aktifkan
-                    </Button>
-                  )}
-                  {canManage && item.status !== 'ARCHIVED' && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      disabled={busy}
-                      className="text-dd-muted hover:text-dd-danger hover:bg-dd-danger-soft"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        void handleTransition(item, 'archive');
-                      }}
-                    >
-                      Arsip
-                    </Button>
+                      items={[
+                        ...(item.status !== 'ARCHIVED'
+                          ? [
+                              {
+                                id: 'edit',
+                                label: 'Edit',
+                                icon: <Pencil className="size-3.5" aria-hidden="true" />,
+                                onClick: () => setEditingVoucher(item),
+                              },
+                            ]
+                          : []),
+                        ...lifecycle.items(item),
+                      ]}
+                    />
                   )}
                 </div>
               ),
@@ -385,47 +329,24 @@ export function VouchersView() {
                 >
                   Lihat detail
                 </Button>
-                {canManage && item.status === 'ACTIVE' && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
+                {canManage && (
+                  <TableActionMenu
+                    ariaLabel={`Aksi voucher ${item.code}`}
                     disabled={busy}
-                    className="text-dd-warning hover:bg-dd-warning-soft"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      void handleTransition(item, 'pause');
-                    }}
-                  >
-                    Jeda
-                  </Button>
-                )}
-                {canManage && (item.status === 'PAUSED' || item.status === 'DRAFT') && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    disabled={busy}
-                    className="text-dd-forest"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      void handleTransition(item, 'activate');
-                    }}
-                  >
-                    Aktifkan
-                  </Button>
-                )}
-                {canManage && item.status !== 'ARCHIVED' && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    disabled={busy}
-                    className="text-dd-muted"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      void handleTransition(item, 'archive');
-                    }}
-                  >
-                    Arsip
-                  </Button>
+                    items={[
+                      ...(item.status !== 'ARCHIVED'
+                        ? [
+                            {
+                              id: 'edit',
+                              label: 'Edit',
+                              icon: <Pencil className="size-3.5" aria-hidden="true" />,
+                              onClick: () => setEditingVoucher(item),
+                            },
+                          ]
+                        : []),
+                      ...lifecycle.items(item),
+                    ]}
+                  />
                 )}
               </div>
             </div>
@@ -438,7 +359,7 @@ export function VouchersView() {
         currentPage={page}
         totalPages={totalPages}
         totalItems={totalItems}
-        pageSize={20}
+        pageSize={ADMIN_PAGE_SIZE}
         hasPrevious={page > 1 && !busy}
         hasNext={page < totalPages && !busy}
         showPageNumbers
@@ -449,7 +370,9 @@ export function VouchersView() {
       />
       <Drawer
         open={createOpen}
+        className="max-w-2xl"
         title="Buat voucher"
+        description="Voucher promo diskon sesi pilates dengan batas kuota dan cakupan yang dapat diaudit."
         onClose={() => {
           setCreateDirty(false);
           setCreateOpen(false);
@@ -528,121 +451,135 @@ export function VouchersView() {
             }
           }}
         >
-          <TextInput
-            label="Kode voucher"
-            required
-            value={form.code}
-            onChange={(event) => setForm({ ...form, code: event.target.value.toUpperCase() })}
-          />
-          <TextInput
-            label="Nama voucher"
-            required
-            value={form.name}
-            onChange={(event) => setForm({ ...form, name: event.target.value })}
-          />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <TextInput
+              label="Kode voucher"
+              placeholder="Contoh: NEWYEAR2026"
+              required
+              value={form.code}
+              onChange={(event) => setForm({ ...form, code: event.target.value.toUpperCase() })}
+            />
+            <TextInput
+              label="Nama voucher"
+              placeholder="Contoh: Promo Awal Tahun"
+              required
+              value={form.name}
+              onChange={(event) => setForm({ ...form, name: event.target.value })}
+            />
+          </div>
           <Textarea
             label="Deskripsi"
             value={form.description}
             onChange={(event) => setForm({ ...form, description: event.target.value })}
+            placeholder="Keterangan promosi untuk tim operasional..."
             description="Penjelasan internal yang aman dan tidak memuat data pelanggan."
           />
-          <SelectInput
-            label="Tipe diskon"
-            value={form.discountType}
-            onChange={(event) => setForm({ ...form, discountType: event.target.value })}
-          >
-            <option value="PERCENTAGE">Persentase</option>
-            <option value="FIXED_AMOUNT">Nominal tetap</option>
-          </SelectInput>
-          <TextInput
-            label="Nilai diskon"
-            type="number"
-            min={1}
-            required
-            value={form.discountValue}
-            onChange={(event) => setForm({ ...form, discountValue: event.target.value })}
-          />
-          <TextInput
-            label="Batas maksimum diskon"
-            type="number"
-            min={0}
-            value={form.maxDiscountRp}
-            onChange={(event) => setForm({ ...form, maxDiscountRp: event.target.value })}
-            description="Opsional untuk diskon persentase."
-          />
-          <TextInput
-            label="Minimum pembelian"
-            type="number"
-            min={0}
-            value={form.minimumPurchaseRp}
-            onChange={(event) => setForm({ ...form, minimumPurchaseRp: event.target.value })}
-          />
-          <TextInput
-            label="Mulai aktif"
-            type="datetime-local"
-            required
-            value={form.activeFrom}
-            onChange={(event) => setForm({ ...form, activeFrom: event.target.value })}
-          />
-          <TextInput
-            label="Berakhir"
-            type="datetime-local"
-            value={form.activeUntil}
-            onChange={(event) => setForm({ ...form, activeUntil: event.target.value })}
-            description="Kosongkan jika tidak memiliki batas akhir."
-          />
-          <SearchSelect
-            label="Cakupan cabang"
-            value={form.branchId}
-            placeholder="Semua cabang"
-            options={(session.session?.branches ?? []).map((branch) => ({
-              id: branch.id,
-              label: branch.name,
-              description: branch.code,
-            }))}
-            onChange={(branchId) => {
-              void (async () => {
-                if (
-                  selectedPackageIds.length > 0 &&
-                  !(await feedback.confirm({
-                    tone: 'warning',
-                    title: 'Ganti cakupan cabang?',
-                    message: 'Pilihan paket yang sudah dipilih akan dikosongkan.',
-                    confirmLabel: 'Ganti cabang',
-                  }))
-                )
-                  return;
-                setForm({ ...form, branchId, classTypeId: '' });
-                setSelectedPackageIds([]);
-                void (branchId
-                  ? browserMasterClient.listClassTypes(branchId).then(setClassTypes)
-                  : Promise.resolve(setClassTypes([])));
-              })();
-            }}
-          />
-          <SearchSelect
-            label="Cakupan tipe kelas"
-            value={form.classTypeId}
-            placeholder="Semua tipe kelas"
-            options={classTypes.map((item) => ({ id: item.id, label: item.name }))}
-            onChange={(classTypeId) => {
-              void (async () => {
-                if (
-                  selectedPackageIds.length > 0 &&
-                  !(await feedback.confirm({
-                    tone: 'warning',
-                    title: 'Ganti cakupan tipe kelas?',
-                    message: 'Pilihan paket yang sudah dipilih akan dikosongkan.',
-                    confirmLabel: 'Ganti tipe kelas',
-                  }))
-                )
-                  return;
-                setForm({ ...form, classTypeId });
-                setSelectedPackageIds([]);
-              })();
-            }}
-            description="Opsional. Kosong berarti seluruh tipe kelas dalam cakupan."
-          />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <SelectInput
+              label="Tipe diskon"
+              value={form.discountType}
+              onChange={(event) => setForm({ ...form, discountType: event.target.value })}
+            >
+              <option value="PERCENTAGE">Persentase (%)</option>
+              <option value="FIXED_AMOUNT">Nominal tetap (Rp)</option>
+            </SelectInput>
+            <TextInput
+              label="Nilai diskon"
+              type="number"
+              min={1}
+              required
+              value={form.discountValue}
+              onChange={(event) => setForm({ ...form, discountValue: event.target.value })}
+            />
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <TextInput
+              label="Batas maksimum diskon"
+              type="number"
+              min={0}
+              value={form.maxDiscountRp}
+              onChange={(event) => setForm({ ...form, maxDiscountRp: event.target.value })}
+              placeholder="Kosongkan jika tanpa batas"
+              description="Opsional untuk diskon persentase."
+            />
+            <TextInput
+              label="Minimum pembelian"
+              type="number"
+              min={0}
+              value={form.minimumPurchaseRp}
+              onChange={(event) => setForm({ ...form, minimumPurchaseRp: event.target.value })}
+            />
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <TextInput
+              label="Mulai aktif"
+              type="datetime-local"
+              required
+              value={form.activeFrom}
+              onChange={(event) => setForm({ ...form, activeFrom: event.target.value })}
+            />
+            <TextInput
+              label="Berakhir"
+              type="datetime-local"
+              value={form.activeUntil}
+              onChange={(event) => setForm({ ...form, activeUntil: event.target.value })}
+              description="Kosongkan jika tidak memiliki batas akhir."
+            />
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <SearchSelect
+              label="Cakupan cabang"
+              value={form.branchId}
+              placeholder="Semua cabang"
+              options={(session.session?.branches ?? []).map((branch) => ({
+                id: branch.id,
+                label: branch.name,
+                description: branch.code,
+              }))}
+              onChange={(branchId) => {
+                void (async () => {
+                  if (
+                    selectedPackageIds.length > 0 &&
+                    !(await feedback.confirm({
+                      tone: 'warning',
+                      title: 'Ganti cakupan cabang?',
+                      message: 'Pilihan paket yang sudah dipilih akan dikosongkan.',
+                      confirmLabel: 'Ganti cabang',
+                    }))
+                  )
+                    return;
+                  setForm({ ...form, branchId, classTypeId: '' });
+                  setSelectedPackageIds([]);
+                  void (branchId
+                    ? browserMasterClient.listClassTypes(branchId).then(setClassTypes)
+                    : Promise.resolve(setClassTypes([])));
+                })();
+              }}
+            />
+            <SearchSelect
+              label="Cakupan tipe kelas"
+              value={form.classTypeId}
+              placeholder="Semua tipe kelas"
+              options={classTypes.map((item) => ({ id: item.id, label: item.name }))}
+              onChange={(classTypeId) => {
+                void (async () => {
+                  if (
+                    selectedPackageIds.length > 0 &&
+                    !(await feedback.confirm({
+                      tone: 'warning',
+                      title: 'Ganti cakupan tipe kelas?',
+                      message: 'Pilihan paket yang sudah dipilih akan dikosongkan.',
+                      confirmLabel: 'Ganti tipe kelas',
+                    }))
+                  )
+                    return;
+                  setForm({ ...form, classTypeId });
+                  setSelectedPackageIds([]);
+                })();
+              }}
+              description="Opsional. Kosong berarti seluruh tipe kelas."
+            />
+          </div>
           <AsyncMultiSearchSelect
             label="Cakupan paket"
             description="Tanpa pilihan berarti voucher berlaku untuk semua paket dalam cakupan."
@@ -667,29 +604,284 @@ export function VouchersView() {
             }}
             onChange={(ids) => setSelectedPackageIds(ids)}
           />
-          <TextInput
-            label="Kuota total"
-            type="number"
-            min={0}
-            value={form.totalUsageLimit}
-            onChange={(event) => setForm({ ...form, totalUsageLimit: event.target.value })}
-          />
-          <TextInput
-            label="Batas per pelanggan"
-            type="number"
-            min={0}
-            value={form.perCustomerUsageLimit}
-            onChange={(event) => setForm({ ...form, perCustomerUsageLimit: event.target.value })}
-          />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <TextInput
+              label="Kuota total"
+              type="number"
+              min={0}
+              placeholder="Kosongkan jika tanpa batas"
+              value={form.totalUsageLimit}
+              onChange={(event) => setForm({ ...form, totalUsageLimit: event.target.value })}
+            />
+            <TextInput
+              label="Batas per pelanggan"
+              type="number"
+              min={0}
+              placeholder="Kosongkan jika tanpa batas"
+              value={form.perCustomerUsageLimit}
+              onChange={(event) => setForm({ ...form, perCustomerUsageLimit: event.target.value })}
+            />
+          </div>
           <TextInput
             label="Alasan pembuatan"
             minLength={3}
             required
+            placeholder="Contoh: Rilis promo kampanye tahun baru"
             value={form.reason}
             onChange={(event) => setForm({ ...form, reason: event.target.value })}
           />
         </form>
       </Drawer>
+
+      <EditVoucherModal
+        voucher={editingVoucher}
+        open={Boolean(editingVoucher)}
+        onClose={() => setEditingVoucher(null)}
+        onSaved={load}
+      />
+      {lifecycle.dialog}
     </section>
+  );
+}
+
+function EditVoucherModal({
+  voucher,
+  open,
+  onClose,
+  onSaved,
+}: {
+  voucher: VoucherRecord | null;
+  open: boolean;
+  onClose(): void;
+  onSaved(): Promise<void>;
+}) {
+  const feedback = useAppFeedback();
+  const [busy, setBusy] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  const [error, setError] = useState('');
+
+  if (!voucher) return null;
+
+  const hasRedemptions = (voucher.redeemedCount ?? 0) > 0;
+
+  const confirmDiscard = () =>
+    feedback.confirm({
+      tone: 'warning',
+      title: 'Batalkan perubahan voucher?',
+      message: 'Perubahan yang belum disimpan akan hilang.',
+      confirmLabel: 'Buang perubahan',
+    });
+
+  const handleClose = async () => {
+    if (!dirty || (await confirmDiscard())) {
+      setDirty(false);
+      setError('');
+      onClose();
+    }
+  };
+
+  const toInputDate = (isoStr?: string | null) => {
+    if (!isoStr) return '';
+    const d = new Date(isoStr);
+    return isNaN(d.getTime()) ? '' : d.toISOString().slice(0, 16);
+  };
+
+  return (
+    <Drawer
+      open={open}
+      className="max-w-2xl"
+      title={`Ubah Voucher: ${voucher.code}`}
+      description="Perbarui parameter diskon, kuota penggunaan, periode aktif, atau informasi voucher."
+      busy={busy}
+      dirty={dirty}
+      onDirtyClose={confirmDiscard}
+      onClose={() => void handleClose()}
+      footer={
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="secondary" onClick={() => void handleClose()} disabled={busy}>
+            Batal
+          </Button>
+          <Button type="submit" form="voucher-edit-form" loading={busy}>
+            Simpan perubahan
+          </Button>
+        </div>
+      }
+    >
+      <form
+        id="voucher-edit-form"
+        className="grid gap-4"
+        onChange={() => setDirty(true)}
+        onSubmit={async (event) => {
+          event.preventDefault();
+          const data = new FormData(event.currentTarget);
+          const name = String(data.get('name') || '').trim();
+          const description = String(data.get('description') || '').trim() || null;
+          const discountType = String(data.get('discountType') || 'PERCENTAGE');
+          const discountValue = Number(data.get('discountValue'));
+          const maxDiscountRp = data.get('maxDiscountRp') ? Number(data.get('maxDiscountRp')) : null;
+          const minimumPurchaseRp = Number(data.get('minimumPurchaseRp') || 0);
+          const activeFromStr = String(data.get('activeFrom') || '');
+          const activeUntilStr = data.get('activeUntil') ? String(data.get('activeUntil')) : null;
+          const totalUsageLimit = data.get('totalUsageLimit') ? Number(data.get('totalUsageLimit')) : null;
+          const perCustomerUsageLimit = data.get('perCustomerUsageLimit')
+            ? Number(data.get('perCustomerUsageLimit'))
+            : null;
+          const reason = String(data.get('reason') || '').trim();
+
+          const accepted = await feedback.confirm({
+            tone: 'warning',
+            title: 'Simpan perubahan voucher?',
+            message: `Parameter baru untuk voucher ${voucher.code} akan langsung berlaku untuk transaksi checkout berikutnya.`,
+            confirmLabel: 'Simpan perubahan',
+          });
+          if (!accepted) return;
+
+          setBusy(true);
+          setError('');
+          try {
+            await browserVoucherClient.update(voucher.id, {
+              name,
+              description,
+              discountType,
+              discountValue,
+              maxDiscountRp,
+              minimumPurchaseRp,
+              activeFrom: new Date(activeFromStr).toISOString(),
+              activeUntil: activeUntilStr ? new Date(activeUntilStr).toISOString() : null,
+              totalUsageLimit,
+              perCustomerUsageLimit,
+              expectedVersion: voucher.version,
+              reason,
+            });
+            feedback.showToast({
+              tone: 'success',
+              title: 'Voucher diperbarui',
+              message: `Voucher ${voucher.code} berhasil diperbarui.`,
+            });
+            setDirty(false);
+            onClose();
+            await onSaved();
+          } catch {
+            setError('Gagal memperbarui voucher. Data mungkin telah berubah atau input tidak valid.');
+          } finally {
+            setBusy(false);
+          }
+        }}
+      >
+        {error && <AlertBanner tone="danger" title="Perubahan belum tersimpan" message={error} />}
+
+        <div className="rounded-dd-md border border-dd-line bg-dd-surface-muted/50 p-3 text-xs text-dd-muted">
+          Kode Voucher: <strong className="font-mono font-semibold text-dd-ink">{voucher.code}</strong> · Penggunaan:{' '}
+          <strong className="text-dd-ink">{voucher.redeemedCount} kali</strong>.
+          {hasRedemptions && (
+            <p className="mt-1">
+              Catatan: Voucher ini telah digunakan pelanggan. Kode unik voucher terkunci untuk menjaga integritas data histori transaksi.
+            </p>
+          )}
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <TextInput
+            name="code"
+            label="Kode voucher"
+            defaultValue={voucher.code}
+            disabled
+          />
+          <TextInput
+            name="name"
+            label="Nama voucher"
+            defaultValue={voucher.name}
+            required
+          />
+        </div>
+
+        <Textarea
+          name="description"
+          label="Deskripsi voucher"
+          defaultValue={voucher.description ?? ''}
+          placeholder="Keterangan promosi..."
+        />
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <SelectInput
+            name="discountType"
+            label="Tipe diskon"
+            defaultValue={voucher.discountType}
+          >
+            <option value="PERCENTAGE">Persentase (%)</option>
+            <option value="FIXED_AMOUNT">Nominal Tetap (Rp)</option>
+          </SelectInput>
+          <TextInput
+            name="discountValue"
+            label="Nilai diskon"
+            type="number"
+            min={1}
+            defaultValue={voucher.discountValue}
+            required
+          />
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <TextInput
+            name="maxDiscountRp"
+            label="Batas maksimum diskon"
+            type="number"
+            min={0}
+            defaultValue={voucher.maxDiscountRp ?? ''}
+            placeholder="Opsional untuk diskon persentase"
+          />
+          <TextInput
+            name="minimumPurchaseRp"
+            label="Minimum pembelian"
+            type="number"
+            min={0}
+            defaultValue={voucher.minimumPurchaseRp}
+          />
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <TextInput
+            name="activeFrom"
+            label="Mulai aktif"
+            type="datetime-local"
+            defaultValue={toInputDate(voucher.activeFrom)}
+            required
+          />
+          <TextInput
+            name="activeUntil"
+            label="Berakhir"
+            type="datetime-local"
+            defaultValue={toInputDate(voucher.activeUntil)}
+          />
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <TextInput
+            name="totalUsageLimit"
+            label="Kuota total"
+            type="number"
+            min={0}
+            defaultValue={voucher.totalUsageLimit ?? ''}
+            placeholder="Kosongkan jika tanpa batas"
+          />
+          <TextInput
+            name="perCustomerUsageLimit"
+            label="Batas per pelanggan"
+            type="number"
+            min={0}
+            defaultValue={voucher.perCustomerUsageLimit ?? ''}
+            placeholder="Kosongkan jika tanpa batas"
+          />
+        </div>
+
+        <TextInput
+          name="reason"
+          label="Alasan pembaruan"
+          minLength={3}
+          placeholder="Contoh: Penyesuaian kuota promo liburan"
+          required
+        />
+      </form>
+    </Drawer>
   );
 }

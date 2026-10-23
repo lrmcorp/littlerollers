@@ -421,9 +421,12 @@ describe('identity UI', () => {
     );
     expect(await screen.findByRole('heading', { name: 'Staff Finance' })).toBeVisible();
     await userEvent.click(screen.getByRole('button', { name: 'Nonaktifkan' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Konfirmasi Nonaktifkan' }));
+    const confirm = screen.getByRole('button', { name: 'Konfirmasi Nonaktifkan' });
+    expect(confirm).toBeDisabled();
+    await userEvent.type(screen.getByLabelText('Alasan'), 'Cuti panjang');
+    await userEvent.click(confirm);
     expect(await screen.findByRole('status')).toHaveTextContent('dinonaktifkan');
-    expect(fake.deactivate).toHaveBeenCalledWith('user-1', 1);
+    expect(fake.deactivate).toHaveBeenCalledWith('user-1', 1, 'Cuti panjang');
   });
 
   it('defaults user mutations to deny and exposes searchable dynamic role management', async () => {
@@ -782,48 +785,13 @@ const masterClient = (overrides: Partial<MasterClient> = {}): MasterClient => ({
 });
 
 describe('effective master UI', () => {
-  it('paginates a twenty-five branch catalog without hiding the second page', async () => {
-    const branch = (index: number) => ({
-      id: `branch-${index}`,
-      code: `DD-${index}`,
-      name: `Cabang ${index}`,
-      timezone: 'Asia/Jakarta',
-      active: true,
-      version: 0,
-    });
-    const fake = masterClient({
-      listBranches: vi.fn(({ cursor }: { cursor?: string } = {}) =>
-        Promise.resolve({
-          items: cursor
-            ? Array.from({ length: 5 }, (_, index) => branch(index + 21))
-            : Array.from({ length: 20 }, (_, index) => branch(index + 1)),
-          summary: { total: 25, active: 25, inactive: 0 },
-          page: { hasMore: !cursor, nextCursor: cursor ? null : 'branch-20' },
-        }),
-      ),
-    });
-    render(
-      <AppFeedbackProvider>
-        <MasterView client={fake} access={{ canManage: true, canFinance: true }} />
-      </AppFeedbackProvider>,
-    );
-
-    await userEvent.click(screen.getByRole('button', { name: 'Muat master data' }));
-    expect(await screen.findByText('Cabang 1')).toBeVisible();
-    expect(screen.getByText('Halaman 1')).toBeVisible();
-    await userEvent.click(screen.getByRole('button', { name: 'Berikutnya' }));
-    expect(await screen.findByText('Cabang 21')).toBeVisible();
-    expect(screen.queryByText('Cabang 1')).not.toBeInTheDocument();
-  });
-
   it('is accessible and has no production numeric defaults', async () => {
     const view = render(
       <AppFeedbackProvider>
-        <MasterView client={masterClient()} access={{ canManage: true, canFinance: true }} />
+        <MasterView client={masterClient()} activeTab="capacity" access={{ canManage: true, canFinance: true }} />
       </AppFeedbackProvider>,
     );
     expect((await axe(view.container)).violations).toHaveLength(0);
-    await userEvent.click(screen.getByRole('tab', { name: 'Kuota/Kapasitas' }));
     expect(screen.queryByRole('heading', { name: 'Daftar cabang' })).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Tipe kelas' })).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: /\+ Atur kuota baru/i }));
@@ -857,12 +825,11 @@ describe('effective master UI', () => {
     });
     render(
       <AppFeedbackProvider>
-        <MasterView client={fake} access={{ canManage: true, canFinance: true }} />
+        <MasterView client={fake} activeTab="capacity" access={{ canManage: true, canFinance: true }} />
       </AppFeedbackProvider>,
     );
     await userEvent.click(screen.getByRole('button', { name: 'Muat master data' }));
-    await screen.findByText('Daily Dose Jakarta');
-    await userEvent.click(screen.getByRole('tab', { name: 'Kuota/Kapasitas' }));
+    expect(await screen.findByRole('heading', { name: 'Kuota & kapasitas kelas' })).toBeVisible();
     await userEvent.click(screen.getByRole('button', { name: /\+ Atur kuota baru/i }));
     await userEvent.type(screen.getByLabelText(/Minimum peserta/), '4');
     await userEvent.type(screen.getByLabelText(/Kapasitas maksimum/), '8');

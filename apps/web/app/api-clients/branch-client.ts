@@ -19,6 +19,8 @@ export type BranchManagementItem = {
   heroImageKey?: string | null;
   galleryImageKeys?: string[] | null;
   active: boolean;
+  /** Terisi bila cabang diarsipkan; cabang arsip tidak tampil di daftar kerja. */
+  archivedAt?: string | null;
   version: number;
   publicProfile: {
     area: string;
@@ -49,7 +51,7 @@ export type BranchManagementDetail = BranchManagementItem & {
 
 export type BranchManagementPage = {
   items: BranchManagementItem[];
-  summary: { total: number; active: number; inactive: number };
+  summary: { total: number; active: number; inactive: number; archived?: number };
   page: { hasMore: boolean; nextCursor: string | null };
 };
 
@@ -112,17 +114,18 @@ export const browserBranchClient = {
       }),
     });
   },
+  /** Nonaktifkan wajib beralasan; aktifkan kembali tidak (K4). Tidak ada alasan bawaan buatan klien. */
   transition(
     id: string,
     action: 'deactivate' | 'reactivate',
-    input?: { expectedVersion?: number; reason?: string },
+    input: { expectedVersion?: number; reason?: string },
   ) {
     return request<BranchManagementItem>(`/branches/${encodeURIComponent(id)}/${action}`, {
       method: 'POST',
       headers: mutationHeaders(),
       body: JSON.stringify({
-        expectedVersion: input?.expectedVersion ?? 1,
-        reason: input?.reason ?? (action === 'deactivate' ? 'Menonaktifkan cabang' : 'Mengaktifkan kembali cabang'),
+        expectedVersion: input.expectedVersion ?? 1,
+        ...(input.reason ? { reason: input.reason } : {}),
       }),
     });
   },

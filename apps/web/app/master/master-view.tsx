@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   browserMasterClient,
   masterFailureMessage,
@@ -12,38 +12,30 @@ import { EmptyState, Feedback, StatusBadge } from '../ui';
 import { AdminPageHeader } from '../components/admin/admin-page-header';
 import { useActiveBranchState, useSessionContext } from '../session-context';
 import { browserIdentityClient, type LookupOption } from '@/api-clients/identity-client';
-import { Pagination, StatCard, Tabs } from '../components/admin/admin-ui';
-import { Button, ButtonLink } from '../components/actions';
-import { PublicProfileEditor } from './public-profile-editor';
-import { PaymentAccountsView } from './payment-accounts-view';
-import { StudioVenueList } from './studio-venue-list';
+import { Pagination, StatCard, TableActionMenu, Tabs } from '../components/admin/admin-ui';
+import { LifecycleDialog, type LifecycleAction } from '../components/admin/lifecycle-dialog';
+import { ReasonDialog } from '../components/admin/reason-dialog';
+import { ADMIN_PAGE_SIZE } from '../lib/pagination';
+import { Button } from '../components/actions';
 import {
   AsyncSearchSelect,
-  CheckboxInput,
   DateInput,
   SearchInput,
   SearchSelect,
   SelectInput,
   TextInput,
 } from '../components/forms';
-import { Drawer, Modal, useAppFeedback } from '../components/app-feedback';
-import { Plus, Store } from 'lucide-react';
+import { Modal, useAppFeedback } from '../components/app-feedback';
+import { Archive, Globe, Pencil, Plus, Power, Store, Trash2 } from 'lucide-react';
 import { formatRupiah } from '../lib/formatters';
-import { timezoneLabel } from '../classes/class-slot-presenters';
 
 type BranchPage = Awaited<ReturnType<MasterClient['listBranches']>>;
 type Branches = BranchPage['items'];
 type ClassTypes = Awaited<ReturnType<MasterClient['listClassTypes']>>;
 export type MasterTab =
-  | 'branches'
   | 'classTypes'
-  | 'venues'
-  | 'packages'
-  | 'projection'
   | 'capacity'
-  | 'fees'
-  | 'accounts'
-  | 'publicProfiles';
+  | 'fees';
 
 const kindLabels: Record<MasterKind, string> = {
   QUOTA_CAPACITY: 'Kuota & kapasitas kelas',
@@ -65,20 +57,19 @@ function settingValue(item: MasterSetting) {
 }
 
 const allTabItems: { id: MasterTab; label: string; kind?: MasterKind }[] = [
-  { id: 'branches', label: 'Cabang' },
   { id: 'classTypes', label: 'Tipe Kelas' },
-  { id: 'venues', label: 'Area/Ruangan' },
-  { id: 'packages', label: 'Paket' },
-  { id: 'projection', label: 'Proyeksi', kind: 'PROJECTION_RATE' },
-  { id: 'capacity', label: 'Kuota/Kapasitas', kind: 'QUOTA_CAPACITY' },
-  { id: 'fees', label: 'Honor', kind: 'INSTRUCTOR_FEE' },
-  { id: 'accounts', label: 'Rekening' },
-  { id: 'publicProfiles', label: 'Profil Publik' },
+  { id: 'capacity', label: 'Kuota & Kapasitas', kind: 'QUOTA_CAPACITY' },
+  { id: 'fees', label: 'Honor Instruktur', kind: 'INSTRUCTOR_FEE' },
 ];
+
+const tabToKind = (tab: MasterTab): MasterKind => {
+  if (tab === 'fees') return 'INSTRUCTOR_FEE';
+  return 'QUOTA_CAPACITY';
+};
 
 export function MasterView({
   client = browserMasterClient,
-  activeTab = 'branches',
+  activeTab = 'classTypes',
   onTabChange,
   access,
   visibleTabs,
@@ -94,7 +85,11 @@ export function MasterView({
     : allTabItems;
   const [branchId, setBranchId] = useActiveBranchState();
   const [selectedTab, setSelectedTab] = useState<MasterTab>(activeTab);
-  useEffect(() => setSelectedTab(activeTab), [activeTab]);
+  const [kind, setKind] = useState<MasterKind>(() => tabToKind(activeTab));
+  useEffect(() => {
+    setSelectedTab(activeTab);
+    setKind(tabToKind(activeTab));
+  }, [activeTab]);
   const sessionContext = useSessionContext();
   const testAccess = process.env.NODE_ENV === 'test' ? access : undefined;
   const canManage =
@@ -104,37 +99,23 @@ export function MasterView({
     testAccess?.canFinance ??
     (sessionContext?.status === 'authenticated' && sessionContext.hasCapability('finance:manage'));
   const [classTypeId, setClassTypeId] = useState('');
-  const [kind, setKind] = useState<MasterKind>('QUOTA_CAPACITY');
   const [branches, setBranches] = useState<Branches>([]);
-  const [branchCursor, setBranchCursor] = useState<string>();
-  const [branchCursorHistory, setBranchCursorHistory] = useState<string[]>([]);
-  const [branchNextCursor, setBranchNextCursor] = useState<string | null>();
-  const [branchSummary, setBranchSummary] = useState({ total: 0, active: 0, inactive: 0 });
-  const [branchSearch, setBranchSearch] = useState('');
-  const [branchStatus, setBranchStatus] = useState<'' | 'ACTIVE' | 'INACTIVE'>('');
-  const branchFilterInitialized = useRef(false);
   const [classTypes, setClassTypes] = useState<ClassTypes>([]);
-  const [studios, setStudios] = useState<Awaited<ReturnType<MasterClient['listStudios']>>>([]);
-  const [selectedStudioId, setSelectedStudioId] = useState('');
-  const [scopeBranches, setScopeBranches] = useState<Branches>([]);
   const [settings, setSettings] = useState<MasterSetting[]>([]);
   const [message, setMessage] = useState<string>();
   const [failure, setFailure] = useState<string>();
   const [loading, setLoading] = useState(false);
   const [settingSubmitting, setSettingSubmitting] = useState(false);
   const [editingClassType, setEditingClassType] = useState<ClassTypes[number]>();
-  const [scopingClassType, setScopingClassType] = useState<ClassTypes[number]>();
-  const [classTypeScopeBranchIds, setClassTypeScopeBranchIds] = useState<string[]>([]);
-  const [classTypeScopeReason, setClassTypeScopeReason] = useState('');
   const [classTypeName, setClassTypeName] = useState('');
   const [classTypeReason, setClassTypeReason] = useState('');
   const feedback = useAppFeedback();
   const [instructor, setInstructor] = useState<LookupOption>();
   const [classTypeSearch, setClassTypeSearch] = useState('');
-  const [classTypeStatusFilter, setClassTypeStatusFilter] = useState<'' | 'ACTIVE' | 'INACTIVE'>('');
+  const [classTypeStatusFilter, setClassTypeStatusFilter] = useState<'' | 'ACTIVE' | 'INACTIVE' | 'ARCHIVED'>('');
   const [isCreateClassTypeModalOpen, setIsCreateClassTypeModalOpen] = useState(false);
 
-  // Tahap 2: States for Settings (Fees, Quota, Projection)
+  // States for Settings (Fees, Quota, Projection)
   const [isCreateSettingModalOpen, setIsCreateSettingModalOpen] = useState(false);
   const [editingSetting, setEditingSetting] = useState<MasterSetting | null>(null);
   const [editingSettingValue, setEditingSettingValue] = useState('');
@@ -143,13 +124,20 @@ export function MasterView({
   const [editingSettingReason, setEditingSettingReason] = useState('');
   const [settingSearch, setSettingSearch] = useState('');
 
-  // Tahap 3: States for Venues (Area Studio & Ruangan)
-  const [isCreateStudioModalOpen, setIsCreateStudioModalOpen] = useState(false);
-  const [isCreateRoomModalOpen, setIsCreateRoomModalOpen] = useState(false);
-  const [targetStudioIdForNewRoom, setTargetStudioIdForNewRoom] = useState('');
-  const [venueSearch, setVenueSearch] = useState('');
+  const [settingToDelete, setSettingToDelete] = useState<MasterSetting | null>(null);
+  const [archivedClassTypes, setArchivedClassTypes] = useState<ClassTypes>([]);
+  const [classTypeLifecycle, setClassTypeLifecycle] = useState<{
+    item: ClassTypes[number];
+    action: LifecycleAction;
+  } | null>(null);
+  const loadArchivedClassTypes = () =>
+    client.listClassTypes(undefined, 'ARCHIVED').then(setArchivedClassTypes).catch(() => setArchivedClassTypes([]));
+  useEffect(() => {
+    if (classTypeStatusFilter === 'ARCHIVED') void loadArchivedClassTypes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [classTypeStatusFilter]);
 
-  const filteredClassTypes = classTypes.filter((item) => {
+  const filteredClassTypes = (classTypeStatusFilter === 'ARCHIVED' ? archivedClassTypes : classTypes).filter((item) => {
     if (classTypeStatusFilter === 'ACTIVE' && !item.active) return false;
     if (classTypeStatusFilter === 'INACTIVE' && item.active) return false;
     if (classTypeSearch.trim()) {
@@ -171,20 +159,28 @@ export function MasterView({
     });
   }, [settings, settingSearch, classTypes]);
 
-  const filteredStudios = useMemo(() => {
-    if (!venueSearch.trim()) return studios;
-    const q = venueSearch.toLowerCase().trim();
-    return studios.filter((s) => {
-      const studioMatch =
-        s.name.toLowerCase().includes(q) ||
-        s.code.toLowerCase().includes(q) ||
-        Boolean(s.equipmentText && s.equipmentText.toLowerCase().includes(q));
-      const roomMatch = (s.rooms ?? []).some(
-        (r) => r.name.toLowerCase().includes(q) || r.code.toLowerCase().includes(q),
-      );
-      return studioMatch || roomMatch;
-    });
-  }, [studios, venueSearch]);
+  const [classTypePage, setClassTypePage] = useState(1);
+  const [settingPage, setSettingPage] = useState(1);
+
+  useEffect(() => {
+    setClassTypePage(1);
+  }, [classTypeSearch, classTypeStatusFilter]);
+
+  useEffect(() => {
+    setSettingPage(1);
+  }, [settingSearch, branchId, selectedTab]);
+
+  const totalClassTypePages = Math.ceil(filteredClassTypes.length / ADMIN_PAGE_SIZE) || 1;
+  const pagedClassTypes = useMemo(() => {
+    const start = (classTypePage - 1) * ADMIN_PAGE_SIZE;
+    return filteredClassTypes.slice(start, start + ADMIN_PAGE_SIZE);
+  }, [filteredClassTypes, classTypePage]);
+
+  const totalSettingPages = Math.ceil(filteredSettings.length / ADMIN_PAGE_SIZE) || 1;
+  const pagedSettings = useMemo(() => {
+    const start = (settingPage - 1) * ADMIN_PAGE_SIZE;
+    return filteredSettings.slice(start, start + ADMIN_PAGE_SIZE);
+  }, [filteredSettings, settingPage]);
 
   const handleUpdateSetting = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -246,27 +242,19 @@ export function MasterView({
     }
   };
 
-  const deleteSetting = async (item: MasterSetting) => {
+  const deleteSetting = (item: MasterSetting) => {
     if (item.kind === 'QUOTA_CAPACITY') return;
-    const accepted = await feedback.confirm({
-      tone: 'danger',
-      title: 'Hapus tarif yang belum berlaku?',
-      message: `${settingValue(item)} yang berlaku mulai ${dateValue(item.effectiveFrom)} akan dihapus. Tarif yang sudah berlaku tidak dapat dihapus.`,
-      confirmLabel: 'Hapus tarif',
-    });
-    if (!accepted) return;
-    await run(async () => {
-      await client.deleteSetting(item.kind as 'INSTRUCTOR_FEE' | 'PROJECTION_RATE', item.id);
-      await loadBranchContent(branchId, kind);
-    }, 'Tarif dihapus.');
+    setSettingToDelete(item);
   };
 
   const loadBranchContent = async (selectedBranchId: string, selectedKind = kind) => {
     try {
-      const nextClassTypes = await client.listClassTypes(selectedBranchId || undefined);
+      const nextClassTypes = await client.listClassTypes(selectedBranchId || undefined, 'ALL');
       setClassTypes(nextClassTypes);
       setClassTypeId((current) =>
-        nextClassTypes.some((item) => item.id === current) ? current : (nextClassTypes[0]?.id ?? ''),
+        nextClassTypes.some((item) => item.id === current && item.active)
+          ? current
+          : (nextClassTypes.find((item) => item.active)?.id ?? ''),
       );
     } catch {
       // Tetap lanjutkan jika catalog global sedang offline
@@ -274,42 +262,19 @@ export function MasterView({
 
     if (!selectedBranchId) {
       setSettings([]);
-      setStudios([]);
       return;
     }
-    const [nextSettings, nextStudios] = await Promise.all([
-      client.listSettings(selectedKind, selectedBranchId),
-      client.listStudios(selectedBranchId, { includeInactive: true }),
-    ]);
+    const nextSettings = await client.listSettings(selectedKind, selectedBranchId);
     setSettings(nextSettings);
-    setStudios(nextStudios);
-    setSelectedStudioId(nextStudios.find((item) => item.active)?.id ?? '');
   };
 
-  const loadBranchPage = async (cursor?: string) => {
+  const loadBranches = async () => {
     const page = await client.listBranches({
-      q: branchSearch.trim() || undefined,
-      status: branchStatus || undefined,
-      cursor,
-      limit: 20,
+      status: 'ACTIVE',
+      limit: 100,
     });
     setBranches(page.items);
-    setBranchCursor(cursor);
-    setBranchNextCursor(page.page.nextCursor);
-    setBranchSummary(page.summary);
     return page;
-  };
-
-  const loadAllActiveBranches = async () => {
-    const all: Branches = [];
-    let cursor: string | undefined;
-    do {
-      const page = await client.listBranches({ status: 'ACTIVE', cursor, limit: 100 });
-      all.push(...page.items);
-      cursor = page.page.nextCursor ?? undefined;
-    } while (cursor);
-    setScopeBranches(all);
-    return all;
   };
 
   const load = async (isManual = false) => {
@@ -317,8 +282,7 @@ export function MasterView({
     if (isManual || testAccess) setMessage(undefined);
     setLoading(true);
     try {
-      const page = await loadBranchPage();
-      setBranchCursorHistory([]);
+      const page = await loadBranches();
       const nextBranches = page.items;
       const selectedBranchId =
         nextBranches.find((item) => item.id === branchId && item.active)?.id ??
@@ -326,7 +290,7 @@ export function MasterView({
         nextBranches.find((item) => item.active)?.id ??
         '';
       setBranchId(selectedBranchId);
-      await loadBranchContent(selectedBranchId);
+      await loadBranchContent(selectedBranchId, tabToKind(selectedTab));
       if (isManual || testAccess) {
         setMessage('Master data berhasil dimuat.');
       }
@@ -336,20 +300,6 @@ export function MasterView({
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    if (!sessionContext && !testAccess) return;
-    if (!branchFilterInitialized.current) {
-      branchFilterInitialized.current = true;
-      return;
-    }
-    const timer = window.setTimeout(() => {
-      setBranchCursorHistory([]);
-      void loadBranchPage().catch((err) => setFailure(masterFailureMessage(err)));
-    }, 250);
-    return () => window.clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [branchSearch, branchStatus]);
 
   useEffect(() => {
     if (sessionContext) {
@@ -371,7 +321,7 @@ export function MasterView({
       <AdminPageHeader
         title="Data Master"
         titleId="master-title"
-        description="Kelola katalog tipe kelas global serta konfigurasi kapasitas, proyeksi, honor instruktur, dan area studio."
+        description="Kelola katalog tipe kelas global serta konfigurasi kuota kapasitas dan honor instruktur."
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <StatusBadge tone={canManage ? 'success' : 'neutral'}>
@@ -406,8 +356,8 @@ export function MasterView({
           value={String(classTypes.filter((item) => item.active).length)}
         />
         <StatCard
-          label="Area studio cabang"
-          value={String(studios.filter((item) => item.active).length)}
+          label="Cabang aktif"
+          value={String(branches.filter((item) => item.active).length)}
         />
         <StatCard
           label="Konfigurasi aktif"
@@ -441,26 +391,15 @@ export function MasterView({
                   }
                   if (!classTypes.length) {
                     void client
-                      .listClassTypes(effectiveBranch || undefined)
+                      .listClassTypes(effectiveBranch || undefined, 'ALL')
                       .then(setClassTypes)
                       .catch(() => {});
                   }
                 } else if (tab.id === 'classTypes') {
-                  void Promise.all([client.listClassTypes(), loadAllActiveBranches()])
-                    .then(([types]) => setClassTypes(types))
+                  void client
+                    .listClassTypes(undefined, 'ALL')
+                    .then(setClassTypes)
                     .catch((err) => setFailure(masterFailureMessage(err)));
-                } else if (tab.id === 'venues') {
-                  const effectiveBranch = branchId || branches.find((b) => b.active)?.id || '';
-                  if (effectiveBranch) {
-                    if (!branchId) setBranchId(effectiveBranch);
-                    void client
-                      .listStudios(effectiveBranch, { includeInactive: true })
-                      .then((nextStudios) => {
-                        setStudios(nextStudios);
-                        setSelectedStudioId(nextStudios.find((item) => item.active)?.id ?? '');
-                      })
-                      .catch((err) => setFailure(masterFailureMessage(err)));
-                  }
                 }
               }}
             />
@@ -579,18 +518,20 @@ export function MasterView({
                 label="Status tipe kelas"
                 value={classTypeStatusFilter}
                 onChange={(event) =>
-                  setClassTypeStatusFilter(event.currentTarget.value as '' | 'ACTIVE' | 'INACTIVE')
+                  setClassTypeStatusFilter(event.currentTarget.value as '' | 'ACTIVE' | 'INACTIVE' | 'ARCHIVED')
                 }
               >
                 <option value="">Semua status</option>
                 <option value="ACTIVE">Aktif</option>
                 <option value="INACTIVE">Nonaktif</option>
+                <option value="ARCHIVED">Diarsipkan</option>
               </SelectInput>
             </div>
 
             {/* Full-Width CRUD Data Table */}
             {filteredClassTypes.length ? (
-              <div className="overflow-x-auto">
+              <div className="space-y-4">
+                <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
                   <thead className="border-b border-dd-line text-xs uppercase text-dd-muted">
                     <tr>
@@ -605,114 +546,109 @@ export function MasterView({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-dd-line">
-                    {filteredClassTypes.map((item, idx) => (
+                    {pagedClassTypes.map((item, idx) => (
                       <tr key={item.id} className="hover:bg-dd-surface-muted/50">
-                        <td className="py-3.5 text-xs text-dd-muted">{idx + 1}</td>
+                        <td className="py-3.5 text-xs text-dd-muted">
+                          {(classTypePage - 1) * ADMIN_PAGE_SIZE + idx + 1}
+                        </td>
                         <td className="py-3.5 font-mono text-xs font-semibold text-dd-ink">
                           {item.code}
                         </td>
                         <td className="py-3.5 font-medium text-dd-ink">{item.name}</td>
-                        <td className="py-3.5 text-xs text-dd-muted">
-                          {(item.branchScopes ?? []).filter((scope) => scope.active).length
-                            ? (item.branchScopes ?? [])
-                                .filter((scope) => scope.active)
-                                .map(
-                                  (scope) =>
-                                    scope.branch?.name ??
-                                    branches.find((branch) => branch.id === scope.branchId)?.name ??
-                                    scope.branchId,
-                                )
-                                .join(', ')
-                            : 'Belum tersedia di Studio/Cabang mana pun'}
+                        <td className="py-3.5 text-xs">
+                          <span className="inline-flex items-center gap-1.5 rounded-full bg-dd-teal/10 px-2.5 py-0.5 text-xs font-medium text-dd-forest">
+                            <Globe className="size-3" aria-hidden="true" />
+                            Semua Cabang (Global)
+                          </span>
                         </td>
                         <td className="py-3.5">
                           <StatusBadge tone={item.active ? 'success' : 'neutral'}>
-                            {item.active ? 'Aktif' : 'Nonaktif'}
+                            {item.archivedAt ? 'Diarsipkan' : item.active ? 'Aktif' : 'Nonaktif'}
                           </StatusBadge>
                         </td>
                         <td className="py-3.5 text-right">
-                          <div className="flex items-center justify-end gap-1.5">
-                            {item.active ? (
-                              <>
-                                <Button
-                                  variant="secondary"
-                                  type="button"
-                                  size="sm"
-                                  disabled={!canManage || loading}
-                                  onClick={() => {
-                                    setEditingClassType(item);
-                                    setClassTypeName(item.name);
-                                    setClassTypeReason('');
-                                  }}
-                                >
-                                  Edit
-                                </Button>
-                                <Button
-                                  variant="secondary"
-                                  type="button"
-                                  size="sm"
-                                  disabled={!canManage || loading}
-                                  onClick={() => {
-                                    setScopingClassType(item);
-                                    setClassTypeScopeBranchIds(
-                                      (item.branchScopes ?? [])
-                                        .filter((scope) => scope.active)
-                                        .map((scope) => scope.branchId),
-                                    );
-                                    setClassTypeScopeReason('');
-                                  }}
-                                >
-                                  Atur Cabang
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  type="button"
-                                  size="sm"
-                                  disabled={!canManage || loading}
-                                  onClick={() =>
-                                    void run(async () => {
-                                      await client.deactivateClassType(item.id, item.version);
-                                      await loadBranchContent(branchId);
-                                    }, 'Tipe kelas berhasil dinonaktifkan.')
+                          <TableActionMenu
+                            ariaLabel={`Aksi tipe kelas ${item.name}`}
+                            disabled={!canManage || loading}
+                            items={[
+                              {
+                                key: 'edit',
+                                label: 'Edit',
+                                icon: <Pencil className="size-4" aria-hidden="true" />,
+                                hidden: !item.active,
+                                onClick: () => {
+                                  setEditingClassType(item);
+                                  setClassTypeName(item.name);
+                                  setClassTypeReason('');
+                                },
+                              },
+                              item.active
+                                ? {
+                                    key: 'deactivate',
+                                    label: 'Nonaktifkan',
+                                    icon: <Power className="size-4" aria-hidden="true" />,
+                                    onClick: () => setClassTypeLifecycle({ item, action: 'deactivate' }),
                                   }
-                                >
-                                  Nonaktifkan
-                                </Button>
-                              </>
-                            ) : (
-                              <Button
-                                variant="secondary"
-                                type="button"
-                                size="sm"
-                                disabled={!canManage || loading}
-                                onClick={() =>
-                                  void (async () => {
-                                    const confirmed = await feedback.confirm({
-                                      title: 'Aktifkan kembali tipe kelas?',
-                                      message: `${item.name} kembali tersedia untuk konfigurasi dan kelas baru.`,
-                                      confirmLabel: 'Aktifkan kembali',
-                                    });
-                                    if (!confirmed) return;
-                                    await run(async () => {
-                                      await client.reactivateClassType(item.id, {
-                                        expectedVersion: item.version,
-                                        reason: 'Mengaktifkan kembali tipe kelas melalui Master Data.',
-                                      });
-                                      await loadBranchContent(branchId);
-                                    }, 'Tipe kelas berhasil diaktifkan kembali.');
-                                  })()
-                                }
-                              >
-                                Aktifkan kembali
-                              </Button>
-                            )}
-                          </div>
+                                : {
+                                    key: 'reactivate',
+                                    label: item.archivedAt ? 'Buka arsip & aktifkan' : 'Aktifkan kembali',
+                                    icon: <Power className="size-4" aria-hidden="true" />,
+                                    onClick: () =>
+                                      void (async () => {
+                                        const confirmed = await feedback.confirm({
+                                          title: item.archivedAt
+                                            ? 'Buka arsip dan aktifkan tipe kelas?'
+                                            : 'Aktifkan kembali tipe kelas?',
+                                          message: `${item.name} kembali tersedia untuk konfigurasi dan kelas baru.`,
+                                          confirmLabel: 'Aktifkan kembali',
+                                        });
+                                        if (!confirmed) return;
+                                        await run(async () => {
+                                          await client.reactivateClassType(item.id, {
+                                            expectedVersion: item.version,
+                                          });
+                                          await loadBranchContent(branchId);
+                                          if (classTypeStatusFilter === 'ARCHIVED') await loadArchivedClassTypes();
+                                        }, 'Tipe kelas berhasil diaktifkan kembali.');
+                                      })(),
+                                  },
+                              {
+                                key: 'archive',
+                                label: 'Arsipkan',
+                                icon: <Archive className="size-4" aria-hidden="true" />,
+                                hidden: Boolean(item.archivedAt),
+                                onClick: () => setClassTypeLifecycle({ item, action: 'archive' }),
+                              },
+                              {
+                                key: 'delete',
+                                label: 'Hapus',
+                                icon: <Trash2 className="size-4" aria-hidden="true" />,
+                                tone: 'danger',
+                                divider: true,
+                                onClick: () => setClassTypeLifecycle({ item, action: 'delete' }),
+                              },
+                            ]}
+                          />
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
+              <Pagination
+                currentPage={classTypePage}
+                totalPages={totalClassTypePages}
+                totalItems={filteredClassTypes.length}
+                pageSize={ADMIN_PAGE_SIZE}
+                hasPrevious={classTypePage > 1}
+                hasNext={classTypePage < totalClassTypePages}
+                showPageNumbers
+                totalLabel={`${filteredClassTypes.length.toLocaleString('id-ID')} tipe kelas`}
+                onPageChange={(target) => setClassTypePage(target)}
+                onPrevious={() => setClassTypePage((p) => Math.max(1, p - 1))}
+                onNext={() => setClassTypePage((p) => Math.min(totalClassTypePages, p + 1))}
+              />
+            </div>
             ) : (
               <div className="mt-4">
                 <EmptyState
@@ -735,7 +671,7 @@ export function MasterView({
           <Modal
             open={isCreateClassTypeModalOpen}
             title="Tambah tipe kelas"
-            description="Tipe kelas adalah katalog global studio. Cabang yang dapat menggunakannya dipilih setelah tipe kelas dibuat."
+            description="Tipe kelas merupakan katalog global studio yang dapat langsung digunakan dan dijadwalkan di seluruh studio dan cabang."
             busy={loading}
             onClose={() => setIsCreateClassTypeModalOpen(false)}
             footer={
@@ -774,10 +710,16 @@ export function MasterView({
                   });
                   form.reset();
                   setIsCreateClassTypeModalOpen(false);
-                  setClassTypes(await client.listClassTypes());
+                  setClassTypes(await client.listClassTypes(undefined, 'ALL'));
                 }, 'Tipe kelas berhasil dibuat.');
               }}
             >
+              <div className="flex items-center gap-2.5 rounded-dd-sm border border-dd-teal/30 bg-dd-teal/5 p-3 text-xs text-dd-forest">
+                <Globe className="size-4 shrink-0" aria-hidden="true" />
+                <span>
+                  <strong>Katalog Global:</strong> Tipe kelas ini otomatis tersedia dan dapat dijadwalkan di seluruh studio dan cabang Daily Dose.
+                </span>
+              </div>
               <TextInput label="Kode kelas" name="code" placeholder="Contoh: REFORMER" required />
               <TextInput label="Nama kelas" name="name" placeholder="Reformer Pilates" required />
               <TextInput
@@ -790,275 +732,9 @@ export function MasterView({
         </div>
       )}
 
-      {/* Tab: Venues (Area Studio & Ruangan) */}
-      {selectedTab === 'venues' && (
-        <div className="space-y-6">
-          {/* Pemilih Cabang Area Studio Mandiri */}
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-dd-lg border border-dd-line bg-dd-surface p-4 shadow-dd-card">
-            <div className="flex items-center gap-3">
-              <div className="flex size-10 shrink-0 items-center justify-center rounded-dd-sm bg-dd-sand/40 text-dd-forest">
-                <Store className="size-5" />
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-dd-ink">Cabang Studio</h3>
-                <p className="text-xs text-dd-muted">
-                  Kelola area studio dan kapasitas reformer ruangan untuk cabang terpilih.
-                </p>
-              </div>
-            </div>
-            {branches.length > 0 && (
-              <div className="w-full sm:w-72">
-                <SelectInput
-                  aria-label="Pilih cabang studio"
-                  value={branchId}
-                  onChange={(e) => {
-                    const newId = e.target.value;
-                    setBranchId(newId);
-                    void loadBranchContent(newId, kind);
-                  }}
-                >
-                  {branches.filter((b) => b.active).map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.name} ({b.code})
-                    </option>
-                  ))}
-                </SelectInput>
-              </div>
-            )}
-          </div>
 
-          {/* Section Tabel Penuh Area Studio & Ruangan */}
-          <section
-            className="rounded-dd-lg border border-dd-line bg-dd-surface p-6 shadow-dd-card"
-            aria-labelledby="venues-list-title"
-          >
-            {/* Header: Judul, Status & Tombol Tambah */}
-            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-dd-line pb-4">
-              <div>
-                <div className="flex items-center gap-2">
-                  <h2 id="venues-list-title" className="text-base font-semibold text-dd-ink">
-                    Area Studio & Ruangan
-                  </h2>
-                  <StatusBadge tone="info">{studios.length} area</StatusBadge>
-                </div>
-                <p className="mt-1 text-xs text-dd-muted">
-                  Daftar area dan ruangan pada cabang{' '}
-                  <strong className="text-dd-ink">
-                    {branches.find((b) => b.id === branchId)?.name ?? 'Studio terpilih'}
-                  </strong>.
-                </p>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-3">
-                <div className="w-64">
-                  <TextInput
-                    placeholder="Cari area atau ruangan…"
-                    value={venueSearch}
-                    onChange={(e) => setVenueSearch(e.target.value)}
-                    aria-label="Cari area studio atau ruangan"
-                  />
-                </div>
-                <Button
-                  variant="secondary"
-                  onClick={() => {
-                    setTargetStudioIdForNewRoom(studios.find((s) => s.active)?.id ?? '');
-                    setIsCreateRoomModalOpen(true);
-                  }}
-                  disabled={!branchId || !canManage || studios.filter((s) => s.active).length === 0}
-                >
-                  + Tambah Ruangan
-                </Button>
-                <Button
-                  onClick={() => setIsCreateStudioModalOpen(true)}
-                  disabled={!branchId || !canManage}
-                >
-                  + Tambah Area Studio
-                </Button>
-              </div>
-            </div>
-
-            {/* List / Tabel Area Studio */}
-            {filteredStudios.length ? (
-              <StudioVenueList
-                studios={filteredStudios}
-                canManage={canManage}
-                client={client}
-                onAddRoom={(studioId) => {
-                  setTargetStudioIdForNewRoom(studioId);
-                  setSelectedStudioId(studioId);
-                  setIsCreateRoomModalOpen(true);
-                }}
-                onFailure={setFailure}
-                onChanged={async (successMessage) => {
-                  setFailure(undefined);
-                  setMessage(successMessage);
-                  setStudios(await client.listStudios(branchId, { includeInactive: true }));
-                }}
-              />
-            ) : studios.length ? (
-              <div className="mt-4 flex flex-col items-center gap-3">
-                <EmptyState
-                  title="Tidak ada hasil yang cocok"
-                  description={`Tidak ditemukan area studio atau ruangan dengan kata kunci "${venueSearch}".`}
-                />
-                <Button variant="secondary" size="sm" onClick={() => setVenueSearch('')}>
-                  Hapus filter pencarian
-                </Button>
-              </div>
-            ) : (
-              <div className="mt-4 flex flex-col items-center gap-3">
-                <EmptyState
-                  title="Belum ada Area Studio"
-                  description="Tambahkan Area Studio pada Studio/Cabang aktif."
-                />
-                <Button
-                  onClick={() => setIsCreateStudioModalOpen(true)}
-                  disabled={!branchId || !canManage}
-                >
-                  + Tambah Area Studio
-                </Button>
-              </div>
-            )}
-          </section>
-
-          {/* Modal 1: Tambah Area Studio */}
-          <Modal
-            open={isCreateStudioModalOpen}
-            onClose={() => setIsCreateStudioModalOpen(false)}
-            title="Tambah Area Studio"
-          >
-            <form
-              className="flex flex-col gap-4"
-              aria-label="Tambah area studio"
-              onSubmit={(event) => {
-                event.preventDefault();
-                const form = event.currentTarget;
-                const data = new FormData(form);
-                void run(async () => {
-                  if (!branchId) throw new Error('BRANCH_REQUIRED');
-                  await client.createStudio(branchId, {
-                    code: String(data.get('code')).trim().toUpperCase(),
-                    name: String(data.get('name')).trim(),
-                    equipmentText: String(data.get('equipmentText')).trim() || undefined,
-                    contactPhoneE164: String(data.get('contactPhoneE164')).trim() || undefined,
-                  });
-                  form.reset();
-                  setIsCreateStudioModalOpen(false);
-                  const next = await client.listStudios(branchId, { includeInactive: true });
-                  setStudios(next);
-                  setSelectedStudioId(next.find((item) => item.active)?.id ?? '');
-                }, 'Area Studio berhasil ditambahkan.');
-              }}
-            >
-              <div className="rounded-dd-md border border-dd-line bg-dd-surface-muted/50 p-3 text-xs text-dd-muted">
-                Studio/Cabang Aktif:{' '}
-                <strong className="font-semibold text-dd-ink">
-                  {branches.find((b) => b.id === branchId)?.name ?? 'Studio terpilih'}
-                </strong>.
-                Area Studio berada di dalam cabang dan menjadi venue wajib untuk jadwal kelas.
-              </div>
-
-              {!branchId && (
-                <div className="rounded-dd-md border border-dd-warning/40 bg-dd-warning-soft p-3 text-xs font-medium text-dd-warning">
-                  Pilih Studio/Cabang aktif pada pemilih cabang di atas terlebih dahulu.
-                </div>
-              )}
-
-              <TextInput label="Kode area" name="code" placeholder="Contoh: MAIN" required />
-              <TextInput label="Nama area" name="name" placeholder="Main Studio" required />
-              <TextInput label="Equipment" name="equipmentText" placeholder="Reformer, Mat, Foam Roller" />
-              <TextInput label="Nomor kontak" name="contactPhoneE164" placeholder="+628…" />
-
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-dd-line">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => setIsCreateStudioModalOpen(false)}
-                >
-                  Batal
-                </Button>
-                <Button type="submit" disabled={!branchId || !canManage || loading}>
-                  Simpan Area Studio
-                </Button>
-              </div>
-            </form>
-          </Modal>
-
-          {/* Modal 2: Tambah Ruangan */}
-          <Modal
-            open={isCreateRoomModalOpen}
-            onClose={() => setIsCreateRoomModalOpen(false)}
-            title="Tambah Ruangan"
-          >
-            <form
-              className="flex flex-col gap-4"
-              aria-label="Tambah ruangan"
-              onSubmit={(event) => {
-                event.preventDefault();
-                const form = event.currentTarget;
-                const data = new FormData(form);
-                void run(async () => {
-                  const effectiveStudioId = targetStudioIdForNewRoom || selectedStudioId;
-                  if (!effectiveStudioId) throw new Error('STUDIO_REQUIRED');
-                  await client.createRoom(effectiveStudioId, {
-                    code: String(data.get('code')).trim().toUpperCase(),
-                    name: String(data.get('name')).trim(),
-                    capacity: data.get('capacity') ? Number(data.get('capacity')) : undefined,
-                  });
-                  form.reset();
-                  setIsCreateRoomModalOpen(false);
-                  setTargetStudioIdForNewRoom('');
-                  setStudios(await client.listStudios(branchId, { includeInactive: true }));
-                }, 'Ruangan berhasil ditambahkan.');
-              }}
-            >
-              <div className="rounded-dd-md border border-dd-line bg-dd-surface-muted/50 p-3 text-xs text-dd-muted">
-                Studio/Cabang Aktif:{' '}
-                <strong className="font-semibold text-dd-ink">
-                  {branches.find((b) => b.id === branchId)?.name ?? 'Studio terpilih'}
-                </strong>.
-                Ruangan opsional dan selalu berada di dalam satu Area Studio.
-              </div>
-
-              <SearchSelect
-                label="Area Studio"
-                value={targetStudioIdForNewRoom || selectedStudioId}
-                placeholder="Pilih Area Studio"
-                options={studios
-                  .filter((studio) => studio.active)
-                  .map((studio) => ({ id: studio.id, label: studio.name, description: studio.code }))}
-                onChange={(val) => {
-                  setSelectedStudioId(val);
-                  setTargetStudioIdForNewRoom(val);
-                }}
-                required
-              />
-              <TextInput label="Kode ruangan" name="code" placeholder="Contoh: ROOM-A" required />
-              <TextInput label="Nama ruangan" name="name" placeholder="Ruangan A" required />
-              <TextInput label="Kapasitas" name="capacity" type="number" min={1} placeholder="Contoh: 12" />
-
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-dd-line">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => setIsCreateRoomModalOpen(false)}
-                >
-                  Batal
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={!(targetStudioIdForNewRoom || selectedStudioId) || !canManage || loading}
-                >
-                  Simpan Ruangan
-                </Button>
-              </div>
-            </form>
-          </Modal>
-        </div>
-      )}
-
-      {/* Tab: Projection, Capacity, Fees (Operational Settings) */}
-      {['projection', 'capacity', 'fees'].includes(selectedTab) && (
+      {/* Tab: Capacity & Fees (Operational Settings) */}
+      {['capacity', 'fees'].includes(selectedTab) && (
         <div className="space-y-6">
           {/* Pemilih Cabang Operasional Mandiri */}
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-dd-lg border border-dd-line bg-dd-surface p-4 shadow-dd-card">
@@ -1067,7 +743,7 @@ export function MasterView({
                 <Store className="size-5" />
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-dd-ink">Cabang Operasional</h3>
+                <p className="text-sm font-semibold text-dd-ink">Cabang Operasional</p>
                 <p className="text-xs text-dd-muted">
                   Kelola {kindLabels[kind].toLowerCase()} khusus untuk studio/cabang terpilih.
                 </p>
@@ -1129,23 +805,17 @@ export function MasterView({
                 </div>
                 <Button
                   onClick={() => setIsCreateSettingModalOpen(true)}
-                  disabled={
-                    !canManage ||
-                    ((kind === 'INSTRUCTOR_FEE' || kind === 'PROJECTION_RATE') && !canFinance)
-                  }
+                  disabled={!canManage || (kind === 'INSTRUCTOR_FEE' && !canFinance)}
                 >
-                  {kind === 'INSTRUCTOR_FEE'
-                    ? '+ Atur honor baru'
-                    : kind === 'QUOTA_CAPACITY'
-                      ? '+ Atur kuota baru'
-                      : '+ Atur proyeksi baru'}
+                  {kind === 'INSTRUCTOR_FEE' ? '+ Atur honor baru' : '+ Atur kuota baru'}
                 </Button>
               </div>
             </div>
 
             {/* List Data / Tabel */}
             {filteredSettings.length ? (
-              <div className="mt-4 overflow-x-auto">
+              <div className="mt-4 space-y-4">
+                <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
                   <thead className="border-b border-dd-line text-xs uppercase tracking-wider text-dd-muted">
                     <tr>
@@ -1163,11 +833,13 @@ export function MasterView({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-dd-line">
-                    {filteredSettings.map((item, index) => {
+                    {pagedSettings.map((item, index) => {
                       const classType = classTypes.find((type) => type.id === item.classTypeId);
                       return (
                         <tr key={item.id} className="transition-colors hover:bg-dd-surface-muted/50">
-                          <td className="py-3 text-center text-xs text-dd-muted">{index + 1}</td>
+                          <td className="py-3 text-center text-xs text-dd-muted">
+                            {(settingPage - 1) * ADMIN_PAGE_SIZE + index + 1}
+                          </td>
                           <td className="py-3 font-medium text-dd-ink">
                             <span>{classType?.name ?? item.classTypeId}</span>
                             {classType?.code && (
@@ -1201,11 +873,7 @@ export function MasterView({
                               <Button
                                 size="sm"
                                 variant="secondary"
-                                disabled={
-                                  !canManage ||
-                                  ((kind === 'INSTRUCTOR_FEE' || kind === 'PROJECTION_RATE') &&
-                                    !canFinance)
-                                }
+                                disabled={!canManage || (kind === 'INSTRUCTOR_FEE' && !canFinance)}
                                 onClick={() => {
                                   setEditingSetting(item);
                                   const val = item.value as Record<string, unknown>;
@@ -1230,8 +898,7 @@ export function MasterView({
                               {kind !== 'QUOTA_CAPACITY' && canFinance && item.deletable && (
                                 <Button
                                   size="sm"
-                                  variant="ghost"
-                                  className="text-dd-danger hover:bg-dd-danger-soft hover:text-dd-danger"
+                                  variant="danger"
                                   disabled={loading}
                                   onClick={() => void deleteSetting(item)}
                                 >
@@ -1246,6 +913,20 @@ export function MasterView({
                   </tbody>
                 </table>
               </div>
+              <Pagination
+                currentPage={settingPage}
+                totalPages={totalSettingPages}
+                totalItems={filteredSettings.length}
+                pageSize={ADMIN_PAGE_SIZE}
+                hasPrevious={settingPage > 1}
+                hasNext={settingPage < totalSettingPages}
+                showPageNumbers
+                totalLabel={`${filteredSettings.length.toLocaleString('id-ID')} konfigurasi`}
+                onPageChange={(target) => setSettingPage(target)}
+                onPrevious={() => setSettingPage((p) => Math.max(1, p - 1))}
+                onNext={() => setSettingPage((p) => Math.min(totalSettingPages, p + 1))}
+              />
+            </div>
             ) : settings.length ? (
               <div className="mt-4 flex flex-col items-center gap-3">
                 <EmptyState
@@ -1264,16 +945,11 @@ export function MasterView({
                 />
                 <Button
                   onClick={() => setIsCreateSettingModalOpen(true)}
-                  disabled={
-                    !canManage ||
-                    ((kind === 'INSTRUCTOR_FEE' || kind === 'PROJECTION_RATE') && !canFinance)
-                  }
+                  disabled={!canManage || (kind === 'INSTRUCTOR_FEE' && !canFinance)}
                 >
                   {kind === 'INSTRUCTOR_FEE'
                     ? '+ Atur honor pertama'
-                    : kind === 'QUOTA_CAPACITY'
-                      ? '+ Atur kuota pertama'
-                      : '+ Atur proyeksi pertama'}
+                    : '+ Atur kuota pertama'}
                 </Button>
               </div>
             )}
@@ -1430,7 +1106,7 @@ export function MasterView({
                     !classTypeId ||
                     (kind === 'INSTRUCTOR_FEE' && !instructor) ||
                     !canManage ||
-                    ((kind === 'INSTRUCTOR_FEE' || kind === 'PROJECTION_RATE') && !canFinance) ||
+                    (kind === 'INSTRUCTOR_FEE' && !canFinance) ||
                     settingSubmitting
                   }
                 >
@@ -1447,9 +1123,7 @@ export function MasterView({
             title={`Ubah ${
               editingSetting?.kind === 'INSTRUCTOR_FEE'
                 ? 'Honor Instruktur'
-                : editingSetting?.kind === 'QUOTA_CAPACITY'
-                  ? 'Kuota & Kapasitas'
-                  : 'Tarif Proyeksi'
+                : 'Kuota & Kapasitas'
             }`}
           >
             {editingSetting && (
@@ -1498,11 +1172,7 @@ export function MasterView({
                   </div>
                 ) : (
                   <TextInput
-                    label={
-                      editingSetting.kind === 'INSTRUCTOR_FEE'
-                        ? 'Honor per sesi (Rp)'
-                        : 'Nilai proyeksi (Rp)'
-                    }
+                    label="Honor per sesi (Rp)"
                     type="number"
                     min={0}
                     value={editingSettingValue}
@@ -1541,130 +1211,8 @@ export function MasterView({
         </div>
       )}
 
-      {/* Tab: Accounts (Payment Accounts View) */}
-      {selectedTab === 'accounts' && <PaymentAccountsView />}
 
-      {/* Tab: Public Profiles */}
-      {selectedTab === 'publicProfiles' && (
-        <PublicProfileEditor branchId={branchId} canManage={canManage} />
-      )}
 
-      {/* Tab: Packages (Navigational Card to Workspace) */}
-      {selectedTab === 'packages' && (
-        <section className="rounded-dd-lg border border-dd-line bg-dd-surface p-6 shadow-dd-card">
-          <h2 className="text-base font-semibold text-dd-ink">Manajemen Paket Sesi</h2>
-          <p className="mt-2 text-sm leading-6 text-dd-muted">
-            Katalog paket sesi, penetapan harga, kuota sesi, dan masa berlaku kini dikelola terpusat
-            pada workspace khusus paket.
-          </p>
-          <div className="mt-4">
-            <ButtonLink href="/workspace/packages">Buka Manajemen Paket</ButtonLink>
-          </div>
-        </section>
-      )}
-
-      {/* Tab: Branches (Cohesive V2 Layout) */}
-      {selectedTab === 'branches' && (
-        <div className="grid gap-6 lg:grid-cols-12">
-          <div className="lg:col-span-4">
-            <section className="flex flex-col gap-3 rounded-dd-lg border border-dd-line bg-dd-surface p-6 shadow-dd-card">
-              <h2 className="text-base font-semibold text-dd-ink">Branch Management</h2>
-              <p className="text-sm leading-6 text-dd-muted">
-                Pembuatan, detail, dependency, edit, deactivate, dan reactivate cabang kini dikelola
-                secara penuh pada workspace cabang.
-              </p>
-              <div className="pt-2">
-                <ButtonLink href="/workspace/branches">Buka Branch Management</ButtonLink>
-              </div>
-            </section>
-          </div>
-
-          <div className="lg:col-span-8">
-            <section
-              className="rounded-dd-lg border border-dd-line bg-dd-surface p-6 shadow-dd-card"
-              aria-labelledby="branch-list-title"
-            >
-              <h2 id="branch-list-title" className="text-base font-semibold text-dd-ink">
-                Daftar cabang
-              </h2>
-              <div className="my-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_12rem]">
-                <SearchInput
-                  label="Cari cabang"
-                  value={branchSearch}
-                  placeholder="Kode, nama, area, atau kota"
-                  onChange={(event) => setBranchSearch(event.currentTarget.value)}
-                />
-                <SelectInput
-                  label="Status cabang"
-                  value={branchStatus}
-                  onChange={(event) =>
-                    setBranchStatus(event.currentTarget.value as '' | 'ACTIVE' | 'INACTIVE')
-                  }
-                >
-                  <option value="">Semua status</option>
-                  <option value="ACTIVE">Aktif</option>
-                  <option value="INACTIVE">Nonaktif</option>
-                </SelectInput>
-              </div>
-              {branches.length ? (
-                <>
-                  <ul className="grid list-none gap-3 p-0">
-                    {branches.map((item) => (
-                      <li className="rounded-dd-sm border border-dd-line p-4" key={item.id}>
-                        <div className="flex flex-wrap items-center justify-between gap-3">
-                          <div>
-                            <strong className="text-sm font-semibold text-dd-ink">{item.name}</strong>
-                            <div className="text-sm text-dd-muted">
-                              {item.code} · {timezoneLabel(item.timezone)}
-                            </div>
-                          </div>
-                          <StatusBadge tone={item.active ? 'success' : 'neutral'}>
-                            {item.active ? 'Aktif' : 'Nonaktif'}
-                          </StatusBadge>
-                        </div>
-                        <ButtonLink
-                          className="mt-3"
-                          size="sm"
-                          variant="secondary"
-                          href={`/workspace/branches/${item.id}`}
-                        >
-                          Lihat detail
-                        </ButtonLink>
-                      </li>
-                    ))}
-                  </ul>
-                  <div className="mt-4">
-                    <Pagination
-                      hasPrevious={branchCursorHistory.length > 0 && !loading}
-                      hasNext={Boolean(branchNextCursor) && !loading}
-                      currentPage={branchCursorHistory.length + 1}
-                      onPrevious={() => {
-                        const previous = branchCursorHistory.at(-1) ?? '';
-                        void run(async () => {
-                          await loadBranchPage(previous || undefined);
-                          setBranchCursorHistory((current) => current.slice(0, -1));
-                        }, 'Halaman cabang sebelumnya dimuat.');
-                      }}
-                      onNext={() => {
-                        if (!branchNextCursor) return;
-                        void run(async () => {
-                          await loadBranchPage(branchNextCursor);
-                          setBranchCursorHistory((current) => [...current, branchCursor ?? '']);
-                        }, 'Halaman cabang berikutnya dimuat.');
-                      }}
-                    />
-                  </div>
-                </>
-              ) : (
-                <EmptyState
-                  title="Belum ada cabang"
-                  description="Muat data atau tambahkan cabang baru."
-                />
-              )}
-            </section>
-          </div>
-        </div>
-      )}
 
       {/* Class Type Edit Modal */}
       <Modal
@@ -1715,7 +1263,7 @@ export function MasterView({
                     await client.updateClassType(editingClassType.id, {
                       name: classTypeName.trim(),
                       expectedVersion: editingClassType.version,
-                      reason: classTypeReason.trim() || 'Pembaruan nama tipe kelas oleh admin',
+                      reason: classTypeReason.trim() || undefined,
                     });
                     setEditingClassType(undefined);
                     setClassTypeName('');
@@ -1748,86 +1296,52 @@ export function MasterView({
           </div>
         )}
       </Modal>
-
-      {/* Class Type Scope Drawer */}
-      <Drawer
-        open={Boolean(scopingClassType)}
-        title="Atur Studio/Cabang"
-        description="Pilihan disimpan sebagai cakupan eksplisit. Cabang baru tidak otomatis ikut."
-        busy={loading}
-        dirty={Boolean(scopingClassType && classTypeScopeReason.trim())}
-        onClose={() => {
-          setScopingClassType(undefined);
-          setClassTypeScopeBranchIds([]);
-          setClassTypeScopeReason('');
-        }}
-        footer={
-          <div className="flex justify-end gap-2">
-            <Button
-              type="button"
-              variant="secondary"
-              disabled={loading}
-              onClick={() => {
-                setScopingClassType(undefined);
-                setClassTypeScopeBranchIds([]);
-                setClassTypeScopeReason('');
-              }}
-            >
-              Batal
-            </Button>
-            <Button
-              type="button"
-              disabled={loading || !scopingClassType}
-              onClick={() =>
-                void run(async () => {
-                  if (!scopingClassType) return;
-                  await client.replaceClassTypeScopes(scopingClassType.id, {
-                    branchIds: classTypeScopeBranchIds,
-                    expectedVersion: scopingClassType.version,
-                    reason: classTypeScopeReason.trim() || 'Pembaruan cakupan studio oleh admin',
-                  });
-                  setScopingClassType(undefined);
-                  setClassTypeScopeBranchIds([]);
-                  setClassTypeScopeReason('');
-                  setClassTypes(await client.listClassTypes());
-                }, 'Cakupan tipe kelas berhasil diperbarui.')
+      <LifecycleDialog
+        request={
+          classTypeLifecycle
+            ? {
+                kind: 'class-type',
+                id: classTypeLifecycle.item.id,
+                name: classTypeLifecycle.item.name,
+                action: classTypeLifecycle.action,
               }
-            >
-              Simpan cakupan
-            </Button>
-          </div>
+            : null
         }
-      >
-        {scopingClassType && (
-          <div className="grid gap-4">
-            <p className="text-sm text-dd-muted">{scopingClassType.name}</p>
-            <div className="grid gap-2">
-              {scopeBranches
-                .filter((branch) => branch.active)
-                .map((branch) => (
-                  <CheckboxInput
-                    key={branch.id}
-                    label={branch.name}
-                    checked={classTypeScopeBranchIds.includes(branch.id)}
-                    onChange={(event) =>
-                      setClassTypeScopeBranchIds((current) =>
-                        event.target.checked
-                          ? [...new Set([...current, branch.id])]
-                          : current.filter((id) => id !== branch.id),
-                      )
-                    }
-                  />
-                ))}
-            </div>
-            <TextInput
-              label="Alasan perubahan (opsional)"
-              placeholder="Contoh: Penyesuaian cakupan cabang"
-              value={classTypeScopeReason}
-              onChange={(event) => setClassTypeScopeReason(event.target.value)}
-            />
-          </div>
-        )}
-      </Drawer>
+        deactivate={(reason) =>
+          client.deactivateClassType(classTypeLifecycle!.item.id, classTypeLifecycle!.item.version, reason)
+        }
+        onClose={() => setClassTypeLifecycle(null)}
+        onDone={async (done) => {
+          setClassTypeLifecycle(null);
+          setFailure(undefined);
+          setMessage(done);
+          await loadBranchContent(branchId);
+          if (classTypeStatusFilter === 'ARCHIVED') await loadArchivedClassTypes();
+        }}
+      />
+      <ReasonDialog
+        open={Boolean(settingToDelete)}
+        title="Hapus tarif yang belum berlaku?"
+        description={
+          settingToDelete
+            ? `${settingValue(settingToDelete)} yang berlaku mulai ${dateValue(settingToDelete.effectiveFrom)} akan dihapus. Tarif yang sudah berlaku tidak dapat dihapus.`
+            : undefined
+        }
+        confirmLabel="Hapus tarif"
+        tone="danger"
+        maxLength={500}
+        busy={loading}
+        onCancel={() => setSettingToDelete(null)}
+        onConfirm={(reason) => {
+          const item = settingToDelete;
+          if (!item) return;
+          setSettingToDelete(null);
+          void run(async () => {
+            await client.deleteSetting(item.kind as 'INSTRUCTOR_FEE' | 'PROJECTION_RATE', item.id, reason);
+            await loadBranchContent(branchId, kind);
+          }, 'Tarif dihapus.');
+        }}
+      />
     </div>
   );
 }

@@ -1,9 +1,23 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { VouchersView } from './vouchers-view';
 import { browserVoucherClient, type VoucherRecord } from '@/api-clients/voucher-client';
 import { AppFeedbackProvider } from '../components/app-feedback';
+
+const mockDeletability = vi.fn();
+const mockRemove = vi.fn();
+vi.mock('../api-clients/lifecycle-client', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../api-clients/lifecycle-client')>();
+  return {
+    ...actual,
+    lifecycleClient: {
+      deletability: (...args: unknown[]) => mockDeletability(...args),
+      remove: (...args: unknown[]) => mockRemove(...args),
+      archive: vi.fn(),
+    },
+  };
+});
 
 const mockPush = vi.fn();
 vi.mock('next/navigation', () => ({
@@ -131,7 +145,7 @@ describe('VouchersView CRUD Actions', () => {
     expect(screen.queryByText('Draft', { selector: 'p' })).not.toBeInTheDocument();
   });
 
-  it('renders quick status actions (Jeda for ACTIVE, Aktifkan for PAUSED)', async () => {
+  it('renders quick status actions via action menu (Jeda for ACTIVE, Aktifkan for PAUSED)', async () => {
     render(
       <AppFeedbackProvider>
         <VouchersView />
@@ -140,20 +154,87 @@ describe('VouchersView CRUD Actions', () => {
 
     await screen.findAllByText('PROMO-AKTIF');
 
-    // ACTIVE voucher has "Jeda" button
-    const jedaButtons = screen.getAllByRole('button', { name: 'Jeda' });
-    expect(jedaButtons.length).toBeGreaterThanOrEqual(1);
+    // ACTIVE voucher action menu has "Jeda", "Arsipkan" and "Hapus"
+    const activeMenuBtn = screen.getAllByRole('button', { name: 'Aksi voucher PROMO-AKTIF' })[0]!;
+    await userEvent.click(activeMenuBtn);
+    expect(screen.getByRole('menuitem', { name: 'Jeda' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Arsipkan' })).toBeInTheDocument();
 
-    // PAUSED voucher has "Aktifkan" button
-    const aktifkanButtons = screen.getAllByRole('button', { name: 'Aktifkan' });
-    expect(aktifkanButtons.length).toBeGreaterThanOrEqual(1);
-
-    // Both have "Arsip" button
-    const arsipButtons = screen.getAllByRole('button', { name: 'Arsip' });
-    expect(arsipButtons.length).toBeGreaterThanOrEqual(2);
+    // Close menu or click PAUSED voucher action menu
+    const pausedMenuBtn = screen.getAllByRole('button', { name: 'Aksi voucher PROMO-JEDA' })[0]!;
+    await userEvent.click(pausedMenuBtn);
+    expect(screen.getByRole('menuitem', { name: 'Aktifkan' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Arsipkan' })).toBeInTheDocument();
   });
 
-  it('triggers transition confirmation and calls browserVoucherClient.transition on confirm', async () => {
+  it('pauses only with a typed reason (no invented default) and sends it to the server', async () => {
+    render(
+      <AppFeedbackProvider>
+        <VouchersView />
+      </AppFeedbackProvider>,
+    );
+
+    await screen.findAllByText('PROMO-AKTIF');
+    await userEvent.click(screen.getAllByRole('button', { name: 'Aksi voucher PROMO-AKTIF' })[0]!);
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Jeda' }));
+
+    const dialog = await screen.findByRole('dialog', { name: 'Jeda voucher?' });
+    const confirm = within(dialog).getByRole('button', { name: 'Jeda' });
+    expect(confirm).toBeDisabled();
+    await userEvent.type(within(dialog).getByLabelText('Alasan'), 'Promo ditunda');
+    await userEvent.click(confirm);
+
+    await waitFor(() => {
+      expect(browserVoucherClient.transition).toHaveBeenCalledWith('v-1', 'pause', 1, 'Promo ditunda');
+    });
+  });
+
+  it('archives with a reason, separately from pausing', async () => {
+    render(
+      <AppFeedbackProvider>
+        <VouchersView />
+      </AppFeedbackProvider>,
+    );
+    await screen.findAllByText('PROMO-AKTIF');
+    await userEvent.click(screen.getAllByRole('button', { name: 'Aksi voucher PROMO-AKTIF' })[0]!);
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Arsipkan' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Arsipkan voucher?' });
+    await userEvent.type(within(dialog).getByLabelText('Alasan'), 'Promo berakhir');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Arsipkan' }));
+    await waitFor(() => {
+      expect(browserVoucherClient.transition).toHaveBeenCalledWith('v-1', 'archive', 1, 'Promo berakhir');
+    });
+  });
+
+  it('deletes a never-used voucher with a reason, and explains why a used one cannot be deleted', async () => {
+    mockDeletability.mockResolvedValueOnce({
+      kind: 'voucher',
+      id: 'v-1',
+      deletable: false,
+      blockers: [{ kind: 'voucher_used', label: 'pemakaian voucher', count: 4 }],
+    });
+    render(
+      <AppFeedbackProvider>
+        <VouchersView />
+      </AppFeedbackProvider>,
+    );
+    await screen.findAllByText('PROMO-AKTIF');
+    await userEvent.click(screen.getAllByRole('button', { name: 'Aksi voucher PROMO-AKTIF' })[0]!);
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Hapus' }));
+    expect(await screen.findByText('Voucher belum dapat dihapus')).toBeVisible();
+    expect(screen.getByText('Pemakaian voucher')).toBeVisible();
+    expect(mockRemove).not.toHaveBeenCalled();
+  });
+
+  it('renders Edit button in action menu and opens EditVoucherModal, calling browserVoucherClient.update on submit', async () => {
+    vi.spyOn(browserVoucherClient, 'update').mockResolvedValue({
+      ...mockVouchers[0]!,
+      name: 'Diskon 25 Persen',
+      discountValue: 25,
+      version: 2,
+    });
+
+    const user = userEvent.setup();
     render(
       <AppFeedbackProvider>
         <VouchersView />
@@ -162,19 +243,35 @@ describe('VouchersView CRUD Actions', () => {
 
     await screen.findAllByText('PROMO-AKTIF');
 
-    const jedaButton = screen.getAllByRole('button', { name: 'Jeda' })[0]!;
-    await userEvent.click(jedaButton);
+    const activeMenuBtn = screen.getAllByRole('button', { name: 'Aksi voucher PROMO-AKTIF' })[0]!;
+    await user.click(activeMenuBtn);
 
-    // Confirmation dialog appears
-    expect(await screen.findByText('Jeda voucher PROMO-AKTIF?')).toBeVisible();
+    const editItem = screen.getByRole('menuitem', { name: 'Edit' });
+    await user.click(editItem);
 
-    // Confirm the action in the dialog
-    const confirmButtons = screen.getAllByRole('button', { name: 'Jeda' });
-    const modalConfirmBtn = confirmButtons[confirmButtons.length - 1]!;
-    await userEvent.click(modalConfirmBtn);
+    expect(await screen.findByRole('heading', { name: 'Ubah Voucher: PROMO-AKTIF' })).toBeVisible();
+
+    const nameInput = screen.getByLabelText('Nama voucher') as HTMLInputElement;
+    expect(nameInput.value).toBe('Diskon 20 Persen');
+
+    const reasonInput = screen.getByLabelText('Alasan pembaruan') as HTMLInputElement;
+    await user.type(reasonInput, 'Penyesuaian kuota promo');
+
+    const submitBtn = screen.getByRole('button', { name: 'Simpan perubahan' });
+    await user.click(submitBtn);
+
+    // Confirm dialog
+    const confirmBtns = await screen.findAllByRole('button', { name: 'Simpan perubahan' });
+    await user.click(confirmBtns[confirmBtns.length - 1]!);
 
     await waitFor(() => {
-      expect(browserVoucherClient.transition).toHaveBeenCalledWith('v-1', 'pause', 1);
+      expect(browserVoucherClient.update).toHaveBeenCalledWith(
+        'v-1',
+        expect.objectContaining({
+          name: 'Diskon 20 Persen',
+          reason: 'Penyesuaian kuota promo',
+        }),
+      );
     });
   });
 });
