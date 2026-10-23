@@ -17,7 +17,7 @@ import { Badge, DataTable, FilterBar, Pagination, Panel } from '../components/ad
 import { Button } from '../components/actions';
 import { AsyncSearchSelect, DateInput, SelectInput, TextInput } from '../components/forms';
 import { pageOffset } from '../lib/pagination';
-import { auditActionLabel } from '../lib/audit-labels';
+import { auditActionLabel, auditObjectLabel } from '../lib/audit-labels';
 
 const failureCopy: Record<UiFailure, string> = {
   AUTHENTICATION_REQUIRED: 'Sesi berakhir. Silakan masuk kembali.',
@@ -211,7 +211,7 @@ export function AuditView({
             {
               id: 'target',
               header: 'Target',
-              cell: (item) => item.target?.displayName ?? '—',
+              cell: (item) => item.target?.displayName ?? auditObjectLabel(item.objectType),
             },
             {
               id: 'branch',

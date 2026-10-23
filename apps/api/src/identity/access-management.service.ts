@@ -1,7 +1,8 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable, Optional } from '@nestjs/common';
 import { Prisma, type Role } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { IdempotencyService } from '../foundation/idempotency.service';
+import { AuditService } from '../foundation/audit.service';
 import { mapUserToEffectiveRoles, type SessionPrincipal } from './identity.service';
 import { PolicyService } from './policy.service';
 import { ApiProblem } from './security';
@@ -64,6 +65,7 @@ export class AccessManagementService {
     private readonly db: PrismaService,
     private readonly policy: PolicyService,
     private readonly idempotency: IdempotencyService,
+    @Optional() private readonly audit?: AuditService,
   ) {}
 
   private authorize(principal: SessionPrincipal) {
@@ -336,6 +338,23 @@ export class AccessManagementService {
         await tx.userSession.updateMany({
           where: { userId, revokedAt: null },
           data: { revokedAt: new Date(), revocationReason: 'ROLE_CHANGED' },
+        });
+
+        await this.audit?.catat(tx, {
+          actorId: principal.userId,
+          branchId: updated.preferredBranchId,
+          correlationId: _correlationId,
+          action: 'access.user_role_replaced',
+          targetUserId: userId,
+          objectType: 'User',
+          objectId: userId,
+          reason: [body.reasonCode, body.note].filter(Boolean).join(': ') || null,
+          beforeMasked: { role: user.role, preferredBranchId: user.preferredBranchId },
+          afterMasked: {
+            role: updated.role,
+            preferredBranchId: updated.preferredBranchId,
+            sessionsRevoked: true,
+          },
         });
 
         return {

@@ -1,9 +1,10 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable, Optional } from '@nestjs/common';
 import { ClassSlotStatus, Prisma, SessionMutationType } from '@prisma/client';
 import { createHash } from 'node:crypto';
 import { PrismaService } from '../database/prisma.service';
 import { RuntimeConfigService } from '../configuration/runtime-config.service';
 import { IdempotencyService } from '../foundation/idempotency.service';
+import { AuditService } from '../foundation/audit.service';
 import type { SessionPrincipal } from '../identity/identity.service';
 import { PolicyService } from '../identity/policy.service';
 import { ApiProblem, ENTITY_ID_REGEX, newId } from '../identity/security';
@@ -90,7 +91,32 @@ export class ClassSlotService {
     private readonly policy: PolicyService,
     private readonly idempotency: IdempotencyService,
     private readonly config: RuntimeConfigService,
+    @Optional() private readonly audit?: AuditService,
   ) {}
+
+  /** Jejak audit permanen untuk perubahan kelas; ikut transaksi sehingga batal bersama perubahannya. */
+  private auditSlot(
+    tx: Tx,
+    principal: SessionPrincipal,
+    correlationId: string,
+    action: string,
+    slot: { id: string; branchId: string },
+    before: Prisma.InputJsonValue | undefined,
+    after: Prisma.InputJsonValue | undefined,
+    reason?: string | null,
+  ) {
+    return this.audit?.catat(tx, {
+      actorId: principal.userId,
+      branchId: slot.branchId,
+      correlationId,
+      action,
+      objectType: 'ClassSlot',
+      objectId: slot.id,
+      reason,
+      beforeMasked: before,
+      afterMasked: after,
+    });
+  }
 
   private scope(principal: SessionPrincipal, branchId: string, capability: string) {
     if (
@@ -451,6 +477,11 @@ export class ClassSlotService {
         await this.claim(tx, id, expectedVersion, STATUS_ALLOWED.assign, {
           instructorId: input.instructorUserId,
         });
+        await this.auditSlot(
+          tx, principal, _correlationId, 'class_slot.instructor_assigned', slot,
+          { instructorId: slot.instructorId, status: slot.status },
+          { instructorId: input.instructorUserId },
+        );
         return this.viewOf(tx, id);
       },
     );
@@ -564,6 +595,27 @@ export class ClassSlotService {
               }
             : {}),
         });
+        await this.auditSlot(
+          tx, principal, _correlationId, 'class_slot.updated', slot,
+          {
+            classTypeId: slot.classTypeId,
+            instructorId: slot.instructorId,
+            studioId: slot.studioId,
+            roomId: slot.roomId,
+            startAt: slot.startAt.toISOString(),
+            endAt: slot.endAt.toISOString(),
+          },
+          {
+            classTypeId: input.classTypeId,
+            instructorId: targetInstructorId,
+            studioId: targetStudioId,
+            roomId: targetRoomId,
+            startAt: startAt.toISOString(),
+            endAt: endAt.toISOString(),
+            ...(input.instructorFeeRp !== undefined ? { instructorFeeRp: input.instructorFeeRp } : {}),
+          },
+          input.reason,
+        );
         return this.viewOf(tx, id);
       },
     );
@@ -600,6 +652,11 @@ export class ClassSlotService {
         await this.claim(tx, id, expectedVersion, STATUS_ALLOWED.publish, {
           status: ClassSlotStatus.PUBLISHED,
         });
+        await this.auditSlot(
+          tx, principal, _correlationId, 'class_slot.published', slot,
+          { status: slot.status },
+          { status: ClassSlotStatus.PUBLISHED },
+        );
         return this.viewOf(tx, id);
       },
     );
@@ -637,6 +694,12 @@ export class ClassSlotService {
           cancellationReason: input.reasonCode,
           bookedCount: 0,
         });
+        await this.auditSlot(
+          tx, principal, _correlationId, 'class_slot.cancelled', slot,
+          { status: slot.status, bookedCount: slot.bookings.length },
+          { status: ClassSlotStatus.CANCELLED, releasedBookings: slot.bookings.length },
+          input.reasonCode,
+        );
 
         // Refund all booked members
         for (const booking of slot.bookings) {
@@ -828,6 +891,13 @@ export class ClassSlotService {
             data: { isUsed: true },
           });
         }
+
+        await this.auditSlot(
+          tx, principal, _correlationId, 'class_slot.completed', slot,
+          { status: slot.status },
+          { status: ClassSlotStatus.COMPLETED, attendanceCount, noShowCount },
+          input.reason,
+        );
 
         const updated = await tx.slotKelas.findUniqueOrThrow({
           where: { id },

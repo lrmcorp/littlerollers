@@ -179,6 +179,17 @@ export class EffectiveSettingsService {
           classType: { select: { id: true, name: true } },
         },
       });
+      await this.access.audit(
+        this.db,
+        principal,
+        _correlationId,
+        'master.min_quota_saved',
+        'MinQuotaSetting',
+        row.id,
+        row.branchId,
+        undefined,
+        { classTypeId: row.classTypeId, minQuota: row.minQuota, cutoffHours: row.cutoffHours },
+      );
       return {
         id: row.id,
         branchId: row.branchId,
@@ -213,6 +224,22 @@ export class EffectiveSettingsService {
           classType: { select: { id: true, name: true } },
         },
       });
+      await this.access.audit(
+        this.db,
+        principal,
+        _correlationId,
+        'master.instructor_fee_created',
+        'InstructorFee',
+        row.id,
+        row.branchId,
+        undefined,
+        {
+          instructorId: row.instructorId,
+          classTypeId: row.classTypeId,
+          feePerJamRp: row.feePerJamRp,
+          effectiveDate: dateKey(row.effectiveDate),
+        },
+      );
       return {
         id: row.id,
         instructorId: row.instructorId,
@@ -242,6 +269,17 @@ export class EffectiveSettingsService {
           classType: { select: { id: true, name: true } },
         },
       });
+      await this.access.audit(
+        this.db,
+        principal,
+        _correlationId,
+        'master.projection_rate_created',
+        'ProjectionRate',
+        row.id,
+        row.branchId,
+        undefined,
+        { classTypeId: row.classTypeId, ratePerSesiRp: row.ratePerSesiRp, effectiveDate: dateKey(row.effectiveDate) },
+      );
       return {
         id: row.id,
         branchId: row.branchId,
@@ -298,6 +336,11 @@ export class EffectiveSettingsService {
         kind === 'INSTRUCTOR_FEE' ? 'InstructorFee' : 'ProjectionRate',
         id,
         row.branchId,
+        {
+          classTypeId: row.classTypeId,
+          effectiveDate: dateKey(row.effectiveDate),
+          ...('feePerJamRp' in row ? { feePerJamRp: row.feePerJamRp } : { ratePerSesiRp: (row as { ratePerSesiRp: number }).ratePerSesiRp }),
+        },
       );
       return { id, deleted: true };
     });

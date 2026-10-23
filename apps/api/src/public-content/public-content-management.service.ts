@@ -1,6 +1,7 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable, Optional } from '@nestjs/common';
 import { Prisma, type PublicContent } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
+import { AuditService } from '../foundation/audit.service';
 import type { SessionPrincipal } from '../identity/identity.service';
 import { PolicyService } from '../identity/policy.service';
 import { ApiProblem, ENTITY_ID_REGEX } from '../identity/security';
@@ -26,7 +27,32 @@ export class PublicContentManagementService {
   constructor(
     private readonly db: PrismaService,
     private readonly policy: PolicyService,
+    @Optional() private readonly audit?: AuditService,
   ) {}
+
+  /** Jejak audit permanen; isi konten tidak disalin (bisa besar), cukup identitas dan versinya. */
+  private async record(
+    principal: SessionPrincipal,
+    correlationId: string,
+    action: string,
+    row: { id: string; contentKey: string; kind: string; version: number; status: string },
+    before?: { status: string },
+  ) {
+    await this.audit?.catat(null, {
+      actorId: principal.userId,
+      correlationId,
+      action,
+      objectType: 'PublicContent',
+      objectId: row.id,
+      beforeMasked: before,
+      afterMasked: {
+        contentKey: row.contentKey,
+        kind: row.kind,
+        version: row.version,
+        status: row.status,
+      },
+    });
+  }
 
   private view(row: PublicContent) {
     return {
@@ -109,7 +135,9 @@ export class PublicContentManagementService {
     if (locale.length > 10) throw invalid('locale');
     const payload = supported.validate(input.payload) as Prisma.InputJsonValue;
 
-    return this.nextDraft(principal.userId, { contentKey, kind, locale, payload });
+    const draft = await this.nextDraft(principal.userId, { contentKey, kind, locale, payload });
+    await this.record(principal, _correlationId, 'public_content.draft_created', draft);
+    return draft;
   }
 
   private async nextDraft(
@@ -160,19 +188,25 @@ export class PublicContentManagementService {
       data: { payload },
     });
     if (claimed.count !== 1) throw new ApiProblem('INVALID_STATE', HttpStatus.CONFLICT);
-    return this.view(await this.load(id));
+    const updated = this.view(await this.load(id));
+    await this.record(principal, _correlationId, 'public_content.draft_updated', updated);
+    return updated;
   }
 
   /** Salin konten (status apa pun) menjadi draf versi berikutnya. */
   async duplicate(principal: SessionPrincipal, id: string, _correlationId: string) {
     const current = await this.load(id);
     this.assertManage(principal, current.branchId);
-    return this.nextDraft(principal.userId, {
+    const draft = await this.nextDraft(principal.userId, {
       contentKey: current.contentKey,
       kind: current.kind,
       locale: current.locale,
       payload: current.payload as Prisma.InputJsonValue,
     });
+    await this.record(principal, _correlationId, 'public_content.duplicated', draft, {
+      status: current.status,
+    });
+    return draft;
   }
 
   async transition(
@@ -211,6 +245,14 @@ export class PublicContentManagementService {
       });
       if (claimed.count !== 1) throw new ApiProblem('INVALID_STATE', HttpStatus.CONFLICT);
     }
-    return this.view(await this.load(id));
+    const result = this.view(await this.load(id));
+    await this.record(
+      principal,
+      _correlationId,
+      status === 'PUBLISHED' ? 'public_content.published' : 'public_content.archived',
+      result,
+      { status: current.status },
+    );
+    return result;
   }
 }

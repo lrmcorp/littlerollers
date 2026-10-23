@@ -1,6 +1,7 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable, Optional } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
+import { AuditService } from '../foundation/audit.service';
 import type { SessionPrincipal } from './identity.service';
 import { PolicyService } from './policy.service';
 import { ApiProblem, newId } from './security';
@@ -12,6 +13,7 @@ export class AssignmentService {
   constructor(
     private readonly db: PrismaService,
     private readonly policy: PolicyService,
+    @Optional() private readonly audit?: AuditService,
   ) {}
 
   async list(
@@ -185,7 +187,9 @@ export class AssignmentService {
       );
       if (!isSuperOwner) throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);
 
-      if (user.role !== 'OWNER' && user.role !== 'SUPER_OWNER' && (user.role as any) !== 'SUPERADMIN') {
+      const promotedToOwner =
+        user.role !== 'OWNER' && user.role !== 'SUPER_OWNER' && (user.role as any) !== 'SUPERADMIN';
+      if (promotedToOwner) {
         await this.db.user.update({
           where: { id: user.id },
           data: { role: 'OWNER' },
@@ -207,6 +211,23 @@ export class AssignmentService {
         update: {},
       });
 
+      await this.audit?.catat(null, {
+        actorId: principal.userId,
+        branchId: input.branchId,
+        correlationId: _correlationId,
+        action: 'assignment.created',
+        objectType: 'Assignment',
+        objectId: assignment.id,
+        beforeMasked: promotedToOwner ? { role: user.role } : undefined,
+        afterMasked: {
+          type: 'OWNER',
+          userId: input.userId,
+          activeFrom: input.activeFrom,
+          activeUntil: input.activeUntil ?? null,
+          reason: input.reason,
+          ...(promotedToOwner ? { role: 'OWNER' } : {}),
+        },
+      });
       return { id: assignment.id, status: 'ACTIVE', version: 1 };
     }
 
@@ -228,13 +249,28 @@ export class AssignmentService {
       },
     });
 
+    await this.audit?.catat(null, {
+      actorId: principal.userId,
+      branchId: input.branchId,
+      correlationId: _correlationId,
+      action: 'assignment.created',
+      objectType: 'Assignment',
+      objectId: assignment.id,
+      afterMasked: {
+        type: 'INSTRUCTOR',
+        userId: input.userId,
+        activeFrom: input.activeFrom,
+        activeUntil: input.activeUntil ?? null,
+        reason: input.reason,
+      },
+    });
     return { id: assignment.id, status: 'ACTIVE', version: 1 };
   }
 
   async end(
     principal: SessionPrincipal,
     assignmentId: string,
-    _input: { effectiveAt: string; reason: string; expectedVersion?: number },
+    input: { effectiveAt: string; reason: string; expectedVersion?: number },
     _correlationId: string,
   ) {
     this.policy.requireCapability(principal.capabilities, 'assignment:manage');
@@ -247,6 +283,17 @@ export class AssignmentService {
       if (!isSuperOwner) throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);
 
       await this.db.ownerCabang.delete({ where: { id: assignmentId } });
+      await this.audit?.catat(null, {
+        actorId: principal.userId,
+        branchId: ownerBranch.branchId,
+        correlationId: _correlationId,
+        action: 'assignment.ended',
+        objectType: 'Assignment',
+        objectId: assignmentId,
+        reason: input?.reason,
+        beforeMasked: { type: 'OWNER', userId: ownerBranch.ownerId, branchId: ownerBranch.branchId },
+        afterMasked: { effectiveAt: input?.effectiveAt },
+      });
       return { id: assignmentId, status: 'ENDED', version: 1 };
     }
 
@@ -261,6 +308,17 @@ export class AssignmentService {
       data: { active: false },
     });
 
+    await this.audit?.catat(null, {
+      actorId: principal.userId,
+      branchId: assignment.branchId,
+      correlationId: _correlationId,
+      action: 'assignment.ended',
+      objectType: 'Assignment',
+      objectId: assignmentId,
+      reason: input?.reason,
+      beforeMasked: { type: 'INSTRUCTOR', userId: assignment.coachId, branchId: assignment.branchId },
+      afterMasked: { effectiveAt: input?.effectiveAt },
+    });
     return { id: assignmentId, status: 'ENDED', version: 1 };
   }
 

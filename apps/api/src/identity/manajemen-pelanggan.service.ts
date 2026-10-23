@@ -2,6 +2,7 @@ import { HttpStatus, Inject, Injectable, Optional } from '@nestjs/common';
 import { randomBytes } from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
+import { AuditService } from '../foundation/audit.service';
 import { IdempotencyService } from '../foundation/idempotency.service';
 import { WhatsAppGatewayService } from '../notifications/whatsapp-gateway.service';
 import { hashPassword, normalizeEmail } from './credential-security';
@@ -90,6 +91,7 @@ export class CustomerManagementService {
     @Optional() private readonly idempotency?: IdempotencyService,
     @Optional() private readonly whatsapp?: WhatsAppGatewayService,
     @Optional() @Inject(PRIVATE_FILE_STORAGE) private readonly storage?: PrivateFileStorage,
+    @Optional() private readonly audit?: AuditService,
   ) {}
 
   private require(principal: SessionPrincipal, capability: string) {
@@ -680,10 +682,30 @@ export class CustomerManagementService {
     const isActive = typeof activeOrInput === 'boolean' ? activeOrInput : activeOrInput.status === 'ACTIVE';
     const key = typeof bodyOrKey === 'string' ? bodyOrKey : keyOrStepUp;
 
+    const reason =
+      typeof activeOrInput === 'object'
+        ? activeOrInput.reason
+        : typeof bodyOrKey === 'object'
+          ? bodyOrKey?.reason
+          : undefined;
+
     const action = async (tx: Prisma.TransactionClient) => {
+      const before = await tx.user.findUnique({ where: { id }, select: { status: true, preferredBranchId: true } });
       const user = await tx.user.update({
         where: { id },
         data: { status: isActive ? 'ACTIVE' : 'INACTIVE' },
+      });
+      await this.audit?.catat(tx, {
+        actorId: principal.userId,
+        branchId: user.preferredBranchId,
+        correlationId: _correlationId,
+        action: isActive ? 'customer.reactivated' : 'customer.deactivated',
+        targetUserId: id,
+        objectType: 'Customer',
+        objectId: id,
+        reason,
+        beforeMasked: before ? { status: before.status } : undefined,
+        afterMasked: { status: user.status },
       });
       return { id: user.id, status: user.status };
     };
@@ -754,6 +776,17 @@ export class CustomerManagementService {
       where: { id },
       data: { stoppedAt: new Date() },
     });
+    await this.audit?.catat(null, {
+      actorId: principal.userId,
+      branchId: user.preferredBranchId,
+      action: 'customer.marked_stopped',
+      targetUserId: id,
+      objectType: 'Customer',
+      objectId: id,
+      reason: _reason,
+      beforeMasked: { stopped: Boolean(user.stoppedAt) },
+      afterMasked: { stopped: true },
+    });
 
     return {
       id: updated.id,
@@ -784,6 +817,16 @@ export class CustomerManagementService {
     const updated = await this.db.user.update({
       where: { id },
       data: { stoppedAt: null },
+    });
+    await this.audit?.catat(null, {
+      actorId: principal.userId,
+      branchId: user.preferredBranchId,
+      action: 'customer.unmarked_stopped',
+      targetUserId: id,
+      objectType: 'Customer',
+      objectId: id,
+      beforeMasked: { stopped: Boolean(user.stoppedAt) },
+      afterMasked: { stopped: false },
     });
 
     return {

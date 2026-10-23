@@ -1,6 +1,7 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable, Optional } from '@nestjs/common';
 import { Prisma, type NotificationTemplate } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
+import { AuditService } from '../foundation/audit.service';
 import type { SessionPrincipal } from '../identity/identity.service';
 import { PolicyService } from '../identity/policy.service';
 import { ApiProblem, ENTITY_ID_REGEX } from '../identity/security';
@@ -32,7 +33,32 @@ export class NotificationManagementService {
   constructor(
     private readonly db: PrismaService,
     private readonly policy: PolicyService,
+    @Optional() private readonly audit?: AuditService,
   ) {}
+
+  /** Jejak audit permanen; isi pesan tidak disalin, cukup identitas, kanal, dan versinya. */
+  private async record(
+    principal: SessionPrincipal,
+    correlationId: string,
+    action: string,
+    row: { id: string; templateKey: string; channel: string; version: number; status: string },
+    before?: { status: string },
+  ) {
+    await this.audit?.catat(null, {
+      actorId: principal.userId,
+      correlationId,
+      action,
+      objectType: 'NotificationTemplate',
+      objectId: row.id,
+      beforeMasked: before,
+      afterMasked: {
+        templateKey: row.templateKey,
+        channel: row.channel,
+        version: row.version,
+        status: row.status,
+      },
+    });
+  }
 
   private require(principal: SessionPrincipal) {
     this.policy.requireGlobalCapability(principal, 'notification:manage');
@@ -146,12 +172,16 @@ export class NotificationManagementService {
     this.require(principal);
     const templateKey = input?.templateKey?.trim().toUpperCase() ?? '';
     const { channel } = this.definitionFor(templateKey);
-    if (channel === EMAIL_CHANNEL) {
-      const copy = validateEmailTemplateCopy(templateKey, input.body);
-      return this.nextEmailDraft(principal.userId, templateKey, copy);
-    }
-    const body = validateTemplateBody(templateKey, input.body);
-    return this.nextDraft(principal.userId, templateKey, body);
+    const draft =
+      channel === EMAIL_CHANNEL
+        ? await this.nextEmailDraft(
+            principal.userId,
+            templateKey,
+            validateEmailTemplateCopy(templateKey, input.body),
+          )
+        : await this.nextDraft(principal.userId, templateKey, validateTemplateBody(templateKey, input.body));
+    await this.record(principal, _correlationId, 'notification_template.draft_created', draft);
+    return draft;
   }
 
   private async nextDraft(createdById: string, templateKey: string, body: string) {
@@ -228,18 +258,25 @@ export class NotificationManagementService {
       data,
     });
     if (claimed.count !== 1) throw new ApiProblem('INVALID_STATE', HttpStatus.CONFLICT);
-    return this.view(await this.load(id));
+    const updated = this.view(await this.load(id));
+    await this.record(principal, _correlationId, 'notification_template.draft_updated', updated);
+    return updated;
   }
 
   async duplicate(principal: SessionPrincipal, id: string, _correlationId: string) {
     this.require(principal);
     const current = await this.load(id);
-    if (current.channel === EMAIL_CHANNEL)
-      return this.nextEmailDraft(principal.userId, current.templateKey, {
-        subject: current.subject ?? '',
-        intro: current.body,
-      });
-    return this.nextDraft(principal.userId, current.templateKey, current.body);
+    const draft =
+      current.channel === EMAIL_CHANNEL
+        ? await this.nextEmailDraft(principal.userId, current.templateKey, {
+            subject: current.subject ?? '',
+            intro: current.body,
+          })
+        : await this.nextDraft(principal.userId, current.templateKey, current.body);
+    await this.record(principal, _correlationId, 'notification_template.duplicated', draft, {
+      status: current.status,
+    });
+    return draft;
   }
 
   async transition(
@@ -281,6 +318,14 @@ export class NotificationManagementService {
       });
       if (claimed.count !== 1) throw new ApiProblem('INVALID_STATE', HttpStatus.CONFLICT);
     }
-    return this.view(await this.load(id));
+    const result = this.view(await this.load(id));
+    await this.record(
+      principal,
+      _correlationId,
+      status === 'PUBLISHED' ? 'notification_template.published' : 'notification_template.archived',
+      result,
+      { status: current.status },
+    );
+    return result;
   }
 }

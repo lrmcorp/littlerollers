@@ -1,5 +1,6 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable, Optional } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
+import { AuditService } from '../foundation/audit.service';
 import type { SessionPrincipal } from './identity.service';
 import { ApiProblem, ENTITY_ID_REGEX, newId } from './security';
 import { Role } from '@prisma/client';
@@ -8,7 +9,10 @@ const UUID_REGEX = ENTITY_ID_REGEX;
 
 @Injectable()
 export class OwnerBranchService {
-  constructor(private readonly db: PrismaService) {}
+  constructor(
+    private readonly db: PrismaService,
+    @Optional() private readonly audit?: AuditService,
+  ) {}
 
   private isSuperOwner(principal: SessionPrincipal): boolean {
     return principal.roles.some((r) =>
@@ -100,7 +104,10 @@ export class OwnerBranchService {
     }
 
     // Pastikan user memiliki role OWNER jika belum
-    if (user.role !== Role.OWNER && user.role !== Role.SUPER_OWNER && (user.role as any) !== 'SUPERADMIN') {
+    const roleBefore = user.role as string;
+    const promotedToOwner =
+      user.role !== Role.OWNER && user.role !== Role.SUPER_OWNER && (user.role as any) !== 'SUPERADMIN';
+    if (promotedToOwner) {
       await this.db.user.update({
         where: { id: user.id },
         data: { role: Role.OWNER },
@@ -130,6 +137,16 @@ export class OwnerBranchService {
       },
     });
 
+    await this.audit?.catat(null, {
+      actorId: principal.userId,
+      branchId: assignment.branchId,
+      action: 'owner_branch.assigned',
+      objectType: 'OwnerBranch',
+      objectId: assignment.id,
+      beforeMasked: promotedToOwner ? { role: roleBefore } : undefined,
+      afterMasked: { ownerId: assignment.ownerId, branchId: assignment.branchId, ...(promotedToOwner ? { role: 'OWNER' } : {}) },
+    });
+
     return {
       id: assignment.id,
       ownerId: assignment.ownerId,
@@ -155,6 +172,14 @@ export class OwnerBranchService {
     }
 
     await this.db.ownerCabang.delete({ where: { id } });
+    await this.audit?.catat(null, {
+      actorId: principal.userId,
+      branchId: existing.branchId,
+      action: 'owner_branch.unassigned',
+      objectType: 'OwnerBranch',
+      objectId: id,
+      beforeMasked: { ownerId: existing.ownerId, branchId: existing.branchId },
+    });
 
     return { id, removed: true };
   }

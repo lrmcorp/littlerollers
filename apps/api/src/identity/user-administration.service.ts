@@ -650,6 +650,8 @@ export class UserAdministrationService {
       action?: string;
       branchId?: string;
       correlationId?: string;
+      objectType?: string;
+      objectId?: string;
       from?: string;
       until?: string;
       cursor?: string;
@@ -662,7 +664,14 @@ export class UserAdministrationService {
     const createdAt: Prisma.DateTimeFilter = {};
     if (filters.from) createdAt.gte = new Date(filters.from);
     if (filters.until) createdAt.lte = new Date(filters.until);
+    // Peran bercakupan cabang hanya melihat jejak cabangnya; jejak tanpa cabang (global) khusus lintas cabang.
+    const branchScope: Prisma.AuditLogWhereInput = principal.capabilities.includes('branch:all')
+      ? {}
+      : { branchId: { in: principal.branchIds } };
     const where: Prisma.AuditLogWhereInput = {
+      AND: [branchScope],
+      ...(filters.objectType ? { objectType: filters.objectType } : {}),
+      ...(filters.objectId ? { objectId: filters.objectId } : {}),
       ...(filters.actorId ? { actorId: filters.actorId } : {}),
       ...(filters.targetUserId ? { targetUserId: filters.targetUserId } : {}),
       ...(filters.action ? { action: { contains: filters.action } } : {}),
@@ -702,8 +711,8 @@ export class UserAdministrationService {
         targetUserId: row.targetUserId,
         branchId: row.branchId,
         correlationId: row.correlationId ?? '',
-        objectType: 'USER',
-        objectId: row.targetUserId ?? undefined,
+        objectType: row.objectType ?? 'USER',
+        objectId: row.objectId ?? row.targetUserId ?? undefined,
         reason: row.reason,
         afterMasked: row.detail ?? undefined,
         actor: person(row.actorId),

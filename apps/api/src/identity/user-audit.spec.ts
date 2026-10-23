@@ -103,3 +103,43 @@ describe('riwayat audit akun staf', () => {
     expect(new Date(result.items[0]!.occurredAt).toISOString()).toBe('2026-10-13T05:00:00.000Z');
   });
 });
+
+describe('cakupan dan bentuk jejak audit', () => {
+  it('membatasi peran bercakupan cabang ke jejak cabangnya, sedangkan lintas cabang melihat semuanya', async () => {
+    const { service, db } = setup();
+    await service.listAuditLogs({ ...principal, branchIds: ['branch-a'] }, {});
+    expect(db.auditLog.findMany.mock.calls[0][0].where.AND).toEqual([{ branchId: { in: ['branch-a'] } }]);
+    await service.listAuditLogs({ ...principal, capabilities: [...principal.capabilities, 'branch:all'] }, {});
+    expect(db.auditLog.findMany.mock.calls[1][0].where.AND).toEqual([{}]);
+  });
+
+  it('menyaring menurut objek dan mengembalikan jenis serta id objek yang sebenarnya', async () => {
+    const { service, db, rows } = setup();
+    rows.push({
+      id: 'a1',
+      createdAt: new Date('2026-10-13T05:00:00Z'),
+      action: 'master.branch_updated',
+      actorId: 'actor-1',
+      targetUserId: null,
+      branchId: 'branch-a',
+      correlationId: 'c1',
+      reason: null,
+      objectType: 'Branch',
+      objectId: 'branch-a',
+      detail: { before: { name: 'Lama' }, after: { name: 'Baru' } },
+    });
+    const result = await service.listAuditLogs(
+      { ...principal, capabilities: [...principal.capabilities, 'branch:all'] },
+      { objectType: 'Branch', objectId: 'branch-a' },
+    );
+    expect(db.auditLog.findMany.mock.calls[0][0].where).toMatchObject({
+      objectType: 'Branch',
+      objectId: 'branch-a',
+    });
+    expect(result.items[0]).toMatchObject({
+      objectType: 'Branch',
+      objectId: 'branch-a',
+      afterMasked: { before: { name: 'Lama' }, after: { name: 'Baru' } },
+    });
+  });
+});

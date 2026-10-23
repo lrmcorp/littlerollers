@@ -949,11 +949,15 @@ model AuditLog {
   correlationId String?  @db.VarChar(64)
   reason        String?  @db.Text
   detail        Json?
+  // Objek yang diubah (mis. "Branch", "Package"), selain `targetUserId` untuk aksi atas akun pengguna.
+  objectType    String?  @db.VarChar(40)
+  objectId      String?  @db.VarChar(64)
   createdAt     DateTime @default(now())
 
   @@index([targetUserId, createdAt])
   @@index([actorId, createdAt])
   @@index([createdAt])
+  @@index([objectType, objectId, createdAt])
   @@map("audit_log")
 }
 
