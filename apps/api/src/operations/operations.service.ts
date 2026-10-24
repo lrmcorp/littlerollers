@@ -1,4 +1,5 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable, Optional } from '@nestjs/common';
+import { AuditService } from '../foundation/audit.service';
 import { EmailDeliveryStatus } from '@prisma/client';
 import type { SessionPrincipal } from '../identity/identity.service';
 import { PolicyService } from '../identity/policy.service';
@@ -26,6 +27,7 @@ export class OperationsService {
   constructor(
     private readonly policy: PolicyService,
     private readonly emails: EmailNotificationService,
+    @Optional() private readonly audit?: AuditService,
   ) {}
 
   async listEmailDeliveries(principal: SessionPrincipal, status?: string, cursor?: string) {
@@ -102,6 +104,16 @@ export class OperationsService {
     this.policy.requireCapability(principal.capabilities, 'operations:recover');
     if (!UUID.test(id) || reason.trim().length < 3)
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
-    return this.emails.retry(id, reason, principal.userId);
+    const result = await this.emails.retry(id, reason, principal.userId);
+    await this.audit?.catat(null, {
+      actorId: principal.userId,
+      correlationId: _correlationId,
+      action: 'operations.email_retried',
+      objectType: 'EmailDelivery',
+      objectId: id,
+      reason: reason.trim().slice(0, 500),
+      afterMasked: { status: result.status },
+    });
+    return result;
   }
 }

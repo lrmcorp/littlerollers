@@ -87,3 +87,15 @@ describe('financeFailureMessage for corrections', () => {
     expect(financeFailureMessage(failure(403, 'FORBIDDEN'))).toMatch(/mengelola biaya lain/);
   });
 });
+
+describe('finance other-cost delete client', () => {
+  it('sends the typed reason in the DELETE body (the server refuses a delete without one)', async () => {
+    const fetchMock = vi.fn(async () => json({ id: 'cost-1', deleted: true }));
+    vi.stubGlobal('fetch', fetchMock);
+    await browserFinanceClient.deleteOtherCost!('cost-1', 'Salah input');
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe('/api/v1/finance/other-costs/cost-1');
+    expect(init.method).toBe('DELETE');
+    expect(JSON.parse(String(init.body))).toEqual({ reason: 'Salah input' });
+  });
+});

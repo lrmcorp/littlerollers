@@ -1,13 +1,17 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { PurchaseStatus, SessionMutationType } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
+import { AuditService } from '../../foundation/audit.service';
 import type { ReconciliationOutcome } from './bank-mutation.types';
 
 @Injectable()
 export class ReconciliationEngineService {
   private readonly logger = new Logger(ReconciliationEngineService.name);
 
-  constructor(private readonly db: PrismaService) {}
+  constructor(
+    private readonly db: PrismaService,
+    @Optional() private readonly audit?: AuditService,
+  ) {}
 
   /**
    * Run automated reconciliation across given mutation IDs or all UNMATCHED bank mutations
@@ -15,6 +19,9 @@ export class ReconciliationEngineService {
   async reconcile(options: {
     mutationIds?: string[];
     dateToleranceDays?: number;
+    /** Pengguna yang memicu rekonsiliasi; kosong bila dijalankan sistem. */
+    actorId?: string;
+    correlationId?: string;
   } = {}): Promise<ReconciliationOutcome> {
     const toleranceDays = options.dateToleranceDays ?? 3;
     const toleranceMs = toleranceDays * 24 * 60 * 60 * 1000;
@@ -117,6 +124,26 @@ export class ReconciliationEngineService {
                 matchedPurchaseId: candidate.id,
                 matchedAt: now,
                 notes: `Otomatis dicocokkan dengan invoice #${candidate.invoiceNumber} (${candidate.user?.displayName})`,
+              },
+            });
+
+            // 5. Pembayaran dinyatakan lunas oleh sistem: wajib punya jejak permanen.
+            await this.audit?.catat(tx, {
+              actorId: options.actorId,
+              branchId: candidate.branchId ?? undefined,
+              correlationId: options.correlationId,
+              action: 'finance.purchase_auto_reconciled',
+              objectType: 'Purchase',
+              objectId: candidate.id,
+              targetUserId: candidate.userId,
+              reason: 'Nominal cocok dengan satu mutasi bank',
+              beforeMasked: { status: candidate.status },
+              afterMasked: {
+                status: PurchaseStatus.PAID,
+                mutationId: mutation.id,
+                bankName: mutation.bankName,
+                amountRp: mutation.amountRp,
+                customerPackageId: customerPkg.id,
               },
             });
           });

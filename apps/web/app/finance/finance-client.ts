@@ -336,7 +336,8 @@ export interface FinanceClient {
 
   // Aksi Finansial
   executeMonthlyClose?(branchId: string, period: string, reason?: string): Promise<any>;
-  deleteOtherCost?(id: string): Promise<{ id: string; deleted: boolean }>;
+  /** Alasan wajib (K4): biaya yang dihapus tidak dapat dipulihkan. */
+  deleteOtherCost?(id: string, reason: string): Promise<{ id: string; deleted: boolean }>;
   updateOtherCost?(id: string, input: OtherCostUpdate): Promise<unknown>;
 }
 
@@ -574,9 +575,10 @@ export const browserFinanceClient: FinanceClient = {
     });
   },
 
-  async deleteOtherCost(id: string) {
+  async deleteOtherCost(id: string, reason: string) {
     return financeFetch<{ id: string; deleted: boolean }>(`/finance/other-costs/${id}`, {
       method: 'DELETE',
+      body: JSON.stringify({ reason }),
     });
   },
 

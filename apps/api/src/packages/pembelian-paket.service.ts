@@ -775,6 +775,16 @@ export class CustomerOrderService {
       },
     });
 
+    // Pembatalan massal oleh staf: satu catatan ringkas (jumlah dan batas waktu), bukan satu per pesanan.
+    if (result.count > 0)
+      await this.auditService.catat(null, {
+        actorId: principal.userId,
+        action: 'order.expired_in_bulk',
+        objectType: 'Purchase',
+        objectId: 'bulk',
+        afterMasked: { expiredCount: result.count, olderThanHours, executedAt: now.toISOString() },
+      });
+
     return {
       expiredCount: result.count,
       executedAt: now.toISOString(),

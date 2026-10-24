@@ -510,6 +510,24 @@ export class CustomerManagementService {
           .catch(() => undefined);
       }
 
+      await this.audit?.catat(tx, {
+        actorId: principal.userId,
+        branchId: user.preferredBranchId,
+        correlationId: _correlationId,
+        action: 'customer.created',
+        objectType: 'Customer',
+        objectId: user.id,
+        targetUserId: user.id,
+        reason: input.reason?.trim() || null,
+        afterMasked: {
+          displayName: user.displayName,
+          email: maskContactEmail(user.email),
+          phone: maskContactPhone(user.phone),
+          preferredBranchId: user.preferredBranchId,
+          withProfile: Boolean(input.profile),
+        },
+      });
+
       return {
         id: user.id,
         displayName: user.displayName,
@@ -644,6 +662,35 @@ export class CustomerManagementService {
         });
       }
 
+      // Nilai kontak disamarkan dan isi profil (NIK, alamat, dst.) tidak disalin; hanya nama bidang yang berubah.
+      await this.audit?.catat(tx, {
+        actorId: principal.userId,
+        branchId: updated.preferredBranchId,
+        correlationId: _correlationId,
+        action: 'customer.profile_updated',
+        objectType: 'Customer',
+        objectId: id,
+        targetUserId: id,
+        reason: input.reason?.trim() || null,
+        beforeMasked: {
+          displayName: user.displayName,
+          email: maskContactEmail(user.email),
+          phone: maskContactPhone(user.phone),
+          preferredBranchId: user.preferredBranchId,
+        },
+        afterMasked: {
+          displayName: updated.displayName,
+          email: maskContactEmail(updated.email),
+          phone: maskContactPhone(updated.phone),
+          preferredBranchId: updated.preferredBranchId,
+          profileFieldsChanged: input.profile
+            ? Object.entries(input.profile)
+                .filter(([, value]) => value !== undefined)
+                .map(([key]) => key)
+            : [],
+        },
+      });
+
       return {
         id: updated.id,
         displayName: updated.displayName,
@@ -713,6 +760,16 @@ export class CustomerManagementService {
         ...(kind === 'KTP_FRONT' ? { ktpUrl: key } : { selfieUrl: key }),
         updatedAt: new Date(),
       },
+    });
+
+    await this.audit?.catat(null, {
+      actorId: principal.userId,
+      branchId: customer.preferredBranchId,
+      action: 'customer.document_uploaded',
+      objectType: 'Customer',
+      objectId: customerId,
+      targetUserId: customerId,
+      afterMasked: { kind },
     });
 
     return {

@@ -96,4 +96,22 @@ describe('OperationsService email deliveries', () => {
       principal.userId,
     );
   });
+
+  it('records every manual retry in the permanent audit with the operator reason', async () => {
+    const policy = { requireCapability: jest.fn() };
+    const emails = { retry: jest.fn().mockResolvedValue({ id: row().id, status: 'PENDING', nextAttemptAt: new Date() }) };
+    const audit = { catat: jest.fn().mockResolvedValue(undefined) };
+    const service = new OperationsService(policy as never, emails as never, audit as never);
+    await service.retryEmailDelivery(principal as never, row().id, '  Credential SMTP sudah diperbaiki  ', 'corr');
+    expect(audit.catat).toHaveBeenCalledWith(
+      null,
+      expect.objectContaining({
+        action: 'operations.email_retried',
+        objectType: 'EmailDelivery',
+        objectId: row().id,
+        reason: 'Credential SMTP sudah diperbaiki',
+        correlationId: 'corr',
+      }),
+    );
+  });
 });

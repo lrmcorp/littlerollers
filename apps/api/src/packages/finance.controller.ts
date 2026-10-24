@@ -116,8 +116,12 @@ export class FinanceController {
   }
 
   @Delete(['other-costs/:id', 'finance/other-costs/:id'])
-  deleteOtherCost(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
-    return this.finance.deleteOtherCost(req.principal, id);
+  deleteOtherCost(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() body?: { reason?: string },
+  ) {
+    return this.finance.deleteOtherCost(req.principal, id, body?.reason);
   }
 
   @Get(['other-costs', 'finance/other-costs'])

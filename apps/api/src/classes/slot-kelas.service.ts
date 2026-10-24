@@ -432,6 +432,19 @@ export class ClassSlotService {
           },
         });
 
+        await this.auditSlot(
+          tx, principal, _correlationId, 'class_slot.created', slot, undefined,
+          {
+            status: ClassSlotStatus.DRAFT,
+            classTypeId: classType.id,
+            studioId: studio.id,
+            roomId: room?.id ?? null,
+            instructorUserId: input.instructorUserId ?? null,
+            startAt: startAt.toISOString(),
+            capacity: effectiveCapacity,
+          },
+        );
+
         return this.view(slot);
       },
     );

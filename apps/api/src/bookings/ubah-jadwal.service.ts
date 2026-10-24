@@ -1,4 +1,5 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable, Optional } from '@nestjs/common';
+import { AuditService } from '../foundation/audit.service';
 import { Prisma, type RescheduleStatus } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
 import { RuntimeConfigService } from '../configuration/runtime-config.service';
@@ -57,6 +58,7 @@ export class ReschedulesService {
     private readonly idempotency: IdempotencyService,
     private readonly policy: PolicyService,
     private readonly config: RuntimeConfigService,
+    @Optional() private readonly audit?: AuditService,
   ) {}
 
   private syntheticPolicy() {
@@ -319,6 +321,18 @@ export class ReschedulesService {
           },
         });
 
+        await this.audit?.catat(tx, {
+          actorId: principal.userId,
+          branchId: targetSlot.branchId,
+          correlationId: _correlationId,
+          action: 'reschedule.requested',
+          objectType: 'Reschedule',
+          objectId: reschedule.id,
+          targetUserId: principal.userId,
+          reason: input.reasonCode,
+          afterMasked: { bookingId: booking.id, sourceSlotId: reschedule.sourceSlotId, targetSlotId: reschedule.targetSlotId },
+        });
+
         return {
           status: HttpStatus.CREATED,
           body: {
@@ -446,6 +460,19 @@ export class ReschedulesService {
             status: newStatus,
             reason: input.reasonCode ?? reschedule.reason,
           },
+        });
+
+        await this.audit?.catat(tx, {
+          actorId: principal.userId,
+          branchId: reschedule.targetSlot?.branchId ?? null,
+          correlationId: _correlationId,
+          action: decision === 'approve' ? 'reschedule.approved' : 'reschedule.rejected',
+          objectType: 'Reschedule',
+          objectId: id,
+          targetUserId: reschedule.booking.userId,
+          reason: input.reasonCode ?? null,
+          beforeMasked: { status: reschedule.status, sourceSlotId: reschedule.sourceSlotId },
+          afterMasked: { status: newStatus, targetSlotId: reschedule.targetSlotId },
         });
 
         return {

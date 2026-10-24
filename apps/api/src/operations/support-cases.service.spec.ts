@@ -37,7 +37,7 @@ const row = (overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 });
 
-function setup(current: Record<string, unknown> | null = row()) {
+function setup(current: Record<string, unknown> | null = row(), audit?: { catat: jest.Mock }) {
   const db = {
     user: {
       findUnique: jest.fn().mockImplementation(async ({ where }: { where: { id: string } }) =>
@@ -79,7 +79,7 @@ function setup(current: Record<string, unknown> | null = row()) {
     },
     $transaction: jest.fn(async (ops: Array<Promise<unknown>>) => Promise.all(ops)),
   };
-  return { db, service: new SupportCasesService(db as never, new PolicyService()) };
+  return { db, service: new SupportCasesService(db as never, new PolicyService(), audit as never) };
 }
 
 describe('SupportCasesService access', () => {
@@ -285,5 +285,43 @@ describe('SupportCasesService internal notes', () => {
       { createdAt: 'desc' },
       { id: 'desc' },
     ]);
+  });
+});
+
+describe('SupportCasesService audit trail', () => {
+  const auditOf = () => ({ catat: jest.fn().mockResolvedValue(undefined) });
+
+  it('records creation without copying the subject or note text', async () => {
+    const audit = auditOf();
+    const { service } = setup(row(), audit);
+    await service.create(manager, { customerUserId: customerId, branchId: branchA, subject: 'Rahasia pelanggan', note: 'isi catatan', priority: 'HIGH' });
+    expect(audit.catat).toHaveBeenCalledWith(
+      null,
+      expect.objectContaining({ action: 'support_case.created', objectType: 'SupportCase', branchId: branchA, targetUserId: customerId }),
+    );
+    expect(JSON.stringify(audit.catat.mock.calls[0])).not.toMatch(/Rahasia pelanggan|isi catatan/);
+  });
+
+  it('records status/priority/assignee changes with before and after', async () => {
+    const audit = auditOf();
+    const { service } = setup(row(), audit);
+    await service.update(manager, caseId, { status: 'RESOLVED', priority: 'HIGH', expectedVersion: 1 });
+    expect(audit.catat).toHaveBeenCalledWith(
+      null,
+      expect.objectContaining({
+        action: 'support_case.updated',
+        beforeMasked: expect.objectContaining({ status: 'OPEN', priority: 'NORMAL' }),
+        afterMasked: expect.objectContaining({ status: 'RESOLVED', priority: 'HIGH' }),
+      }),
+    );
+  });
+
+  it('records a note by reference and length only', async () => {
+    const audit = auditOf();
+    const { service } = setup(row(), audit);
+    await service.addInternalNote(manager, caseId, { body: 'Pelanggan minta dihubungi malam hari' });
+    const entry = audit.catat.mock.calls[0]![1];
+    expect(entry).toMatchObject({ action: 'support_case.note_added', afterMasked: { length: 'Pelanggan minta dihubungi malam hari'.length } });
+    expect(JSON.stringify(entry)).not.toContain('malam hari');
   });
 });

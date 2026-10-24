@@ -1,6 +1,7 @@
 import { HttpStatus, Inject, Injectable, Optional } from '@nestjs/common';
 export type SessionChannel = 'WEB' | 'MOBILE' | string;
 import { PrismaService } from '../database/prisma.service';
+import { AuditService } from '../foundation/audit.service';
 import { IdempotencyService } from '../foundation/idempotency.service';
 import { RuntimeConfigService } from '../configuration/runtime-config.service';
 import { PRIVATE_FILE_STORAGE, type PrivateFileStorage } from './private-file-storage';
@@ -105,7 +106,21 @@ export class IdentityService {
     @Optional() private readonly runtimeConfig?: RuntimeConfigService,
     @Optional() private readonly notificationWriter?: NotificationWriterService,
     @Optional() @Inject(PRIVATE_FILE_STORAGE) private readonly privateStorage?: PrivateFileStorage,
+    @Optional() private readonly audit?: AuditService,
   ) {}
+
+  /** Peristiwa keamanan akun (tanpa kata sandi, token, atau email mentah). Tidak pernah menggagalkan alur utama. */
+  private securityEvent(action: string, userId: string, correlationId: string, detail?: Record<string, string | number | boolean | null>) {
+    return this.audit?.catat(null, {
+      actorId: userId,
+      correlationId,
+      action,
+      objectType: 'Account',
+      objectId: userId,
+      targetUserId: userId,
+      afterMasked: detail,
+    });
+  }
 
   async verificationStatus(userId: string) {
     const profile = await this.db.profilPengguna.findUnique({
@@ -435,6 +450,7 @@ export class IdentityService {
     });
 
     await this.revokeAll(user.id, 'PASSWORD_CHANGED', principal.sessionId);
+    await this.securityEvent('auth.password_changed', user.id, _correlationId, { otherSessionsRevoked: true });
     return { status: 'CHANGED' as const };
   }
 
@@ -466,6 +482,7 @@ export class IdentityService {
           },
         });
         await this.passwordEmail.send('RESET', normalized, token);
+        await this.securityEvent('auth.password_reset_requested', user.id, _correlationId, { expiresInMinutes: 15 });
       } catch {
         // generic response to avoid disclosing account existence
       }
@@ -502,6 +519,7 @@ export class IdentityService {
         data: { revokedAt: new Date(), revocationReason: 'PASSWORD_RESET' },
       });
     });
+    await this.securityEvent('auth.password_reset_completed', action.userId, _correlationId, { allSessionsRevoked: true });
 
     return { status: 'CHANGED' as const };
   }
@@ -530,6 +548,7 @@ export class IdentityService {
         data: { passwordHash, status: 'ACTIVE' },
       });
     });
+    await this.securityEvent('auth.account_activated', action.userId, _correlationId, { via: action.kind });
 
     return this.issueSession(action.userId!, 'WEB');
   }

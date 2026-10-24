@@ -978,7 +978,12 @@ export class MasterCatalogService {
     _correlationId: string,
   ) {
     this.access.authorize(principal, true);
+    // Profil publik cabang hanya boleh diubah staf yang berhak di cabang itu.
+    if (kind === 'branch') this.access.ensureBranchScope(principal, id, true);
     const version = Number.isInteger(input.expectedVersion) ? (input.expectedVersion as number) : 1;
+    const changed = (['heroImageKey', 'galleryImageKeys', 'address', 'description'] as const).filter(
+      (key) => (input as Record<string, unknown>)[key] !== undefined,
+    );
 
     if (kind === 'branch') {
       const dataToUpdate: Record<string, unknown> = {};
@@ -1016,6 +1021,19 @@ export class MasterCatalogService {
         });
       }
     }
+
+    // Isi profil (teks, gambar) tidak disalin; yang dicatat hanya bidang yang diubah.
+    await this.access.audit(
+      this.db,
+      principal,
+      _correlationId,
+      'master.public_profile_updated',
+      kind === 'branch' ? 'Branch' : kind === 'class' ? 'ClassType' : 'Package',
+      id,
+      kind === 'branch' ? id : null,
+      undefined,
+      { fieldsChanged: changed },
+    );
 
     return {
       kind,

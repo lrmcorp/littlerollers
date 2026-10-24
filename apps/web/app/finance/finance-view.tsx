@@ -21,6 +21,7 @@ import {
 import { useSessionContext } from '../session-context';
 import { Feedback } from '../ui';
 import { AdminPageHeader } from '../components/admin/admin-page-header';
+import { ReasonDialog } from '../components/admin/reason-dialog';
 import {
   AdminEmptyState,
   Badge,
@@ -108,6 +109,7 @@ export function FinanceView({
     useState<InstructorCostRealtimeData | null>(null);
   const [otherCostData, setOtherCostData] = useState<OtherCostReportData | null>(null);
   const [editingCost, setEditingCost] = useState<OtherCostItem | null>(null);
+  const [costToDelete, setCostToDelete] = useState<OtherCostItem | null>(null);
   const canManageCosts = Boolean(context?.hasCapability('finance:manage'));
   const [reportLoading, setReportLoading] = useState(false);
   const [reportError, setReportError] = useState<string | null>(null);
@@ -1021,30 +1023,7 @@ export function FinanceView({
                               <button
                                 type="button"
                                 className="text-dd-danger font-semibold hover:underline flex items-center gap-0.5"
-                                onClick={() => {
-                                  void feedback
-                                    .confirm({
-                                      tone: 'danger',
-                                      title: 'Hapus Biaya Operasional',
-                                      message: 'Biaya operasional ini akan dihapus permanen.',
-                                      confirmLabel: 'Hapus',
-                                    })
-                                    .then(async (accepted) => {
-                                      if (!accepted) return;
-                                      try {
-                                        if (client.deleteOtherCost) {
-                                          await client.deleteOtherCost(c.id);
-                                          void loadReports();
-                                        }
-                                      } catch (error) {
-                                        feedback.showToast({
-                                          tone: 'danger',
-                                          title: 'Biaya belum dapat dihapus',
-                                          message: financeFailureMessage(error),
-                                        });
-                                      }
-                                    });
-                                }}
+                                onClick={() => setCostToDelete(c)}
                               >
                                 Hapus
                               </button>
@@ -1087,30 +1066,7 @@ export function FinanceView({
                             <Button
                               variant="ghost"
                               leadingIcon={<Trash2 className="h-4 w-4 text-dd-danger" />}
-                              onClick={() => {
-                                void feedback
-                                  .confirm({
-                                    tone: 'danger',
-                                    title: 'Hapus Biaya Operasional',
-                                    message: 'Biaya operasional ini akan dihapus permanen.',
-                                    confirmLabel: 'Hapus',
-                                  })
-                                  .then(async (accepted) => {
-                                    if (!accepted) return;
-                                    try {
-                                      if (client.deleteOtherCost) {
-                                        await client.deleteOtherCost(c.id);
-                                        void loadReports();
-                                      }
-                                    } catch (error) {
-                                      feedback.showToast({
-                                        tone: 'danger',
-                                        title: 'Biaya belum dapat dihapus',
-                                        message: financeFailureMessage(error),
-                                      });
-                                    }
-                                  });
-                              }}
+                              onClick={() => setCostToDelete(c)}
                             >
                               Hapus
                             </Button>
@@ -1385,6 +1341,36 @@ export function FinanceView({
           )}
         </div>
       )}
+      <ReasonDialog
+        open={Boolean(costToDelete)}
+        title="Hapus biaya operasional?"
+        description={
+          costToDelete
+            ? `${costToDelete.category} · ${costToDelete.description}. Biaya ini dihapus permanen dan tidak dapat dipulihkan.`
+            : undefined
+        }
+        confirmLabel="Hapus biaya"
+        tone="danger"
+        maxLength={500}
+        onCancel={() => setCostToDelete(null)}
+        onConfirm={(reason) => {
+          const cost = costToDelete;
+          if (!cost) return;
+          setCostToDelete(null);
+          void (async () => {
+            try {
+              await client.deleteOtherCost?.(cost.id, reason);
+              void loadReports();
+            } catch (error) {
+              feedback.showToast({
+                tone: 'danger',
+                title: 'Biaya belum dapat dihapus',
+                message: financeFailureMessage(error),
+              });
+            }
+          })();
+        }}
+      />
       <OtherCostEditDialog
         cost={editingCost}
         onSave={(id, input) => client.updateOtherCost?.(id, input) ?? Promise.resolve()}

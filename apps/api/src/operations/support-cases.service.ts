@@ -1,6 +1,7 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable, Optional } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
+import { AuditService } from '../foundation/audit.service';
 import type { SessionPrincipal } from '../identity/identity.service';
 import { PolicyService } from '../identity/policy.service';
 import { ApiProblem, ENTITY_ID_REGEX } from '../identity/security';
@@ -54,6 +55,7 @@ export class SupportCasesService {
   constructor(
     private readonly db: PrismaService,
     private readonly policy: PolicyService,
+    @Optional() private readonly audit?: AuditService,
   ) {}
 
   /** Kasus berlabel cabang mengikuti cakupan cabang; kasus tanpa cabang hanya untuk `branch:all`. */
@@ -210,6 +212,16 @@ export class SupportCasesService {
       },
       include: caseInclude,
     });
+    // Isi subjek dan catatan tidak disalin ke audit; cukup rujukan dan atribut penanganan.
+    await this.audit?.catat(null, {
+      actorId: principal.userId,
+      branchId: created.branchId,
+      action: 'support_case.created',
+      objectType: 'SupportCase',
+      objectId: created.id,
+      targetUserId: customer.id,
+      afterMasked: { priority, tags, withNote: Boolean(note) },
+    });
     return this.view(created);
   }
 
@@ -290,6 +302,26 @@ export class SupportCasesService {
       data: { ...data, version: { increment: 1 } },
     });
     if (claimed.count !== 1) throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
+    await this.audit?.catat(null, {
+      actorId: principal.userId,
+      branchId: row.branchId,
+      action: 'support_case.updated',
+      objectType: 'SupportCase',
+      objectId: id,
+      targetUserId: row.customerId,
+      beforeMasked: {
+        status: row.status,
+        priority: row.priority,
+        assignedUserId: row.assignedUserId ?? null,
+        tags: row.tags as unknown as string[],
+      },
+      afterMasked: {
+        status: data.status ?? row.status,
+        priority: data.priority ?? row.priority,
+        assignedUserId: data.assignedUserId === undefined ? (row.assignedUserId ?? null) : (data.assignedUserId ?? null),
+        tags: (data.tags ?? row.tags) as unknown as string[],
+      },
+    });
     return this.detail(principal, id);
   }
 
@@ -307,6 +339,15 @@ export class SupportCasesService {
       }),
       this.db.supportCase.update({ where: { id }, data: { updatedAt: new Date() } }),
     ]);
+    await this.audit?.catat(null, {
+      actorId: principal.userId,
+      branchId: row.branchId,
+      action: 'support_case.note_added',
+      objectType: 'SupportCase',
+      objectId: id,
+      targetUserId: row.customerId,
+      afterMasked: { noteId: note.id, length: text.length },
+    });
     return {
       id: note.id,
       body: note.body,

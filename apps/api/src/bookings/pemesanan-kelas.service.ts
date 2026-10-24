@@ -1,4 +1,5 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable, Optional } from '@nestjs/common';
+import { AuditService } from '../foundation/audit.service';
 import { Prisma, type BookingStatus } from '@prisma/client';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { RuntimeConfigService } from '../configuration/runtime-config.service';
@@ -53,6 +54,7 @@ export class BookingsService {
     private readonly idempotency: IdempotencyService,
     private readonly policy: PolicyService,
     private readonly config: RuntimeConfigService,
+    @Optional() private readonly audit?: AuditService,
   ) {}
 
   private syntheticPolicy() {
@@ -955,6 +957,19 @@ export class BookingsService {
             bookedCount: effectiveBooked + 1,
           },
         });
+
+        // Booking atas nama pelanggan oleh staf dicatat permanen; booking mandiri sudah punya jejak di data booking.
+        if (!customerFlow)
+          await this.audit?.catat(tx, {
+            actorId: principal.userId,
+            branchId: slot.branchId,
+            correlationId: _correlationId,
+            action: 'booking.created_by_staff',
+            objectType: 'Booking',
+            objectId: booking.id,
+            targetUserId: customerUserId,
+            afterMasked: { bookingNumber, classSlotId: slot.id, customerPackageId: customerPackage.id },
+          });
 
         return {
           status: HttpStatus.CREATED,

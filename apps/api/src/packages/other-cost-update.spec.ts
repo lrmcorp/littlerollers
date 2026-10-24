@@ -28,13 +28,15 @@ function setup(closeStatus?: 'LOCKED' | 'OPEN') {
       findUnique: jest.fn().mockResolvedValue(row),
       update: jest.fn().mockImplementation(async ({ data }) => ({ ...row, ...data })),
       create: jest.fn().mockImplementation(async ({ data }) => ({ id: costId, ...data })),
+      delete: jest.fn().mockResolvedValue({}),
     },
     monthlyClose: {
       findUnique: jest.fn().mockResolvedValue(closeStatus ? { status: closeStatus } : null),
     },
   };
-  const service = new FinanceService(db as never, new PolicyService(), {} as never);
-  return { service, db };
+  const audit = { catat: jest.fn().mockResolvedValue(undefined) };
+  const service = new FinanceService(db as never, new PolicyService(), audit as never);
+  return { service, db, audit };
 }
 
 describe('FinanceService.updateOtherCost', () => {
@@ -130,5 +132,42 @@ describe('FinanceService.createOtherCost', () => {
       service.createOtherCost(manager, { ...base, amountRp: 99.5 }),
     ).rejects.toMatchObject({ code: 'INVALID_AMOUNT' });
     expect(db.otherCost.create).not.toHaveBeenCalled();
+  });
+});
+
+describe('other costs are audited permanently', () => {
+  it('records creation and updates (amounts and category, never the free-text description)', async () => {
+    const { service, audit } = setup();
+    await service.createOtherCost(manager, { branchId: branchA, period: '2026-09', category: 'sewa', description: 'Sewa', amountRp: 100 });
+    expect(audit.catat).toHaveBeenLastCalledWith(
+      null,
+      expect.objectContaining({ action: 'finance.other_cost_created', objectType: 'OtherCost', branchId: branchA }),
+    );
+    await service.updateOtherCost(manager, costId, { amountRp: 7_000_000 });
+    expect(audit.catat).toHaveBeenLastCalledWith(
+      null,
+      expect.objectContaining({
+        action: 'finance.other_cost_updated',
+        beforeMasked: { category: 'SEWA', amountRp: 5_000_000 },
+        afterMasked: expect.objectContaining({ amountRp: 7_000_000 }),
+      }),
+    );
+  });
+
+  it('deleting needs a typed reason, changes nothing without it, and keeps a snapshot', async () => {
+    const { service, db, audit } = setup();
+    for (const reason of [undefined, '', '  ', 'ab'])
+      await expect(service.deleteOtherCost(manager, costId, reason)).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
+    expect(db.otherCost.delete).not.toHaveBeenCalled();
+    await service.deleteOtherCost(manager, costId, ' Salah input ');
+    expect(db.otherCost.delete).toHaveBeenCalledWith({ where: { id: costId } });
+    expect(audit.catat).toHaveBeenCalledWith(
+      null,
+      expect.objectContaining({
+        action: 'finance.other_cost_deleted',
+        reason: 'Salah input',
+        beforeMasked: expect.objectContaining({ category: 'SEWA', amountRp: 5_000_000, period: '2026-09' }),
+      }),
+    );
   });
 });

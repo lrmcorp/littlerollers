@@ -195,6 +195,36 @@ Tanggal,Keterangan,Cabang,Jumlah,Saldo
       );
     });
 
+    it('Pencocokan otomatis meninggalkan jejak audit permanen dalam transaksi yang sama', async () => {
+      const audit = { catat: jest.fn().mockResolvedValue(undefined) };
+      const service = new ReconciliationEngineService(mockDb, audit as never);
+      mockDb.mutasiBank.findMany.mockResolvedValueOnce([
+        { id: 'mut-1', bankName: 'BCA', transactionDate: new Date('2026-10-13T08:00:00Z'), amountRp: 500000, referenceNumber: 'REF-1', status: 'UNMATCHED' },
+      ]);
+      mockDb.pembelian.findMany.mockResolvedValueOnce([
+        {
+          id: 'purch-1', invoiceNumber: 'INV-1', userId: 'user-1', packageId: 'pkg-1', branchId: 'branch-1',
+          totalAmountRp: 500000, status: PurchaseStatus.WAITING_VERIFICATION, createdAt: new Date('2026-10-13T07:00:00Z'),
+          package: { id: 'pkg-1', name: 'Paket', sessionCount: 4, validityDays: 30 }, user: { id: 'user-1', displayName: 'Rina' },
+        },
+      ]);
+      mockDb.paketPelanggan.create.mockResolvedValueOnce({ id: 'cpkg-1' });
+      await service.reconcile({ mutationIds: ['mut-1'], actorId: 'staff-1', correlationId: 'corr-9' });
+      expect(audit.catat).toHaveBeenCalledWith(
+        mockDb,
+        expect.objectContaining({
+          actorId: 'staff-1',
+          branchId: 'branch-1',
+          action: 'finance.purchase_auto_reconciled',
+          objectType: 'Purchase',
+          objectId: 'purch-1',
+          targetUserId: 'user-1',
+          beforeMasked: { status: PurchaseStatus.WAITING_VERIFICATION },
+          afterMasked: expect.objectContaining({ status: PurchaseStatus.PAID, mutationId: 'mut-1', customerPackageId: 'cpkg-1' }),
+        }),
+      );
+    });
+
     it('Skenario Nominal Kembar: Tandai MANUAL_REVIEW dan tolak auto-approval buta', async () => {
       const mutation = {
         id: 'mut-duplicate-nominal',

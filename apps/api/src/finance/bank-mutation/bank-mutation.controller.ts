@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   HttpStatus,
+  Optional,
   Post,
   Query,
   Req,
@@ -11,6 +12,7 @@ import {
 import { AuthGuard, type AuthenticatedRequest } from '../../identity/auth.guard';
 import { RolesGuard } from '../../identity/roles.guard';
 import { Roles } from '../../identity/roles.decorator';
+import { AuditService } from '../../foundation/audit.service';
 import { ApiProblem } from '../../identity/security';
 import { BankMutationService } from './bank-mutation.service';
 import { ReconciliationEngineService } from './reconciliation-engine.service';
@@ -23,6 +25,7 @@ export class BankMutationController {
   constructor(
     private readonly bankMutation: BankMutationService,
     private readonly reconciliation: ReconciliationEngineService,
+    @Optional() private readonly audit?: AuditService,
   ) {}
 
   @Post('import')
@@ -54,8 +57,28 @@ export class BankMutationController {
     const shouldReconcile = body.autoReconcile !== false;
     if (shouldReconcile && importResult.mutations.length > 0) {
       const mutationIds = importResult.mutations.map((m) => m.id);
-      reconciliationResult = await this.reconciliation.reconcile({ mutationIds });
+      reconciliationResult = await this.reconciliation.reconcile({
+        mutationIds,
+        actorId: req.principal?.userId,
+        correlationId: req.correlationId,
+      });
     }
+
+    await this.audit?.catat(null, {
+      actorId: req.principal?.userId,
+      correlationId: req.correlationId,
+      action: 'finance.mutations_imported',
+      objectType: 'BankMutationImport',
+      objectId: req.correlationId ?? 'import',
+      afterMasked: {
+        bankName: body.bankName ?? null,
+        totalParsed: importResult.totalParsed,
+        insertedCount: importResult.insertedCount,
+        duplicateCount: importResult.duplicateCount,
+        autoReconcile: shouldReconcile,
+        matchedCount: reconciliationResult?.matchedCount ?? null,
+      },
+    });
 
     return {
       success: true,
@@ -97,7 +120,11 @@ export class BankMutationController {
     if (req.principal?.capabilities?.includes('finance:write')) {
       // Direct capability check pattern for AST analyzer
     }
-    const result = await this.reconciliation.reconcile(body);
+    const result = await this.reconciliation.reconcile({
+      ...body,
+      actorId: req.principal?.userId,
+      correlationId: req.correlationId,
+    });
     return {
       success: true,
       data: result,

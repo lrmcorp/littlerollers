@@ -2,6 +2,7 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import { createHash } from 'node:crypto';
 import { PrismaService } from '../database/prisma.service';
 import { AuditService } from '../foundation/audit.service';
+import { requireReason } from '../foundation/reason';
 import type { SessionPrincipal } from '../identity/identity.service';
 import { PolicyService } from '../identity/policy.service';
 import { ApiProblem } from '../identity/security';
@@ -473,7 +474,7 @@ export class FinanceService {
       throw new ApiProblem('PERIOD_ALREADY_LOCKED', HttpStatus.CONFLICT);
     }
 
-    return await this.db.otherCost.create({
+    const created = await this.db.otherCost.create({
       data: {
         branchId: input.branchId,
         period: input.period,
@@ -483,6 +484,15 @@ export class FinanceService {
         createdById: principal.userId,
       },
     });
+    await this.audit.catat(null, {
+      actorId: principal.userId,
+      branchId: created.branchId,
+      action: 'finance.other_cost_created',
+      objectType: 'OtherCost',
+      objectId: created.id,
+      afterMasked: { period: created.period, category: created.category, amountRp: created.amountRp },
+    });
+    return created;
   }
 
   async listOtherCosts(
@@ -544,11 +554,23 @@ export class FinanceService {
       throw new ApiProblem('PERIOD_ALREADY_LOCKED', HttpStatus.CONFLICT);
     }
 
-    return await this.db.otherCost.update({ where: { id }, data });
+    const updated = await this.db.otherCost.update({ where: { id }, data });
+    await this.audit.catat(null, {
+      actorId: principal.userId,
+      branchId: existing.branchId,
+      action: 'finance.other_cost_updated',
+      objectType: 'OtherCost',
+      objectId: id,
+      beforeMasked: { category: existing.category, amountRp: existing.amountRp },
+      afterMasked: { category: updated.category, amountRp: updated.amountRp, period: updated.period },
+    });
+    return updated;
   }
 
-  async deleteOtherCost(principal: SessionPrincipal, id: string) {
+  async deleteOtherCost(principal: SessionPrincipal, id: string, reasonInput?: string) {
     this.policy.requireCapability(principal.capabilities, 'finance:manage');
+    // Menghapus biaya wajib beralasan (K4).
+    const reason = requireReason(reasonInput);
     const existing = await this.db.otherCost.findUnique({ where: { id } });
     if (!existing) {
       throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
@@ -564,6 +586,20 @@ export class FinanceService {
     }
 
     await this.db.otherCost.delete({ where: { id } });
+    await this.audit.catat(null, {
+      actorId: principal.userId,
+      branchId: existing.branchId,
+      action: 'finance.other_cost_deleted',
+      objectType: 'OtherCost',
+      objectId: id,
+      reason,
+      beforeMasked: {
+        period: existing.period,
+        category: existing.category,
+        description: existing.description,
+        amountRp: existing.amountRp,
+      },
+    });
     return { id, deleted: true };
   }
 
@@ -633,6 +669,16 @@ export class FinanceService {
         closedById: principal.userId,
         closedAt: new Date(),
       },
+    });
+
+    await this.audit.catat(null, {
+      actorId: principal.userId,
+      branchId: input.branchId,
+      action: 'finance.month_closed',
+      objectType: 'MonthlyClose',
+      objectId: closed.id,
+      reason: input.reason?.trim() || null,
+      afterMasked: { period: input.period, omsetRp, costRealtimeRp, otherCostRp, profitRp, controlHash },
     });
 
     return closed;

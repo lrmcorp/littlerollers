@@ -1,8 +1,9 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable, Optional } from '@nestjs/common';
 import { CheckInMethod, Prisma, SessionMutationType } from '@prisma/client';
 import { createHash, createHmac, randomBytes, randomUUID } from 'node:crypto';
 import { PrismaService } from '../database/prisma.service';
 import { isWithinGeofence } from '../foundation/geofence.util';
+import { AuditService } from '../foundation/audit.service';
 import { IdempotencyService } from '../foundation/idempotency.service';
 import type { SessionPrincipal } from '../identity/identity.service';
 import { PolicyService } from '../identity/policy.service';
@@ -73,6 +74,7 @@ export class AttendanceService {
     private readonly db: PrismaService,
     private readonly policy: PolicyService,
     private readonly idempotency: IdempotencyService,
+    @Optional() private readonly audit?: AuditService,
   ) {}
 
   private requireBranch(principal: SessionPrincipal, branchId: string, capability: string) {
@@ -476,6 +478,23 @@ export class AttendanceService {
           }
         }
 
+        await this.audit?.catat(tx, {
+          actorId: principal.userId,
+          branchId: booking.classSlot.branchId,
+          correlationId,
+          action: 'attendance.customer_backfilled',
+          objectType: 'Booking',
+          objectId: booking.id,
+          targetUserId: booking.userId,
+          reason: input.reason.trim(),
+          beforeMasked: { bookingStatus: booking.status },
+          afterMasked: {
+            bookingStatus: 'ATTENDED',
+            classSlotId: booking.classSlotId,
+            sessionDeducted: booking.classSlot.status === 'COMPLETED',
+          },
+        });
+
         return {
           status: HttpStatus.CREATED,
           body: {
@@ -618,6 +637,14 @@ export class AttendanceService {
     await this.db.checkInToken.update({
       where: { id },
       data: { isUsed: true },
+    });
+    await this.audit?.catat(null, {
+      actorId: principal.userId,
+      correlationId: _correlationId,
+      action: 'attendance.token_revoked',
+      objectType: 'CheckInToken',
+      objectId: id,
+      reason: _body?.reason?.trim() || null,
     });
 
     return { id, status: 'REVOKED' };
@@ -795,6 +822,16 @@ export class AttendanceService {
         notes,
       },
       update: {},
+    });
+    await this.audit?.catat(null, {
+      actorId: principal.userId,
+      branchId: slot.branchId,
+      action: 'attendance.instructor_verified',
+      objectType: 'ClassSlot',
+      objectId: slot.id,
+      targetUserId: slot.instructorId,
+      reason: notes,
+      afterMasked: { method: created.method, checkedInAt: created.checkedInAt.toISOString() },
     });
     return {
       classSlotId: slot.id,
