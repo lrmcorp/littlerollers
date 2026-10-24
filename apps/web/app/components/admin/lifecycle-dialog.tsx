@@ -37,6 +37,16 @@ const NOUN: Record<LifecycleKind, string> = {
   user: 'akun',
 };
 
+/** Jenis yang punya Arsipkan di UI; selebihnya hanya bisa dinonaktifkan. */
+const ARCHIVABLE: ReadonlySet<LifecycleKind> = new Set([
+  'branch',
+  'class-type',
+  'voucher',
+  'promotion',
+  'public-content',
+  'notification-template',
+]);
+
 /** Kata kerja "jeda" untuk jenis yang memakainya (voucher, promosi), selain itu "nonaktifkan". */
 export const pauseVerb = (kind: LifecycleKind) =>
   kind === 'voucher' || kind === 'promotion' ? 'Jeda' : 'Nonaktifkan';
@@ -82,9 +92,9 @@ export function LifecycleDialog({
     lifecycleClient
       .deletability(request.kind, request.id)
       .then((result) => !cancelled && setCheck(result))
-      .catch((failure) => {
+      .catch(async (failure) => {
         if (cancelled) return;
-        setError(lifecycleFailureMessage(failure));
+        setError(await lifecycleFailureMessage(failure));
         setCheck('failed');
       });
     return () => {
@@ -101,7 +111,7 @@ export function LifecycleDialog({
       <Modal
         open
         title={`${capitalize(noun)} belum dapat dihapus`}
-        description={`"${request.name}" masih memiliki data terkait, sehingga hanya bisa dinonaktifkan atau diarsipkan.`}
+        description={`"${request.name}" masih memiliki data terkait, sehingga hanya bisa ${pauseVerb(request.kind) === 'Jeda' ? 'dijeda' : 'dinonaktifkan'}${ARCHIVABLE.has(request.kind) ? ' atau diarsipkan' : ''}.`}
         onClose={onClose}
         footer={
           <div className="flex justify-end">
@@ -192,7 +202,7 @@ export function LifecycleDialog({
       }
       await onDone(copy.success);
     } catch (failure) {
-      setError(lifecycleFailureMessage(failure));
+      setError(await lifecycleFailureMessage(failure));
       setBusy(false);
     }
   };

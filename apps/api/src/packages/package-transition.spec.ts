@@ -29,7 +29,7 @@ describe('package deactivate / reactivate', () => {
     const { service, tx, audit } = setup();
     for (const reason of [undefined, '', '  ', 'ab'])
       await expect(
-        service.transition(principal as never, id(5), 'deactivate', { expectedVersion: 1, reason }, 'k', 'c'),
+        service.transition(principal as never, id(5), 'INACTIVE', { expectedVersion: 1, reason }, 'k', 'c'),
       ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
     expect(tx.paket.update).not.toHaveBeenCalled();
     expect(audit.catat).not.toHaveBeenCalled();
@@ -37,7 +37,7 @@ describe('package deactivate / reactivate', () => {
 
   it('records the typed reason with before/after in the permanent audit', async () => {
     const { service, audit } = setup();
-    await service.transition(principal as never, id(5), 'deactivate', { expectedVersion: 1, reason: ' Tidak dijual lagi ' }, 'k', 'c');
+    await service.transition(principal as never, id(5), 'INACTIVE', { expectedVersion: 1, reason: ' Tidak dijual lagi ' }, 'k', 'c');
     expect(audit.catat).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
@@ -52,9 +52,16 @@ describe('package deactivate / reactivate', () => {
     );
   });
 
-  it('reactivating needs no reason', async () => {
+  // Controller memanggil dengan status tujuan; dulu 'ACTIVE' salah dibaca sebagai nonaktifkan.
+  it.each(['ACTIVE', 'activate'])('reactivating (%s) really activates and needs no reason', async (action) => {
     const { service, tx } = setup();
-    await service.transition(principal as never, id(5), 'activate', {}, 'k', 'c');
+    await service.transition(principal as never, id(5), action, {}, 'k', 'c');
     expect(tx.paket.update).toHaveBeenCalledWith(expect.objectContaining({ data: { status: 'ACTIVE' } }));
+  });
+
+  it('deactivating via the status the controller sends (INACTIVE) deactivates', async () => {
+    const { service, tx } = setup();
+    await service.transition(principal as never, id(5), 'INACTIVE', { reason: 'Tidak dijual' }, 'k', 'c');
+    expect(tx.paket.update).toHaveBeenCalledWith(expect.objectContaining({ data: { status: 'INACTIVE' } }));
   });
 });

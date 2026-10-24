@@ -386,8 +386,13 @@ export class PackageCatalogService {
     correlationId: string,
   ) {
     this.access.catalog(principal, true);
+    // Controller mengirim status tujuan ('ACTIVE'/'INACTIVE'); nama aksi lama ('activate'/'archive') tetap dikenali.
     const targetStatus: PackageStatus =
-      action === 'activate' ? 'ACTIVE' : action === 'archive' ? 'ARCHIVED' : 'INACTIVE';
+      action === 'ACTIVE' || action === 'activate'
+        ? 'ACTIVE'
+        : action === 'ARCHIVED' || action === 'archive'
+          ? 'ARCHIVED'
+          : 'INACTIVE';
 
     return this.idempotency.execute(
       {

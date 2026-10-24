@@ -97,4 +97,15 @@ describe('LifecycleDialog', () => {
     await waitFor(() => expect(deactivate).toHaveBeenCalledWith('Promo selesai'));
     expect(onDone).toHaveBeenCalledWith('Voucher "HEMAT" berhasil dijeda.');
   });
+
+  it('reads the reason from a raw Response error too (older clients throw { response })', async () => {
+    client.archive.mockRejectedValue({
+      response: new Response(JSON.stringify({ code: 'HAS_UPCOMING_SLOTS' }), { status: 409 }),
+    });
+    show(branch('archive'));
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText('Alasan'), 'Cabang ditutup');
+    await user.click(screen.getByRole('button', { name: 'Arsipkan' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Masih ada kelas yang akan berlangsung');
+  });
 });

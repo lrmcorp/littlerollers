@@ -81,10 +81,17 @@ const MESSAGES: Record<string, string> = {
   VALIDATION_ERROR: 'Alasan wajib diisi (3–500 karakter).',
 };
 
-/** Pesan untuk staf; rincian dari server (mis. "3 studio, 12 jadwal kelas") diprioritaskan. */
-export function lifecycleFailureMessage(error: unknown): string {
+/**
+ * Pesan untuk staf; rincian dari server (mis. "3 studio, 12 jadwal kelas") diprioritaskan.
+ * Klien lama melempar `{ response }` (Response mentah) alih-alih `ApiError`, jadi isi galatnya dibaca di sini.
+ */
+export async function lifecycleFailureMessage(error: unknown): Promise<string> {
   notifySessionFailure(error);
-  const data = (error as { data?: Record<string, any> })?.data;
+  let data = (error as { data?: Record<string, any> })?.data;
+  const response = (error as { response?: Response })?.response;
+  if (!data && response && typeof response.clone === 'function') {
+    data = await response.clone().json().catch(() => undefined);
+  }
   const code: string | undefined = data?.code ?? data?.error?.code;
   const issue: string | undefined = (data?.details ?? data?.error?.details)?.[0]?.issue;
   if (code?.startsWith('CANNOT_DELETE_') && issue) return issue;
