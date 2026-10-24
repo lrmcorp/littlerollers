@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { AuditService } from '../foundation/audit.service';
 import type { SessionPrincipal } from '../identity/identity.service';
+import { maskContactEmail, maskContactPhone, relatedCustomerIdsById } from '../identity/customer-visibility';
 import { PolicyService } from '../identity/policy.service';
 import { ApiProblem, ENTITY_ID_REGEX } from '../identity/security';
 
@@ -74,7 +75,12 @@ export class SupportCasesService {
       : this.policy.capabilityBranchScope(principal, capability).all;
   }
 
-  private view(row: CaseRow) {
+  /** Pelanggan pada kasus yang berkaitan dengan cabang staf; kontak yang lain disamarkan (opsi D). */
+  private visibleCustomers(principal: SessionPrincipal, rows: Array<{ customerId: string }>) {
+    return relatedCustomerIdsById(this.db, principal, rows.map((row) => row.customerId));
+  }
+
+  private view(row: CaseRow, contactVisible = true) {
     return {
       id: row.id,
       subject: row.subject,
@@ -82,8 +88,9 @@ export class SupportCasesService {
       customer: {
         id: row.customer.id,
         displayName: row.customer.displayName,
-        email: row.customer.email,
-        phoneE164: row.customer.phone,
+        email: contactVisible ? row.customer.email : maskContactEmail(row.customer.email),
+        phoneE164: contactVisible ? row.customer.phone : maskContactPhone(row.customer.phone),
+        contactMasked: !contactVisible,
       },
       branchId: row.branchId,
       branch: row.branch,
@@ -149,7 +156,9 @@ export class SupportCasesService {
       this.db.supportCase.groupBy({ by: ['status'], where: scope, _count: { _all: true } }),
     ]);
     const hasMore = rows.length > limit;
-    const items = (hasMore ? rows.slice(0, limit) : rows).map((row) => this.view(row));
+    const pageRows = hasMore ? rows.slice(0, limit) : rows;
+    const visible = await this.visibleCustomers(principal, pageRows);
+    const items = pageRows.map((row) => this.view(row, visible.has(row.customerId)));
     const counts = new Map(grouped.map((entry) => [entry.status, entry._count._all]));
     return {
       items,
@@ -222,7 +231,7 @@ export class SupportCasesService {
       targetUserId: customer.id,
       afterMasked: { priority, tags, withNote: Boolean(note) },
     });
-    return this.view(created);
+    return this.view(created, (await this.visibleCustomers(principal, [created])).has(created.customerId));
   }
 
   private async load(id: string) {
@@ -242,8 +251,9 @@ export class SupportCasesService {
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: 200,
     });
+    const visible = await this.visibleCustomers(principal, [row]);
     return {
-      ...this.view(row),
+      ...this.view(row, visible.has(row.customerId)),
       notes: notes.map((note) => ({
         id: note.id,
         body: note.body,

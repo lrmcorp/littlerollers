@@ -37,9 +37,16 @@ const row = (overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 });
 
-function setup(current: Record<string, unknown> | null = row(), audit?: { catat: jest.Mock }) {
+function setup(
+  current: Record<string, unknown> | null = row(),
+  audit?: { catat: jest.Mock },
+  customerRow: Record<string, unknown> = { id: customerId, preferredBranchId: branchA, _count: { bookings: 1, purchases: 1 } },
+) {
   const db = {
+    pemesananKelas: { findMany: jest.fn().mockResolvedValue([]) },
+    pembelian: { findMany: jest.fn().mockResolvedValue([]) },
     user: {
+      findMany: jest.fn().mockResolvedValue([customerRow]),
       findUnique: jest.fn().mockImplementation(async ({ where }: { where: { id: string } }) =>
         where.id === staffId
           ? { id: staffId, status: 'ACTIVE', role: 'ADMIN' }
@@ -323,5 +330,32 @@ describe('SupportCasesService audit trail', () => {
     const entry = audit.catat.mock.calls[0]![1];
     expect(entry).toMatchObject({ action: 'support_case.note_added', afterMasked: { length: 'Pelanggan minta dihubungi malam hari'.length } });
     expect(JSON.stringify(entry)).not.toContain('malam hari');
+  });
+});
+
+describe('SupportCasesService contact visibility (option D)', () => {
+  it('shows the customer contact when the customer is tied to the staff branch', async () => {
+    const { service } = setup(row());
+    const result = await service.detail(manager, caseId);
+    expect(result.customer).toMatchObject({ email: 'm@x.test', phoneE164: '+628111', contactMasked: false });
+  });
+
+  it('masks the contact in list and detail when the customer is tied only to another branch', async () => {
+    const elsewhere = { id: customerId, preferredBranchId: branchB, _count: { bookings: 2, purchases: 0 } };
+    const { service } = setup(row(), undefined, elsewhere);
+    const list = await service.list(manager, {});
+    expect(list.items[0]!.customer).toMatchObject({ contactMasked: true, email: expect.stringContaining('**@') });
+    expect(list.items[0]!.customer.phoneE164).not.toBe('+628111');
+    const detail = await service.detail(manager, caseId);
+    expect(detail.customer.contactMasked).toBe(true);
+    expect(JSON.stringify(detail.customer)).not.toContain('m@x.test');
+  });
+
+  it('never masks for cross-branch staff', async () => {
+    const elsewhere = { id: customerId, preferredBranchId: branchB, _count: { bookings: 2, purchases: 0 } };
+    const { service, db } = setup(row({ branchId: null }), undefined, elsewhere);
+    const detail = await service.detail(global, caseId);
+    expect(detail.customer).toMatchObject({ email: 'm@x.test', contactMasked: false });
+    expect(db.user.findMany).not.toHaveBeenCalled();
   });
 });

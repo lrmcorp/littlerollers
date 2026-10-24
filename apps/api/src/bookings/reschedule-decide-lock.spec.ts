@@ -35,6 +35,8 @@ function setup(
           bookingId: id(10),
           sourceSlotId,
           targetSlotId,
+          sourceSlot: { id: sourceSlotId, branchId },
+          targetSlot: { id: targetSlotId, branchId, bookedCount: targetBookedCount, capacity: 4, status: 'PUBLISHED' },
           booking: {
             id: id(10),
             userId: id(300),
@@ -118,5 +120,14 @@ describe('persetujuan ubah jadwal menjaga kuota slot tujuan', () => {
         service.decide(admin, id(30), 'reject', { reasonCode } as never, 'key-3', 'corr-3'),
       ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
     expect(calls).toHaveLength(0);
+  });
+
+  it('menyembunyikan permintaan dari staf cabang lain, dan menyetujui butuh hak di cabang tujuan', async () => {
+    const { service } = setup();
+    const other = { ...admin, branchIds: [id(9)] };
+    await expect(service.decide(other, id(30), 'reject', { reasonCode: 'OUTSIDE_POLICY' }, 'key-4', 'c')).rejects.toMatchObject({ code: 'RESOURCE_NOT_FOUND' });
+    await expect(service.decide(other, id(30), 'approve', { reasonCode: 'ELIGIBILITY_VERIFIED' }, 'key-5', 'c')).rejects.toMatchObject({ code: 'RESOURCE_NOT_FOUND' });
+    // Lintas cabang boleh.
+    await service.decide({ ...admin, capabilities: ['reschedule:decide', 'branch:all'], branchIds: [] }, id(30), 'reject', { reasonCode: 'OUTSIDE_POLICY' }, 'key-6', 'c');
   });
 });

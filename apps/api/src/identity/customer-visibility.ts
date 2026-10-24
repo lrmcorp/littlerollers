@@ -1,3 +1,5 @@
+import type { Prisma } from '@prisma/client';
+import type { PrismaService } from '../database/prisma.service';
 import type { SessionPrincipal } from './identity.service';
 
 /**
@@ -40,3 +42,64 @@ export const maskCustomerProfile = (profile: ProfileLike | null | undefined) =>
 /** `'ALL'` untuk staf lintas cabang; selain itu daftar cabang yang menjadi cakupan staf. */
 export const staffBranchScope = (principal: SessionPrincipal): 'ALL' | string[] =>
   principal.capabilities.includes('branch:all') ? 'ALL' : principal.branchIds;
+
+type CustomerRow = {
+  id: string;
+  preferredBranchId: string | null;
+  _count?: { bookings?: number; purchases?: number };
+};
+type VisibilityDb = Pick<PrismaService | Prisma.TransactionClient, 'pemesananKelas' | 'pembelian' | 'user'>;
+
+/** Pelanggan yang belum terkait cabang mana pun (tanpa cabang pilihan, tanpa booking/pembelian). */
+export const isUnattached = (row: CustomerRow) =>
+  !row.preferredBranchId && !row._count?.bookings && !row._count?.purchases;
+
+/**
+ * Id pelanggan (dari `rows`) yang berkaitan dengan cabang staf; staf lintas cabang melihat semuanya.
+ * Satu aturan untuk semua tampilan yang menyertakan kontak pelanggan.
+ */
+export async function relatedCustomerIds(
+  db: Pick<VisibilityDb, 'pemesananKelas' | 'pembelian'>,
+  principal: SessionPrincipal,
+  rows: CustomerRow[],
+): Promise<Set<string>> {
+  const scope = staffBranchScope(principal);
+  if (scope === 'ALL') return new Set(rows.map((row) => row.id));
+  const related = new Set(
+    rows
+      .filter((row) => (row.preferredBranchId && scope.includes(row.preferredBranchId)) || isUnattached(row))
+      .map((row) => row.id),
+  );
+  const rest = rows.filter((row) => !related.has(row.id)).map((row) => row.id);
+  if (rest.length && scope.length) {
+    const [bookings, purchases] = await Promise.all([
+      db.pemesananKelas.findMany({
+        where: { userId: { in: rest }, classSlot: { branchId: { in: scope } } },
+        select: { userId: true },
+        distinct: ['userId'],
+      }),
+      db.pembelian.findMany({
+        where: { userId: { in: rest }, branchId: { in: scope } },
+        select: { userId: true },
+        distinct: ['userId'],
+      }),
+    ]);
+    for (const row of [...bookings, ...purchases]) related.add(row.userId);
+  }
+  return related;
+}
+
+/** Sama seperti `relatedCustomerIds`, tetapi hanya dari id pengguna (data cabang pilihan dan riwayat dibaca di sini). */
+export async function relatedCustomerIdsById(
+  db: VisibilityDb,
+  principal: SessionPrincipal,
+  userIds: string[],
+): Promise<Set<string>> {
+  const ids = [...new Set(userIds)];
+  if (!ids.length || staffBranchScope(principal) === 'ALL') return new Set(ids);
+  const rows = await db.user.findMany({
+    where: { id: { in: ids } },
+    select: { id: true, preferredBranchId: true, _count: { select: { bookings: true, purchases: true } } },
+  });
+  return relatedCustomerIds(db, principal, rows);
+}

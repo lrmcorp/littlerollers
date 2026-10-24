@@ -1,5 +1,6 @@
 import { HttpStatus, Injectable, Optional } from '@nestjs/common';
 import { AuditService } from '../foundation/audit.service';
+import { maskContactEmail, maskContactPhone, relatedCustomerIdsById, staffBranchScope } from '../identity/customer-visibility';
 import { Prisma, type RescheduleStatus } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
 import { RuntimeConfigService } from '../configuration/runtime-config.service';
@@ -188,18 +189,34 @@ export class ReschedulesService {
       customer ? 'reschedule:self:read' : 'reschedule:read',
     );
 
+    // Staf hanya melihat permintaan yang menyentuh cabangnya (asal atau tujuan); lintas cabang melihat semuanya.
+    const staffScope = customer ? 'ALL' : staffBranchScope(principal);
     const items = await this.db.ubahJadwal.findMany({
       where: {
         ...(customer ? { requestedById: principal.userId } : {}),
         ...(query.status ? { status: query.status as RescheduleStatus } : {}),
-        ...(query.branchId
-          ? {
-              OR: [
-                { sourceSlot: { branchId: query.branchId } },
-                { targetSlot: { branchId: query.branchId } },
-              ],
-            }
-          : {}),
+        AND: [
+          ...(staffScope === 'ALL'
+            ? []
+            : [
+                {
+                  OR: [
+                    { sourceSlot: { branchId: { in: staffScope } } },
+                    { targetSlot: { branchId: { in: staffScope } } },
+                  ],
+                },
+              ]),
+          ...(query.branchId
+            ? [
+                {
+                  OR: [
+                    { sourceSlot: { branchId: query.branchId } },
+                    { targetSlot: { branchId: query.branchId } },
+                  ],
+                },
+              ]
+            : []),
+        ],
       },
       include: {
         booking: {
@@ -227,6 +244,11 @@ export class ReschedulesService {
       take: PAGE_SIZE,
     });
 
+    // Kontak pelanggan yang belum berkaitan dengan cabang staf (mis. hanya slot tujuannya di sini) disamarkan.
+    const visible = customer
+      ? new Set(items.map((item) => item.booking.user.id))
+      : await relatedCustomerIdsById(this.db, principal, items.map((item) => item.booking.user.id));
+
     return {
       items: items.map((item) => ({
         id: item.id,
@@ -239,7 +261,14 @@ export class ReschedulesService {
         requestedAt: item.requestedAt,
         version: 1,
         branch: item.targetSlot.branch,
-        customer: item.booking.user,
+        customer: visible.has(item.booking.user.id)
+          ? { ...item.booking.user, contactMasked: false }
+          : {
+              ...item.booking.user,
+              email: maskContactEmail(item.booking.user.email),
+              phone: maskContactPhone(item.booking.user.phone),
+              contactMasked: true,
+            },
         package: item.booking.customerPackage?.package ?? null,
         sourceClassSlot: item.sourceSlot,
         targetClassSlot: item.targetSlot,
@@ -389,6 +418,22 @@ export class ReschedulesService {
           include: { booking: true, targetSlot: true, sourceSlot: true },
         });
         if (!reschedule) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+
+        // Cakupan cabang: menyetujui memakai kuota slot tujuan, jadi staf harus berhak di cabang tujuan;
+        // menolak cukup berhak di cabang asal atau tujuan.
+        const staffScope = staffBranchScope(principal);
+        if (staffScope !== 'ALL') {
+          const sourceBranch = reschedule.sourceSlot?.branchId;
+          const targetBranch = reschedule.targetSlot?.branchId;
+          const allowed =
+            decision === 'approve'
+              ? Boolean(targetBranch && staffScope.includes(targetBranch))
+              : Boolean(
+                  (targetBranch && staffScope.includes(targetBranch)) ||
+                    (sourceBranch && staffScope.includes(sourceBranch)),
+                );
+          if (!allowed) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+        }
 
         // Permintaan yang sudah diputuskan, atau booking yang sudah berubah, tidak boleh memindahkan
         // kursi lagi: pemindahan ganda menggeser bookedCount kedua slot.

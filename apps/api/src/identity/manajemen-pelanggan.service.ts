@@ -6,7 +6,7 @@ import { AuditService } from '../foundation/audit.service';
 import { IdempotencyService } from '../foundation/idempotency.service';
 import { WhatsAppGatewayService } from '../notifications/whatsapp-gateway.service';
 import { hashPassword, normalizeEmail } from './credential-security';
-import { maskContactEmail, maskContactPhone, maskCustomerProfile, staffBranchScope } from './customer-visibility';
+import { maskContactEmail, maskContactPhone, maskCustomerProfile, relatedCustomerIds } from './customer-visibility';
 import type { SessionPrincipal } from './identity.service';
 import { PolicyService } from './policy.service';
 import { PRIVATE_FILE_STORAGE, type PrivateFileStorage } from './private-file-storage';
@@ -84,10 +84,6 @@ function normalizePhone(value: string): string {
   return normalized;
 }
 
-/** Pelanggan yang belum terkait cabang mana pun (tanpa cabang pilihan, tanpa booking/pembelian). */
-const isUnattached = (row: { preferredBranchId: string | null; _count?: { bookings?: number; purchases?: number } }) =>
-  !row.preferredBranchId && !row._count?.bookings && !row._count?.purchases;
-
 @Injectable()
 export class CustomerManagementService {
   constructor(
@@ -103,36 +99,13 @@ export class CustomerManagementService {
     this.policy.requireCapability(principal.capabilities, capability);
   }
 
-  /** Id pelanggan (dari `userIds`) yang berkaitan dengan cabang staf; staf lintas cabang melihat semuanya. */
-  private async relatedCustomerIds(
+  /** Id pelanggan (dari `rows`) yang berkaitan dengan cabang staf; aturannya ada di `customer-visibility`. */
+  private relatedCustomerIds(
     principal: SessionPrincipal,
     rows: Array<{ id: string; preferredBranchId: string | null; _count?: { bookings?: number; purchases?: number } }>,
     db: Pick<PrismaService | Prisma.TransactionClient, 'pemesananKelas' | 'pembelian'> = this.db,
   ): Promise<Set<string>> {
-    const scope = staffBranchScope(principal);
-    if (scope === 'ALL') return new Set(rows.map((row) => row.id));
-    const related = new Set(
-      rows
-        .filter((row) => (row.preferredBranchId && scope.includes(row.preferredBranchId)) || isUnattached(row))
-        .map((row) => row.id),
-    );
-    const rest = rows.filter((row) => !related.has(row.id)).map((row) => row.id);
-    if (rest.length && scope.length) {
-      const [bookings, purchases] = await Promise.all([
-        db.pemesananKelas.findMany({
-          where: { userId: { in: rest }, classSlot: { branchId: { in: scope } } },
-          select: { userId: true },
-          distinct: ['userId'],
-        }),
-        db.pembelian.findMany({
-          where: { userId: { in: rest }, branchId: { in: scope } },
-          select: { userId: true },
-          distinct: ['userId'],
-        }),
-      ]);
-      for (const row of [...bookings, ...purchases]) related.add(row.userId);
-    }
-    return related;
+    return relatedCustomerIds(db, principal, rows);
   }
 
   /** Akun pelanggan yang boleh diubah staf ini; selain itu 404 (staf, Super Owner, atau pelanggan di luar cabang staf). */

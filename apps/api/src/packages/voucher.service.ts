@@ -530,7 +530,7 @@ export class VoucherService {
       include: {
         purchases: {
           include: {
-            user: { select: { id: true, displayName: true, email: true } },
+            user: { select: { id: true, displayName: true } },
             package: { select: { id: true, name: true } },
             branch: { select: { id: true, name: true } },
           },
@@ -545,7 +545,7 @@ export class VoucherService {
       id: p.id,
       customer: {
         id: p.user?.id ?? '',
-        displayName: p.user?.displayName ?? p.user?.email ?? 'Unknown',
+        displayName: p.user?.displayName ?? 'Pelanggan',
       },
       purchase: {
         id: p.id,
