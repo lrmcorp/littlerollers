@@ -1,9 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Trash2 } from 'lucide-react';
 import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { Button } from '../../components/actions';
+import { LifecycleDialog } from '../../components/admin/lifecycle-dialog';
 import {
   AsyncSearchSelect,
   SelectInput,
@@ -13,7 +14,7 @@ import {
 } from '../../components/forms';
 import { browserIdentityClient } from '@/api-clients/identity-client';
 import { supportApi as request, supportFailure } from '../support-api';
-import { Feedback, Skeleton, StatusBadge } from '../../ui';
+import { EmptyState, Feedback, Skeleton, StatusBadge } from '../../ui';
 import { AdminPageHeader } from '../../components/admin/admin-page-header';
 import { supportPriorityLabel, supportStatusLabel } from '../support-labels';
 type CaseDetail = {
@@ -41,6 +42,8 @@ export function SupportCaseDetailView({ id }: { id: string }) {
   const [success, setSuccess] = useState('');
   const [busy, setBusy] = useState(false);
   const [assignee, setAssignee] = useState<SearchSelectOption>();
+  const [removing, setRemoving] = useState(false);
+  const [removed, setRemoved] = useState(false);
   const load = useCallback(
     () =>
       request<CaseDetail>(`/support-cases/${encodeURIComponent(id)}`)
@@ -123,6 +126,18 @@ export function SupportCaseDetailView({ id }: { id: string }) {
     ) : (
       <Skeleton label="Memuat kasus bantuan" />
     );
+  if (removed)
+    return (
+      <EmptyState
+        title="Kasus bantuan telah dihapus"
+        description="Kasus ini dihapus permanen. Salinan datanya tersimpan di catatan audit."
+        action={
+          <Link href="/support-cases" className="font-semibold text-dd-forest hover:underline">
+            Kembali ke Bantuan Pelanggan
+          </Link>
+        }
+      />
+    );
   return (
     <section className="space-y-6">
       <Link
@@ -145,8 +160,24 @@ export function SupportCaseDetailView({ id }: { id: string }) {
             >
               {supportStatusLabel(item.status)}
             </StatusBadge>
+            <Button
+              variant="ghost"
+              className="text-dd-danger hover:text-dd-danger"
+              leadingIcon={<Trash2 className="size-4" aria-hidden="true" />}
+              onClick={() => setRemoving(true)}
+            >
+              Hapus kasus
+            </Button>
           </>
         }
+      />
+      <LifecycleDialog
+        request={removing ? { kind: 'support-case', id: item.id, name: item.subject, action: 'delete' } : null}
+        onClose={() => setRemoving(false)}
+        onDone={() => {
+          setRemoving(false);
+          setRemoved(true);
+        }}
       />
       {error && <Feedback kind="error">{error}</Feedback>}
       {success && <Feedback kind="status">{success}</Feedback>}

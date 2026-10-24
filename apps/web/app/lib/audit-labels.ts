@@ -136,6 +136,7 @@ const auditActionLabels: Record<string, string> = {
   'lifecycle.min_quota_deleted': 'Pengaturan kuota minimum dihapus',
   'lifecycle.public_content_deleted': 'Draf konten publik dihapus',
   'lifecycle.notification_template_deleted': 'Draf template notifikasi dihapus',
+  'lifecycle.support_case_deleted': 'Kasus bantuan dihapus',
   'lifecycle.user_deleted': 'Akun pengguna dihapus permanen',
 };
 

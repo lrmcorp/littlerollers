@@ -12,6 +12,20 @@ vi.mock('next/link', () => ({
   ),
 }));
 
+const mockDeletability = vi.fn();
+const mockRemove = vi.fn();
+vi.mock('../../api-clients/lifecycle-client', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../api-clients/lifecycle-client')>();
+  return {
+    ...actual,
+    lifecycleClient: {
+      deletability: (...args: unknown[]) => mockDeletability(...args),
+      remove: (...args: unknown[]) => mockRemove(...args),
+      archive: vi.fn(),
+    },
+  };
+});
+
 const detail = (overrides: Record<string, unknown> = {}) => ({
   id: 'case-1',
   subject: 'Reschedule sesi',
@@ -130,5 +144,35 @@ describe('SupportCaseDetailView', () => {
     await user.selectOptions(screen.getByLabelText('Status Case'), 'CLOSED');
     await user.click(screen.getByRole('button', { name: 'Simpan perubahan' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('diubah orang lain');
+  });
+
+  it('explains why a handled case cannot be deleted and offers no delete', async () => {
+    mockDeletability.mockResolvedValue({
+      kind: 'support-case',
+      id: 'case-1',
+      deletable: false,
+      blockers: [{ kind: 'support_case_note', label: 'catatan penanganan', count: 1 }],
+    });
+    const user = userEvent.setup();
+    render(<SupportCaseDetailView id="case-1" />);
+    await user.click(await screen.findByRole('button', { name: 'Hapus kasus' }));
+    expect(await screen.findByText('Kasus bantuan belum dapat dihapus')).toBeVisible();
+    expect(screen.getByText(/hanya bisa ditutup/)).toBeVisible();
+    expect(screen.getByText('Catatan penanganan')).toBeVisible();
+    expect(mockRemove).not.toHaveBeenCalled();
+  });
+
+  it('deletes an untouched case only with a reason, then shows the deleted state', async () => {
+    mockDeletability.mockResolvedValue({ kind: 'support-case', id: 'case-1', deletable: true, blockers: [] });
+    mockRemove.mockResolvedValue({ id: 'case-1', deleted: true });
+    const user = userEvent.setup();
+    render(<SupportCaseDetailView id="case-1" />);
+    await user.click(await screen.findByRole('button', { name: 'Hapus kasus' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Hapus kasus bantuan permanen?' });
+    expect(within(dialog).getByRole('button', { name: 'Hapus permanen' })).toBeDisabled();
+    await user.type(within(dialog).getByLabelText('Alasan'), 'Kasus dibuat dobel');
+    await user.click(within(dialog).getByRole('button', { name: 'Hapus permanen' }));
+    await waitFor(() => expect(mockRemove).toHaveBeenCalledWith('support-case', 'case-1', 'Kasus dibuat dobel'));
+    expect(await screen.findByText('Kasus bantuan telah dihapus')).toBeVisible();
   });
 });

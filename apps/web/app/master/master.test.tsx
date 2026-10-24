@@ -1,6 +1,6 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { axe } from 'vitest-axe';
 import { MasterView } from './master-view';
 import { AppFeedbackProvider } from '../components/app-feedback';
@@ -9,6 +9,11 @@ import type { MasterClient } from '@/api-clients/master-client';
 const mockDeletability = vi.fn();
 const mockRemove = vi.fn();
 const mockArchive = vi.fn();
+afterEach(() => {
+  mockRemove.mockClear();
+  mockArchive.mockClear();
+  mockDeletability.mockReset();
+});
 vi.mock('../api-clients/lifecycle-client', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../api-clients/lifecycle-client')>();
   return {
@@ -294,6 +299,39 @@ describe('MasterView tarif list', () => {
       expect(client.deleteSetting).toHaveBeenCalledWith('INSTRUCTOR_FEE', 'fee-1', 'Tarif salah input'),
     );
     expect(await screen.findByText('Tarif dihapus.')).toBeVisible();
+  });
+
+  it('deletes a quota & capacity setting through the shared dialog (reason first, then the server check)', async () => {
+    mockDeletability.mockResolvedValue({ kind: 'min-quota', id: 'quota-1', deletable: true, blockers: [] });
+    mockRemove.mockResolvedValue({ id: 'quota-1', deleted: true });
+    const client = fakeMasterClient({
+      listSettings: vi.fn().mockResolvedValue([
+        {
+          id: 'quota-1',
+          kind: 'QUOTA_CAPACITY',
+          businessKey: 'quota-1',
+          branchId: 'branch-1',
+          classTypeId: 'class-1',
+          value: { minimumQuota: 3, defaultCapacity: 10 },
+          effectiveFrom: new Date('2026-01-01T00:00:00Z'),
+          effectiveUntil: null,
+          version: 1,
+        },
+      ]),
+    });
+    const user = userEvent.setup();
+    render(
+      <AppFeedbackProvider>
+        <MasterView client={client} activeTab="capacity" access={{ canManage: true, canFinance: false }} />
+      </AppFeedbackProvider>,
+    );
+    await user.click(await screen.findByRole('button', { name: 'Muat master data' }));
+    await user.click(await screen.findByRole('button', { name: /Hapus pengaturan kuota Reformer Pilates/ }));
+    const dialog = await screen.findByRole('dialog', { name: 'Hapus pengaturan kuota permanen?' });
+    expect(within(dialog).getByRole('button', { name: 'Hapus permanen' })).toBeDisabled();
+    await user.type(within(dialog).getByLabelText('Alasan'), 'Kembali ke bawaan sistem');
+    await user.click(within(dialog).getByRole('button', { name: 'Hapus permanen' }));
+    await waitFor(() => expect(mockRemove).toHaveBeenCalledWith('min-quota', 'quota-1', 'Kembali ke bawaan sistem'));
   });
 
   it('hides the delete action without finance:manage', async () => {

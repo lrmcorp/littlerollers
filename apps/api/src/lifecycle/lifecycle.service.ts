@@ -18,6 +18,7 @@ export type LifecycleKind =
   | 'min-quota'
   | 'public-content'
   | 'notification-template'
+  | 'support-case'
   | 'user';
 
 export interface Blocker {
@@ -229,6 +230,27 @@ const SPECS: Record<LifecycleKind, Spec> = {
     extra: draftOnly('template'),
     snapshot: (row) => ({ templateKey: row.templateKey, channel: row.channel, version: row.version, status: row.status }),
   },
+  'support-case': {
+    objectType: 'SupportCase',
+    table: 'support_case',
+    delegate: 'supportCase',
+    label: 'Kasus bantuan',
+    capability: 'support:manage',
+    // Kasus tanpa cabang hanya boleh dikelola staf lintas cabang (sama seperti SupportCasesService).
+    globalOnly: true,
+    branchOf: async (_db, row) => row.branchId ?? null,
+    // Catatan ikut terhapus (CASCADE) sehingga tidak terlihat oleh pemindaian FK; padahal itu riwayat penanganan.
+    extra: async (db, row) => {
+      const blockers: Blocker[] = [];
+      if (row.status !== 'OPEN')
+        blockers.push({ kind: 'status', label: 'kasus yang sudah ditangani atau ditutup', count: 1 });
+      const notes = await (db as any).supportCaseNote.count({ where: { caseId: row.id } });
+      if (notes > 0) blockers.push({ kind: 'support_case_note', label: 'catatan penanganan', count: notes });
+      return blockers;
+    },
+    // Subjek dan isi catatan tidak disalin ke audit.
+    snapshot: (row) => ({ customerId: row.customerId, status: row.status, priority: row.priority }),
+  },
   user: {
     objectType: 'User',
     table: 'user',
@@ -262,6 +284,7 @@ export const GENERIC_REMOVABLE: readonly LifecycleKind[] = [
   'min-quota',
   'public-content',
   'notification-template',
+  'support-case',
   'user',
 ];
 
@@ -284,6 +307,7 @@ const NONACTIVATE_HINT: Partial<Record<LifecycleKind, string>> = {
   studio: 'Gunakan Nonaktifkan.',
   room: 'Gunakan Nonaktifkan.',
   'payment-account': 'Gunakan Nonaktifkan.',
+  'support-case': 'Tutup kasus ini bila sudah selesai.',
   user: 'Gunakan Nonaktifkan.',
 };
 

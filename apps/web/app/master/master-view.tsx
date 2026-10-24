@@ -125,6 +125,7 @@ export function MasterView({
   const [settingSearch, setSettingSearch] = useState('');
 
   const [settingToDelete, setSettingToDelete] = useState<MasterSetting | null>(null);
+  const [quotaToDelete, setQuotaToDelete] = useState<MasterSetting | null>(null);
   const [archivedClassTypes, setArchivedClassTypes] = useState<ClassTypes>([]);
   const [classTypeLifecycle, setClassTypeLifecycle] = useState<{
     item: ClassTypes[number];
@@ -895,6 +896,17 @@ export function MasterView({
                               >
                                 Edit
                               </Button>
+                              {kind === 'QUOTA_CAPACITY' && canManage && (
+                                <Button
+                                  size="sm"
+                                  variant="danger"
+                                  disabled={loading}
+                                  aria-label={`Hapus pengaturan kuota ${classTypes.find((c) => c.id === item.classTypeId)?.name ?? ''}`.trim()}
+                                  onClick={() => setQuotaToDelete(item)}
+                                >
+                                  Hapus
+                                </Button>
+                              )}
                               {kind !== 'QUOTA_CAPACITY' && canFinance && item.deletable && (
                                 <Button
                                   size="sm"
@@ -1340,6 +1352,25 @@ export function MasterView({
             await client.deleteSetting(item.kind as 'INSTRUCTOR_FEE' | 'PROJECTION_RATE', item.id, reason);
             await loadBranchContent(branchId, kind);
           }, 'Tarif dihapus.');
+        }}
+      />
+      <LifecycleDialog
+        request={
+          quotaToDelete
+            ? {
+                kind: 'min-quota',
+                id: quotaToDelete.id,
+                name: classTypes.find((c) => c.id === quotaToDelete.classTypeId)?.name ?? 'pengaturan kuota',
+                action: 'delete',
+              }
+            : null
+        }
+        onClose={() => setQuotaToDelete(null)}
+        onDone={async (done) => {
+          setQuotaToDelete(null);
+          setFailure(undefined);
+          setMessage(done);
+          await loadBranchContent(branchId, kind);
         }}
       />
     </div>

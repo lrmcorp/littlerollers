@@ -16,6 +16,7 @@ const superOwner = {
     'package-promotion:manage',
     'public-content:manage',
     'notification:manage',
+    'support:manage',
     'user:admin',
   ],
   branchIds: [] as string[],
@@ -70,6 +71,8 @@ function build(opts: { counts?: Record<string, number>; row?: Record<string, unk
     slotKelas: { count: jest.fn().mockResolvedValue(counts.upcomingSlots ?? 0) },
     rekeningPembayaran: delegate,
     publicContent: delegate,
+    supportCase: delegate,
+    supportCaseNote: { count: jest.fn().mockResolvedValue(counts.caseNotes ?? 0) },
     $transaction: jest.fn(async (fn: (tx: unknown) => unknown) => fn(db)),
   };
   const audit = { catat: jest.fn().mockResolvedValue(undefined) };
@@ -374,5 +377,39 @@ describe('LifecycleService foreign-key cache', () => {
     await expect(service.inspect(superOwner as never, 'branch', branchA)).rejects.toThrow('db down');
     db.$queryRawUnsafe.mockImplementation(original);
     await expect(service.inspect(superOwner as never, 'branch', branchA)).resolves.toMatchObject({ deletable: true });
+  });
+});
+
+describe('support cases: delete only an untouched case', () => {
+  const openCase = { id: id(5), branchId: branchA, customerId: id(7), status: 'OPEN', priority: 'NORMAL', subject: 'Rahasia' };
+
+  it('is clean when it is still OPEN and has no notes', async () => {
+    const { service } = build({ row: openCase });
+    await expect(service.inspect(superOwner as never, 'support-case', id(5))).resolves.toMatchObject({ deletable: true });
+  });
+
+  it('is blocked once it was handled or has notes, and says why', async () => {
+    const handled = build({ row: { ...openCase, status: 'IN_PROGRESS' }, counts: { caseNotes: 2 } });
+    const result = await handled.service.inspect(superOwner as never, 'support-case', id(5));
+    expect(result.blockers.map((b) => `${b.kind}:${b.count}`)).toEqual(['status:1', 'support_case_note:2']);
+    await expect(
+      handled.service.remove(superOwner as never, 'support-case', id(5), 'Kasus ganda', 'c'),
+    ).rejects.toMatchObject({ code: 'CANNOT_DELETE_WITH_DEPENDENCIES' });
+    expect(handled.delegate.delete).not.toHaveBeenCalled();
+  });
+
+  it('deletes a clean case with a reason and keeps neither subject nor notes in the audit', async () => {
+    const { service, audit, delegate } = build({ row: openCase });
+    await service.remove(superOwner as never, 'support-case', id(5), 'Dibuat dobel', 'c');
+    expect(delegate.delete).toHaveBeenCalledWith({ where: { id: id(5) } });
+    const entry = audit.catat.mock.calls[0]![1];
+    expect(entry).toMatchObject({ action: 'lifecycle.support_case_deleted', objectType: 'SupportCase', reason: 'Dibuat dobel' });
+    expect(JSON.stringify(entry)).not.toContain('Rahasia');
+  });
+
+  it('a case without a branch needs cross-branch support:manage', async () => {
+    const { service } = build({ row: { ...openCase, branchId: null } });
+    const scoped = { ...superOwner, roles: [{ role: 'ADMIN' as const, branchId: branchA }], capabilities: ['support:manage'], branchIds: [branchA] };
+    await expect(service.inspect(scoped as never, 'support-case', id(5))).rejects.toMatchObject({ code: 'NOT_FOUND' });
   });
 });

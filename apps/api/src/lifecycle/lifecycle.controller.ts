@@ -73,6 +73,11 @@ export class LifecycleController {
     return this.lifecycle.remove(req.principal, 'payment-account', id, body?.reason, req.correlationId ?? 'unknown');
   }
 
+  @Delete('support-cases/:id')
+  removeSupportCase(@Req() req: AuthenticatedRequest, @Param('id') id: string, @Body() body: { reason?: string }) {
+    return this.lifecycle.remove(req.principal, 'support-case', id, body?.reason, req.correlationId ?? 'unknown');
+  }
+
   @Delete('min-quota-settings/:id')
   removeMinQuota(@Req() req: AuthenticatedRequest, @Param('id') id: string, @Body() body: { reason?: string }) {
     return this.lifecycle.remove(req.principal, 'min-quota', id, body?.reason, req.correlationId ?? 'unknown');

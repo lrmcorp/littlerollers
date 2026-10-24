@@ -14,6 +14,7 @@ export type LifecycleKind =
   | 'min-quota'
   | 'public-content'
   | 'notification-template'
+  | 'support-case'
   | 'user';
 
 export interface LifecycleBlocker {
@@ -43,6 +44,7 @@ const DELETE_PATH: Record<LifecycleKind, string> = {
   'min-quota': 'min-quota-settings',
   'public-content': 'public-content-management',
   'notification-template': 'notification-management/templates',
+  'support-case': 'support-cases',
   user: 'users',
 };
 
