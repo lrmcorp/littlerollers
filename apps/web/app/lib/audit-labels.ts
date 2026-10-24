@@ -203,7 +203,6 @@ const dashboardMetricLabels: Record<string, string> = {
   'gross-sales': 'Penjualan kotor',
   grossSales: 'Penjualan kotor',
   revenue: 'Omzet bersih',
-  projection: 'Proyeksi beban',
   instructor: 'Pendapatan instruktur',
   'instructor-realtime': 'Pendapatan instruktur',
   'gross-profit': 'Laba kotor',
@@ -222,6 +221,5 @@ export function metricLabel(key: string, rawLabel?: string): string {
   if (!rawLabel) return key;
   return rawLabel
     .replace(/\bGross sales\b/i, 'Penjualan kotor')
-    .replace(/\bProjection cost\b/i, 'Proyeksi beban')
     .replace(/\bCorrection\b/i, 'Koreksi');
 }

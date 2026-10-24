@@ -43,9 +43,9 @@ Membawa sistem Dailydose V2 yang saat ini sudah memiliki fondasi arsitektur bers
 └───────────────────────────────────┬────────────────────────────────────┘
                                     │
 ┌───────────────────────────────────▼────────────────────────────────────┐
-│ FASE 3: Modul Finansial, 5 Laporan & Monthly Close (Rules #8, #10)     │
-│         - Master Rate ber-effective-date (InstructorFee & Projection)  │
-│         - 5 Laporan: Omset, Cost Realtime, Projection, Cost Lain, Laba │
+│ FASE 3: Modul Finansial, 4 Laporan & Monthly Close (Rules #8, #10)     │
+│         - Master Rate ber-effective-date (InstructorFee)               │
+│         - 4 Laporan: Omset, Cost Realtime, Cost Lain, Laba             │
 │         - Monthly Close (Snapshot & Lock) & Jurnal Koreksi             │
 └───────────────────────────────────┬────────────────────────────────────┘
                                     │
@@ -74,7 +74,7 @@ Membawa sistem Dailydose V2 yang saat ini sudah memiliki fondasi arsitektur bers
 * **Hasil yang Telah Dicapai:**
   - Enum 7 Role resmi (`SUPER_OWNER`, `OWNER`, `MANAGER`, `FINANCE`, `ADMIN`, `INSTRUCTOR`, `CUSTOMER`) aktif di Prisma.
   - 11 Model baru terbentuk: `SessionLedger`, `OwnerCabang`, `MinQuotaSetting`, `InstructorFee`, `ProjectionRate`, `OtherCost`, `MonthlyClose`, `CorrectionJournal`, `SessionAdjustRequest`, `InstructorAvailability`, `ReminderLog`.
-  - Seeder diperbarui mencakup 7 role, penugasan owner ke cabang DD-GG, rate projeksi & fee instruktur, serta mutasi ledger sesi awal.
+  - Seeder diperbarui mencakup 7 role, penugasan owner ke cabang DD-GG, fee instruktur, serta mutasi ledger sesi awal.
   - Verifikasi otomatis `tools/verification/verify-spec-phase0-schema.ts` (`pnpm verify:spec0`) lulus 100%.
   - Zero regression: Semua tes suite sebelumnya (`verify:phases`, `typecheck`, `nest build`, `web vitest`) tetap 100% lulus.
 
@@ -181,10 +181,10 @@ Membawa sistem Dailydose V2 yang saat ini sudah memiliki fondasi arsitektur bers
    ```
 6. **Model Finansial Ber-effective-date & Tutup Buku:**
    - `InstructorFee`: `(instructorId, branchId, classTypeId, feePerJamRp, effectiveDate)`
-   - `ProjectionRate`: `(branchId, classTypeId, ratePerSesiRp, effectiveDate)`
+   - `ProjectionRate`: `(branchId, classTypeId, ratePerSesiRp, effectiveDate)` — **WARISAN, tidak dipakai lagi** (fitur proyeksi dihapus 25 Okt 2026; tabel dipertahankan tanpa pengelolaan, barisnya dibersihkan saat cabang/tipe kelas induk dihapus)
    - `MinQuotaSetting`: `(branchId, classTypeId, minQuota, cutoffHours=24)`
    - `OtherCost`: `(branchId, period [YYYY-MM], category, description, amountRp, createdById)`
-   - `MonthlyClose`: `(period [YYYY-MM], branchId, omsetRp, costProjectionRp, costRealtimeRp, otherCostRp, profitRp, status [OPEN/LOCKED], closedById, closedAt)`
+   - `MonthlyClose`: `(period [YYYY-MM], branchId, omsetRp, costProjectionRp [riwayat; tutup buku baru menyimpan 0], costRealtimeRp, otherCostRp, profitRp, status [OPEN/LOCKED], closedById, closedAt)`
    - `CorrectionJournal`: `(period [YYYY-MM], targetPeriod [YYYY-MM], branchId, amountRp, reason, approvedById, createdAt)`
    - `ReminderLog`: `(recipientPhone, recipientType, reminderType, payload, status, sentAt)`
 
@@ -251,18 +251,18 @@ Membawa sistem Dailydose V2 yang saat ini sudah memiliki fondasi arsitektur bers
 
 ---
 
-### 💰 FASE 3: Modul Finansial, 5 Laporan & Monthly Close (Keputusan Bisnis #8 & #10) [SELESAI ✅]
+### 💰 FASE 3: Modul Finansial, 4 Laporan & Monthly Close (Keputusan Bisnis #8 & #10) [SELESAI ✅; 5 → 4 laporan sejak 25 Okt 2026]
 * **Fokus:** Menegakkan Keputusan Bisnis #8, #10, dan 5 Laporan Inti Keuangan.
 * **Status Implementasi:**
   - **Master Data Tarif Ber-effective-date:**
-    - Resolusi tarif `InstructorFee` (Instruktur $\times$ Cabang $\times$ Jenis Kelas) dan `ProjectionRate` (Cabang $\times$ Jenis Kelas) berdasarkan tanggal efektif transaksi/sesi dengan fallback default terpercaya.
+    - Resolusi tarif `InstructorFee` (Instruktur $\times$ Cabang $\times$ Jenis Kelas) berdasarkan tanggal efektif sesi dengan fallback default terpercaya. *(Perubahan 25 Okt 2026: `ProjectionRate` dihapus dari fitur.)*
     - CRUD dan antarmuka web di `/master/rates` untuk manajemen tarif ber-effective-date.
   - **5 Laporan Inti Finansial (`FinanceService` & REST API):**
     1. **Laporan 1: Omset Penjualan:** Agregasi omset paket berstatus `PAID` per cabang dan per periode bulan (`GET /api/v1/finance/revenue-report`).
     2. **Laporan 2: Cost Instruktur Realtime:** Agregasi jam mengajar valid via check-in QR instruktur $\times$ fee per jam untuk setiap jenis kelas (Group, Semi-Private, Private). Owner Cabang dapat mengakses rincian jam cabangnya secara transparan (`GET /api/v1/finance/instructor-cost-realtime`).
-    3. **Laporan 3: Cost Instruktur Projection:** Projeksi beban instruktur dari kuota sesi terjual $\times$ rate projeksi cabang/jenis kelas (`GET /api/v1/finance/instructor-cost-projection`).
-    4. **Laporan 4: Cost Lain-lain (`OtherCost`):** Pencatatan biaya operasional (sewa gedung, utilitas, dll) per cabang pada periode `OPEN` (`GET/POST/DELETE /api/v1/finance/other-costs`).
-    5. **Laporan 5: Laba Bersih Bulanan (Profit Summary):** Rekapitulasi deterministik: $\text{Laba Realtime} = \text{Omset} - \text{Cost Realtime} - \text{Other Cost}$ dan $\text{Laba Projeksi} = \text{Omset} - \text{Cost Projection} - \text{Other Cost}$ (`GET /api/v1/finance/profit-summary`).
+    3. ~~Laporan Cost Instruktur Projection~~ — **dihapus 25 Okt 2026** (keputusan bisnis: biaya instruktur hanya dari sesi yang benar-benar terlaksana; rute `instructor-cost-projection` dan tab Proyeksi di Data Master tidak ada lagi).
+    4. **Laporan 3 (sebelumnya no. 4): Cost Lain-lain (`OtherCost`):** Pencatatan biaya operasional (sewa gedung, utilitas, dll) per cabang pada periode `OPEN` (`GET/POST/DELETE /api/v1/finance/other-costs`).
+    5. **Laporan 4 (sebelumnya no. 5): Laba Bersih Bulanan (Profit Summary):** Rekapitulasi deterministik: $\text{Laba} = \text{Omset} - \text{Cost Realtime} - \text{Other Cost}$ (Laba Projeksi dihapus) (`GET /api/v1/finance/profit-summary`).
   - **Isolasi Akses Owner Cabang (Rule #10):**
     - Owner Cabang hanya berhak melihat laporan performa dan rincian jam mengajar di cabang miliknya (`OwnerCabang`), dan dicekal dengan `403 Forbidden` saat mencoba mengakses cabang lain.
   - **Tutup Buku Bulanan (Monthly Close) & Snapshot Beku:**
@@ -322,7 +322,7 @@ Membawa sistem Dailydose V2 yang saat ini sudah memiliki fondasi arsitektur bers
        6. Presensi Ganda & Penyelesaian Kelas ➔ Instruktur via QR Studio, Customer via Link Mandiri, slot `COMPLETED`, saldo sesi dipotong via `ATTEND` (-1 sesi, sisa 9) (Rule #1, #6).
        7. Admin Backfill Presensi dalam batas H+2 jam (Rule #9) & Reschedule darurat (< H-24) via *Session Adjust Request* yang disetujui Manager (`ADJUST_MANUAL`).
        8. Otomasi WhatsApp Scheduler (H-7/3/1, follow-up expired max 5x, Admin digest 3 jam, Owner rekap 3 hari) & Proteksi Mutlak Customer Berhenti (`stoppedAt != null` bebas reminder 100%).
-       9. Modul Finansial Bulanan: Input `OtherCost` pada periode `OPEN`, kalkulasi 5 Laporan Keuangan Inti (Omset, Cost Realtime, Cost Projeksi, Other Cost, Laba Bersih), dan pembatasan akses Owner Cabang (Rule #8, #10).
+       9. Modul Finansial Bulanan: Input `OtherCost` pada periode `OPEN`, kalkulasi 4 Laporan Keuangan Inti (Omset, Cost Realtime, Other Cost, Laba Bersih), dan pembatasan akses Owner Cabang (Rule #8, #10).
        10. Tutup Buku Bulanan (`MonthlyClose`): Periode menjadi `LOCKED`, snapshot angka finansial dibekukan, Period Lock Protection aktif mencekal penambahan biaya pasca-lock (409 Conflict).
        11. Jurnal Koreksi Pasca-Lock: Diajukan oleh Finance dan disetujui resmi oleh Super Owner (`CorrectionStatus.APPROVED`), penyesuaian dialokasikan ke periode berjalan tanpa mengubah snapshot historis (Rule #8).
   2. **Regresi Monorepo Nol-Defek (`pnpm verify:all`):**

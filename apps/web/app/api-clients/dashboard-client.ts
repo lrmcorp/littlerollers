@@ -75,7 +75,6 @@ export interface DashboardFinancialSummary {
   packagePromotionDiscountRp?: number;
   voucherDiscountRp?: number;
   revenueRp: number;
-  projectionRp: number;
   instructorRealtimeRp: number;
   otherCostRp: number;
   grossProfitRp?: number;
@@ -107,7 +106,6 @@ export interface DashboardBranchPerformance {
   name: string;
   grossSalesRp: number;
   revenueRp: number;
-  projectionRp: number;
   instructorRealtimeRp: number;
   otherCostRp: number;
   grossProfitRp?: number;

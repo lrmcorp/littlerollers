@@ -59,15 +59,6 @@ export class FinanceController {
     return this.finance.realtimeInstructorCostReport(req.principal, { branchId, period });
   }
 
-  @Get('finance/reports/instructor-cost-projection')
-  instructorCostProjection(
-    @Req() req: AuthenticatedRequest,
-    @Query('branchId') branchId?: string,
-    @Query('period') period?: string,
-  ) {
-    return this.finance.projectionInstructorCostReport(req.principal, { branchId, period });
-  }
-
   @Get('finance/reports/other-costs')
   otherCostReport(
     @Req() req: AuthenticatedRequest,

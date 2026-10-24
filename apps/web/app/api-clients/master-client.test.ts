@@ -180,19 +180,6 @@ describe('tarif settings client', () => {
             },
           ],
         }),
-      )
-      .mockResolvedValueOnce(
-        mockResponse({
-          items: [
-            {
-              id: 'rate-1',
-              branchId: 'branch-1',
-              classTypeId: 'class-1',
-              ratePerSesiRp: 130000,
-              effectiveDate: '2020-01-01',
-            },
-          ],
-        }),
       );
     const [fee] = await browserMasterClient.listSettings('INSTRUCTOR_FEE', 'branch-1');
     expect(fee).toMatchObject({
@@ -203,32 +190,26 @@ describe('tarif settings client', () => {
       deletable: true,
     });
     expect(fee!.effectiveFrom.toISOString()).toBe('2027-01-01T00:00:00.000Z');
-    const [rate] = await browserMasterClient.listSettings('PROJECTION_RATE', 'branch-1');
-    expect(rate).toMatchObject({ value: { rateRp: 130000 }, deletable: false });
   });
 
   it('deletes by kind and never sends an end date when creating', async () => {
     const spy = vi.spyOn(globalThis, 'fetch').mockImplementation(async () => mockResponse({}));
-    await browserMasterClient.deleteSetting('PROJECTION_RATE', 'rate-1', 'Salah input');
-    expect(spy).toHaveBeenLastCalledWith(
-      '/api/v1/projection-rates/rate-1',
-      expect.objectContaining({ method: 'DELETE', body: JSON.stringify({ reason: 'Salah input' }) }),
-    );
     await browserMasterClient.deleteSetting('INSTRUCTOR_FEE', 'fee-1', 'Salah input');
     expect(spy).toHaveBeenLastCalledWith(
       '/api/v1/instructor-fees/fee-1',
-      expect.objectContaining({ method: 'DELETE' }),
+      expect.objectContaining({ method: 'DELETE', body: JSON.stringify({ reason: 'Salah input' }) }),
     );
     await browserMasterClient.createSetting({
-      kind: 'PROJECTION_RATE',
+      kind: 'INSTRUCTOR_FEE',
       branchId: 'branch-1',
       classTypeId: 'class-1',
-      value: 130000,
+      instructorUserId: 'instructor-1',
+      value: 180000,
       effectiveFrom: '2027-01-01',
       reason: 'Naik',
     });
     const body = JSON.parse(String((spy.mock.lastCall![1] as RequestInit).body));
-    expect(body).toMatchObject({ rateRp: 130000 });
+    expect(body).toMatchObject({ feeRp: 180000 });
     expect('effectiveUntil' in body).toBe(false);
   });
 });

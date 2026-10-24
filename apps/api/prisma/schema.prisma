@@ -799,6 +799,9 @@ model InstructorFee {
   @@map("instructor_fee")
 }
 
+// WARISAN: fitur proyeksi biaya instruktur dihapus (2026-10-25). Tabel dipertahankan tanpa dikelola dari
+// aplikasi agar tidak ada perubahan skema yang destruktif; barisnya dibersihkan otomatis saat cabang atau
+// tipe kelas induknya dihapus (LifecycleService, LEGACY_TABLES).
 model ProjectionRate {
   id            String   @id @default(uuid()) @db.Char(36)
   branchId      String   @db.Char(36)
@@ -837,6 +840,7 @@ model MonthlyClose {
   branchId         String      @db.Char(36)
   period           String      @db.VarChar(7)
   omsetRp          Int         @default(0)
+  // Riwayat tutup buku sebelum proyeksi dihapus; tutup buku baru menyimpan 0.
   costProjectionRp Int         @default(0)
   costRealtimeRp   Int         @default(0)
   otherCostRp      Int         @default(0)

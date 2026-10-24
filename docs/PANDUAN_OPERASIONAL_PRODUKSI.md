@@ -217,13 +217,12 @@ module.exports = {
   6. `INSTRUCTOR`: Mengisi ketersediaan mengajar (*availability*), melihat jadwal, dan check-in QR.
   7. `CUSTOMER`: Membeli paket, memesan kelas, reschedule ($\ge$ H-24), dan konfirmasi kehadiran via link.
 
-### Rule #8: Finansial, 5 Laporan & Tutup Buku Bulanan
-* **5 Laporan Inti:**
+### Rule #8: Finansial, 4 Laporan & Tutup Buku Bulanan
+* **4 Laporan Inti** (sebelumnya 5; laporan proyeksi dihapus 25 Okt 2026 karena biaya instruktur hanya dihitung dari sesi yang benar-benar terlaksana):
   1. *Laporan Omset Penjualan Paket:* Berdasarkan transaksi pembelian `PAID` pada periode berjalan.
   2. *Laporan Beban Instruktur Realtime:* Jam mengajar aktual dari slot `COMPLETED` dikalikan tarif `InstructorFee` sesuai tanggal efektif.
-  3. *Laporan Beban Instruktur Projeksi:* Total sesi terjual dikalikan `ProjectionRate` per tipe kelas sesuai tanggal efektif.
-  4. *Laporan Biaya Operasional (Other Cost):* Sewa gedung, utilitas, pemeliharaan, marketing, dan operasional lainnya.
-  5. *Laporan Laba Bersih Bulanan:* Menampilkan Laba Realtime dan Laba Projeksi secara komparatif.
+  3. *Laporan Biaya Operasional (Other Cost):* Sewa gedung, utilitas, pemeliharaan, marketing, dan operasional lainnya.
+  4. *Laporan Laba Bersih Bulanan:* Omset dikurangi Beban Instruktur Realtime dan Biaya Operasional.
 * **Tutup Buku Bulanan (Monthly Close):**
   1. Pada akhir bulan, Finance memverifikasi seluruh laporan di `/finance`.
   2. Eksekusi **Tutup Buku Bulanan** untuk cabang dan periode terkait.

@@ -27,7 +27,7 @@ export interface Room {
   updatedAt?: string | Date;
 }
 
-export type MasterKind = 'INSTRUCTOR_FEE' | 'PROJECTION_RATE' | 'QUOTA_CAPACITY';
+export type MasterKind = 'INSTRUCTOR_FEE' | 'QUOTA_CAPACITY';
 
 export interface MasterSetting {
   id: string;
@@ -154,7 +154,7 @@ export interface MasterClient {
   ): Promise<void>;
   listSettings(kind: MasterKind, branchId?: string): Promise<MasterSetting[]>;
   createSetting(input: MasterSettingInput): Promise<void>;
-  deleteSetting(kind: 'INSTRUCTOR_FEE' | 'PROJECTION_RATE', id: string, reason: string): Promise<void>;
+  deleteSetting(kind: 'INSTRUCTOR_FEE', id: string, reason: string): Promise<void>;
 }
 
 const date = (value?: string) => (value ? new Date(`${value}T00:00:00Z`) : undefined);
@@ -350,23 +350,6 @@ export const browserMasterClient: MasterClient = {
         deletable: Boolean(row.deletable),
       }));
     }
-    if (kind === 'PROJECTION_RATE') {
-      const res = await apiFetch<{ items: Array<Record<string, any>> }>(`/projection-rates${qs}`, {
-        label: 'Memuat proyeksi…',
-      });
-      return (res.items ?? []).map((row) => ({
-        id: row.id,
-        kind,
-        businessKey: row.id,
-        branchId: row.branchId,
-        classTypeId: row.classTypeId,
-        value: { rateRp: row.ratePerSesiRp },
-        effectiveFrom: asDate(row.effectiveDate),
-        effectiveUntil: null,
-        version: 1,
-        deletable: Boolean(row.deletable),
-      }));
-    }
     const res = await apiFetch<{ items: Array<Record<string, any>> }>(`/quota-capacity-settings${qs}`, {
       label: 'Memuat kuota dan kapasitas…',
     });
@@ -384,10 +367,11 @@ export const browserMasterClient: MasterClient = {
   },
 
   async deleteSetting(kind, id, reason) {
-    await apiFetch(
-      `/${kind === 'INSTRUCTOR_FEE' ? 'instructor-fees' : 'projection-rates'}/${encodeURIComponent(id)}`,
-      { method: 'DELETE', label: 'Menghapus tarif…', body: JSON.stringify({ reason }) },
-    );
+    await apiFetch(`/instructor-fees/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      label: 'Menghapus tarif…',
+      body: JSON.stringify({ reason }),
+    });
   },
 
   async createSetting(input) {
@@ -404,19 +388,6 @@ export const browserMasterClient: MasterClient = {
           classTypeId: input.classTypeId,
           instructorUserId: input.instructorUserId!,
           feeRp: input.value,
-          reason: input.reason,
-        }),
-      });
-    } else if (input.kind === 'PROJECTION_RATE') {
-      await apiFetch('/projection-rates', {
-        method: 'POST',
-        label: 'Menyimpan proyeksi…',
-        body: JSON.stringify({
-          ...period,
-          kind: 'PROJECTION_RATE',
-          branchId: input.branchId,
-          classTypeId: input.classTypeId,
-          rateRp: input.value,
           reason: input.reason,
         }),
       });

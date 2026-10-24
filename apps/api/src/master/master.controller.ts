@@ -268,29 +268,6 @@ export class MasterController {
   ) {
     return this.settings.remove(req.principal, 'INSTRUCTOR_FEE', id, req.correlationId ?? 'unknown', body?.reason);
   }
-  @Get('projection-rates') listRates(
-    @Req() req: AuthenticatedRequest,
-    @Query('branchId') branchId?: string,
-  ) {
-    return this.settings.list(req.principal, 'PROJECTION_RATE', branchId);
-  }
-  @Post('projection-rates') createRate(
-    @Req() req: AuthenticatedRequest,
-    @Body() body: SettingInput,
-  ) {
-    return this.settings.create(
-      req.principal,
-      { ...body, kind: 'PROJECTION_RATE' },
-      req.correlationId ?? 'unknown',
-    );
-  }
-  @Delete('projection-rates/:id') deleteRate(
-    @Req() req: AuthenticatedRequest,
-    @Param('id') id: string,
-    @Body() body?: { reason?: string },
-  ) {
-    return this.settings.remove(req.principal, 'PROJECTION_RATE', id, req.correlationId ?? 'unknown', body?.reason);
-  }
   @Get('quota-capacity-settings') listQuota(
     @Req() req: AuthenticatedRequest,
     @Query('branchId') branchId?: string,

@@ -8,10 +8,9 @@ const branches = [
 function overview(branchId?: string) {
   const scoped = branchId === 'branch-2';
   const revenue = scoped ? 400_000 : 1_000_000;
-  const projection = scoped ? 160_000 : 400_000;
   const instructor = scoped ? 80_000 : 200_000;
   const other = scoped ? 60_000 : 150_000;
-  const profit = revenue - projection - other;
+  const profit = revenue - instructor - other;
   return {
     generatedAt: '2026-08-08T10:00:00.000Z',
     period: {
@@ -25,7 +24,6 @@ function overview(branchId?: string) {
       packagePromotionDiscountRp: 0,
       voucherDiscountRp: 0,
       revenueRp: revenue,
-      projectionRp: projection,
       instructorRealtimeRp: instructor,
       otherCostRp: other,
       correctionRp: 25_000,
@@ -52,7 +50,6 @@ function overview(branchId?: string) {
     metrics: [
       { key: 'grossSales', label: 'Penjualan kotor', value: revenue, unit: 'IDR', changePercent: 0 },
       { key: 'revenue', label: 'Omzet bersih', value: revenue, unit: 'IDR', changePercent: 0 },
-      { key: 'projection', label: 'Proyeksi beban', value: projection, unit: 'IDR' },
       { key: 'instructor', label: 'Pendapatan instruktur', value: instructor, unit: 'IDR' },
       { key: 'otherCost', label: 'Pengeluaran lain', value: other, unit: 'IDR' },
       { key: 'profit', label: 'Profit operasional', value: profit, unit: 'IDR', changePercent: 0 },
@@ -66,7 +63,6 @@ function overview(branchId?: string) {
     branches: branches.map((branch) => ({
       ...branch,
       revenueRp: branch.id === 'branch-2' ? 400_000 : 600_000,
-      projectionRp: branch.id === 'branch-2' ? 160_000 : 240_000,
       instructorRealtimeRp: branch.id === 'branch-2' ? 80_000 : 120_000,
       otherCostRp: branch.id === 'branch-2' ? 60_000 : 90_000,
       profitRp: branch.id === 'branch-2' ? 180_000 : 270_000,

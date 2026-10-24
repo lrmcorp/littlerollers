@@ -95,12 +95,11 @@ Daily Dose Pilates v2 terbagi ke dalam 7 modul inti fungsional:
 ### Modul 6: Finansial, Biaya Operasional & Tutup Buku (Finance & Monthly Close)
 * **Deskripsi:** Pusat pengelolaan pendapatan studio, pencatatan beban instruktur, pencatatan beban operasional lain, perbandingan antar-cabang, dan eksekusi tutup buku periodik.
 * **Fitur Utama:**
-  1. *5 Pilar Laporan Finansial*:
+  1. *4 Pilar Laporan Finansial* (proyeksi biaya dihapus 25 Okt 2026):
      - **Laporan 1: Omset Penjualan (Revenue)**: Total pembayaran paket terverifikasi.
      - **Laporan 2: Realtime Instructor Cost**: Beban honor instruktur aktual dari kelas yang selesai dan dihadiri.
-     - **Laporan 3: Projected Instructor Cost**: Beban honor terproyeksi dari kelas yang sedang aktif/terjadwal.
-     - **Laporan 4: Operational Other Cost**: Pengeluaran operasional studio di luar instruktur (sewa, listrik, air, perlengkapan, maintenance).
-     - **Laporan 5: Estimasi Laba Bersih (Net Profit)**: Revenue dikurangi Beban Instruktur Aktual dan Beban Operasional Lain.
+     - **Laporan 3: Operational Other Cost**: Pengeluaran operasional studio di luar instruktur (sewa, listrik, air, perlengkapan, maintenance).
+     - **Laporan 4: Estimasi Laba Bersih (Net Profit)**: Revenue dikurangi Beban Instruktur Aktual dan Beban Operasional Lain.
   2. *Tutup Buku Bulanan (Period Lock)*: Eksekusi kunci periode oleh Finance membekukan angka finansial bulan bersangkutan (**Aturan Bisnis #8**).
   3. *Jurnal Koreksi Pasca-Lock*: Seluruh koreksi transaksi masa lalu yang sudah terkunci dicatat pada bulan berjalan sebagai jurnal koreksi dan memerlukan approval dari Super Owner.
   4. *Isolasi Finansial Cabang*: Owner cabang hanya dapat melihat omset dan rincian honor instruktur pada cabangnya sendiri; proteksi sistem mencekal (HTTP 403 Forbidden) akses lintas cabang (**Aturan Bisnis #10**).
@@ -167,8 +166,8 @@ Sistem Daily Dose Pilates v2 menerapkan kontrol hak akses berbasis kapabilitas (
   1. Menugaskan kepemilikan cabang kepada akun Owner via antarmuka penugasan multi-cabang (`/assignments` & `OwnerBranch`).
   2. Meninjau, memverifikasi (*Approve*), dan menolak dokumen identitas KYC (KTP & Selfie) di `/customers/[id]` dan `/identity-verifications`.
   3. Menyetujui atau menolak permohonan Jurnal Koreksi finansial pasca Tutup Buku Bulanan.
-  4. Mengakses ringkasan dan 5 laporan finansial komparatif seluruh cabang (`/finance`).
-  5. Mengatur konfigurasi tarif dasar instruktur dan laju proyeksi kelas (`/master`, tab Honor & Proyeksi; URL lama `/master/rates` dialihkan ke sana).
+  4. Mengakses ringkasan dan 4 laporan finansial komparatif seluruh cabang (`/finance`).
+  5. Mengatur konfigurasi tarif dasar instruktur (`/master`, tab Honor Instruktur; URL lama `/master/rates` dialihkan ke sana). Tarif honor hanya dapat diubah oleh Finance dan Super Owner.
   6. Mengelola akun staf, penetapan hak akses, audit log, dan trigger darurat job latar belakang.
 * **Apa Saja yang DILARANG / BATASAN:**
   1. Dilarang melakukan backfill presensi kelas yang telah lewat lebih dari batas toleransi H+2 jam (aturan sistem terkunci di database).
@@ -180,7 +179,7 @@ Sistem Daily Dose Pilates v2 menerapkan kontrol hak akses berbasis kapabilitas (
 * **Definisi:** Pemilik atau investor pada satu atau beberapa cabang studio spesifik yang ditugaskan resmi oleh Super Owner.
 * **Apa Saja yang BISA Dilakukan:**
   1. Mengakses dashboard performa omset, tren reservasi, dan jumlah kelas pada cabangnya sendiri (`/workspace/branch-performance`).
-  2. Melihat transparansi penuh rincian jam mengajar dan akumulasi *Instructor Cost* (realtime maupun proyeksi) khusus untuk instruktur yang mengajar di cabangnya (**Aturan Bisnis #10**).
+  2. Melihat transparansi penuh rincian jam mengajar dan akumulasi *Instructor Cost* (realtime) khusus untuk instruktur yang mengajar di cabangnya (**Aturan Bisnis #10**).
   3. Menerima rekapitulasi notifikasi WhatsApp status paket pelanggan setiap 3 hari sekali (**Aturan Bisnis #11**).
   4. Memantau daftar staf dan pelanggan yang berafiliasi dengan cabangnya.
 * **Apa Saja yang DILARANG / BATASAN:**
@@ -470,9 +469,8 @@ Sistem Daily Dose Pilates v2 menerapkan kontrol hak akses berbasis kapabilitas (
 [Analisis 5 Pilar Laporan Keuangan Studio]
   1. Total Omset Penjualan
   2. Beban Instruktur Aktual (Realtime Cost)
-  3. Beban Instruktur Terproyeksi (Projected Cost)
-  4. Beban Operasional Lain (Other Cost)
-  5. Estimasi Laba Bersih (Net Profit)
+  3. Beban Operasional Lain (Other Cost)
+  4. Estimasi Laba Bersih (Net Profit)
         │
         ▼ (Akhir Periode Bulan Berjalan)
 [Eksekusi Tutup Buku Bulanan (Period Lock)]
@@ -518,7 +516,7 @@ Sistem Daily Dose Pilates v2 menerapkan kontrol hak akses berbasis kapabilitas (
         ▼                                                       ▼
 [Pantau Omset & Utilisasi Studio GG]            [Audit Transparansi Fee Instruktur GG]
   - Total Reservasi Reformer                      - Rincian Jam Mengajar per Instruktur
-  - Okupansi Kelas Harian & Mingguan             - Fee Aktual Selesai vs Fee Proyeksi
+  - Okupansi Kelas Harian & Mingguan             - Fee Aktual Selesai per Instruktur
         │                                                       │
         └───────────────────────────────────────────────────────┘
         │
@@ -559,7 +557,7 @@ Sistem Daily Dose Pilates v2 menerapkan kontrol hak akses berbasis kapabilitas (
         ▼
 [Pengawasan Finansial Konsolidasi di /finance]
   - Perbandingan Laba Rugi Lintas Seluruh Cabang
-  - Pengaturan Tarif Global Instruktur & Rasio Proyeksi di /master (tab Honor & Proyeksi)
+  - Pengaturan Tarif Global Instruktur di /master (tab Honor Instruktur)
         │
         ▼ (Koreksi Finansial Bulanan)
 [Tinjau Permohonan Jurnal Koreksi dari Finance Pasca Tutup Buku]
@@ -575,7 +573,7 @@ Sistem Daily Dose Pilates v2 menerapkan kontrol hak akses berbasis kapabilitas (
    - Memeriksa foto KTP dan foto selfie pelanggan baru.
    - Menekan tombol **APPROVE** $\rightarrow$ dokumen identitas berstatus sah dan otomatis dikunci secara permanen (tidak dapat disunting kembali untuk mencegah manipulasi data identitas).
 3. **Tata Kelola Master Tarif Global**:
-   - Super Owner mengatur besaran tarif dasar honor instruktur per jam, skema bonus kuota peserta, dan rasio biaya proyeksi di `/master` (tab Honor & Proyeksi; `/master/rates` dialihkan ke sana).
+   - Super Owner mengatur besaran tarif dasar honor instruktur per jam, dan kuota peserta di `/master` (tab Honor Instruktur dan Kuota & Kapasitas; `/master/rates` dialihkan ke sana).
 4. **Persetujuan Jurnal Koreksi Finansial Pasca-Lock**:
    - Ketika Finance mengajukan koreksi penyesuaian transaksi untuk periode yang telah ditutup buku, permohonan masuk ke antrean Super Owner.
    - Super Owner memeriksa justifikasi audit koreksi tersebut dan menekan tombol **APPROVE** untuk meresmikan jurnal koreksi pada buku berjalan (**Aturan Bisnis #8**).

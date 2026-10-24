@@ -160,7 +160,6 @@ describe('Finance anomaly pagination', () => {
       }),
       getOmsetReport: vi.fn().mockResolvedValue({ transactions: [], totalOmsetRp: 0, totalTransactions: 0 }),
       getRealtimeInstructorReport: vi.fn().mockResolvedValue({ instructors: [], totalFeeRp: 0, totalHours: 0, totalSessions: 0 }),
-      getProjectionReport: vi.fn().mockResolvedValue({ classTypeBreakdown: [], totalEstimatedFeeRp: 0, totalScheduledSessions: 0 }),
       getOtherCostReport: vi.fn().mockResolvedValue({ items: [], totalOtherCostRp: 0 }),
     } as unknown as FinanceClient;
 
@@ -189,7 +188,6 @@ describe('Finance anomaly pagination', () => {
       getMonthlyProfit: vi.fn().mockRejectedValue(new Error('Koneksi server terputus saat mengambil laporan laba rugi')),
       getOmsetReport: vi.fn().mockResolvedValue({ transactions: [], totalOmsetRp: 0, totalTransactions: 0 }),
       getInstructorCostRealtime: vi.fn().mockResolvedValue({ instructors: [], totalFeeRp: 0, totalHours: 0, totalSessions: 0 }),
-      getInstructorCostProjection: vi.fn().mockResolvedValue({ classTypeBreakdown: [], totalEstimatedFeeRp: 0, totalScheduledSessions: 0 }),
       getOtherCostReport: vi.fn().mockResolvedValue({ items: [], totalOtherCostRp: 0 }),
     } as unknown as FinanceClient;
 

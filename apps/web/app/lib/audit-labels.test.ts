@@ -26,7 +26,6 @@ describe('metricLabel', () => {
     expect(metricLabel('gross-sales')).toBe('Penjualan kotor');
     expect(metricLabel('grossSales')).toBe('Penjualan kotor');
     expect(metricLabel('revenue')).toBe('Omzet bersih');
-    expect(metricLabel('projection')).toBe('Proyeksi beban');
     expect(metricLabel('instructor-realtime')).toBe('Pendapatan instruktur');
     expect(metricLabel('other-cost')).toBe('Pengeluaran lain');
     expect(metricLabel('profit')).toBe('Profit operasional');
@@ -35,7 +34,6 @@ describe('metricLabel', () => {
 
   it('membersihkan fallback istilah bahasa Inggris mentah bila API mengirim label lama', () => {
     expect(metricLabel('custom-1', 'Gross sales')).toBe('Penjualan kotor');
-    expect(metricLabel('custom-2', 'Projection cost')).toBe('Proyeksi beban');
     expect(metricLabel('custom-3', 'Correction (terpisah)')).toBe('Koreksi (terpisah)');
   });
 });

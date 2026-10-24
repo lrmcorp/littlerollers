@@ -14,7 +14,6 @@ describe('PRIORITAS 6 NON-HAPPY-PATH: Poin 23 — Format Metrik, Level & Audit A
       expect(metricLabel('gross-sales')).toBe('Penjualan kotor');
       expect(metricLabel('grossSales')).toBe('Penjualan kotor');
       expect(metricLabel('revenue')).toBe('Omzet bersih');
-      expect(metricLabel('projection')).toBe('Proyeksi beban');
       expect(metricLabel('instructor-realtime')).toBe('Pendapatan instruktur');
       expect(metricLabel('other-cost')).toBe('Pengeluaran lain');
       expect(metricLabel('profit')).toBe('Profit operasional');
@@ -27,8 +26,6 @@ describe('PRIORITAS 6 NON-HAPPY-PATH: Poin 23 — Format Metrik, Level & Audit A
     it('membersihkan string legacy bahasa Inggris dari API lama secara case-insensitive', () => {
       expect(metricLabel('unknown_1', 'Gross sales')).toBe('Penjualan kotor');
       expect(metricLabel('unknown_2', 'GROSS SALES')).toBe('Penjualan kotor');
-      expect(metricLabel('unknown_3', 'Projection cost')).toBe('Proyeksi beban');
-      expect(metricLabel('unknown_4', 'PROJECTION COST')).toBe('Proyeksi beban');
       expect(metricLabel('unknown_5', 'Correction (terpisah)')).toBe('Koreksi (terpisah)');
       expect(metricLabel('unknown_6', 'Correction')).toBe('Koreksi');
     });

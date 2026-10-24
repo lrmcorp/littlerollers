@@ -5,7 +5,6 @@ import { ApiProblem } from '../identity/security';
 import { PrismaService } from '../database/prisma.service';
 import { dateInTimeZone, startOfLocalDateUtc } from '../identity/assignment-boundary';
 import { calculateSlotFee, summarizeInstructorFees } from '../packages/instructor-fee-calculator';
-import { projectionCostFor } from '../packages/projection-cost';
 import { verificationStatusWhere } from '../identity/manajemen-pelanggan.service';
 
 /**
@@ -53,7 +52,6 @@ interface FinancialResult {
     grossSalesRp: number;
     discountRp: number;
     revenueRp: number;
-    projectionRp: number;
     instructorRealtimeRp: number;
     otherCostRp: number;
     grossProfitRp: number;
@@ -72,7 +70,6 @@ interface FinancialResult {
     branchId: string;
     grossSalesRp: number;
     revenueRp: number;
-    projectionRp: number;
     instructorRealtimeRp: number;
     otherCostRp: number;
     grossProfitRp: number;
@@ -194,7 +191,7 @@ export class DashboardService {
     const fromPeriod = params.from.slice(0, 7);
     const untilPeriod = params.until.slice(0, 7);
 
-    const [purchases, otherCosts, completedSlots, fees, projectionRates] = await Promise.all([
+    const [purchases, otherCosts, completedSlots, fees] = await Promise.all([
       this.db.pembelian.findMany({
         where: {
           branchId: { in: params.branchIds },
@@ -249,23 +246,8 @@ export class DashboardService {
             orderBy: { effectiveDate: 'desc' },
           })
         : Promise.resolve([]),
-      this.db.projectionRate?.findMany
-        ? this.db.projectionRate.findMany({
-            where: { branchId: { in: params.branchIds } },
-            orderBy: { effectiveDate: 'desc' },
-          })
-        : Promise.resolve([]),
     ]);
 
-    const projection = projectionCostFor(
-      purchases.map((p) => ({
-        branchId: p.branchId,
-        paidAt: p.paidAt,
-        createdAt: p.createdAt,
-        package: p.package ?? { classTypeId: null, sessionCount: null },
-      })),
-      projectionRates,
-    );
     // Tarif honor belum diisi sama sekali padahal ada kelas selesai: biaya instruktur tampil Rp 0 dan laba = omzet.
     const instructorFeeMissing = completedSlots.length > 0 && fees.length === 0;
 
@@ -378,7 +360,6 @@ export class DashboardService {
         branchId,
         grossSalesRp: bData.gross,
         revenueRp: bData.revenue,
-        projectionRp: projection.byBranch.get(branchId) ?? 0,
         instructorRealtimeRp: branchInstructorFee,
         otherCostRp: branchOtherCost,
         grossProfitRp: branchGrossProfit,
@@ -449,7 +430,6 @@ export class DashboardService {
         grossSalesRp: totalGross,
         discountRp: totalDiscount,
         revenueRp: totalRevenue,
-        projectionRp: projection.totalProjectionCostRp,
         instructorRealtimeRp: totalInstructorFee,
         otherCostRp: totalOtherCost,
         grossProfitRp: grossProfit,
@@ -670,7 +650,6 @@ export class DashboardService {
           branchId: branch.id,
           grossSalesRp: 0,
           revenueRp: 0,
-          projectionRp: 0,
           instructorRealtimeRp: 0,
           otherCostRp: 0,
           grossProfitRp: 0,
@@ -722,7 +701,6 @@ export class DashboardService {
           name: branch.name,
           grossSalesRp: branchFinancial?.grossSalesRp ?? 0,
           revenueRp: branchFinancial?.revenueRp ?? 0,
-          projectionRp: branchFinancial?.projectionRp ?? 0,
           instructorRealtimeRp: branchFinancial?.instructorRealtimeRp ?? 0,
           otherCostRp: branchFinancial?.otherCostRp ?? 0,
           grossProfitRp: (branchFinancial as any)?.grossProfitRp ?? 0,
@@ -765,16 +743,6 @@ export class DashboardService {
         value: revenue,
         unit: 'IDR',
         changePercent: percentChange(revenue, previousRevenueValue),
-      },
-      {
-        key: 'projection',
-        label: 'Proyeksi beban',
-        value: financial.totals.projectionRp,
-        unit: 'IDR',
-        changePercent: percentChange(
-          financial.totals.projectionRp,
-          previousFinancial.totals.projectionRp,
-        ),
       },
       {
         key: 'instructor-realtime',
@@ -867,7 +835,6 @@ export class DashboardService {
       EXECUTIVE: [
         'gross-sales',
         'revenue',
-        'projection',
         'instructor-realtime',
         'gross-profit',
         'other-cost',
@@ -883,7 +850,6 @@ export class DashboardService {
       OWNER: [
         'gross-sales',
         'revenue',
-        'projection',
         'instructor-realtime',
         'gross-profit',
         'other-cost',
@@ -894,7 +860,6 @@ export class DashboardService {
       FINANCE: [
         'gross-sales',
         'revenue',
-        'projection',
         'instructor-realtime',
         'gross-profit',
         'other-cost',

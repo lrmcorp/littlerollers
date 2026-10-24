@@ -969,7 +969,7 @@ export async function seedTimetableAndOperationalData(
     },
   });
 
-  // Seed MinQuotaSetting, InstructorFee, and ProjectionRate
+  // Seed MinQuotaSetting and InstructorFee
   await db.minQuotaSetting.upsert({
     where: {
       branchId_classTypeId: {
@@ -997,18 +997,6 @@ export async function seedTimetableAndOperationalData(
       branchId: jkt.id,
       classTypeId: classTypeGroup.id,
       feePerJamRp: 150000,
-      effectiveDate: new Date('2026-01-01'),
-    },
-  });
-
-  await db.projectionRate.upsert({
-    where: { id: '00000000-0000-4000-8000-000000000212' },
-    update: {},
-    create: {
-      id: '00000000-0000-4000-8000-000000000212',
-      branchId: jkt.id,
-      classTypeId: classTypeGroup.id,
-      ratePerSesiRp: 125000,
       effectiveDate: new Date('2026-01-01'),
     },
   });

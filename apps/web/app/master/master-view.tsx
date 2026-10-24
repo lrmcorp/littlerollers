@@ -39,7 +39,6 @@ export type MasterTab =
 
 const kindLabels: Record<MasterKind, string> = {
   QUOTA_CAPACITY: 'Kuota & kapasitas kelas',
-  PROJECTION_RATE: 'Nilai proyeksi per sesi',
   INSTRUCTOR_FEE: 'Honor instruktur',
 };
 
@@ -115,7 +114,7 @@ export function MasterView({
   const [classTypeStatusFilter, setClassTypeStatusFilter] = useState<'' | 'ACTIVE' | 'INACTIVE' | 'ARCHIVED'>('');
   const [isCreateClassTypeModalOpen, setIsCreateClassTypeModalOpen] = useState(false);
 
-  // States for Settings (Fees, Quota, Projection)
+  // States for Settings (Fees, Quota)
   const [isCreateSettingModalOpen, setIsCreateSettingModalOpen] = useState(false);
   const [editingSetting, setEditingSetting] = useState<MasterSetting | null>(null);
   const [editingSettingValue, setEditingSettingValue] = useState('');
@@ -886,8 +885,6 @@ export function MasterView({
                                   const val = item.value as Record<string, unknown>;
                                   if (item.kind === 'INSTRUCTOR_FEE') {
                                     setEditingSettingValue(String(val.feeRp ?? ''));
-                                  } else if (item.kind === 'PROJECTION_RATE') {
-                                    setEditingSettingValue(String(val.rateRp ?? ''));
                                   } else {
                                     setEditingSettingValue(String(val.minimumQuota ?? '1'));
                                     setEditingSettingCapacity(
@@ -1357,7 +1354,7 @@ export function MasterView({
           if (!item) return;
           setSettingToDelete(null);
           void run(async () => {
-            await client.deleteSetting(item.kind as 'INSTRUCTOR_FEE' | 'PROJECTION_RATE', item.id, reason);
+            await client.deleteSetting('INSTRUCTOR_FEE', item.id, reason);
             await loadBranchContent(branchId, kind);
           }, 'Tarif dihapus.');
         }}

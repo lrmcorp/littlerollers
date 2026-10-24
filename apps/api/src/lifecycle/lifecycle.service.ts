@@ -50,6 +50,8 @@ interface Spec {
   globalOnly?: boolean;
   branchOf?: (db: Db, row: any) => Promise<string | null>;
   extra?: (db: Db, row: any) => Promise<Blocker[]>;
+  /** Baris warisan yang ikut dibersihkan saat entitas dihapus (bukan penghalang); mengembalikan jumlah yang dihapus. */
+  cleanup?: (db: Db, row: any) => Promise<number>;
   snapshot: (row: any) => Record<string, unknown>;
 }
 
@@ -69,7 +71,6 @@ const TABLE_LABELS: Record<string, string> = {
   rekening_pembayaran: 'rekening pembayaran',
   min_quota_setting: 'pengaturan kuota',
   instructor_fee: 'tarif honor',
-  projection_rate: 'tarif proyeksi',
   other_cost: 'biaya operasional',
   monthly_close: 'tutup buku',
   correction_journal: 'koreksi keuangan',
@@ -90,6 +91,12 @@ const TABLE_LABELS: Record<string, string> = {
 
 const labelOf = (table: string) => TABLE_LABELS[table] ?? table.replace(/_/gu, ' ');
 const SAFE_IDENT = /^[A-Za-z0-9_]+$/u;
+
+/**
+ * Tabel warisan yang tidak lagi dikelola dari UI sehingga barisnya tidak boleh menghalangi hapus.
+ * `projection_rate`: fitur proyeksi biaya dihapus; barisnya dibersihkan lewat `cleanup` entitas induk.
+ */
+const LEGACY_TABLES: ReadonlySet<string> = new Set(['projection_rate']);
 
 interface Edge {
   table: string;
@@ -118,6 +125,8 @@ const SPECS: Record<LifecycleKind, Spec> = {
     label: 'Cabang',
     capability: 'master:manage',
     branchOf: async (_db, row) => row.id,
+    cleanup: async (db, row) =>
+      (await (db as any).projectionRate.deleteMany({ where: { branchId: row.id } })).count,
     extra: async (db, row) => {
       const count = await (db as any).user.count({ where: { preferredBranchId: row.id } });
       return count ? [{ kind: 'user_preferred_branch', label: 'member/user yang memilih cabang ini', count }] : [];
@@ -149,6 +158,8 @@ const SPECS: Record<LifecycleKind, Spec> = {
     delegate: 'jenisKelas',
     label: 'Tipe kelas',
     capability: 'master:manage',
+    cleanup: async (db, row) =>
+      (await (db as any).projectionRate.deleteMany({ where: { classTypeId: row.id } })).count,
     snapshot: (row) => ({ code: row.code, name: row.name }),
   },
   package: {
@@ -407,7 +418,8 @@ export class LifecycleService {
   async blockers(db: Db, kind: LifecycleKind, row: { id: string }): Promise<Blocker[]> {
     const spec = SPECS[kind];
     const edges = (await this.foreignKeys()).filter(
-      (edge) => edge.parent === spec.table && edge.deleteRule !== 'CASCADE',
+      (edge) =>
+        edge.parent === spec.table && edge.deleteRule !== 'CASCADE' && !LEGACY_TABLES.has(edge.table),
     );
     const found: Blocker[] = [];
     for (const edge of edges) {
@@ -471,6 +483,7 @@ export class LifecycleService {
         const blockers = await this.blockers(tx, kind, row);
         if (blockers.length > 0) throw this.blocked(kind, blockers);
 
+        const legacyRemoved = (await spec.cleanup?.(tx, row)) ?? 0;
         await (tx as any)[spec.delegate].delete({ where: { id } });
         await this.audit.catat(tx, {
           actorId: principal.userId,
@@ -481,7 +494,10 @@ export class LifecycleService {
           objectType: spec.objectType,
           objectId: id,
           reason,
-          beforeMasked: spec.snapshot(row) as Prisma.InputJsonValue,
+          beforeMasked: {
+            ...spec.snapshot(row),
+            ...(legacyRemoved > 0 ? { legacyProjectionRatesRemoved: legacyRemoved } : {}),
+          } as Prisma.InputJsonValue,
         });
         return { id, kind, deleted: true as const, success: true as const };
       });

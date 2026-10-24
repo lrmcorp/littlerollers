@@ -31,6 +31,7 @@ export default function MasterPage() {
     } else if (requestedTab === 'vouchers') {
       router.replace('/workspace/vouchers');
     } else if (requestedTab === 'projection') {
+      // Fitur proyeksi dihapus; tautan lama kembali ke Data Master.
       router.replace('/master');
     } else if (['venues', 'accounts', 'publicProfiles'].includes(requestedTab)) {
       if (requestedBranch) {

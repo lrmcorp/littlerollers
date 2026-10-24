@@ -266,7 +266,7 @@ export function FinanceView({
     <div className="space-y-6">
       <AdminPageHeader
         title="Keuangan & Tutup Buku"
-        description="Lima laporan inti (omzet, beban instruktur aktual, proyeksi beban instruktur, beban operasional lain, dan laba bersih), tutup buku bulanan, dan rekonsiliasi transaksi."
+        description="Laporan inti (omzet, beban instruktur aktual, beban operasional lain, dan laba bersih), tutup buku bulanan, dan rekonsiliasi transaksi."
         actions={
           <div className="flex gap-2">
             {context?.hasCapability('finance:export') && (

@@ -42,6 +42,8 @@ const fkRows = [
   { t: 'paket', c: 'classTypeId', rt: 'jenis_kelas', d: 'RESTRICT' },
   { t: 'pembelian', c: 'packageId', rt: 'paket', d: 'RESTRICT' },
   { t: 'pemesanan_kelas', c: 'classSlotId', rt: 'slot_kelas', d: 'RESTRICT' },
+  { t: 'projection_rate', c: 'branchId', rt: 'cabang', d: 'RESTRICT' },
+  { t: 'projection_rate', c: 'classTypeId', rt: 'jenis_kelas', d: 'RESTRICT' },
 ];
 
 function build(opts: { counts?: Record<string, number>; row?: Record<string, unknown>; kind?: string } = {}) {
@@ -70,6 +72,7 @@ function build(opts: { counts?: Record<string, number>; row?: Record<string, unk
       delete: delegate.delete,
     },
     pembelian: { count: jest.fn().mockResolvedValue(counts.promoPurchases ?? 0) },
+    projectionRate: { deleteMany: jest.fn().mockResolvedValue({ count: counts.legacyProjectionRates ?? 0 }) },
     slotKelas: { ...delegate, count: jest.fn().mockResolvedValue(counts.upcomingSlots ?? 0) },
     rekeningPembayaran: delegate,
     publicContent: delegate,
@@ -469,5 +472,41 @@ describe('class slots: delete only a draft or cancelled class nobody booked', ()
     });
     const other = { ...superOwner, roles: [{ role: 'ADMIN' as const, branchId: id(77) }], capabilities: ['class-slot:manage'], branchIds: [id(77)] };
     await expect(service.inspect(other as never, 'class-slot', id(8))).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+});
+
+describe('legacy projection rates never block a delete and are cleaned with their parent', () => {
+  const branchRow = { id: id(2), code: 'GG', name: 'Green Garden', timezone: 'Asia/Jakarta' };
+
+  it('a branch is clean even though projection_rate rows still point at it (the table is only scanned via the FK graph)', async () => {
+    const { service, queryRawUnsafe } = build({ row: branchRow, counts: { projection_rate: 25 } });
+    await expect(service.inspect(superOwner as never, 'branch', id(2))).resolves.toMatchObject({
+      deletable: true,
+      blockers: [],
+    });
+    const countedTables = queryRawUnsafe.mock.calls
+      .map(([sql]) => /FROM `([^`]+)`/u.exec(String(sql))?.[1])
+      .filter(Boolean);
+    expect(countedTables).not.toContain('projection_rate');
+  });
+
+  it('deleting a branch removes its legacy rates in the same transaction and records how many in the audit', async () => {
+    const { service, db, audit, delegate } = build({ row: branchRow, counts: { legacyProjectionRates: 3 } });
+    await service.remove(superOwner as never, 'branch', id(2), 'Cabang ditutup', 'c');
+    expect(db.projectionRate.deleteMany).toHaveBeenCalledWith({ where: { branchId: id(2) } });
+    expect(delegate.delete).toHaveBeenCalledWith({ where: { id: id(2) } });
+    expect(audit.catat.mock.calls[0]![1].beforeMasked).toMatchObject({ legacyProjectionRatesRemoved: 3 });
+  });
+
+  it('a class type cleans legacy rates by class type, and a blocked delete cleans nothing', async () => {
+    const clean = build({ row: { id: id(9), code: 'REF', name: 'Reformer' } });
+    await clean.service.remove(superOwner as never, 'class-type', id(9), 'Tidak dipakai', 'c');
+    expect(clean.db.projectionRate.deleteMany).toHaveBeenCalledWith({ where: { classTypeId: id(9) } });
+
+    const blocked = build({ row: { id: id(9), code: 'REF', name: 'Reformer' }, counts: { paket: 1 } });
+    await expect(
+      blocked.service.remove(superOwner as never, 'class-type', id(9), 'Tidak dipakai', 'c'),
+    ).rejects.toMatchObject({ code: 'CANNOT_DELETE_CLASS_TYPE_WITH_DEPENDENCIES' });
+    expect(blocked.db.projectionRate.deleteMany).not.toHaveBeenCalled();
   });
 });

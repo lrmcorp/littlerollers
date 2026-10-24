@@ -44,7 +44,6 @@ const trendDate = (value: Date | string) => {
 const financialMetricKeys = new Set([
   'gross-sales',
   'revenue',
-  'projection',
   'instructor-realtime',
   'gross-profit',
   'other-cost',

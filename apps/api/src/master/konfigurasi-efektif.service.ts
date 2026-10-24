@@ -4,7 +4,7 @@ import { ApiProblem, ENTITY_ID_REGEX } from '../identity/security';
 import { MasterAccessService } from './master-access.service';
 import { PrismaService } from '../database/prisma.service';
 
-export type SettingKind = 'INSTRUCTOR_FEE' | 'PROJECTION_RATE' | 'QUOTA_CAPACITY';
+export type SettingKind = 'INSTRUCTOR_FEE' | 'QUOTA_CAPACITY';
 export type SettingInput = {
   kind: SettingKind;
   branchId: string;
@@ -109,37 +109,6 @@ export class EffectiveSettingsService {
           classTypeId: r.classTypeId,
           classType: r.classType,
           feePerJamRp: r.feePerJamRp,
-          effectiveDate: dateKey(r.effectiveDate),
-          deletable: dateKey(r.effectiveDate) > todayKey(),
-          createdAt: r.createdAt.toISOString(),
-        })),
-        page: { nextCursor: null, hasMore: false },
-      };
-    }
-
-    if (_kind === 'PROJECTION_RATE') {
-      const scopeWhere: any = {};
-      if (branchId) {
-        scopeWhere.branchId = branchId;
-      } else if (!principal.capabilities.includes('branch:all')) {
-        scopeWhere.branchId = { in: principal.branchIds };
-      }
-      const rows = await this.db.projectionRate.findMany({
-        where: scopeWhere,
-        include: {
-          branch: { select: { id: true, code: true, name: true } },
-          classType: { select: { id: true, name: true } },
-        },
-        orderBy: [{ effectiveDate: 'desc' }, { createdAt: 'desc' }],
-      });
-      return {
-        items: rows.map((r) => ({
-          id: r.id,
-          branchId: r.branchId,
-          branch: r.branch,
-          classTypeId: r.classTypeId,
-          classType: r.classType,
-          ratePerSesiRp: r.ratePerSesiRp,
           effectiveDate: dateKey(r.effectiveDate),
           deletable: dateKey(r.effectiveDate) > todayKey(),
           createdAt: r.createdAt.toISOString(),
@@ -254,44 +223,6 @@ export class EffectiveSettingsService {
       };
     }
 
-    if (input.kind === 'PROJECTION_RATE') {
-      const ratePerSesiRp = requireAmount(input.rateRp, 'rateRp');
-      const effectiveDate = requireEffectiveDate(input.effectiveFrom);
-      const row = await this.db.projectionRate.create({
-        data: {
-          branchId: input.branchId,
-          classTypeId: input.classTypeId,
-          ratePerSesiRp,
-          effectiveDate,
-        },
-        include: {
-          branch: { select: { id: true, code: true, name: true } },
-          classType: { select: { id: true, name: true } },
-        },
-      });
-      await this.access.audit(
-        this.db,
-        principal,
-        _correlationId,
-        'master.projection_rate_created',
-        'ProjectionRate',
-        row.id,
-        row.branchId,
-        undefined,
-        { classTypeId: row.classTypeId, ratePerSesiRp: row.ratePerSesiRp, effectiveDate: dateKey(row.effectiveDate) },
-      );
-      return {
-        id: row.id,
-        branchId: row.branchId,
-        classTypeId: row.classTypeId,
-        branch: row.branch,
-        classType: row.classType,
-        ratePerSesiRp: row.ratePerSesiRp,
-        effectiveDate: row.effectiveDate.toISOString().slice(0, 10),
-        createdAt: row.createdAt.toISOString(),
-      };
-    }
-
     return {
       id: `setting-${Date.now()}`,
       ...input,
@@ -302,11 +233,11 @@ export class EffectiveSettingsService {
 
   /**
    * Hapus tarif yang BELUM berlaku (tanggal efektif di masa depan). Tarif yang sudah berlaku tidak
-   * boleh hilang karena dipakai perhitungan honor/proyeksi; koreksinya dengan menambah tarif baru.
+   * boleh hilang karena dipakai perhitungan honor; koreksinya dengan menambah tarif baru.
    */
   async remove(
     principal: SessionPrincipal,
-    kind: 'INSTRUCTOR_FEE' | 'PROJECTION_RATE',
+    kind: 'INSTRUCTOR_FEE',
     id: string,
     correlationId: string,
     reasonInput?: string,
@@ -323,52 +254,32 @@ export class EffectiveSettingsService {
       ]);
 
     return this.db.$transaction(async (tx) => {
-      const row =
-        kind === 'INSTRUCTOR_FEE'
-          ? await tx.instructorFee.findUnique({ where: { id } })
-          : await tx.projectionRate.findUnique({ where: { id } });
+      const row = await tx.instructorFee.findUnique({ where: { id } });
       if (!row) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
       this.access.ensureBranchScope(principal, row.branchId, true);
       if (dateKey(row.effectiveDate) <= todayKey())
         throw new ApiProblem('RATE_IN_EFFECT', HttpStatus.CONFLICT);
 
-      if (kind === 'INSTRUCTOR_FEE') await tx.instructorFee.delete({ where: { id } });
-      else await tx.projectionRate.delete({ where: { id } });
+      await tx.instructorFee.delete({ where: { id } });
 
       await this.access.audit(
         tx,
         principal,
         correlationId,
-        kind === 'INSTRUCTOR_FEE' ? 'master.instructor_fee_deleted' : 'master.projection_rate_deleted',
-        kind === 'INSTRUCTOR_FEE' ? 'InstructorFee' : 'ProjectionRate',
+        'master.instructor_fee_deleted',
+        'InstructorFee',
         id,
         row.branchId,
         {
           classTypeId: row.classTypeId,
           effectiveDate: dateKey(row.effectiveDate),
-          ...('feePerJamRp' in row ? { feePerJamRp: row.feePerJamRp } : { ratePerSesiRp: (row as { ratePerSesiRp: number }).ratePerSesiRp }),
+          feePerJamRp: row.feePerJamRp,
         },
         undefined,
         reason,
       );
       return { id, deleted: true };
     });
-  }
-
-  async getEffectiveProjectionRate(
-    branchId: string,
-    classTypeId: string,
-    targetDate: Date,
-  ): Promise<number> {
-    const rate = await this.db.projectionRate.findFirst({
-      where: {
-        branchId,
-        classTypeId,
-        effectiveDate: { lte: targetDate },
-      },
-      orderBy: { effectiveDate: 'desc' },
-    });
-    return rate?.ratePerSesiRp ?? 125_000;
   }
 
   async deactivate(principal: SessionPrincipal, id: string, _correlationId: string) {

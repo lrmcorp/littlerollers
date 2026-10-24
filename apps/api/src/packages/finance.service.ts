@@ -7,7 +7,6 @@ import type { SessionPrincipal } from '../identity/identity.service';
 import { PolicyService } from '../identity/policy.service';
 import { ApiProblem } from '../identity/security';
 import { calculateSlotFee, periodRange, summarizeInstructorFees } from './instructor-fee-calculator';
-import { projectionCostFor } from './projection-cost';
 
 const PERIOD = /^\d{4}-(0[1-9]|1[0-2])$/;
 const EXPORT_MAX_DAYS = 366;
@@ -251,59 +250,7 @@ export class FinanceService {
   }
 
   /**
-   * 3. Laporan Cost Instruktur Projection (Sesi Terjual x Projection Rate per Sesi)
-   */
-  async projectionInstructorCostReport(
-    principal: SessionPrincipal,
-    input: { branchId?: string; period?: string },
-  ) {
-    this.policy.requireCapability(principal.capabilities, 'finance:read');
-    this.ensureBranchAccess(principal, input.branchId);
-    const { period, fromDate, nextMonth } = this.parsePeriod(input.period);
-
-    const isGlobal =
-      principal.capabilities.includes('branch:all') ||
-      principal.roles.some((r) =>
-        ['SUPER_OWNER', 'SUPERADMIN', 'FINANCE'].includes(r.role as string),
-      );
-
-    const branchFilter = input.branchId
-      ? { branchId: input.branchId }
-      : isGlobal
-      ? {}
-      : { branchId: { in: principal.branchIds } };
-
-    const purchases = await this.db.pembelian.findMany({
-      where: {
-        ...branchFilter,
-        status: 'PAID',
-        paidAt: { gte: fromDate, lt: nextMonth },
-      },
-      include: {
-        package: { select: { id: true, name: true, sessionCount: true, classTypeId: true } },
-      },
-    });
-
-    const projectionRates = await this.db.projectionRate.findMany({
-      where: input.branchId ? { branchId: input.branchId } : {},
-      orderBy: { effectiveDate: 'desc' },
-    });
-
-    const projection = projectionCostFor(purchases, projectionRates);
-    const totalSessionsSold = projection.totalSessionsSold;
-    const totalProjectionCostRp = projection.totalProjectionCostRp;
-
-    return {
-      period,
-      branchId: input.branchId ?? 'ALL',
-      totalSessionsSold,
-      totalProjectionCostRp,
-      breakdown: projection.breakdown,
-    };
-  }
-
-  /**
-   * 4. Laporan Cost Lain-lain (OtherCost)
+   * 3. Laporan Cost Lain-lain (OtherCost)
    */
   async otherCostReport(
     principal: SessionPrincipal,
@@ -379,20 +326,17 @@ export class FinanceService {
     this.ensureBranchAccess(principal, input.branchId);
     const period = input.period ?? new Date().toISOString().slice(0, 7);
 
-    const [omsetRes, realtimeRes, projectionRes, otherCostRes] = await Promise.all([
+    const [omsetRes, realtimeRes, otherCostRes] = await Promise.all([
       this.omsetReport(principal, { branchId: input.branchId, period }),
       this.realtimeInstructorCostReport(principal, { branchId: input.branchId, period }),
-      this.projectionInstructorCostReport(principal, { branchId: input.branchId, period }),
       this.otherCostReport(principal, { branchId: input.branchId, period }),
     ]);
 
     const omsetRp = omsetRes.totalOmsetRp;
     const costRealtimeRp = realtimeRes.totalInstructorCostRp;
-    const costProjectionRp = projectionRes.totalProjectionCostRp;
     const otherCostRp = otherCostRes.totalOtherCostRp;
 
     const netProfitRealtimeRp = omsetRp - costRealtimeRp - otherCostRp;
-    const netProfitProjectionRp = omsetRp - costProjectionRp - otherCostRp;
 
     let monthlyCloseRecord: any = null;
     if (input.branchId) {
@@ -432,13 +376,9 @@ export class FinanceService {
       costRealtimeRp: effectiveCostRealtime,
       grossProfitRp,
       grossMarginPercent,
-      costProjectionRp: isLocked ? monthlyCloseRecord.costProjectionRp : costProjectionRp,
       otherCostRp: effectiveOtherCost,
       netProfitRealtimeRp: effectiveProfit,
       netMarginPercent,
-      netProfitProjectionRp: isLocked
-        ? monthlyCloseRecord.omsetRp - monthlyCloseRecord.costProjectionRp - monthlyCloseRecord.otherCostRp
-        : netProfitProjectionRp,
       totalCorrectionAdjustmentRp: totalCorrectionRp,
       adjustedNetProfitRealtimeRp: effectiveProfit + totalCorrectionRp,
     };
@@ -628,16 +568,14 @@ export class FinanceService {
       return existing;
     }
 
-    const [omsetRes, realtimeRes, projectionRes, otherCostRes] = await Promise.all([
+    const [omsetRes, realtimeRes, otherCostRes] = await Promise.all([
       this.omsetReport(principal, { branchId: input.branchId, period: input.period }),
       this.realtimeInstructorCostReport(principal, { branchId: input.branchId, period: input.period }),
-      this.projectionInstructorCostReport(principal, { branchId: input.branchId, period: input.period }),
       this.otherCostReport(principal, { branchId: input.branchId, period: input.period }),
     ]);
 
     const omsetRp = omsetRes.totalOmsetRp;
     const costRealtimeRp = realtimeRes.totalInstructorCostRp;
-    const costProjectionRp = projectionRes.totalProjectionCostRp;
     const otherCostRp = otherCostRes.totalOtherCostRp;
     const profitRp = omsetRp - costRealtimeRp - otherCostRp;
 
@@ -650,7 +588,6 @@ export class FinanceService {
         period: input.period,
         omsetRp,
         costRealtimeRp,
-        costProjectionRp,
         otherCostRp,
         profitRp,
         status: 'LOCKED',
@@ -661,7 +598,6 @@ export class FinanceService {
       update: {
         omsetRp,
         costRealtimeRp,
-        costProjectionRp,
         otherCostRp,
         profitRp,
         status: 'LOCKED',
@@ -1140,9 +1076,6 @@ export class FinanceService {
     if (type === 'instructor-cost-realtime' || type === 'cost-realtime') {
       return this.realtimeInstructorCostReport(principal, filters);
     }
-    if (type === 'instructor-cost-projection' || type === 'cost-projection') {
-      return this.projectionInstructorCostReport(principal, filters);
-    }
     if (type === 'other-cost' || type === 'other-costs') {
       return this.otherCostReport(principal, filters);
     }
@@ -1165,7 +1098,6 @@ export class FinanceService {
             packagePromotionDiscount: moneyZero,
             voucherDiscount: moneyZero,
             revenue: money(summary.omsetRp),
-            projection: money(summary.costProjectionRp),
             instructorRealtime: money(summary.costRealtimeRp),
             otherCost: money(summary.otherCostRp),
             correction: money(summary.totalCorrectionAdjustmentRp),
@@ -1196,7 +1128,6 @@ export class FinanceService {
           packagePromotionDiscount: moneyZero,
           voucherDiscount: moneyZero,
           revenue: money(summary.omsetRp),
-          projection: money(summary.costProjectionRp),
           instructorRealtime: money(summary.costRealtimeRp),
           otherCost: money(summary.otherCostRp),
           correction: money(summary.totalCorrectionAdjustmentRp),

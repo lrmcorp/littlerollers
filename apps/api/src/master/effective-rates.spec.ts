@@ -30,10 +30,6 @@ function setup(effectiveDate = dayFromToday(30)) {
       findUnique: jest.fn().mockResolvedValue(feeRow),
       delete: jest.fn().mockResolvedValue({}),
     },
-    projectionRate: {
-      findUnique: jest.fn().mockResolvedValue({ ...feeRow }),
-      delete: jest.fn().mockResolvedValue({}),
-    },
   };
   const created: Array<Record<string, any>> = [];
   const db = {
@@ -43,13 +39,6 @@ function setup(effectiveDate = dayFromToday(30)) {
       create: jest.fn().mockImplementation(async ({ data }) => {
         created.push(data);
         return { id: rowId, ...data, branch: null, classType: null, instructor: null, createdAt: new Date() };
-      }),
-    },
-    projectionRate: {
-      ...tx.projectionRate,
-      create: jest.fn().mockImplementation(async ({ data }) => {
-        created.push(data);
-        return { id: rowId, ...data, branch: null, classType: null, createdAt: new Date() };
       }),
     },
     $transaction: jest.fn(async (fn: (t: typeof tx) => unknown) => fn(tx)),
@@ -79,15 +68,7 @@ describe('creating a fee or rate', () => {
       await expect(
         service.create(finance, feeInput({ feeRp }), 'c'),
       ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
-    await expect(
-      service.create(
-        finance,
-        { ...feeInput(), kind: 'PROJECTION_RATE', rateRp: undefined, feeRp: undefined },
-        'c',
-      ),
-    ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
     expect(db.instructorFee.create).not.toHaveBeenCalled();
-    expect(db.projectionRate.create).not.toHaveBeenCalled();
   });
 
   it('requires an instructor for a fee (never the acting manager) and a valid date', async () => {
@@ -102,16 +83,10 @@ describe('creating a fee or rate', () => {
     expect(db.instructorFee.create).not.toHaveBeenCalled();
   });
 
-  it('stores the given fee and rate', async () => {
+  it('stores the given fee', async () => {
     const { service, created } = setup();
     await service.create(finance, feeInput(), 'c');
-    await service.create(
-      finance,
-      { ...feeInput(), kind: 'PROJECTION_RATE', feeRp: undefined, rateRp: 130_000 },
-      'c',
-    );
     expect(created[0]).toMatchObject({ instructorId: instructor, feePerJamRp: 180_000 });
-    expect(created[1]).toMatchObject({ ratePerSesiRp: 130_000 });
   });
 });
 
@@ -127,24 +102,22 @@ describe('deleting a fee or rate', () => {
     expect(tx.instructorFee.delete).not.toHaveBeenCalled();
   });
 
-  it('removes a not-yet-effective fee and rate', async () => {
+  it('removes a not-yet-effective fee', async () => {
     const { service, tx } = setup();
     await expect(service.remove(finance, 'INSTRUCTOR_FEE', rowId, 'c', 'Salah input')).resolves.toEqual({
       id: rowId,
       deleted: true,
     });
-    await service.remove(finance, 'PROJECTION_RATE', rowId, 'c', 'Salah input');
     expect(tx.instructorFee.delete).toHaveBeenCalledWith({ where: { id: rowId } });
-    expect(tx.projectionRate.delete).toHaveBeenCalledWith({ where: { id: rowId } });
   });
 
   it('refuses a rate that already applies (today or earlier)', async () => {
     for (const days of [0, -1, -90]) {
       const { service, tx } = setup(dayFromToday(days));
-      await expect(service.remove(finance, 'PROJECTION_RATE', rowId, 'c', 'Salah input')).rejects.toMatchObject({
+      await expect(service.remove(finance, 'INSTRUCTOR_FEE', rowId, 'c', 'Salah input')).rejects.toMatchObject({
         code: 'RATE_IN_EFFECT',
       });
-      expect(tx.projectionRate.delete).not.toHaveBeenCalled();
+      expect(tx.instructorFee.delete).not.toHaveBeenCalled();
     }
   });
 

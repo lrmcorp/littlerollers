@@ -224,21 +224,6 @@ export interface InstructorCostRealtimeData {
   sessions?: InstructorSessionItem[];
 }
 
-export interface ProjectionClassTypeBreakdown {
-  classTypeId: string;
-  sessionsSold: number;
-  ratePerSesiRp: number;
-  totalCostRp: number;
-}
-
-export interface InstructorCostProjectionData {
-  period: string;
-  branchId: string;
-  totalSessionsSold: number;
-  totalProjectionCostRp: number;
-  breakdown: ProjectionClassTypeBreakdown[];
-}
-
 export interface OtherCostItem {
   id: string;
   branchId: string;
@@ -270,11 +255,9 @@ export interface MonthlyProfitData {
   costRealtimeRp: number;
   grossProfitRp?: number;
   grossMarginPercent?: number;
-  costProjectionRp: number;
   otherCostRp: number;
   netProfitRealtimeRp: number;
   netMarginPercent?: number;
-  netProfitProjectionRp: number;
   totalCorrectionAdjustmentRp: number;
   adjustedNetProfitRealtimeRp: number;
 }
@@ -330,7 +313,6 @@ export interface FinanceClient {
   // 5 Laporan Finansial Methods
   getOmsetReport?(branchId?: string, period?: string): Promise<OmsetReportData>;
   getInstructorCostRealtime?(branchId?: string, period?: string): Promise<InstructorCostRealtimeData>;
-  getInstructorCostProjection?(branchId?: string, period?: string): Promise<InstructorCostProjectionData>;
   getOtherCostReport?(branchId?: string, period?: string): Promise<OtherCostReportData>;
   getMonthlyProfit?(branchId?: string, period?: string): Promise<MonthlyProfitData>;
 
@@ -539,18 +521,6 @@ export const browserFinanceClient: FinanceClient = {
     if (period) params.set('period', period);
     return financeFetch<InstructorCostRealtimeData>(
       `/finance/reports/instructor-cost-realtime?${params.toString()}`,
-    );
-  },
-
-  async getInstructorCostProjection(
-    branchId?: string,
-    period?: string,
-  ): Promise<InstructorCostProjectionData> {
-    const params = new URLSearchParams();
-    if (branchId) params.set('branchId', branchId);
-    if (period) params.set('period', period);
-    return financeFetch<InstructorCostProjectionData>(
-      `/finance/reports/instructor-cost-projection?${params.toString()}`,
     );
   },
 
