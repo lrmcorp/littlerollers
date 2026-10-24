@@ -601,6 +601,7 @@ export function PublicClassesView({
 
             <div className="grid gap-4 rounded-none border border-ed-line bg-white p-4 md:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_auto] lg:items-end">
               <SearchSelect
+                variant="editorial"
                 label="Pilih Lokasi Studio"
                 value={branchId}
                 placeholder="Pilih lokasi studio..."
@@ -628,6 +629,7 @@ export function PublicClassesView({
                 />
               </label>
               <SearchSelect
+                variant="editorial"
                 label="Tipe kelas"
                 value={classType}
                 disabled={!branchId}

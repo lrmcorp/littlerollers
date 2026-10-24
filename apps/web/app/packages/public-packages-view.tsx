@@ -480,6 +480,7 @@ export function PublicPackagesView({
 
                 {/* 2. Tipe Kelas */}
                 <div className="min-w-0">
+                    variant="editorial"
                   <SearchSelect
                     label="Tipe kelas"
                     compact
@@ -496,6 +497,7 @@ export function PublicPackagesView({
 
                 {/* 3. Rentang Harga */}
                 <div className="min-w-0">
+                    variant="editorial"
                   <SearchSelect
                     label="Rentang harga"
                     compact
@@ -512,6 +514,7 @@ export function PublicPackagesView({
 
                 {/* 4. Jumlah Sesi */}
                 <div className="min-w-0">
+                    variant="editorial"
                   <SearchSelect
                     label="Jumlah sesi"
                     compact
