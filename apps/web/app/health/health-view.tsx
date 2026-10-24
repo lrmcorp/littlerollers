@@ -10,7 +10,6 @@ import {
   RefreshCw,
   ScanLine,
   Server,
-  Workflow,
   XCircle,
   type LucideIcon,
 } from 'lucide-react';
@@ -41,8 +40,7 @@ type ViewState =
 const dependencyMeta: Record<string, { label: string; icon: LucideIcon }> = {
   api: { label: 'API', icon: Server },
   database: { label: 'Database', icon: Database },
-  redis: { label: 'Redis', icon: Workflow },
-  worker: { label: 'Worker', icon: Activity },
+  scheduler: { label: 'Penjadwal otomatis', icon: Activity },
   'private-storage': { label: 'Penyimpanan privat', icon: HardDrive },
   'payment-proof-scanner': { label: 'Pemindai bukti pembayaran', icon: ScanLine },
 };
@@ -75,7 +73,7 @@ const statusMeta = {
 };
 
 const detailMessages: Record<string, string> = {
-  STALE_HEARTBEAT: 'Heartbeat terakhir melewati batas aman. Periksa proses worker.',
+  STALE_HEARTBEAT: 'Pekerjaan terjadwal (pembatalan pesanan lewat batas, kedaluwarsa paket, evaluasi H-24, pengingat) tidak berjalan sesuai jadwal. Periksa log API.',
   TIMEOUT: 'Pemeriksaan melewati batas waktu. Periksa dependency dan koneksi internal.',
   UNREACHABLE: 'Komponen tidak dapat dijangkau dari API.',
   NOT_CONFIGURED: 'Komponen belum dikonfigurasi untuk environment ini.',

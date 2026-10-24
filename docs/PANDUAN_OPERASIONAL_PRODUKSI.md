@@ -6,7 +6,7 @@
 * **Komponen Sistem:**
   - `@dailydose/web` (Next.js 15 App Router Standalone)
   - `@dailydose/api` (NestJS Core API)
-  - `@dailydose/worker` (Background Job & Cron Scheduler)
+  - Penjadwal otomatis (berjalan di dalam proses API; aktif dengan `SCHEDULER_ENABLED=true`)
   - MySQL 8.0 & Prisma ORM
 
 ---
@@ -33,11 +33,6 @@ Sistem Daily Dose Pilates v1.0 beroperasi dalam arsitektur terdistribusi monorep
                         │   MySQL 8.0 Database  │      │ WhatsApp Cloud API    │
                         │ (dailydose_v2 schema) │      │ (Graph API v21.0)     │
                         └────────▲──────────────┘      └───────────────────────┘
-                                 │
-                        ┌────────┴──────────────┐
-                        │  @dailydose/worker    │
-                        │  (Background Crons)   │
-                        └───────────────────────┘
 ```
 
 ### Port & Alokasi Komponen
@@ -45,7 +40,7 @@ Sistem Daily Dose Pilates v1.0 beroperasi dalam arsitektur terdistribusi monorep
 | :--- | :--- | :--- | :--- |
 | **Frontend Web** | Node.js (Next.js Standalone) | `3000` | UI Pelanggan, Portal Instruktur, Workspace Internal (Admin/Finance/Manager/Owner) |
 | **Backend API** | Node.js (NestJS) | `3001` | Autentikasi JWT, Identity RBAC, Bookings, Presensi, Finansial, WhatsApp Gateway |
-| **Background Worker** | Node.js (Worker Runner) | Background Daemon | Evaluasi Auto-Cancel H-24 berkala, Scheduler Reminder WA berjenjang |
+| **Penjadwal otomatis** | Di dalam proses API | — | Batalkan pesanan lewat batas bayar (15 mnt), tandai paket kedaluwarsa (1 jam), evaluasi kuota H-24 (30 mnt, perlu `ENABLE_AUTO_CANCEL=true`), pengingat WA berjenjang (1 jam). Hanya satu instance API. Status ada di halaman Kesehatan Sistem. |
 | **Database** | MySQL 8.0 InnoDB | `3306` | Penyimpanan persisten (24 tabel Prisma & Session Ledger) |
 
 ---
@@ -112,12 +107,11 @@ pnpm verify:all
 
 # 4. Bangun seluruh bundle produksi
 pnpm --filter @dailydose/api build
-pnpm --filter @dailydose/worker build
 pnpm --filter @dailydose/web build
 ```
 
 ### B. Konfigurasi PM2 (Process Manager)
-Gunakan konfigurasi `ecosystem.config.js` untuk menjaga reliabilitas ketiga service di server produksi:
+Gunakan konfigurasi `ecosystem.config.js` untuk menjaga reliabilitas kedua service (API dan web) di server produksi:
 
 ```javascript
 module.exports = {
@@ -146,18 +140,6 @@ module.exports = {
       env: {
         NODE_ENV: 'production',
         PORT: 3000,
-      },
-    },
-    {
-      name: 'dailydose-worker',
-      script: 'dist/quota-worker.js',
-      cwd: '/var/www/dailydose_v2/apps/worker',
-      instances: 1,
-      exec_mode: 'fork',
-      autorestart: true,
-      max_memory_restart: '300M',
-      env: {
-        NODE_ENV: 'production',
       },
     },
   ],

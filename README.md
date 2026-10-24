@@ -4,7 +4,7 @@ AI-delivered modular monolith foundation for Daily Dose Pilates. Business and te
 
 ## Repository ownership
 
-This repository owns the API, worker, database, Web application, OpenAPI source,
+This repository owns the API (with its built-in job scheduler), database, Web application, OpenAPI source,
 and generated contract validation. The Flutter Android/iOS application,
 generated mobile client snapshot, OpenAPI manifest, and mobile CI live in the
 standalone
@@ -42,10 +42,10 @@ flow.
    `packages/api-client-dart`. Mobile analyze, test, and platform builds run in
    the standalone mobile repository.
 
-The default `npm run dev` starts only the API and Web applications. Start the
-background worker separately with `npm run dev:worker`, or start every
-application with `npm run dev:all`. A native Redis service is required only
-when running worker/queue flows.
+`npm run dev` starts the API and Web applications. Scheduled jobs (expiring
+unpaid orders and packages, the H-24 class quota check, WhatsApp reminders)
+run inside the API only when `SCHEDULER_ENABLED=true`; they are off by default
+in development. No Redis or separate worker process is needed.
 
 ### Optional Docker services
 
@@ -173,7 +173,7 @@ terhubung ke Nginx Proxy Manager melalui network Docker eksternal `dailydose-v2-
 Backup minimal mencakup volume `dailydose-v2_mysql-data` dan
 `dailydose-v2_private-uploads`. Saat memperbarui aplikasi, set `APP_VERSION` ke
 release baru lalu jalankan kembali build dan startup; service `migrate` akan
-menjalankan migrasi Prisma sebelum API dan worker dimulai. Jangan menjalankan
+menjalankan migrasi Prisma sebelum API dimulai. Jangan menjalankan
 `docker compose down -v` atau `docker system prune` pada VPS.
 
 ### Email transaksional SMTP

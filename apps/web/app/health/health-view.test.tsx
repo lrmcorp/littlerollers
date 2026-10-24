@@ -10,7 +10,7 @@ const result = (status: HealthResult['status']): HealthResult => ({
   dependencies: [
     { name: 'api', status: 'READY', detailCode: null },
     {
-      name: 'worker',
+      name: 'scheduler',
       status: status === 'DEGRADED' ? 'DEGRADED' : status,
       detailCode: status === 'DEGRADED' ? 'STALE_HEARTBEAT' : null,
     },
@@ -27,10 +27,10 @@ describe('HealthView', () => {
     expect(await screen.findAllByText(label)).not.toHaveLength(0);
   });
 
-  it('shows stale worker as degraded and refreshes only on user action', async () => {
+  it('shows a stalled scheduler as degraded and refreshes only on user action', async () => {
     const load = vi.fn().mockResolvedValue(result('DEGRADED'));
     const view = render(<HealthView loadHealth={load} />);
-    expect(await screen.findByText(/heartbeat terakhir/i)).toBeVisible();
+    expect(await screen.findByText(/pekerjaan terjadwal/i)).toBeVisible();
     expect(load).toHaveBeenCalledTimes(1);
     await new Promise((resolve) => setTimeout(resolve, 20));
     expect(load).toHaveBeenCalledTimes(1);

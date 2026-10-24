@@ -305,7 +305,7 @@ const staffGuides: Record<
             number: 3,
             title: 'Pantau Evaluasi Kuota Otomatis H-24',
             description:
-              'Sistem Worker mengevaluasi seluruh kelas 24 jam sebelum mulai. Jika kuota minimum tidak terpenuhi, sistem otomatis membatalkan kelas dan mengembalikan saldo member.',
+              'Penjadwal otomatis mengevaluasi seluruh kelas 24 jam sebelum mulai. Jika kuota minimum tidak terpenuhi, sistem otomatis membatalkan kelas dan mengembalikan saldo member.',
           },
         ],
         mockup: {
