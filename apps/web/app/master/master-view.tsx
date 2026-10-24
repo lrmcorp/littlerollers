@@ -186,13 +186,16 @@ export function MasterView({
   const handleUpdateSetting = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingSetting) return;
+    const reason = editingSettingReason.trim();
+    if (reason.length < 3) {
+      setFailure('Alasan perubahan wajib diisi (minimal 3 karakter).');
+      return;
+    }
     setSettingSubmitting(true);
     void run(async () => {
       try {
         const effDate =
           editingSettingEffectiveDate.trim() || new Date().toISOString().slice(0, 10);
-        const reason =
-          editingSettingReason.trim() || 'Pembaruan tarif langsung oleh admin';
         await client.createSetting({
           kind: editingSetting.kind,
           branchId: editingSetting.branchId || branchId,
@@ -791,7 +794,10 @@ export function MasterView({
                   Daftar tarif dan kuota operasional yang berlaku di cabang{' '}
                   <strong className="text-dd-ink">
                     {branches.find((b) => b.id === branchId)?.name ?? 'terpilih'}
-                  </strong>.
+                  </strong>
+                  .
+                  {kind !== 'QUOTA_CAPACITY' &&
+                    ' Nilai yang sudah berlaku tidak dapat dihapus; buat versi baru untuk menggantinya.'}
                 </p>
               </div>
 
@@ -891,10 +897,10 @@ export function MasterView({
                                   setEditingSettingEffectiveDate(
                                     new Date().toISOString().slice(0, 10),
                                   );
-                                  setEditingSettingReason('Pembaruan langsung oleh admin');
+                                  setEditingSettingReason('');
                                 }}
                               >
-                                Edit
+                                Versi baru
                               </Button>
                               {kind === 'QUOTA_CAPACITY' && canManage && (
                                 <Button
@@ -986,8 +992,7 @@ export function MasterView({
                     const effectiveDate =
                       String(data.get('effectiveFrom') || '').trim() ||
                       new Date().toISOString().slice(0, 10);
-                    const auditReason =
-                      String(data.get('reason') || '').trim() || 'Pembaruan operasional';
+                    const auditReason = String(data.get('reason') || '').trim() || undefined;
                     await client.createSetting({
                       kind,
                       branchId,
@@ -1132,11 +1137,12 @@ export function MasterView({
           <Modal
             open={Boolean(editingSetting)}
             onClose={() => setEditingSetting(null)}
-            title={`Ubah ${
+            title={`Versi baru ${
               editingSetting?.kind === 'INSTRUCTOR_FEE'
                 ? 'Honor Instruktur'
                 : 'Kuota & Kapasitas'
             }`}
+            description="Nilai lama tetap tersimpan sebagai riwayat dan berhenti berlaku pada tanggal efektif versi baru."
           >
             {editingSetting && (
               <form className="flex flex-col gap-4" onSubmit={handleUpdateSetting}>
@@ -1204,7 +1210,9 @@ export function MasterView({
                     label="Alasan perubahan"
                     value={editingSettingReason}
                     onChange={(e) => setEditingSettingReason(e.target.value)}
-                    placeholder="Contoh: Pembaruan tarif langsung"
+                    placeholder="Tulis alasan perubahan (minimal 3 karakter)"
+                    minLength={3}
+                    maxLength={500}
                     required
                   />
                 </div>
@@ -1214,7 +1222,7 @@ export function MasterView({
                     Batal
                   </Button>
                   <Button type="submit" disabled={settingSubmitting}>
-                    {settingSubmitting ? 'Menyimpan…' : 'Simpan Perubahan'}
+                    {settingSubmitting ? 'Menyimpan…' : 'Simpan versi baru'}
                   </Button>
                 </div>
               </form>

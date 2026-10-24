@@ -70,7 +70,7 @@ export function AuditView({
   const [target, setTarget] = useState<LookupOption>();
   const [exportJob, setExportJob] = useState<AuditExportSummary>();
   const [exportFormat, setExportFormat] = useState<'CSV' | 'JSONL'>('CSV');
-  const [exportReason, setExportReason] = useState('Audit operasional berkala');
+  const [exportReason, setExportReason] = useState('');
   const [filters, setFilters] = useState({
     actorId: '',
     targetUserId: '',

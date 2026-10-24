@@ -55,7 +55,7 @@ export interface MasterSettingInput {
   value: number;
   capacity?: number;
   effectiveFrom: string;
-  reason: string;
+  reason?: string;
 }
 
 export type MasterBranch = {

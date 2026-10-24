@@ -414,25 +414,31 @@ describe('MasterView tarif list', () => {
     await user.click(screen.getByRole('button', { name: 'Muat master data' }));
     expect(screen.getByText('Rp 150.000')).toBeVisible();
 
-    // Click Edit button on the table row
-    const editBtn = screen.getByRole('button', { name: 'Edit' });
+    // Click "Versi baru" button on the table row
+    const editBtn = screen.getByRole('button', { name: 'Versi baru' });
     expect(editBtn).toBeVisible();
     await user.click(editBtn);
 
     // Edit modal opens
-    expect(screen.getByRole('heading', { name: /Ubah Honor Instruktur/i })).toBeVisible();
+    expect(screen.getByRole('heading', { name: /Versi baru Honor Instruktur/i })).toBeVisible();
     const input = screen.getByLabelText(/Honor per sesi/i);
     expect(input).toHaveValue(150_000);
 
     // Modify fee amount and save
     await user.clear(input);
     await user.type(input, '175000');
-    await user.click(screen.getByRole('button', { name: 'Simpan Perubahan' }));
+
+    // Alasan tidak terisi otomatis: kosong dulu, wajib diisi pengguna.
+    const reasonInput = screen.getByLabelText(/Alasan perubahan/i);
+    expect(reasonInput).toHaveValue('');
+    await user.type(reasonInput, 'Kenaikan honor 2026');
+    await user.click(screen.getByRole('button', { name: 'Simpan versi baru' }));
 
     expect(client.createSetting).toHaveBeenCalledWith(
       expect.objectContaining({
         kind: 'INSTRUCTOR_FEE',
         value: 175_000,
+        reason: 'Kenaikan honor 2026',
       }),
     );
     expect(await screen.findByText('Konfigurasi berhasil diperbarui.')).toBeVisible();

@@ -584,6 +584,9 @@ describe('identity UI', () => {
     expect(exportButton).toBeDisabled();
     await userEvent.type(screen.getByLabelText('Dari tanggal'), '2026-07-01');
     await userEvent.type(screen.getByLabelText('Sampai tanggal'), '2026-07-29');
+    // Alasan tidak terisi otomatis; tombol tetap mati sampai pengguna menuliskannya.
+    expect(exportButton).toBeDisabled();
+    await userEvent.type(screen.getByLabelText(/Alasan/), 'Audit bulanan');
     expect(exportButton).toBeEnabled();
     await userEvent.click(exportButton);
     await waitFor(() =>
