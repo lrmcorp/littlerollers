@@ -1,6 +1,6 @@
 'use client';
 
-import Image from 'next/image';
+import { ResilientImage } from './resilient-image';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { ArrowRight, CalendarDays, MapPin } from 'lucide-react';
@@ -131,7 +131,7 @@ export function DetailHero({
           {actions && <div className="mt-7 flex flex-wrap gap-3">{actions}</div>}
         </div>
         <div className="relative min-h-[300px] overflow-hidden rounded-none border border-ed-line bg-ed-tint sm:min-h-[400px]">
-          <Image
+          <ResilientImage
             src={resolvePublicImageUrl(imageKey)}
             alt={`Visual ${title}`}
             fill

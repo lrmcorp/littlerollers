@@ -1,6 +1,6 @@
 'use client';
 
-import Image from 'next/image';
+import { ResilientImage } from '../components/public/resilient-image';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -179,7 +179,7 @@ export function LocationsView() {
                         {String(index + 1).padStart(2, '0')}
                       </span>
                       <div className="relative aspect-[4/3] w-full overflow-hidden bg-ed-mist">
-                        <Image
+                        <ResilientImage
                           className="object-cover"
                           src={resolvePublicImageUrl(publicProfile.heroImageKey)}
                           fill

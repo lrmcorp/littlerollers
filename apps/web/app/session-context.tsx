@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import {
   browserSessionClient,
   clearSessionHint,
+  hasSessionHint,
   sessionFailure,
   setSessionHint,
   type SessionClient,
@@ -260,6 +261,13 @@ export function SessionProvider({
       return;
     }
     if (statusRef.current === 'unauthenticated' && isPublicExperiencePath(pathname)) {
+      return;
+    }
+    // Pengunjung anonim di halaman publik tidak perlu memanggil /me (hasilnya pasti 401 dan memenuhi konsol).
+    // Tanda sesi diset saat masuk dan setelah /me berhasil; halaman terlindungi tetap selalu memeriksa server.
+    if (isPublicExperiencePath(pathname) && !hasSessionHint()) {
+      setSession(null);
+      setStatus('unauthenticated');
       return;
     }
     void refresh();

@@ -14,7 +14,7 @@ import {
   SessionProvider,
   useSessionContext,
 } from './session-context';
-import type { SessionClient, WebSession } from '@/api-clients/session-client';
+import { setSessionHint, type SessionClient, type WebSession } from '@/api-clients/session-client';
 
 const navigation = vi.hoisted(() => ({ pathname: '/workspace', replace: vi.fn() }));
 vi.mock('next/navigation', () => ({
@@ -74,6 +74,7 @@ describe('capability-aware session shell', () => {
     navigation.pathname = '/workspace';
     navigation.replace.mockReset();
     sessionStorage.clear();
+    localStorage.clear();
   });
 
   it('loads authoritative context, filters navigation and requires explicit branch selection', async () => {
@@ -266,6 +267,41 @@ describe('capability-aware session shell', () => {
     );
     expect(sessionStorage.getItem('dd_active_branch')).toBeNull();
     expect(screen.queryByText('Protected')).not.toBeInTheDocument();
+  });
+
+  it('does not call /me (and so never logs a 401) for an anonymous visitor on a public page', async () => {
+    navigation.pathname = '/';
+    const client: SessionClient = { me: vi.fn().mockRejectedValue({ response: { status: 401 } }), logout: vi.fn() };
+    render(
+      <SessionProvider client={client}>
+        <PublicHeader />
+      </SessionProvider>,
+    );
+    expect((await screen.findAllByRole('link', { name: /Masuk/ }))[0]).toBeVisible();
+    expect(client.me).not.toHaveBeenCalled();
+  });
+
+  it('still asks the server on a public page when this browser has signed in before', async () => {
+    navigation.pathname = '/';
+    setSessionHint();
+    const client: SessionClient = { me: vi.fn().mockResolvedValue(customerSession), logout: vi.fn() };
+    render(
+      <SessionProvider client={client}>
+        <PublicHeader />
+      </SessionProvider>,
+    );
+    await waitFor(() => expect(client.me).toHaveBeenCalled());
+  });
+
+  it('always checks the server on a protected page, even without a hint', async () => {
+    navigation.pathname = '/workspace';
+    const client: SessionClient = { me: vi.fn().mockResolvedValue(adminSession), logout: vi.fn() };
+    render(
+      <SessionProvider client={client}>
+        <ContextProbe />
+      </SessionProvider>,
+    );
+    await waitFor(() => expect(client.me).toHaveBeenCalled());
   });
 
   it('shows the not-found content instead of a stuck skeleton for a guest on an unknown URL', async () => {
@@ -544,6 +580,8 @@ describe('capability-aware session shell', () => {
   });
 
   it('keeps logged-in customers inside the customer shell on the public catalog routes', async () => {
+    // Pelanggan yang sudah masuk membawa tanda sesi di peramban ini.
+    setSessionHint();
     navigation.pathname = '/classes';
     const client: SessionClient = {
       me: vi.fn().mockResolvedValue({
@@ -621,6 +659,8 @@ describe('capability-aware session shell', () => {
   });
 
   it('keeps the public landing header aware of an authenticated customer', async () => {
+    // Pelanggan yang sudah masuk membawa tanda sesi di peramban ini.
+    setSessionHint();
     navigation.pathname = '/';
     const client: SessionClient = {
       me: vi.fn().mockResolvedValue(customerSession),
