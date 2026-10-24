@@ -1,17 +1,20 @@
-export const publicContainer = 'mx-auto w-full max-w-[1180px] px-4 sm:px-6 lg:px-8';
+export const publicContainer = 'mx-auto w-full max-w-[1240px] px-4 sm:px-6 lg:px-8';
 
 export const publicPrimaryButton =
-  'inline-flex min-h-11 items-center justify-center gap-3 rounded-dd-sm border border-dd-forest bg-dd-forest px-5 text-sm font-bold text-white no-underline shadow-dd-soft transition hover:-translate-y-px hover:bg-dd-forest-dark';
+  'inline-flex min-h-[48px] items-center justify-center gap-3 rounded-none border border-ed-green bg-ed-green px-5 text-sm font-bold text-white no-underline transition-colors hover:bg-ed-forest hover:border-ed-forest active:bg-ed-deep';
 
 export const publicSecondaryButton =
-  'inline-flex min-h-11 items-center justify-center gap-3 rounded-dd-sm border border-dd-forest/40 bg-white px-5 text-sm font-bold text-dd-forest no-underline transition hover:border-dd-forest hover:bg-white';
+  'inline-flex min-h-[48px] items-center justify-center gap-3 rounded-none border border-ed-line bg-white px-5 text-sm font-bold text-ed-ink no-underline transition-colors hover:border-ed-green hover:bg-ed-tint active:bg-ed-line/40';
 
-export const publicCard = 'rounded-dd-lg border border-dd-line bg-white shadow-dd-card';
+export const publicCard = 'rounded-none border border-ed-line bg-white shadow-none';
 
-export const publicEyebrow = 'text-xs font-bold tracking-[0.13em] text-dd-forest uppercase';
+export const publicEyebrow = 'block text-xs font-bold tracking-[0.12em] text-ed-green uppercase';
 
 export const publicStatePanel =
-  'rounded-dd-lg border border-dd-line bg-white p-10 text-center shadow-dd-card';
+  'rounded-none border border-ed-line bg-ed-tint/60 p-8 sm:p-10 text-center shadow-none';
 
 export const publicField =
-  'min-h-12 w-full rounded-dd-md border border-dd-line bg-white px-4 text-sm text-dd-ink shadow-sm outline-none transition focus:border-dd-forest';
+  'min-h-12 w-full rounded-none border border-ed-line bg-white px-4 text-sm text-ed-ink outline-none transition focus:border-ed-forest focus:ring-1 focus:ring-ed-forest';
+
+export const publicTag =
+  'inline-flex items-center gap-1.5 rounded-none border border-ed-line bg-white px-2.5 py-1 text-xs font-semibold uppercase tracking-wider text-ed-ink';

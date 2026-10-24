@@ -40,7 +40,7 @@ export function useBranchLifecycle(
       feedback.showAlert({
         tone: 'danger',
         title: 'Gagal mengaktifkan cabang',
-        message: lifecycleFailureMessage(failure),
+        message: await lifecycleFailureMessage(failure),
       });
     }
   };

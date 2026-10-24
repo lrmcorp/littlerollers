@@ -55,8 +55,8 @@ export function PublicDetailFrame({
 export function DetailLoading({ label }: { label: string }) {
   return (
     <div className={`ed-wrap py-16`} aria-live="polite">
-      <div className="h-4 w-32 animate-pulse rounded bg-ed-line" />
-      <div className="mt-4 h-12 max-w-xl animate-pulse rounded bg-ed-line" />
+      <div className="h-4 w-32 animate-pulse rounded-none bg-ed-line" />
+      <div className="mt-4 h-12 max-w-xl animate-pulse rounded-none bg-ed-line" />
       <div className="mt-8 grid gap-6 lg:grid-cols-2">
         <div className="min-h-80 animate-pulse rounded-none bg-ed-line" />
         <div className="min-h-80 animate-pulse rounded-none bg-ed-line" />
@@ -122,8 +122,8 @@ export function DetailHero({
         className={`ed-wrap grid items-center gap-8 py-8 lg:grid-cols-[1fr_0.88fr] lg:py-12`}
       >
         <div>
-          <p className="text-xs font-bold tracking-[0.14em] text-ed-green uppercase">{eyebrow}</p>
-          <h1 className="mt-3 max-w-3xl text-[clamp(2.5rem,5vw,4.8rem)] leading-[0.98] font-semibold tracking-[-0.04em]">
+          <p className="ed-eyebrow text-ed-green">{eyebrow}</p>
+          <h1 className="mt-4 max-w-3xl text-[clamp(2.5rem,5vw,4.5rem)] leading-[0.96] font-normal tracking-[-0.05em] text-ed-ink">
             {title}
           </h1>
           <p className="mt-5 max-w-2xl text-base leading-7 text-ed-muted sm:text-lg">{summary}</p>
@@ -165,7 +165,7 @@ export function AudienceAction({
   if (disabled)
     return (
       <span
-        className="inline-flex min-h-11 items-center rounded-none bg-ed-line px-5 text-sm font-bold text-ed-muted"
+        className="inline-flex min-h-[48px] items-center rounded-none bg-ed-line px-5 text-sm font-bold text-ed-muted"
         aria-disabled="true"
       >
         {disabledLabel}
@@ -227,10 +227,10 @@ export function RelatedSchedules({
         <Link
           key={item.id}
           href={`/schedule/${item.id}`}
-          className="flex items-center justify-between gap-4 rounded-none border border-ed-line bg-white p-4 text-ed-ink no-underline hover:border-ed-green"
+          className="flex items-center justify-between gap-4 rounded-none border border-ed-line bg-white p-4 text-ed-ink no-underline transition-colors hover:border-ed-green hover:bg-ed-tint"
         >
           <span>
-            <strong className="flex items-center gap-2 text-sm">
+            <strong className="flex items-center gap-2 text-sm font-semibold">
               <CalendarDays className="size-4 text-ed-green" />
               {new Intl.DateTimeFormat('id-ID', {
                 dateStyle: 'medium',
@@ -246,17 +246,70 @@ export function RelatedSchedules({
             )}
           </span>
           <span
-            className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${
+            className={`shrink-0 rounded-none border px-2.5 py-1 text-xs font-bold uppercase tracking-wider ${
               item.available < 1
-                ? 'border border-dd-danger/30 bg-dd-danger-soft text-dd-danger'
+                ? 'border-red-900/30 bg-red-50 text-red-900'
                 : item.available <= 2
-                  ? 'border border-dd-warning/30 bg-dd-warning-soft text-dd-warning'
-                  : 'border border-dd-success/30 bg-dd-success-soft text-dd-success'
+                  ? 'border-amber-800/30 bg-amber-50 text-amber-900'
+                  : 'border-ed-green/30 bg-ed-tint text-ed-forest'
             }`}
           >
             {item.available < 1 ? 'Penuh' : `Sisa ${item.available} tempat`}
           </span>
         </Link>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Komponen fakta terstruktur editorial (flat sharp badge) untuk DetailHero.
+ */
+export function DetailFactTag({
+  icon: Icon,
+  children,
+  variant = 'default',
+}: {
+  icon?: React.ComponentType<{ className?: string }>;
+  children: ReactNode;
+  variant?: 'default' | 'accent' | 'warning' | 'danger';
+}) {
+  const variantClass =
+    variant === 'accent'
+      ? 'border-ed-green/30 bg-ed-tint text-ed-forest'
+      : variant === 'warning'
+        ? 'border-amber-800/30 bg-amber-50 text-amber-900'
+        : variant === 'danger'
+          ? 'border-red-900/30 bg-red-50 text-red-900'
+          : 'border-ed-line bg-white text-ed-ink';
+
+  return (
+    <span
+      className={`inline-flex items-center gap-2 rounded-none border px-3.5 py-2 text-xs font-semibold uppercase tracking-wider ${variantClass}`}
+    >
+      {Icon && <Icon className="size-3.5 text-ed-green" />}
+      {children}
+    </span>
+  );
+}
+
+/**
+ * Komponen pembukuan metrik data editorial (hairline grid divide) untuk harga & paket.
+ */
+export function DetailFactLedger({
+  items,
+}: {
+  items: Array<{ label: string; value: string }>;
+}) {
+  return (
+    <div className="grid grid-cols-2 divide-x divide-y border border-ed-line bg-white sm:grid-cols-4 sm:divide-y-0 divide-ed-line">
+      {items.map((item) => (
+        <div className="p-3 sm:p-4" key={item.label}>
+          <span className="block text-xs uppercase tracking-wider text-ed-muted">
+            {item.label}
+          </span>
+          <strong className="mt-1 block text-sm font-bold text-ed-ink">{item.value}</strong>
+        </div>
       ))}
     </div>
   );

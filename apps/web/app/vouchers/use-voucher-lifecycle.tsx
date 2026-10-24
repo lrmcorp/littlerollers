@@ -35,7 +35,7 @@ export function useVoucherLifecycle(
       feedback.showAlert({
         tone: 'danger',
         title: 'Gagal mengaktifkan voucher',
-        message: lifecycleFailureMessage(failure),
+        message: await lifecycleFailureMessage(failure),
       });
     }
   };
