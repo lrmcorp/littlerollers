@@ -81,23 +81,6 @@ databaseDescribe('access management integration', () => {
     expect(access.effective).toBeDefined();
   });
 
-  it('returns NOT_IMPLEMENTED for custom role creation as documented', async () => {
-    await expect(
-      service.createRole(
-        principal,
-        {
-          code: 'CUSTOM_ROLE',
-          displayName: 'Custom Role',
-          scope: 'GLOBAL',
-          capabilityKeys: ['booking:read'],
-          reasonCode: 'POLICY_UPDATE',
-        },
-        randomUUID(),
-        'corr-1',
-      ),
-    ).rejects.toMatchObject({ code: 'NOT_IMPLEMENTED' });
-  });
-
   it('rejects an unauthorized caller without role-permission:manage', async () => {
     await expect(
       service.listCapabilities(

@@ -63,7 +63,6 @@ describe('AccessManagementService is honest about what exists', () => {
     const { service } = setup();
     await expect(service.listRoles(admin)).rejects.toMatchObject({ code: 'FORBIDDEN' });
     await expect(service.listCapabilities(admin)).rejects.toMatchObject({ code: 'FORBIDDEN' });
-    await expect(service.createRole(admin, {}, 'k', 'c')).rejects.toMatchObject({ code: 'FORBIDDEN' });
     await expect(service.getUserAccess(admin, id(200))).rejects.toMatchObject({ code: 'FORBIDDEN' });
   });
 
@@ -105,27 +104,6 @@ describe('AccessManagementService is honest about what exists', () => {
     const { service } = setup();
     await expect(service.getRole(superOwner, 'NOPE')).rejects.toMatchObject({ code: 'NOT_FOUND' });
     await expect(service.getRole(superOwner, 'superadmin')).resolves.toMatchObject({ code: 'SUPER_OWNER' });
-  });
-
-  it.each(['createRole', 'updateRole', 'replaceRoleCapabilities', 'deactivateRole'] as const)(
-    '%s no longer pretends to succeed',
-    async (method) => {
-      const { service } = setup();
-      const call = (service[method] as (...args: unknown[]) => Promise<unknown>).bind(service);
-      if (method === 'createRole')
-        await expect(call(superOwner, {}, 'k', 'c')).rejects.toMatchObject({ code: 'NOT_IMPLEMENTED' });
-      else await expect(call(superOwner, 'ADMIN', {}, 'k', 'c')).rejects.toMatchObject({ code: 'NOT_IMPLEMENTED' });
-    },
-  );
-
-  it('overrides are not implemented either', async () => {
-    const { service } = setup();
-    await expect(service.createOverride(superOwner, id(200), {}, 'k', 'c')).rejects.toMatchObject({
-      code: 'NOT_IMPLEMENTED',
-    });
-    await expect(service.revokeOverride(superOwner, id(200), id(1), {}, 'k', 'c')).rejects.toMatchObject({
-      code: 'NOT_IMPLEMENTED',
-    });
   });
 
   it('shows the effective access of a user in the web UserAccess shape', async () => {

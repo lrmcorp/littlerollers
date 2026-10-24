@@ -1,6 +1,5 @@
 import { PaymentProofService } from '../packages/bukti-pembayaran.service';
 import { FinanceService } from '../packages/finance.service';
-import { MigrationsService } from '../operations/migrations.service';
 import { IdentityDocumentAccessService } from './identity-document-access.service';
 import { IdentityService } from './identity.service';
 import { PolicyService } from './policy.service';
@@ -67,28 +66,6 @@ describe('lookups only serve staff pages that need them', () => {
     await expect(service.listUserAudit(principal(['audit:read']), 'x')).resolves.toMatchObject({
       items: [],
     });
-  });
-});
-
-describe('MigrationsService', () => {
-  const service = new MigrationsService(new PolicyService());
-
-  it('denies every read without migration:read', async () => {
-    await expect(service.cdc(customer)).rejects.toMatchObject({ code: 'FORBIDDEN' });
-    await expect(service.listBatches(customer)).rejects.toMatchObject({ code: 'FORBIDDEN' });
-    await expect(service.controlTotals(customer, 'b')).rejects.toMatchObject({ code: 'FORBIDDEN' });
-    await expect(service.rejects(customer, 'b')).rejects.toMatchObject({ code: 'FORBIDDEN' });
-    await expect(service.resolutions(customer, 'b')).rejects.toMatchObject({ code: 'FORBIDDEN' });
-  });
-
-  it('never reports a fake successful resolution decision', async () => {
-    const body = { approve: true, reason: 'x', decision: {} };
-    await expect(
-      service.decideResolution(principal(['migration:read']), 'r', body),
-    ).rejects.toMatchObject({ code: 'FORBIDDEN' });
-    await expect(
-      service.decideResolution(principal(['migration:resolve']), 'r', body),
-    ).rejects.toMatchObject({ code: 'NOT_IMPLEMENTED' });
   });
 });
 

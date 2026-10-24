@@ -1148,7 +1148,7 @@ export function FinanceView({
               loading={reconLoading}
               rowKey={(item) => item.purchaseId}
               emptyTitle="Tidak Ada Anomali Rekonsiliasi"
-              emptyDescription="Semua mutasi bank dan transaksi pembayaran pada periode ini telah cocok atau terverifikasi."
+              emptyDescription="Semua transaksi pembayaran pada periode ini telah terverifikasi."
               mobileCard={(item: any) => (
                 <div className="space-y-1 text-xs">
                   <div className="flex items-center justify-between">

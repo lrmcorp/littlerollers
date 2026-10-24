@@ -1,6 +1,8 @@
 # Peta Pemangkasan — Daily Dose Pilates V2
 
-> **Status:** usulan untuk dibahas, **belum ada kode yang diubah**. Tanggal: 25 Okt 2026.
+> **Status (25 Okt 2026):** **Gelombang 0 selesai** (Import Data, Migrasi UI, Mutasi bank, sisa RBAC 501; lihat 4.1). Gelombang 1–4 masih usulan.
+>
+> **Konteks dari pemilik produk:** v1 (Laravel, `dailydosepilates.com`) **masih berjalan di produksi** dengan struktur data berbeda; v2 (ini) **belum produksi** dan akan menggantikannya. Akibatnya: skrip migrasi v1→v2 di `tools/migrations` **dipertahankan** sampai peluncuran, dan data di database dev kemungkinan berasal dari v1 (data pelanggan nyata).
 > **Dasar:** pembacaan kode, hitungan baris/endpoint/tabel, dan data database dev. Saya **tidak punya data pemakaian produksi**, jadi bagian bertanda **TANYA** menunggu keputusan pemilik produk.
 > **Tujuan:** aplikasi manajemen studio pilates yang pragmatis. Fitur yang tidak dipakai, tidak selesai, atau lebih rumit dari masalah yang diselesaikan dikurangi.
 
@@ -44,15 +46,15 @@ Semua yang **tidak** ada di daftar ini harus membuktikan kegunaannya.
 
 ## 4. Peta per area
 
-### 4.1 HAPUS — tidak selesai atau tidak punya pemakai (risiko rendah)
+### 4.1 HAPUS — tidak selesai atau tidak punya pemakai (risiko rendah) — **SELESAI 25 Okt 2026**
 
 | Area | Bukti | Isi yang dicabut |
 |---|---|---|
 | **Import Data** (`/data-import`) | Halaman 765 baris, API-nya **tidak pernah dibuat** (tercatat di tes kontrak sebagai `KNOWN_MISSING`); sudah disembunyikan dari menu | Halaman, klien, tes |
 | **Migrasi v1→v2 di UI** (`/migrations`, `/internal/migrations/*`) | 541 baris web + 6 endpoint (±240 baris API); halaman menampilkan data contoh dan keputusan tidak tersimpan; disembunyikan dari menu | Halaman, 6 endpoint. Skrip migrasi satu kali di `tools/` ditangani di 4.5 |
-| **Mutasi bank** (`/finance/mutations/*`) | Tidak ada layar, 0 data, 0 jejak audit; melewati aturan persetujuan pembayaran (lihat pembahasan sebelumnya) | 3 endpoint, mesin rekonsiliasi (±1.100 baris termasuk tes). Tabel dibiarkan (bukan skema destruktif) |
-| **Peran kustom (RBAC dinamis)** | Buat/ubah/nonaktif peran dan pengecualian izin mengembalikan **501**; UI-nya sudah disembunyikan | Sisa kode di halaman Peran & Izin (1.653 baris); endpoint 501 |
-| **Penetapan owner ke cabang** (`/owner-branches`) | Tidak ada pemanggil di web | 3 endpoint + layanan (237 baris) — **kecuali** Owner Cabang memang perlu dibatasi cabangnya, lihat TANYA |
+| **Mutasi bank** (`/finance/mutations/*`) | Tidak ada layar, 0 data, 0 jejak audit; melewati aturan persetujuan pembayaran (lihat pembahasan sebelumnya) | **Dicabut:** modul, 3 endpoint, mesin rekonsiliasi (±1.100 baris termasuk tes). Tabel `mutasi_bank` dibiarkan; daftar anomali keuangan kini hanya memuat pembelian yang tertahan verifikasi |
+| **Peran kustom (RBAC dinamis)** | Buat/ubah/nonaktif peran dan pengecualian izin mengembalikan **501**; UI-nya sudah disembunyikan | **Dicabut:** 6 endpoint 501, 6 metode klien, dan seluruh kode edit/duplikasi/override di halaman Peran & Izin (hanya baca + ganti peran langsung pengguna yang tersisa) |
+| **Penetapan owner ke cabang** (`/owner-branches`) | Tidak ada pemanggil di web. Jawaban pemilik: akun Owner cabang melekat ke akunnya lewat **cabang + peran** (penugasan biasa); Super Admin/Owner utama bisa semua cabang. Itu sudah ditangani penugasan, jadi `owner_cabang` tampaknya berlebih | **BELUM dicabut** — perlu memastikan tidak ada pembatasan akses yang bergantung pada tabel `owner_cabang` sebelum 3 endpoint + layanan (237 baris) dihapus |
 | **Proyeksi biaya** | Sudah dihapus (komit `a8f1ab76`) | — |
 
 ### 4.2 SEDERHANAKAN — fungsinya perlu, bentuknya berlebihan

@@ -979,28 +979,7 @@ export class FinanceService {
     this.policy.requireCapability(principal.capabilities, 'finance:read');
     const limit = input.limit ? Math.min(input.limit, 100) : 50;
 
-    // 1. Bank mutations requiring manual review or unmatched
-    const flaggedMutations = await this.db.mutasiBank.findMany({
-      where: {
-        status: { in: ['MANUAL_REVIEW', 'UNMATCHED'] },
-      },
-      take: limit,
-      orderBy: { transactionDate: 'desc' },
-    });
-
-    const mutationItems = flaggedMutations.map((m) => ({
-      purchaseId: m.id,
-      branchId: '',
-      branchCode: m.bankName,
-      amountRp: m.amountRp,
-      submittedAt: m.transactionDate,
-      code: m.status === 'MANUAL_REVIEW' ? 'MUTASI_AMBIGU' : 'MUTASI_BELUM_COCOK',
-      severity: m.status === 'MANUAL_REVIEW' ? ('ERROR' as const) : ('WARNING' as const),
-      message: m.notes || `Mutasi ${m.bankName} Rp ${m.amountRp.toLocaleString('id-ID')}`,
-      href: `/workspace/payments?q=${encodeURIComponent(m.referenceNumber || '')}`,
-    }));
-
-    // 2. Purchases waiting verification aging > 24 hours
+    // Pembelian menunggu verifikasi lebih dari 24 jam
     const agingCutoff = new Date(Date.now() - 24 * 3600 * 1000);
     const agingPurchases = await this.db.pembelian.findMany({
       where: {
@@ -1027,7 +1006,7 @@ export class FinanceService {
       href: `/workspace/payments/${p.id}`,
     }));
 
-    const allItems = [...mutationItems, ...purchaseItems].slice(0, limit);
+    const allItems = purchaseItems.slice(0, limit);
 
     return {
       items: allItems,

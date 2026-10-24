@@ -51,90 +51,9 @@ export class AccessManagementController {
     });
   }
 
-  @Post('access/roles')
-  @HttpCode(HttpStatus.OK)
-  createRole(
-    @Req() request: AuthenticatedRequest,
-    @Headers('idempotency-key') key: string,
-    @Body()
-    body: {
-      code: string;
-      displayName: string;
-      description: string;
-      scope: 'GLOBAL' | 'BRANCH';
-      capabilityKeys: string[];
-      reasonCode: string;
-      note?: string;
-    },
-  ) {
-    return this.access.createRole(request.principal, body, key, request.correlationId ?? 'unknown');
-  }
-
   @Get('access/roles/:id')
   getRole(@Req() request: AuthenticatedRequest, @Param('id') id: string) {
     return this.access.getRole(request.principal, id);
-  }
-
-  @Patch('access/roles/:id')
-  updateRole(
-    @Req() request: AuthenticatedRequest,
-    @Param('id') id: string,
-    @Headers('idempotency-key') key: string,
-    @Body()
-    body: {
-      displayName: string;
-      description: string;
-      expectedVersion: number;
-      reasonCode: string;
-      note?: string;
-    },
-  ) {
-    return this.access.updateRole(
-      request.principal,
-      id,
-      body,
-      key,
-      request.correlationId ?? 'unknown',
-    );
-  }
-
-  @Put('access/roles/:id/capabilities')
-  replaceRoleCapabilities(
-    @Req() request: AuthenticatedRequest,
-    @Param('id') id: string,
-    @Headers('idempotency-key') key: string,
-    @Body()
-    body: {
-      capabilityKeys: string[];
-      expectedVersion: number;
-      reasonCode: string;
-      note?: string;
-    },
-  ) {
-    return this.access.replaceRoleCapabilities(
-      request.principal,
-      id,
-      body,
-      key,
-      request.correlationId ?? 'unknown',
-    );
-  }
-
-  @Post('access/roles/:id/deactivate')
-  @HttpCode(HttpStatus.OK)
-  deactivateRole(
-    @Req() request: AuthenticatedRequest,
-    @Param('id') id: string,
-    @Headers('idempotency-key') key: string,
-    @Body() body: { expectedVersion: number; reasonCode: string; note?: string },
-  ) {
-    return this.access.deactivateRole(
-      request.principal,
-      id,
-      body,
-      key,
-      request.correlationId ?? 'unknown',
-    );
   }
 
   @Get('users/:id/access')
@@ -158,49 +77,6 @@ export class AccessManagementController {
     return this.access.replaceUserRoles(
       request.principal,
       id,
-      body,
-      key,
-      request.correlationId ?? 'unknown',
-    );
-  }
-
-  @Post('users/:id/permission-overrides')
-  @HttpCode(HttpStatus.OK)
-  createOverride(
-    @Req() request: AuthenticatedRequest,
-    @Param('id') id: string,
-    @Headers('idempotency-key') key: string,
-    @Body()
-    body: {
-      capabilityKey: string;
-      branchId?: string | null;
-      effect: 'GRANT' | 'DENY';
-      reasonCode: string;
-      note?: string;
-    },
-  ) {
-    return this.access.createOverride(
-      request.principal,
-      id,
-      body,
-      key,
-      request.correlationId ?? 'unknown',
-    );
-  }
-
-  @Post('users/:id/permission-overrides/:overrideId/revoke')
-  @HttpCode(HttpStatus.OK)
-  revokeOverride(
-    @Req() request: AuthenticatedRequest,
-    @Param('id') id: string,
-    @Param('overrideId') overrideId: string,
-    @Headers('idempotency-key') key: string,
-    @Body() body: { expectedVersion: number; reasonCode: string; note?: string },
-  ) {
-    return this.access.revokeOverride(
-      request.principal,
-      id,
-      overrideId,
       body,
       key,
       request.correlationId ?? 'unknown',

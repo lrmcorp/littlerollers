@@ -15,7 +15,6 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { PublicContentModule } from './public-content/public-content.module';
 import { EmailModule } from './email/email.module';
 import { LifecycleModule } from './lifecycle/lifecycle.module';
-import { BankMutationModule } from './finance/bank-mutation/bank-mutation.module';
 
 @Module({
   imports: [
@@ -35,7 +34,6 @@ import { BankMutationModule } from './finance/bank-mutation/bank-mutation.module
     AttendanceModule,
     NotificationsModule,
     PublicContentModule,
-    BankMutationModule,
   ],
 })
 export class AppModule {}

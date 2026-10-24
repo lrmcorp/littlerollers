@@ -40,8 +40,6 @@ const routeCapabilities: Array<[string, string[]]> = [
   ['/account', ['customer:self']],
   ['/identity-verifications', ['identity-verification:read']],
   ['/audit', ['audit:read']],
-  ['/migrations', ['migration:read']],
-  ['/data-import', ['migration:read', 'migration:resolve', 'user:admin', 'master:manage']],
   ['/users/roles-permissions', ['user:admin']],
   ['/users', ['user:read']],
   ['/customers', ['customer:read']],
@@ -100,8 +98,6 @@ const protectedPathPrefixes = [
   '/vouchers',
   '/customers',
   '/instructors',
-  '/migrations',
-  '/data-import',
 ];
 
 export function isRecognizedProtectedPath(pathname: string): boolean {

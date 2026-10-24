@@ -91,35 +91,6 @@ export interface AccessClient {
     active?: boolean;
   }): Promise<CapabilityDefinition[]>;
   listRoles(filters?: { q?: string; scope?: AccessScope; active?: boolean }): Promise<AccessRole[]>;
-  createRole(
-    input: {
-      code: string;
-      displayName: string;
-      description: string;
-      scope: AccessScope;
-      capabilityKeys: string[];
-    } & AccessMutationReason,
-    idempotencyKey: string,
-  ): Promise<AccessRole>;
-  updateRole(
-    id: string,
-    input: {
-      displayName: string;
-      description: string;
-      expectedVersion: number;
-    } & AccessMutationReason,
-    idempotencyKey: string,
-  ): Promise<AccessRole>;
-  replaceRoleCapabilities(
-    id: string,
-    input: { capabilityKeys: string[]; expectedVersion: number } & AccessMutationReason,
-    idempotencyKey: string,
-  ): Promise<AccessRole>;
-  deactivateRole(
-    id: string,
-    input: { expectedVersion: number } & AccessMutationReason,
-    idempotencyKey: string,
-  ): Promise<void>;
   getUserAccess(userId: string): Promise<UserAccess>;
   replaceUserRoles(
     userId: string,
@@ -127,21 +98,6 @@ export interface AccessClient {
       roles: Array<{ roleId: string; branchId?: string | null }>;
       expectedVersion: number;
     } & AccessMutationReason,
-    idempotencyKey: string,
-  ): Promise<void>;
-  createOverride(
-    userId: string,
-    input: {
-      capabilityKey: string;
-      branchId?: string | null;
-      effect: OverrideEffect;
-    } & AccessMutationReason,
-    idempotencyKey: string,
-  ): Promise<void>;
-  revokeOverride(
-    userId: string,
-    overrideId: string,
-    input: { expectedVersion: number } & AccessMutationReason,
     idempotencyKey: string,
   ): Promise<void>;
 }
@@ -195,34 +151,11 @@ export const browserAccessClient: AccessClient = {
   async listRoles(filters = {}) {
     return (await request<{ items: AccessRole[] }>(`/access/roles${query(filters)}`)).items;
   },
-  createRole(input, key) {
-    return mutation('/access/roles', 'POST', input, key);
-  },
-  updateRole(id, input, key) {
-    return mutation(`/access/roles/${id}`, 'PATCH', input, key);
-  },
-  replaceRoleCapabilities(id, input, key) {
-    return mutation(`/access/roles/${id}/capabilities`, 'PUT', input, key);
-  },
-  deactivateRole(id, input, key) {
-    return mutation(`/access/roles/${id}/deactivate`, 'POST', input, key);
-  },
   getUserAccess(userId) {
     return request(`/users/${userId}/access`);
   },
   replaceUserRoles(userId, input, key) {
     return mutation(`/users/${userId}/access/roles`, 'PUT', input, key);
-  },
-  createOverride(userId, input, key) {
-    return mutation(`/users/${userId}/permission-overrides`, 'POST', input, key);
-  },
-  revokeOverride(userId, overrideId, input, key) {
-    return mutation(
-      `/users/${userId}/permission-overrides/${overrideId}/revoke`,
-      'POST',
-      input,
-      key,
-    );
   },
 };
 

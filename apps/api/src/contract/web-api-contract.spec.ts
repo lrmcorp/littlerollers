@@ -18,20 +18,13 @@ const HTTP_VERBS = ['Get', 'Post', 'Put', 'Patch', 'Delete'] as const;
 /** Path (awalan) yang sengaja belum punya rute API. Tiap entri wajib beralasan. */
 const KNOWN_MISSING: Array<{ prefix: string; method?: string; reason: string }> = [
   {
-    prefix: '/data-import',
-    reason: 'Halaman Import Data dormant (tidak ada di navigasi) dan API impornya belum dibuat.',
-  },
-  {
     prefix: '/audit-exports',
     reason: 'Ekspor audit dimatikan di halaman (exportEnabled=false) sampai audit disimpan permanen.',
   },
 ];
 
 /** Klien yang membungkus `fetch` dengan awalan tetap; path literal di berkasnya relatif ke awalan ini. */
-const FILE_BASE: Record<string, string> = {
-  'api-clients/data-import-client.ts': '/data-import',
-  'migrations/migration-client.ts': '/internal/migrations',
-};
+const FILE_BASE: Record<string, string> = {};
 
 interface Route {
   method: string;

@@ -114,14 +114,8 @@ const accessClient = (overrides: Partial<AccessClient> = {}): AccessClient => ({
       updatedAt: '2026-07-28T00:00:00.000Z',
     },
   ]),
-  createRole: vi.fn(),
-  updateRole: vi.fn(),
-  replaceRoleCapabilities: vi.fn().mockResolvedValue(undefined),
-  deactivateRole: vi.fn(),
   getUserAccess: vi.fn(),
   replaceUserRoles: vi.fn(),
-  createOverride: vi.fn(),
-  revokeOverride: vi.fn(),
   ...overrides,
 });
 

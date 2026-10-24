@@ -49,8 +49,6 @@ const routesToAudit: Array<{ route: string; name: string; category: string }> = 
   { route: '/users/roles-permissions', name: 'Roles & Permissions', category: 'Pengaturan & Sistem' },
   { route: '/assignments', name: 'Penugasan Cabang', category: 'Pengaturan & Sistem' },
   { route: '/master', name: 'Master Data Global', category: 'Pengaturan & Sistem' },
-  { route: '/data-import', name: 'Import Data Massal', category: 'Pengaturan & Sistem' },
-  { route: '/migrations', name: 'Migrasi V1 ke V2', category: 'Pengaturan & Sistem' },
   { route: '/audit', name: 'Audit Log & Akses', category: 'Pengaturan & Sistem' },
   { route: '/notification-management', name: 'Notification Management', category: 'Pengaturan & Sistem' },
   { route: '/public-content-management', name: 'Public Content Management', category: 'Pengaturan & Sistem' },

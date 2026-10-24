@@ -55,10 +55,6 @@ const humanize = (key: string) =>
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
 
-const notImplemented = (): never => {
-  throw new ApiProblem('NOT_IMPLEMENTED', HttpStatus.NOT_IMPLEMENTED);
-};
-
 @Injectable()
 export class AccessManagementService {
   constructor(
@@ -140,74 +136,6 @@ export class AccessManagementService {
     const code = (ROLE_ALIASES[id.toUpperCase()] ?? id.toUpperCase()) as ApplicationRole;
     if (!CANONICAL_ROLES.includes(code)) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
     return this.roleView(code);
-  }
-
-  // --- Belum ada: penyimpanan peran/izin khusus (RBAC dinamis) ---------------------------------
-
-  async createRole(
-    principal: SessionPrincipal,
-    _body: unknown,
-    _key: string,
-    _correlationId: string,
-  ) {
-    this.authorize(principal);
-    return notImplemented();
-  }
-
-  async updateRole(
-    principal: SessionPrincipal,
-    _id: string,
-    _body: unknown,
-    _key: string,
-    _correlationId: string,
-  ) {
-    this.authorize(principal);
-    return notImplemented();
-  }
-
-  async replaceRoleCapabilities(
-    principal: SessionPrincipal,
-    _id: string,
-    _body: unknown,
-    _key: string,
-    _correlationId: string,
-  ) {
-    this.authorize(principal);
-    return notImplemented();
-  }
-
-  async deactivateRole(
-    principal: SessionPrincipal,
-    _id: string,
-    _body: unknown,
-    _key: string,
-    _correlationId: string,
-  ) {
-    this.authorize(principal);
-    return notImplemented();
-  }
-
-  async createOverride(
-    principal: SessionPrincipal,
-    _userId: string,
-    _body: unknown,
-    _key: string,
-    _correlationId: string,
-  ) {
-    this.authorize(principal);
-    return notImplemented();
-  }
-
-  async revokeOverride(
-    principal: SessionPrincipal,
-    _userId: string,
-    _overrideId: string,
-    _body: unknown,
-    _key: string,
-    _correlationId: string,
-  ) {
-    this.authorize(principal);
-    return notImplemented();
   }
 
   // --- Nyata ------------------------------------------------------------------------------------

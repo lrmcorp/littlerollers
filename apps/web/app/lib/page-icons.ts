@@ -11,7 +11,6 @@ import {
   ClipboardList,
   CreditCard,
   Database,
-  FileSpreadsheet,
   Globe,
   HeartPulse,
   KeyRound,
@@ -30,7 +29,6 @@ import {
   UserCheck,
   UserCog,
   Users,
-  ArrowRightLeft,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -60,8 +58,6 @@ export const pageIcons: Record<string, LucideIcon> = {
   '/users/roles-permissions': KeyRound,
   '/assignments': Handshake,
   '/master': Database,
-  '/data-import': FileSpreadsheet,
-  '/migrations': ArrowRightLeft,
   '/audit': ScrollText,
   '/notification-management': Bell,
   '/public-content-management': Globe,
