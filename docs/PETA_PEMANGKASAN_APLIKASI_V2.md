@@ -98,7 +98,7 @@ Semua yang **tidak** ada di daftar ini harus membuktikan kegunaannya.
 
 ### 4.4 TANYA — keputusan bisnis, bukan teknis
 
-> **Keputusan pemilik produk (25 Okt):** KYC KTP+selfie **dipertahankan** (kebutuhan bisnis; server sudah menegakkan: checkout, voucher, dan booking pelanggan ditolak sebelum disetujui). Rute khusus mobile **dicabut** (termasuk satu rute yang menerbitkan sesi tanpa bukti; lihat komit `9656ea8b`). Voucher **dan** promosi dipertahankan. Kasus bantuan **dicabut** (`ea806701`). Panduan SOP di aplikasi **dipertahankan**. Menunggu: fungsi worker (butir 3) dan pentingnya jurnal koreksi (butir 6).
+> **Keputusan pemilik produk (25 Okt):** KYC KTP+selfie **dipertahankan** (kebutuhan bisnis; server sudah menegakkan: checkout, voucher, dan booking pelanggan ditolak sebelum disetujui). Rute khusus mobile **dicabut** (termasuk satu rute yang menerbitkan sesi tanpa bukti; lihat komit `9656ea8b`). Voucher **dan** promosi dipertahankan. Kasus bantuan **dicabut** (`ea806701`). Panduan SOP di aplikasi **dipertahankan**. **Worker diganti penjadwal kecil di dalam API** (25 Okt; `apps/worker` dihapus; dari 7 job worker hanya 2 yang benar-benar bekerja, sisanya stub; tanpa Redis; aktif dengan `SCHEDULER_ENABLED=true`, auto-cancel H-24 tetap perlu `ENABLE_AUTO_CANCEL=true`). Menunggu: pentingnya jurnal koreksi (butir 6).
 
 
 | Pertanyaan | Dampak bila "tidak" |
