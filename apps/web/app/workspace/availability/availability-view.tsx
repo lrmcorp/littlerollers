@@ -10,16 +10,21 @@ import {
 import { formatBranchDay, formatBranchTime, localDateKey, zonedLocalDateTime } from '@/lib/class-time';
 import { useSessionContext } from '../../session-context';
 import { AdminPageHeader } from '../../components/admin/admin-page-header';
-import { DataTable } from '../../components/admin/admin-ui';
+import { DataTable, TableActionMenu } from '../../components/admin/admin-ui';
 import { DateInput, TextInput } from '../../components/forms';
 import { Button } from '../../components/actions';
 import { Feedback, StatusBadge } from '../../ui';
-import { useAppFeedback } from '../../components/app-feedback';
+import { Modal, useAppFeedback } from '../../components/app-feedback';
+import { Pencil, Trash2 } from 'lucide-react';
 
 const statusLabels: Record<string, string> = {
   ACTIVE: 'Aktif',
   ENDED: 'Selesai',
 };
+
+/** Jam "HH:MM" 24 jam di zona waktu cabang, untuk nilai awal input time. */
+const timeValue = (value: Date, timeZone: string) =>
+  new Intl.DateTimeFormat('en-GB', { timeZone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(value);
 
 export function AvailabilityView({
   client = browserAvailabilityClient,
@@ -39,6 +44,80 @@ export function AvailabilityView({
   const [message, setMessage] = useState<string>();
   const [formFailure, setFormFailure] = useState<string>();
   const [submitting, setSubmitting] = useState(false);
+  const [editing, setEditing] = useState<AvailabilityWindow | null>(null);
+  const [editFailure, setEditFailure] = useState<string>();
+  const [editBusy, setEditBusy] = useState(false);
+
+  const withdraw = async (item: AvailabilityWindow) => {
+    const accepted = await feedback.confirm({
+      tone: 'danger',
+      title: 'Tarik ketersediaan?',
+      message: `Ketersediaan ${formatBranchDay(localDateKey(item.startAt, item.timezone), item.timezone)}, ${formatBranchTime(item.startAt, item.timezone)}–${formatBranchTime(item.endAt, item.timezone)} akan dihapus dan tidak lagi terlihat oleh admin.`,
+      confirmLabel: 'Tarik ketersediaan',
+    });
+    if (!accepted) return;
+    try {
+      await client.remove(item.id);
+      setListFailure(undefined);
+      setMessage('Ketersediaan ditarik.');
+      await load();
+    } catch (error) {
+      setListFailure(availabilityFailure(error));
+    }
+  };
+
+  const saveEdit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!editing) return;
+    const data = new FormData(event.currentTarget);
+    let startAt: Date;
+    let endAt: Date;
+    try {
+      startAt = zonedLocalDateTime(String(data.get('date')), String(data.get('startTime')), editing.timezone);
+      endAt = zonedLocalDateTime(String(data.get('date')), String(data.get('endTime')), editing.timezone);
+      if (endAt <= startAt) throw new Error('INVALID_RANGE');
+    } catch {
+      setEditFailure('Waktu selesai harus setelah waktu mulai.');
+      return;
+    }
+    setEditFailure(undefined);
+    setEditBusy(true);
+    try {
+      await client.update(editing.id, { startAt, endAt });
+      setEditing(null);
+      setMessage('Ketersediaan diperbarui.');
+      await load();
+    } catch (error) {
+      setEditFailure(availabilityFailure(error));
+    } finally {
+      setEditBusy(false);
+    }
+  };
+
+  const rowActions = (item: AvailabilityWindow) =>
+    canCreate && item.status === 'ACTIVE' ? (
+      <TableActionMenu
+        ariaLabel={`Aksi ketersediaan ${formatBranchDay(localDateKey(item.startAt, item.timezone), item.timezone)}`}
+        items={[
+          {
+            key: 'edit',
+            label: 'Ubah jam',
+            icon: <Pencil className="size-4" aria-hidden="true" />,
+            onClick: () => {
+              setEditFailure(undefined);
+              setEditing(item);
+            },
+          },
+          {
+            key: 'withdraw',
+            label: 'Tarik',
+            tone: 'danger',
+            icon: <Trash2 className="size-4" aria-hidden="true" />,
+            onClick: () => void withdraw(item),
+          },
+        ]}
+      />
+    ) : null;
 
   const load = useCallback(async () => {
     if (!canRead || !branch) return;
@@ -205,6 +284,7 @@ export function AvailabilityView({
               </StatusBadge>
             ),
           },
+          { id: 'actions', header: 'Aksi', cell: (item) => rowActions(item) },
         ]}
         mobileCard={(item) => (
           <div className="grid gap-2">
@@ -219,9 +299,57 @@ export function AvailabilityView({
             <span className="text-sm text-dd-muted">
               {formatBranchTime(item.startAt, item.timezone)}–{formatBranchTime(item.endAt, item.timezone)}
             </span>
+            {rowActions(item) && <div className="flex justify-end">{rowActions(item)}</div>}
           </div>
         )}
       />
+
+      <Modal
+        open={Boolean(editing)}
+        title="Ubah jam ketersediaan"
+        description="Cabang tidak dapat diganti. Tarik ketersediaan ini bila ingin memindahkannya ke cabang lain."
+        busy={editBusy}
+        onClose={() => setEditing(null)}
+      >
+        {editing && (
+          <form className="grid gap-4 sm:grid-cols-3" aria-label="Form ubah ketersediaan" onSubmit={saveEdit}>
+            <DateInput
+              label="Tanggal"
+              name="date"
+              defaultValue={localDateKey(editing.startAt, editing.timezone)}
+              min={localDateKey(new Date(), editing.timezone)}
+              required
+            />
+            <TextInput
+              label="Mulai"
+              name="startTime"
+              type="time"
+              defaultValue={timeValue(editing.startAt, editing.timezone)}
+              required
+            />
+            <TextInput
+              label="Selesai"
+              name="endTime"
+              type="time"
+              defaultValue={timeValue(editing.endAt, editing.timezone)}
+              required
+            />
+            {editFailure && (
+              <div className="sm:col-span-3">
+                <Feedback kind="error">{editFailure}</Feedback>
+              </div>
+            )}
+            <div className="flex justify-end gap-3 sm:col-span-3">
+              <Button type="button" variant="ghost" onClick={() => setEditing(null)}>
+                Batal
+              </Button>
+              <Button type="submit" loading={editBusy}>
+                Simpan perubahan
+              </Button>
+            </div>
+          </form>
+        )}
+      </Modal>
     </section>
   );
 }

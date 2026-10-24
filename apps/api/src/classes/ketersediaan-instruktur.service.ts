@@ -179,6 +179,75 @@ export class AvailabilityService {
     );
   }
 
+  /** Milik sendiri dan belum berakhir; selain itu 404 (bukan milik) atau 409 (sudah lewat). */
+  private async ownActiveWindow(
+    tx: Pick<PrismaService, 'instructorAvailability'>,
+    principal: SessionPrincipal,
+    id: string,
+  ) {
+    if (!UUID.test(id)) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+    const record = await tx.instructorAvailability.findFirst({
+      where: { id, instructorId: principal.userId, branchId: { in: principal.branchIds } },
+      include: { branch: { select: { timezone: true } } },
+    });
+    if (!record) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+    const dateIso = record.date.toISOString().slice(0, 10);
+    const time = record.endTime.length === 5 ? `${record.endTime}:00` : record.endTime;
+    if (new Date(`${dateIso}T${time}.000Z`).getTime() <= Date.now())
+      throw new ApiProblem('INVALID_STATE_TRANSITION', HttpStatus.CONFLICT);
+    return record;
+  }
+
+  /** Ubah jam ketersediaan sendiri yang belum berakhir; cabang tidak bisa diganti. */
+  async update(principal: SessionPrincipal, id: string, input: { startAt: string; endAt: string }) {
+    this.policy.requireCapability(principal.capabilities, 'availability:self:create');
+    const startAt = instant(String(input?.startAt));
+    const endAt = instant(String(input?.endAt));
+    if (startAt >= endAt) throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+
+    return this.db.$transaction(async (tx) => {
+      const record = await this.ownActiveWindow(tx, principal, id);
+      const overlap = await tx.slotKelas.findFirst({
+        where: {
+          instructorId: principal.userId,
+          startAt: { lt: endAt },
+          endAt: { gt: startAt },
+          status: { in: ['PUBLISHED', 'CONFIRMED'] },
+        },
+      });
+      if (overlap) throw new ApiProblem('EFFECTIVE_PERIOD_OVERLAP', HttpStatus.CONFLICT);
+
+      await tx.instructorAvailability.update({
+        where: { id: record.id },
+        data: {
+          date: new Date(startAt.toISOString().slice(0, 10)),
+          startTime: startAt.toISOString().slice(11, 19),
+          endTime: endAt.toISOString().slice(11, 19),
+        },
+      });
+      return {
+        id: record.id,
+        instructorUserId: principal.userId,
+        branchId: record.branchId,
+        startAt,
+        endAt,
+        timezone: record.branch.timezone,
+        version: 1,
+        status: 'ACTIVE',
+      };
+    });
+  }
+
+  /** Tarik ketersediaan sendiri yang belum berakhir. Tidak ada data lain yang merujuknya. */
+  async remove(principal: SessionPrincipal, id: string) {
+    this.policy.requireCapability(principal.capabilities, 'availability:self:create');
+    return this.db.$transaction(async (tx) => {
+      const record = await this.ownActiveWindow(tx, principal, id);
+      await tx.instructorAvailability.delete({ where: { id: record.id } });
+      return { id: record.id, deleted: true };
+    });
+  }
+
   // --- Indonesian Domain Aliases ---
   async daftarKetersediaan(
     principal: SessionPrincipal,

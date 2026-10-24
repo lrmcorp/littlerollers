@@ -1,4 +1,17 @@
-import { Body, Controller, Get, Headers, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Headers,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Req,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import type { Response } from 'express';
 import { AuthGuard, type AuthenticatedRequest } from '../identity/auth.guard';
 import { AvailabilityService } from './ketersediaan-instruktur.service';
@@ -35,5 +48,19 @@ export class AvailabilityController {
     response.status(result.status);
     response.setHeader('Idempotency-Replayed', String(result.replay));
     return { ...(result.body as object), idempotentReplay: result.replay };
+  }
+
+  @Patch(':id')
+  update(
+    @Req() request: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() body: { startAt: string; endAt: string },
+  ) {
+    return this.availability.update(request.principal, id, body);
+  }
+
+  @Delete(':id')
+  remove(@Req() request: AuthenticatedRequest, @Param('id') id: string) {
+    return this.availability.remove(request.principal, id);
   }
 }

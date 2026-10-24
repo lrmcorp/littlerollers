@@ -111,3 +111,100 @@ describe('AvailabilityService boundary', () => {
     expect(Number.isNaN(result.items[0]!.startAt.getTime())).toBe(false);
   });
 });
+
+describe('AvailabilityService update / remove (own, not yet ended)', () => {
+  const branchId = principal.branchIds[0]!;
+  const id = '00000000-0000-4000-8000-0000000000aa';
+  const future = new Date(Date.now() + 7 * 86_400_000);
+  const dayIso = future.toISOString().slice(0, 10);
+  const stored = (over: Record<string, unknown> = {}) => ({
+    id,
+    instructorId: principal.userId,
+    branchId,
+    date: new Date(`${dayIso}T00:00:00.000Z`),
+    startTime: '08:00:00',
+    endTime: '09:00:00',
+    branch: { timezone: 'Asia/Jakarta' },
+    ...over,
+  });
+  const db: Record<string, any> = {
+    instructorAvailability: {
+      findFirst: jest.fn(),
+      update: jest.fn().mockResolvedValue({}),
+      delete: jest.fn().mockResolvedValue({}),
+    },
+    slotKelas: { findFirst: jest.fn().mockResolvedValue(null) },
+    $transaction: jest.fn(),
+  };
+  db.$transaction.mockImplementation(async (work: (tx: unknown) => unknown) => work(db));
+  const service = new AvailabilityService(db as never, new PolicyService(), {} as never);
+  const range = { startAt: `${dayIso}T10:00:00Z`, endAt: `${dayIso}T11:30:00Z` };
+
+  beforeEach(() => {
+    db.instructorAvailability.findFirst.mockReset().mockResolvedValue(stored());
+    db.instructorAvailability.update.mockClear();
+    db.instructorAvailability.delete.mockClear();
+    db.slotKelas.findFirst.mockReset().mockResolvedValue(null);
+  });
+
+  it('changes the hours of an own window and keeps the branch', async () => {
+    const result = await service.update(principal, id, range);
+    expect(db.instructorAvailability.update).toHaveBeenCalledWith({
+      where: { id },
+      data: { date: new Date(`${dayIso}T00:00:00.000Z`), startTime: '10:00:00', endTime: '11:30:00' },
+    });
+    expect(result).toMatchObject({ id, branchId, status: 'ACTIVE' });
+    expect(result.endAt.toISOString()).toBe(`${dayIso}T11:30:00.000Z`);
+  });
+
+  it('only looks up windows owned by the caller in the caller branches', async () => {
+    await service.update(principal, id, range);
+    expect(db.instructorAvailability.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id, instructorId: principal.userId, branchId: { in: principal.branchIds } },
+      }),
+    );
+  });
+
+  it('answers 404 for a window that is not the caller\'s', async () => {
+    db.instructorAvailability.findFirst.mockResolvedValue(null);
+    await expect(service.update(principal, id, range)).rejects.toMatchObject({ code: 'RESOURCE_NOT_FOUND' });
+    await expect(service.remove(principal, id)).rejects.toMatchObject({ code: 'RESOURCE_NOT_FOUND' });
+    await expect(service.remove(principal, 'bukan-uuid')).rejects.toMatchObject({ code: 'RESOURCE_NOT_FOUND' });
+    expect(db.instructorAvailability.delete).not.toHaveBeenCalled();
+  });
+
+  it('refuses to change or withdraw a window that has already ended', async () => {
+    db.instructorAvailability.findFirst.mockResolvedValue(
+      stored({ date: new Date('2026-01-05T00:00:00.000Z') }),
+    );
+    await expect(service.update(principal, id, range)).rejects.toMatchObject({
+      code: 'INVALID_STATE_TRANSITION',
+    });
+    await expect(service.remove(principal, id)).rejects.toMatchObject({ code: 'INVALID_STATE_TRANSITION' });
+    expect(db.instructorAvailability.update).not.toHaveBeenCalled();
+    expect(db.instructorAvailability.delete).not.toHaveBeenCalled();
+  });
+
+  it('rejects hours that collide with a published/confirmed class and invalid ranges', async () => {
+    db.slotKelas.findFirst.mockResolvedValue({ id: 'slot' });
+    await expect(service.update(principal, id, range)).rejects.toMatchObject({
+      code: 'EFFECTIVE_PERIOD_OVERLAP',
+    });
+    await expect(
+      service.update(principal, id, { startAt: range.endAt, endAt: range.startAt }),
+    ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
+    expect(db.instructorAvailability.update).not.toHaveBeenCalled();
+  });
+
+  it('withdraws an own, upcoming window permanently', async () => {
+    await expect(service.remove(principal, id)).resolves.toEqual({ id, deleted: true });
+    expect(db.instructorAvailability.delete).toHaveBeenCalledWith({ where: { id } });
+  });
+
+  it('requires the availability capability', async () => {
+    const without = { ...principal, capabilities: ['availability:self:read'] };
+    await expect(service.update(without, id, range)).rejects.toMatchObject({ status: 403 });
+    await expect(service.remove(without, id)).rejects.toMatchObject({ status: 403 });
+  });
+});

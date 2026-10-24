@@ -29,6 +29,8 @@ export interface AvailabilityClient {
     startAt: Date;
     endAt: Date;
   }): Promise<AvailabilityWindow & { idempotentReplay: boolean }>;
+  update(id: string, input: { startAt: Date; endAt: Date }): Promise<AvailabilityWindow>;
+  remove(id: string): Promise<void>;
 }
 
 const hydrate = (raw: {
@@ -80,6 +82,24 @@ export const browserAvailabilityClient: AvailabilityClient = {
       },
     ).then((raw) => ({ ...hydrate(raw), idempotentReplay: raw.idempotentReplay }));
   },
+
+  update(id, input) {
+    return apiFetch<Parameters<typeof hydrate>[0]>(`/instructor-availabilities/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        startAt: input.startAt.toISOString(),
+        endAt: input.endAt.toISOString(),
+      }),
+      label: 'Menyimpan ketersediaan…',
+    }).then(hydrate);
+  },
+
+  async remove(id) {
+    await apiFetch(`/instructor-availabilities/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      label: 'Menarik ketersediaan…',
+    });
+  },
 };
 
 export function availabilityFailure(error: unknown) {
@@ -91,6 +111,7 @@ export function availabilityFailure(error: unknown) {
     RESOURCE_NOT_FOUND: 'Cabang tidak ditemukan atau Anda tidak ditugaskan di cabang tersebut.',
     EFFECTIVE_PERIOD_OVERLAP:
       'Rentang waktu ini tumpang tindih dengan kelas yang sudah Anda ajar.',
+    INVALID_STATE_TRANSITION: 'Ketersediaan yang sudah berakhir tidak dapat diubah atau ditarik.',
   };
   if (code && messages[code]) return messages[code];
   if (status === 403) return 'Permission yang sesuai diperlukan.';

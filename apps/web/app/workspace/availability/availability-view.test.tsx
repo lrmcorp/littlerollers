@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AppFeedbackProvider } from '../../components/app-feedback';
@@ -36,6 +36,8 @@ const window1: AvailabilityWindow = {
 const makeClient = (overrides: Partial<AvailabilityClient> = {}): AvailabilityClient => ({
   list: vi.fn().mockResolvedValue({ items: [window1], page: { hasMore: false, nextCursor: null } }),
   create: vi.fn().mockResolvedValue({ ...window1, id: 'avail-2', idempotentReplay: false }),
+  update: vi.fn().mockResolvedValue(window1),
+  remove: vi.fn().mockResolvedValue(undefined),
   ...overrides,
 });
 
@@ -144,5 +146,64 @@ describe('AvailabilityView', () => {
     expect(
       await screen.findByText('Rentang waktu ini tumpang tindih dengan kelas yang sudah Anda ajar.'),
     ).toBeVisible();
+  });
+
+  it('changes the hours of an upcoming window through the row menu, with the current values prefilled', async () => {
+    const user = userEvent.setup();
+    const client = makeClient();
+    renderView(client);
+    await waitFor(() => expect(client.list).toHaveBeenCalled());
+
+    await user.click((await screen.findAllByRole('button', { name: /Aksi ketersediaan/ }))[0]!);
+    await user.click(screen.getByRole('menuitem', { name: 'Ubah jam' }));
+
+    const dialog = await screen.findByRole('dialog', { name: 'Ubah jam ketersediaan' });
+    expect(within(dialog).getByLabelText('Tanggal')).toHaveValue('2026-11-21');
+    expect(within(dialog).getByLabelText('Mulai')).toHaveValue('08:00');
+    expect(within(dialog).getByLabelText('Selesai')).toHaveValue('09:00');
+
+    await user.clear(within(dialog).getByLabelText('Selesai'));
+    await user.type(within(dialog).getByLabelText('Selesai'), '10:30');
+    await user.click(within(dialog).getByRole('button', { name: 'Simpan perubahan' }));
+
+    await waitFor(() => expect(client.update).toHaveBeenCalledTimes(1));
+    const [id, range] = (client.update as ReturnType<typeof vi.fn>).mock.calls[0]!;
+    expect(id).toBe('avail-1');
+    expect(range.startAt.toISOString()).toBe('2026-11-21T01:00:00.000Z');
+    expect(range.endAt.toISOString()).toBe('2026-11-21T03:30:00.000Z');
+    expect(await screen.findByText('Ketersediaan diperbarui.')).toBeVisible();
+  });
+
+  it('withdraws a window only after confirmation', async () => {
+    const user = userEvent.setup();
+    const client = makeClient();
+    renderView(client);
+    await waitFor(() => expect(client.list).toHaveBeenCalled());
+
+    await user.click((await screen.findAllByRole('button', { name: /Aksi ketersediaan/ }))[0]!);
+    await user.click(screen.getByRole('menuitem', { name: 'Tarik' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Tarik ketersediaan?' });
+    await user.click(within(dialog).getByRole('button', { name: 'Batal' }));
+    expect(client.remove).not.toHaveBeenCalled();
+
+    await user.click(screen.getAllByRole('button', { name: /Aksi ketersediaan/ })[0]!);
+    await user.click(screen.getByRole('menuitem', { name: 'Tarik' }));
+    await user.click(
+      within(await screen.findByRole('dialog', { name: 'Tarik ketersediaan?' })).getByRole('button', {
+        name: 'Tarik ketersediaan',
+      }),
+    );
+    await waitFor(() => expect(client.remove).toHaveBeenCalledWith('avail-1'));
+    expect(await screen.findByText('Ketersediaan ditarik.')).toBeVisible();
+  });
+
+  it('offers no change or withdraw for ended windows or read-only sessions', async () => {
+    const ended = { ...window1, status: 'ENDED' };
+    const client = makeClient({
+      list: vi.fn().mockResolvedValue({ items: [ended], page: { hasMore: false, nextCursor: null } }),
+    });
+    renderView(client);
+    await waitFor(() => expect(client.list).toHaveBeenCalled());
+    expect(screen.queryByRole('button', { name: /Aksi ketersediaan/ })).toBeNull();
   });
 });
