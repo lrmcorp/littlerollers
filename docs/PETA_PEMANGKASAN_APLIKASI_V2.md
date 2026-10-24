@@ -54,7 +54,7 @@ Semua yang **tidak** ada di daftar ini harus membuktikan kegunaannya.
 | **Migrasi v1→v2 di UI** (`/migrations`, `/internal/migrations/*`) | 541 baris web + 6 endpoint (±240 baris API); halaman menampilkan data contoh dan keputusan tidak tersimpan; disembunyikan dari menu | Halaman, 6 endpoint. Skrip migrasi satu kali di `tools/` ditangani di 4.5 |
 | **Mutasi bank** (`/finance/mutations/*`) | Tidak ada layar, 0 data, 0 jejak audit; melewati aturan persetujuan pembayaran (lihat pembahasan sebelumnya) | **Dicabut:** modul, 3 endpoint, mesin rekonsiliasi (±1.100 baris termasuk tes). Tabel `mutasi_bank` dibiarkan; daftar anomali keuangan kini hanya memuat pembelian yang tertahan verifikasi |
 | **Peran kustom (RBAC dinamis)** | Buat/ubah/nonaktif peran dan pengecualian izin mengembalikan **501**; UI-nya sudah disembunyikan | **Dicabut:** 6 endpoint 501, 6 metode klien, dan seluruh kode edit/duplikasi/override di halaman Peran & Izin (hanya baca + ganti peran langsung pengguna yang tersisa) |
-| **Penetapan owner ke cabang** (`/owner-branches`) | Tidak ada pemanggil di web. Jawaban pemilik: akun Owner cabang melekat ke akunnya lewat **cabang + peran** (penugasan biasa); Super Admin/Owner utama bisa semua cabang. Itu sudah ditangani penugasan, jadi `owner_cabang` tampaknya berlebih | **BELUM dicabut** — perlu memastikan tidak ada pembatasan akses yang bergantung pada tabel `owner_cabang` sebelum 3 endpoint + layanan (237 baris) dihapus |
+| **Rute ganda `/owner-branches`** (koreksi 25 Okt) | Pemeriksaan lanjutan: tabel `owner_cabang` **adalah mekanisme nyata** akses Owner cabang (peran OWNER dibentuk dari tabel ini saat login; juga dipakai auto-cancel dan pengingat), dan halaman **Penugasan Cabang** mengelolanya lewat `AssignmentService` (tipe "Owner cabang"). `/owner-branches` hanya salinan ganda dari jalur itu, tanpa pemanggil web | **Tabel dan halaman Penugasan DIPERTAHANKAN.** Yang dicabut hanya duplikatnya: 3 endpoint + `OwnerBranchService` (±240 baris) |
 | **Proyeksi biaya** | Sudah dihapus (komit `a8f1ab76`) | — |
 
 ### 4.2 SEDERHANAKAN — fungsinya perlu, bentuknya berlebihan
@@ -98,7 +98,7 @@ Semua yang **tidak** ada di daftar ini harus membuktikan kegunaannya.
 | **Aplikasi mobile.** `MOBILE_CUSTOMER_API_CONTRACT.md` menjelaskan iOS/Android, tetapi **tidak ada aplikasi mobile di repositori** (hanya api, web, worker). Rute OTP, pemulihan akun, tautan akun, `sessions/revoke-all` tidak punya pemanggil web. | Cabut rute khusus mobile dan dokumennya |
 | **Worker (`apps/worker`).** 7 job, konfigurasi PM2 produksi menjalankannya. | Kalau produksi tidak memerlukannya, cabut aplikasi dan konfigurasinya (1.100 baris + tes) |
 | **Dua mekanisme diskon: voucher dan promosi paket.** Total ±3.900 baris web. | Pertahankan satu |
-| **Owner Cabang.** Peran baca-saja lintas cabang; pembatasan cabang lewat tabel `owner_cabang`. | Bila Owner cukup memakai penugasan biasa, hapus mekanisme owner-cabang |
+| ~~**Owner Cabang.**~~ **Terjawab 25 Okt:** akun Owner melekat ke cabang dan peran lewat penugasan; Super Admin/Owner utama melihat semua cabang. Itu sudah persis cara kerja `owner_cabang` + halaman Penugasan, jadi tidak ada yang dicabut selain rute ganda. | — |
 | **Kasus bantuan pelanggan** (`/support-cases`, 684 web + API) | Cabut bila bantuan lewat WhatsApp |
 | **Jurnal koreksi pasca-tutup buku.** | Cabut bila Finance cukup koreksi di periode berjalan |
 | **Panduan SOP di aplikasi** (`/workspace/guide`, 783 baris) | Pindah ke dokumen biasa |
