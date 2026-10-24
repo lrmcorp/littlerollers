@@ -1,6 +1,6 @@
 # Peta Pemangkasan — Daily Dose Pilates V2
 
-> **Status (25 Okt 2026):** **Gelombang 0 dan 1 selesai** (lihat 4.1 dan 4.2). Gelombang 2–4 masih usulan.
+> **Status (25 Okt 2026):** **Gelombang 0 dan 1 selesai**; **gelombang 3 sebagian** (lihat 4.4). Gelombang 2 dan 4 masih usulan.
 >
 > **Konteks dari pemilik produk:** v1 (Laravel, `dailydosepilates.com`) **masih berjalan di produksi** dengan struktur data berbeda; v2 (ini) **belum produksi** dan akan menggantikannya. Akibatnya: skrip migrasi v1→v2 di `tools/migrations` **dipertahankan** sampai peluncuran, dan data di database dev kemungkinan berasal dari v1 (data pelanggan nyata).
 > **Dasar:** pembacaan kode, hitungan baris/endpoint/tabel, dan data database dev. Saya **tidak punya data pemakaian produksi**, jadi bagian bertanda **TANYA** menunggu keputusan pemilik produk.
@@ -97,6 +97,9 @@ Semua yang **tidak** ada di daftar ini harus membuktikan kegunaannya.
 | Dasbor kesehatan, antrean email | Kecil dan berguna |
 
 ### 4.4 TANYA — keputusan bisnis, bukan teknis
+
+> **Keputusan pemilik produk (25 Okt):** KYC KTP+selfie **dipertahankan** (kebutuhan bisnis; server sudah menegakkan: checkout, voucher, dan booking pelanggan ditolak sebelum disetujui). Rute khusus mobile **dicabut** (termasuk satu rute yang menerbitkan sesi tanpa bukti; lihat komit `9656ea8b`). Voucher **dan** promosi dipertahankan. Kasus bantuan **dicabut** (`ea806701`). Panduan SOP di aplikasi **dipertahankan**. Menunggu: fungsi worker (butir 3) dan pentingnya jurnal koreksi (butir 6).
+
 
 | Pertanyaan | Dampak bila "tidak" |
 |---|---|
