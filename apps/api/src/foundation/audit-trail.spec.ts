@@ -1,5 +1,4 @@
 import { PolicyService } from '../identity/policy.service';
-import { OwnerBranchService } from '../identity/owner-branch.service';
 import { AssignmentService } from '../identity/assignment.service';
 import { MasterAccessService } from '../master/master-access.service';
 import { PublicContentManagementService } from '../public-content/public-content-management.service';
@@ -124,7 +123,7 @@ describe('master data audit is no longer a no-op', () => {
 });
 
 describe('modules that had no audit now record their mutations', () => {
-  it('records an owner–branch unassignment with what was removed', async () => {
+  it('records ending an owner–branch assignment with what was removed and the reason', async () => {
     const audit = { catat: jest.fn().mockResolvedValue(undefined) };
     const db = {
       ownerCabang: {
@@ -132,21 +131,24 @@ describe('modules that had no audit now record their mutations', () => {
         delete: jest.fn().mockResolvedValue({}),
       },
     };
-    await new OwnerBranchService(db as never, audit as never).unassignOwner(superOwner as never, id(9), 'Owner pindah tugas');
+    await new AssignmentService(db as never, new PolicyService(), audit as never).end(
+      superOwner as never,
+      id(9),
+      { effectiveAt: '2026-10-24T00:00:00Z', reason: 'Owner pindah tugas' },
+      'corr-8',
+    );
+    expect(db.ownerCabang.delete).toHaveBeenCalledWith({ where: { id: id(9) } });
     expect(audit.catat).toHaveBeenCalledWith(
       null,
       expect.objectContaining({
-        action: 'owner_branch.unassigned',
-        objectType: 'OwnerBranch',
+        action: 'assignment.ended',
+        objectType: 'Assignment',
         objectId: id(9),
         branchId: id(2),
         reason: 'Owner pindah tugas',
-        beforeMasked: { ownerId: id(4), branchId: id(2) },
+        beforeMasked: { type: 'OWNER', userId: id(4), branchId: id(2) },
       }),
     );
-    await expect(
-      new OwnerBranchService(db as never, audit as never).unassignOwner(superOwner as never, id(9)),
-    ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
   });
 
   it('records the reason when an instructor assignment ends', async () => {

@@ -29,8 +29,6 @@ import { CustomerManagementController } from './customer-management.controller';
 import { CustomerManagementService } from './manajemen-pelanggan.service';
 import { InstructorManagementController } from './instructor-management.controller';
 import { InstructorManagementService } from './manajemen-instruktur.service';
-import { OwnerBranchController } from './owner-branch.controller';
-import { OwnerBranchService } from './owner-branch.service';
 import { RolesGuard } from './roles.guard';
 
 @Module({
@@ -40,7 +38,6 @@ import { RolesGuard } from './roles.guard';
     AccessManagementController,
     CustomerManagementController,
     InstructorManagementController,
-    OwnerBranchController,
   ],
   providers: [
     IdentityService,
@@ -48,7 +45,6 @@ import { RolesGuard } from './roles.guard';
     IdentityReviewQueryService,
     IdentityDocumentAccessService,
     AssignmentService,
-    OwnerBranchService,
     RolesGuard,
     // Default-deny: semua rute wajib login kecuali ditandai @Public().
     { provide: APP_GUARD, useClass: AccessGuard },
@@ -85,6 +81,6 @@ import { RolesGuard } from './roles.guard';
     },
     AuthGuard,
   ],
-  exports: [IdentityService, PolicyService, AuthGuard, RolesGuard, OwnerBranchService, PRIVATE_FILE_STORAGE],
+  exports: [IdentityService, PolicyService, AuthGuard, RolesGuard, PRIVATE_FILE_STORAGE],
 })
 export class IdentityModule {}
