@@ -246,13 +246,13 @@ describe('BranchesView - Location rendering', () => {
       fireEvent.click(screen.getByRole('menuitem', { name: menuItem }));
     };
 
-    it('deactivates only with a typed reason (no invented default) and sends it to the server', async () => {
+    it('deactivates with an optional reason (no invented default) and sends it to the server', async () => {
       mockTransition.mockResolvedValue({});
       await open(branch(), /^Nonaktifkan$/);
       const user = userEvent.setup();
       const confirm = await screen.findByRole('button', { name: 'Nonaktifkan' });
-      expect(confirm).toBeDisabled();
-      await user.type(screen.getByLabelText('Alasan'), 'Cabang tutup sementara');
+      expect(confirm).toBeEnabled();
+      await user.type(screen.getByLabelText(/^Alasan/), 'Cabang tutup sementara');
       await user.click(confirm);
       await waitFor(() =>
         expect(mockTransition).toHaveBeenCalledWith('b-1', 'deactivate', {
@@ -267,7 +267,7 @@ describe('BranchesView - Location rendering', () => {
       mockArchive.mockResolvedValue({});
       await open(branch(), /Arsipkan/);
       const user = userEvent.setup();
-      await user.type(await screen.findByLabelText('Alasan'), 'Sudah tidak beroperasi');
+      await user.type(await screen.findByLabelText(/^Alasan/), 'Sudah tidak beroperasi');
       await user.click(screen.getByRole('button', { name: 'Arsipkan' }));
       await waitFor(() => expect(mockArchive).toHaveBeenCalledWith('branch', 'b-1', 'Sudah tidak beroperasi'));
     });

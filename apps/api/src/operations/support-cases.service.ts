@@ -276,7 +276,6 @@ export class SupportCasesService {
     },
   ) {
     this.policy.requireCapability(principal.capabilities, 'support:manage');
-    if (!Number.isInteger(body?.expectedVersion)) throw invalid('expectedVersion', 'REQUIRED');
     const data: Prisma.SupportCaseUncheckedUpdateManyInput = {};
     if (body.status !== undefined) {
       if (!(SUPPORT_STATUSES as readonly string[]).includes(body.status)) throw invalid('status');
@@ -308,7 +307,7 @@ export class SupportCasesService {
     if (data.status === row.status) delete data.resolvedAt;
 
     const claimed = await this.db.supportCase.updateMany({
-      where: { id, version: body.expectedVersion },
+      where: { id, ...(Number.isInteger(body?.expectedVersion) ? { version: body.expectedVersion } : {}) },
       data: { ...data, version: { increment: 1 } },
     });
     if (claimed.count !== 1) throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);

@@ -2,6 +2,7 @@ import { HttpStatus, Injectable, Optional } from '@nestjs/common';
 import { Prisma, type NotificationTemplate } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { AuditService } from '../foundation/audit.service';
+import { optionalReason } from '../foundation/reason';
 import type { SessionPrincipal } from '../identity/identity.service';
 import { PolicyService } from '../identity/policy.service';
 import { ApiProblem, ENTITY_ID_REGEX } from '../identity/security';
@@ -290,10 +291,8 @@ export class NotificationManagementService {
   ) {
     this.require(principal);
     if (status !== 'PUBLISHED' && status !== 'ARCHIVED') throw invalid('status');
-    // Mengarsipkan wajib beralasan (K4); menerbitkan tidak.
-    const reason = typeof reasonInput === 'string' ? reasonInput.trim() : '';
-    if (status === 'ARCHIVED' && (reason.length < 3 || reason.length > 500))
-      throw invalid('reason', reason.length === 0 ? 'REQUIRED' : reason.length < 3 ? 'TOO_SHORT' : 'TOO_LONG');
+    // Alasan opsional; bila diisi harus 3–500 karakter.
+    const reason = optionalReason(reasonInput) ?? '';
     const current = await this.load(id);
     const now = new Date();
 

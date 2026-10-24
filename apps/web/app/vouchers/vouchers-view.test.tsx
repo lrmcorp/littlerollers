@@ -167,7 +167,7 @@ describe('VouchersView CRUD Actions', () => {
     expect(screen.getByRole('menuitem', { name: 'Arsipkan' })).toBeInTheDocument();
   });
 
-  it('pauses only with a typed reason (no invented default) and sends it to the server', async () => {
+  it('pauses with an optional reason (no invented default) and sends it to the server', async () => {
     render(
       <AppFeedbackProvider>
         <VouchersView />
@@ -180,8 +180,8 @@ describe('VouchersView CRUD Actions', () => {
 
     const dialog = await screen.findByRole('dialog', { name: 'Jeda voucher?' });
     const confirm = within(dialog).getByRole('button', { name: 'Jeda' });
-    expect(confirm).toBeDisabled();
-    await userEvent.type(within(dialog).getByLabelText('Alasan'), 'Promo ditunda');
+    expect(confirm).toBeEnabled();
+    await userEvent.type(within(dialog).getByLabelText(/^Alasan/), 'Promo ditunda');
     await userEvent.click(confirm);
 
     await waitFor(() => {
@@ -199,7 +199,7 @@ describe('VouchersView CRUD Actions', () => {
     await userEvent.click(screen.getAllByRole('button', { name: 'Aksi voucher PROMO-AKTIF' })[0]!);
     await userEvent.click(screen.getByRole('menuitem', { name: 'Arsipkan' }));
     const dialog = await screen.findByRole('dialog', { name: 'Arsipkan voucher?' });
-    await userEvent.type(within(dialog).getByLabelText('Alasan'), 'Promo berakhir');
+    await userEvent.type(within(dialog).getByLabelText(/^Alasan/), 'Promo berakhir');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Arsipkan' }));
     await waitFor(() => {
       expect(browserVoucherClient.transition).toHaveBeenCalledWith('v-1', 'archive', 1, 'Promo berakhir');

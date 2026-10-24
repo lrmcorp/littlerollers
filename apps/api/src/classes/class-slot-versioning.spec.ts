@@ -66,20 +66,8 @@ function build(initial: Row, opts: { claimCount?: number; afterClaim?: Row } = {
   return { service, tx };
 }
 
-describe('class slot mutations require a version', () => {
+describe('class slot status changes require a version', () => {
   it.each([
-    ['assign', (s: ClassSlotService) => s.assign(principal, slotId, { instructorUserId: instructorId }, key, 'c')],
-    [
-      'update',
-      (s: ClassSlotService) =>
-        s.update(
-          principal,
-          slotId,
-          { classTypeId, startAt: '2026-10-12T21:00:00+07:00', endAt: '2026-10-12T21:50:00+07:00' },
-          key,
-          'c',
-        ),
-    ],
     ['publish', (s: ClassSlotService) => s.publish(principal, slotId, {}, key, 'c')],
     ['cancel', (s: ClassSlotService) => s.cancel(principal, slotId, { reasonCode: 'SAFETY_ISSUE' } as never, key, 'c')],
   ])('rejects %s without expectedVersion before touching the database', async (_name, call) => {
@@ -89,6 +77,43 @@ describe('class slot mutations require a version', () => {
       status: 422,
     });
     expect(tx.slotKelas.updateMany).not.toHaveBeenCalled();
+  });
+});
+
+describe('assigning an instructor and editing a draft: the version is optional', () => {
+  const editInput = { classTypeId, startAt: '2026-10-12T21:00:00+07:00', endAt: '2026-10-12T21:50:00+07:00', reason: 'Ubah jam' };
+
+  it('assign works without a version and then relies on the status guard only', async () => {
+    const { service, tx } = build(slotRow({ instructorId: null }));
+    await service.assign(principal, slotId, { instructorUserId: instructorId }, key, 'c');
+    const [call] = tx.slotKelas.updateMany.mock.calls as unknown as Array<[{ where: Record<string, unknown> }]>;
+    expect(call![0].where).not.toHaveProperty('version');
+    expect(call![0].where).toMatchObject({ id: slotId, status: { in: expect.any(Array) } });
+  });
+
+  it('update works without a version and keeps the instructor when none is sent', async () => {
+    const { service, tx } = build(slotRow());
+    await service.update(principal, slotId, editInput as never, key, 'c');
+    const [call] = tx.slotKelas.updateMany.mock.calls as unknown as Array<[{ where: Record<string, unknown> }]>;
+    expect(call![0].where).not.toHaveProperty('version');
+  });
+
+  it('a version that is sent is still checked (stale form is refused)', async () => {
+    const { service, tx } = build(slotRow({ version: 5 }));
+    await expect(
+      service.assign(principal, slotId, { instructorUserId: instructorId, expectedVersion: 4 }, key, 'c'),
+    ).rejects.toMatchObject({ code: 'STALE_VERSION', status: 409 });
+    await expect(
+      service.update(principal, slotId, { ...editInput, expectedVersion: 4 } as never, key, 'c'),
+    ).rejects.toMatchObject({ code: 'STALE_VERSION', status: 409 });
+    expect(tx.slotKelas.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('the status guard still applies without a version', async () => {
+    const { service } = build(slotRow({ status: 'COMPLETED' }));
+    await expect(
+      service.assign(principal, slotId, { instructorUserId: instructorId }, key, 'c'),
+    ).rejects.toMatchObject({ code: 'INVALID_STATE_TRANSITION' });
   });
 });
 

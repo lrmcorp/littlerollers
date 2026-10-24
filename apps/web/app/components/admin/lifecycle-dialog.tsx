@@ -54,7 +54,7 @@ export const pauseVerb = (kind: LifecycleKind) =>
   kind === 'voucher' || kind === 'promotion' ? 'Jeda' : 'Nonaktifkan';
 
 /**
- * Dialog tunggal untuk Nonaktifkan / Arsipkan / Hapus. Alasan selalu wajib.
+ * Dialog tunggal untuk Nonaktifkan / Arsipkan / Hapus. Alasan wajib untuk hapus permanen, akun pengguna, dan rekening pembayaran; opsional untuk data master lain.
  * - Hapus: kebolehan hapus ditanyakan ke server; bila masih ada data terkait, dialog menjelaskan apa saja dan
  *   tidak menawarkan hapus.
  * - Nonaktifkan (dan Arsipkan di luar cabang/tipe kelas): jalur tiap modul berbeda, jadi pemanggil menyediakan
@@ -80,6 +80,9 @@ export function LifecycleDialog({
   const [check, setCheck] = useState<Deletability | 'loading' | 'failed' | null>(null);
 
   const deleting = request?.action === 'delete';
+  // Alasan wajib hanya untuk hapus permanen serta aksi atas akun pengguna dan rekening pembayaran (uang).
+  const reasonRequired =
+    deleting || request?.kind === 'user' || request?.kind === 'payment-account';
   const requestKey = request ? `${request.kind}:${request.id}:${request.action}` : '';
 
   useEffect(() => {
@@ -221,6 +224,7 @@ export function LifecycleDialog({
       title={copy.title}
       description={copy.description}
       label="Alasan"
+      optional={!reasonRequired}
       confirmLabel={copy.confirmLabel}
       tone={copy.tone}
       maxLength={500}

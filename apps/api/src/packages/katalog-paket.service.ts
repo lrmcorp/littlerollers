@@ -3,6 +3,7 @@ import { PackageStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { IdempotencyService } from '../foundation/idempotency.service';
 import { AuditService } from '../foundation/audit.service';
+import { optionalReason } from '../foundation/reason';
 import type { SessionPrincipal } from '../identity/identity.service';
 import { ApiProblem, newId } from '../identity/security';
 import { PackageAccessService } from './package-access.service';
@@ -406,12 +407,8 @@ export class PackageCatalogService {
         const pkg = await tx.paket.findUnique({ where: { id } });
         if (!pkg) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
 
-        // Menonaktifkan/mengarsipkan wajib beralasan (K4); mengaktifkan kembali tidak.
-        const trimmed = typeof body?.reason === 'string' ? body.reason.trim() : '';
-        if (targetStatus !== 'ACTIVE' && (trimmed.length < 3 || trimmed.length > 500))
-          throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, false, [
-            { field: 'reason', issue: trimmed.length === 0 ? 'REQUIRED' : trimmed.length < 3 ? 'TOO_SHORT' : 'TOO_LONG' },
-          ]);
+        // Alasan opsional; bila diisi harus 3–500 karakter.
+        const trimmed = optionalReason(body?.reason) ?? '';
 
         const updated = await tx.paket.update({
           where: { id },

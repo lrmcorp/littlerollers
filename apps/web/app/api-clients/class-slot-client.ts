@@ -124,12 +124,13 @@ export interface ClassSlotClient {
       instructorUserId?: string | null;
       startAt: Date;
       endAt: Date;
-      expectedVersion: number;
-      reason: string;
+      /** Opsional: perubahan draf dan penetapan instruktur cukup dijaga status kelas. */
+      expectedVersion?: number;
+      reason?: string;
       instructorFeeRp?: number | null;
     },
   ): Promise<ClassSlot>;
-  assign(id: string, instructorUserId: string, expectedVersion: number): Promise<ClassSlot>;
+  assign(id: string, instructorUserId: string, expectedVersion?: number): Promise<ClassSlot>;
   publish(id: string, expectedVersion: number): Promise<ClassSlot>;
   cancel(
     id: string,

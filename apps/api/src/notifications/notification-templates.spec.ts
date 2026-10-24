@@ -268,14 +268,13 @@ describe('NotificationManagementService', () => {
     await expect(service.transition(owner, templateId, 'DELETED' as never, 'c')).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
   });
 
-  it('archiving a version needs a typed reason and changes nothing without it', async () => {
+  it('archiving a version takes an optional reason: too short is rejected, empty is fine', async () => {
     const { service, db } = managementSetup({ status: 'PUBLISHED' });
-    for (const reason of [undefined, '', '  ', 'ab'])
-      await expect(service.transition(owner, templateId, 'ARCHIVED', 'c', reason)).rejects.toMatchObject({
-        code: 'VALIDATION_ERROR',
-      });
+    await expect(service.transition(owner, templateId, 'ARCHIVED', 'c', 'ab')).rejects.toMatchObject({
+      code: 'VALIDATION_ERROR',
+    });
     expect(db.notificationTemplate.updateMany).not.toHaveBeenCalled();
-    await service.transition(owner, templateId, 'ARCHIVED', 'c', 'Kembali ke teks bawaan');
+    await service.transition(owner, templateId, 'ARCHIVED', 'c', undefined);
     expect(db.notificationTemplate.updateMany).toHaveBeenCalledTimes(1);
   });
 

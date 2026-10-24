@@ -70,7 +70,7 @@ export class ClassSlotController {
     @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Headers('idempotency-key') key: string,
-    @Body() body: { instructorUserId: string; expectedVersion: number },
+    @Body() body: { instructorUserId: string; expectedVersion?: number },
     @Res({ passthrough: true }) res: Response,
   ) {
     return this.respond(
@@ -92,7 +92,7 @@ export class ClassSlotController {
       instructorUserId?: string | null;
       startAt: string;
       endAt: string;
-      expectedVersion: number;
+      expectedVersion?: number;
       reason: string;
       instructorFeeRp?: number | null;
     },

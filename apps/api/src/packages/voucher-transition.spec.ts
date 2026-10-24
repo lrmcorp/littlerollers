@@ -26,14 +26,15 @@ function setup() {
 }
 
 describe('voucher pause / archive / activate', () => {
-  it.each(['PAUSED', 'ARCHIVED'] as const)('refuses %s without a typed reason and changes nothing', async (status) => {
+  it.each(['PAUSED', 'ARCHIVED'] as const)('%s takes an optional reason: too short changes nothing, empty is fine', async (status) => {
     const { service, tx, audit } = setup();
-    for (const reason of [undefined, '', '  ', 'ab'])
-      await expect(
-        service.transition(manager as never, 'v1', status, { expectedVersion: 1, reason }, 'k-12345678', 'c'),
-      ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
+    await expect(
+      service.transition(manager as never, 'v1', status, { expectedVersion: 1, reason: 'ab' }, 'k-12345678', 'c'),
+    ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
     expect(tx.voucher.update).not.toHaveBeenCalled();
     expect(audit.catat).not.toHaveBeenCalled();
+    await service.transition(manager as never, 'v1', status, { expectedVersion: 1 }, 'k-12345678', 'c');
+    expect(tx.voucher.update).toHaveBeenCalledTimes(1);
   });
 
   it('archives with a trimmed reason in the permanent audit, and activating needs none', async () => {

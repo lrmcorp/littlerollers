@@ -215,12 +215,13 @@ describe('PublicContentManagementService', () => {
     ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
   });
 
-  it('archiving needs a typed reason (and changes nothing without it); publishing needs none', async () => {
+  it('archiving takes an optional reason: too short changes nothing, empty is fine', async () => {
     const { service, db } = setup();
-    for (const reason of [undefined, '', '  ', 'ab'])
-      await expect(service.transition(owner, contentId, 'ARCHIVED', 'c', reason)).rejects.toMatchObject({
-        code: 'VALIDATION_ERROR',
-      });
+    await expect(service.transition(owner, contentId, 'ARCHIVED', 'c', 'ab')).rejects.toMatchObject({
+      code: 'VALIDATION_ERROR',
+    });
     expect(db.publicContent.updateMany).not.toHaveBeenCalled();
+    await service.transition(owner, contentId, 'ARCHIVED', 'c', undefined);
+    expect(db.publicContent.updateMany).toHaveBeenCalled();
   });
 });

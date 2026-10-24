@@ -238,7 +238,7 @@ describe('ClassSlotView', () => {
     );
   });
 
-  it('edits only a draft with an authoritative version and reason', async () => {
+  it('edits only a draft, guarded by status, with an optional reason', async () => {
     const client = fake();
     render(
       <ClassSlotView
@@ -258,7 +258,7 @@ describe('ClassSlotView', () => {
     const dialog = screen.getByRole('dialog', { name: 'Reformer' });
     await user.click(within(dialog).getByRole('button', { name: 'Edit kelas' }));
     const form = within(dialog).getByRole('form', { name: 'Edit draft kelas' });
-    await user.type(within(form).getByLabelText('Alasan perubahan'), 'Penyesuaian jadwal studio');
+    await user.type(within(form).getByLabelText('Alasan perubahan (opsional)'), 'Penyesuaian jadwal studio');
     await user.click(within(form).getByRole('button', { name: 'Simpan perubahan kelas' }));
     await user.click(
       within(screen.getByRole('dialog', { name: 'Simpan perubahan kelas?' })).getByRole('button', {
@@ -270,10 +270,11 @@ describe('ClassSlotView', () => {
       expect.objectContaining({
         classTypeId: 'type-1',
         instructorUserId: 'instructor-1',
-        expectedVersion: 0,
         reason: 'Penyesuaian jadwal studio',
       }),
     );
+    // Perubahan draf dijaga status kelas, bukan nomor versi.
+    expect((client.update as ReturnType<typeof vi.fn>).mock.calls[0]![1]).not.toHaveProperty('expectedVersion');
   });
 
   it('renders safe configuration failure', async () => {
@@ -721,7 +722,7 @@ describe('ClassSlotView detail drawer layout', () => {
             name: 'Tetapkan',
           }),
         );
-        expect(client.assign).toHaveBeenCalledWith('slot-1', 'instructor-2', 3);
+        expect(client.assign).toHaveBeenCalledWith('slot-1', 'instructor-2');
       },
     );
 

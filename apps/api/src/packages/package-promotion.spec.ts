@@ -194,11 +194,11 @@ describe('package promotions: create', () => {
 });
 
 describe('package promotions: update and transitions', () => {
-  it('needs the version and claims it atomically', async () => {
+  it('claims atomically: the version is optional, but checked when sent', async () => {
+    const free = setup();
+    await free.service.update(manager, promoId, { discountValue: 5 }, 'k-12345678', 'c');
+    expect(free.tx.packagePromotion.updateMany.mock.calls[0]![0].where).not.toHaveProperty('version');
     const { service, tx } = setup();
-    await expect(service.update(manager, promoId, { discountValue: 5 }, 'k-12345678', 'c')).rejects.toMatchObject({
-      code: 'VALIDATION_ERROR',
-    });
     await service.update(manager, promoId, { discountValue: 25, expectedVersion: 1 }, 'k-12345678', 'c');
     expect(tx.packagePromotion.updateMany.mock.calls[0]![0]).toMatchObject({
       where: { id: promoId, version: 1, status: { not: 'ARCHIVED' } },
@@ -241,15 +241,17 @@ describe('package promotions: update and transitions', () => {
   });
 });
 
-describe('package promotions: pausing and archiving need a typed reason', () => {
-  it('refuses without one, changes nothing, and stores the reason in the permanent audit when given', async () => {
+describe('package promotions: pausing and archiving take an optional reason', () => {
+  it('rejects a reason that is too short, accepts none, and stores the reason in the audit when given', async () => {
     const blocked = setup();
     for (const target of ['PAUSED', 'ARCHIVED'] as const)
-      for (const reason of [undefined, '', '  ', 'ab'])
-        await expect(
-          blocked.service.transition(manager, promoId, target, { expectedVersion: 1, reason }, 'k-12345678', 'c'),
-        ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
+      await expect(
+        blocked.service.transition(manager, promoId, target, { expectedVersion: 1, reason: 'ab' }, 'k-12345678', 'c'),
+      ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
     expect(blocked.tx.packagePromotion.updateMany).not.toHaveBeenCalled();
+    const none = setup();
+    await none.service.transition(manager, promoId, 'PAUSED', { expectedVersion: 1 }, 'k-12345678', 'c');
+    expect(none.tx.packagePromotion.updateMany).toHaveBeenCalledTimes(1);
 
     const ok = setup();
     await ok.service.transition(manager, promoId, 'PAUSED', { expectedVersion: 1, reason: ' Jeda sementara ' }, 'k-12345678', 'c');

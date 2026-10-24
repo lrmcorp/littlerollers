@@ -6,7 +6,7 @@ import { Modal } from '../app-feedback';
 import { Textarea } from '../forms';
 
 /**
- * Dialog konfirmasi dengan alasan wajib untuk aksi staf yang tercatat (batalkan booking, bekukan paket, …).
+ * Dialog konfirmasi dengan alasan (wajib, atau opsional bila `optional`) untuk aksi staf yang tercatat (batalkan booking, bekukan paket, …).
  * Alasan dibersihkan spasinya dan dibatasi panjangnya; tombol konfirmasi aktif setelah `minLength` terpenuhi.
  */
 export function ReasonDialog({
@@ -18,6 +18,7 @@ export function ReasonDialog({
   tone = 'primary',
   minLength = 3,
   maxLength = 200,
+  optional = false,
   busy = false,
   error,
   onCancel,
@@ -32,6 +33,8 @@ export function ReasonDialog({
   tone?: 'primary' | 'danger';
   minLength?: number;
   maxLength?: number;
+  /** Alasan boleh dikosongkan; bila diisi tetap minimal `minLength` karakter. */
+  optional?: boolean;
   busy?: boolean;
   error?: string;
   onCancel(): void;
@@ -44,7 +47,9 @@ export function ReasonDialog({
     if (open) setReason('');
   }, [open]);
   const trimmed = reason.trim();
-  const valid = trimmed.length >= minLength && trimmed.length <= maxLength;
+  const valid = optional && trimmed.length === 0
+    ? true
+    : trimmed.length >= minLength && trimmed.length <= maxLength;
 
   return (
     <Modal
@@ -73,10 +78,10 @@ export function ReasonDialog({
       <div className="grid gap-4">
         {children}
         <Textarea
-          label={label}
+          label={optional ? `${label} (opsional)` : label}
           value={reason}
           maxLength={maxLength}
-          placeholder={`Minimal ${minLength} karakter`}
+          placeholder={optional ? `Boleh dikosongkan; bila diisi minimal ${minLength} karakter` : `Minimal ${minLength} karakter`}
           onChange={(event) => setReason(event.target.value)}
           description={`${trimmed.length}/${maxLength} karakter. Alasan tersimpan pada catatan.`}
         />

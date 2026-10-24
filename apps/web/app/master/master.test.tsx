@@ -293,7 +293,7 @@ describe('MasterView tarif list', () => {
     expect(client.deleteSetting).not.toHaveBeenCalled();
     const confirmDelete = await screen.findByRole('button', { name: 'Hapus tarif' });
     expect(confirmDelete).toBeDisabled();
-    await user.type(screen.getByLabelText('Alasan'), 'Tarif salah input');
+    await user.type(screen.getByLabelText(/^Alasan/), 'Tarif salah input');
     await user.click(confirmDelete);
     await waitFor(() =>
       expect(client.deleteSetting).toHaveBeenCalledWith('INSTRUCTOR_FEE', 'fee-1', 'Tarif salah input'),
@@ -329,7 +329,7 @@ describe('MasterView tarif list', () => {
     await user.click(await screen.findByRole('button', { name: /Hapus pengaturan kuota Reformer Pilates/ }));
     const dialog = await screen.findByRole('dialog', { name: 'Hapus pengaturan kuota permanen?' });
     expect(within(dialog).getByRole('button', { name: 'Hapus permanen' })).toBeDisabled();
-    await user.type(within(dialog).getByLabelText('Alasan'), 'Kembali ke bawaan sistem');
+    await user.type(within(dialog).getByLabelText(/^Alasan/), 'Kembali ke bawaan sistem');
     await user.click(within(dialog).getByRole('button', { name: 'Hapus permanen' }));
     await waitFor(() => expect(mockRemove).toHaveBeenCalledWith('min-quota', 'quota-1', 'Kembali ke bawaan sistem'));
   });
@@ -468,12 +468,12 @@ describe('MasterView tarif list', () => {
     for (const [, status] of calls) expect(status).toBe('ALL');
   });
 
-  it('deactivates a class type only with a typed reason and passes it on', async () => {
+  it('deactivates a class type with an optional reason and passes it on', async () => {
     const client = fakeMasterClient();
     const user = await openClassTypeMenu(client, /^Nonaktifkan$/);
     const confirm = await screen.findByRole('button', { name: 'Nonaktifkan' });
-    expect(confirm).toBeDisabled();
-    await user.type(screen.getByLabelText('Alasan'), 'Kelas tidak dibuka lagi');
+    expect(confirm).toBeEnabled();
+    await user.type(screen.getByLabelText(/^Alasan/), 'Kelas tidak dibuka lagi');
     await user.click(confirm);
     await waitFor(() =>
       expect(client.deactivateClassType).toHaveBeenCalledWith('class-1', 0, 'Kelas tidak dibuka lagi'),
@@ -484,7 +484,7 @@ describe('MasterView tarif list', () => {
     mockArchive.mockResolvedValue({});
     const client = fakeMasterClient();
     const user = await openClassTypeMenu(client, /Arsipkan/);
-    await user.type(await screen.findByLabelText('Alasan'), 'Tidak dipakai lagi');
+    await user.type(await screen.findByLabelText(/^Alasan/), 'Tidak dipakai lagi');
     await user.click(screen.getByRole('button', { name: 'Arsipkan' }));
     await waitFor(() => expect(mockArchive).toHaveBeenCalledWith('class-type', 'class-1', 'Tidak dipakai lagi'));
   });
@@ -509,7 +509,7 @@ describe('MasterView tarif list', () => {
     mockDeletability.mockResolvedValue({ kind: 'class-type', id: 'class-1', deletable: true, blockers: [] });
     mockRemove.mockResolvedValue({ id: 'class-1', deleted: true });
     const user = await openClassTypeMenu(fakeMasterClient(), /Hapus/);
-    await user.type(await screen.findByLabelText('Alasan'), 'Salah input');
+    await user.type(await screen.findByLabelText(/^Alasan/), 'Salah input');
     await user.click(screen.getByRole('button', { name: 'Hapus permanen' }));
     await waitFor(() => expect(mockRemove).toHaveBeenCalledWith('class-type', 'class-1', 'Salah input'));
   });

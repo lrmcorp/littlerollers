@@ -818,7 +818,7 @@ export function ClassSlotView({
               });
               if (accepted)
                 await run(
-                  () => client.assign(panel.slot.id, instructorId, panel.slot.version),
+                  () => client.assign(panel.slot.id, instructorId),
                   'Instruktur berhasil ditetapkan.',
                 );
             }}
@@ -833,10 +833,7 @@ export function ClassSlotView({
               if (accepted)
                 await run(
                   () =>
-                    client.update(panel.slot.id, {
-                      ...input,
-                      expectedVersion: panel.slot.version,
-                    }),
+                    client.update(panel.slot.id, input),
                   'Draft kelas berhasil diperbarui.',
                 );
             }}

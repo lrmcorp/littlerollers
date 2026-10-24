@@ -1,6 +1,6 @@
 # Peta Pemangkasan — Daily Dose Pilates V2
 
-> **Status (25 Okt 2026):** **Gelombang 0 selesai** (Import Data, Migrasi UI, Mutasi bank, sisa RBAC 501; lihat 4.1). Gelombang 1–4 masih usulan.
+> **Status (25 Okt 2026):** **Gelombang 0 dan 1 selesai** (lihat 4.1 dan 4.2). Gelombang 2–4 masih usulan.
 >
 > **Konteks dari pemilik produk:** v1 (Laravel, `dailydosepilates.com`) **masih berjalan di produksi** dengan struktur data berbeda; v2 (ini) **belum produksi** dan akan menggantikannya. Akibatnya: skrip migrasi v1→v2 di `tools/migrations` **dipertahankan** sampai peluncuran, dan data di database dev kemungkinan berasal dari v1 (data pelanggan nyata).
 > **Dasar:** pembacaan kode, hitungan baris/endpoint/tabel, dan data database dev. Saya **tidak punya data pemakaian produksi**, jadi bagian bertanda **TANYA** menunggu keputusan pemilik produk.
@@ -58,6 +58,12 @@ Semua yang **tidak** ada di daftar ini harus membuktikan kegunaannya.
 | **Proyeksi biaya** | Sudah dihapus (komit `a8f1ab76`) | — |
 
 ### 4.2 SEDERHANAKAN — fungsinya perlu, bentuknya berlebihan
+
+> **Gelombang 1 selesai (25 Okt).** Temuan yang mengubah asumsi peta: dari 134 pemakaian `expectedVersion`, hanya **kelas, penyesuaian saldo (ledger), kasus bantuan, dan promosi paket** yang benar-benar memeriksa versi; sisanya diterima lalu diabaikan (formalitas di kontrak). Dari 154 pemakaian idempotency, sebagian besar pada uang/pesanan atau opsional. Maka yang dikerjakan:
+> - **Alasan:** opsional (bila diisi tetap 3–500 karakter) untuk nonaktifkan/jeda/arsip cabang, studio, ruang, tipe kelas, paket, voucher, promosi, konten publik, template notifikasi, dan ubah draf kelas. **Tetap wajib:** hapus permanen, akun pengguna, rekening pembayaran, tarif, pembatalan/penolakan/koreksi uang dan saldo, akhiri penugasan.
+> - **Kunci versi:** tetap wajib hanya untuk terbit/batal/selesai kelas dan keputusan penyesuaian saldo. Opsional (diperiksa bila dikirim) untuk tetapkan instruktur, ubah draf kelas, promosi paket, dan kasus bantuan.
+> - **Idempotency:** tidak diubah (tidak terasa bagi staf; melindungi pesanan dan pembayaran).
+> - **Belum:** nama ganda EN/ID, jumlah peran, klien API web, tampilan raksasa, dashboard, konten publik versi, template notifikasi versi (gelombang 2).
 
 | Area | Masalah | Usulan |
 |---|---|---|

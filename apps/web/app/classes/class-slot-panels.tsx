@@ -297,7 +297,7 @@ export function DetailPanel({
     instructorUserId?: string | null;
     startAt: Date;
     endAt: Date;
-    reason: string;
+    reason?: string;
     instructorFeeRp?: number | null;
   }): Promise<void>;
   onPublish(): Promise<void>;
@@ -895,7 +895,7 @@ function DraftEditForm({
     instructorUserId?: string | null;
     startAt: Date;
     endAt: Date;
-    reason: string;
+    reason?: string;
     instructorFeeRp?: number | null;
   }): Promise<void>;
 }) {
@@ -963,7 +963,7 @@ function DraftEditForm({
             instructorUserId: String(data.get('instructorUserId')) || null,
             startAt,
             endAt,
-            reason: String(data.get('reason')),
+            reason: String(data.get('reason') ?? '').trim() || undefined,
             instructorFeeRp,
           });
         } catch {
@@ -1036,11 +1036,10 @@ function DraftEditForm({
         placeholder="Kosongkan untuk mengikuti tarif master otomatis"
       />
       <TextInput
-        label="Alasan perubahan"
+        label="Alasan perubahan (opsional)"
         name="reason"
         minLength={3}
         maxLength={500}
-        required
         placeholder="Contoh: penyesuaian jadwal studio"
       />
       {failure && <Feedback kind="error">{failure}</Feedback>}

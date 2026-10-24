@@ -2,6 +2,7 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import { Prisma, type Cabang, type JenisKelas } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { IdempotencyService } from '../foundation/idempotency.service';
+import { optionalReason } from '../foundation/reason';
 import type { SessionPrincipal } from '../identity/identity.service';
 import { ApiProblem, newId } from '../identity/security';
 import { MasterAccessService } from './master-access.service';
@@ -353,7 +354,7 @@ export class MasterCatalogService {
         const current = await tx.cabang.findUnique({ where: { id } });
         if (!current) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
         if (status === 'INACTIVE' && current.active) {
-          this.requiredReason(input.reason);
+          this.optionalReason(input.reason);
           const upcoming = await this.upcomingSlotCount(tx, { branchId: id });
           if (upcoming > 0) throw new ApiProblem('HAS_UPCOMING_SLOTS', HttpStatus.CONFLICT);
         }
@@ -402,14 +403,9 @@ export class MasterCatalogService {
   // STUDIO & RUANGAN (STUDIOS & ROOMS)
   // ============================================================================
 
-  /** Alasan wajib (3–500 karakter) untuk menonaktifkan; tidak ada alasan bawaan buatan server. */
-  private requiredReason(reason: string | undefined) {
-    const text = typeof reason === 'string' ? reason.trim() : '';
-    if (text.length < 3 || text.length > 500)
-      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, false, [
-        { field: 'reason', issue: text.length === 0 ? 'REQUIRED' : text.length < 3 ? 'TOO_SHORT' : 'TOO_LONG' },
-      ]);
-    return text;
+  /** Alasan menonaktifkan bersifat opsional (data master biasa); bila diisi harus 3–500 karakter. */
+  private optionalReason(reason: string | undefined) {
+    return optionalReason(reason);
   }
 
   /** Kelas terjadwal (belum selesai/dibatalkan) yang masih memakai studio/ruangan; menghalangi penonaktifan. */
@@ -513,7 +509,7 @@ export class MasterCatalogService {
       if (input.name !== undefined && input.name.trim().length < 2)
         throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
       const deactivating = input.active === false && current.active;
-      const reason = deactivating ? this.requiredReason(input.reason) : undefined;
+      const reason = deactivating ? this.optionalReason(input.reason) : undefined;
       if (deactivating) {
         const upcoming = await this.upcomingSlotCount(tx, { studioId: id });
         if (upcoming > 0) throw new ApiProblem('HAS_UPCOMING_SLOTS', HttpStatus.CONFLICT);
@@ -623,7 +619,7 @@ export class MasterCatalogService {
       if (input.capacity !== undefined && input.capacity !== null && (!Number.isInteger(input.capacity) || input.capacity < 1 || input.capacity > 100))
         throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
       const deactivating = input.active === false && current.active;
-      const reason = deactivating ? this.requiredReason(input.reason) : undefined;
+      const reason = deactivating ? this.optionalReason(input.reason) : undefined;
       if (deactivating) {
         const upcoming = await this.upcomingSlotCount(tx, { roomId: id });
         if (upcoming > 0) throw new ApiProblem('HAS_UPCOMING_SLOTS', HttpStatus.CONFLICT);
@@ -783,7 +779,7 @@ export class MasterCatalogService {
         const current = await tx.jenisKelas.findUnique({ where: { id } });
         if (!current) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
         if (current.active) {
-          this.requiredReason(input.reason);
+          this.optionalReason(input.reason);
           const upcoming = await this.upcomingSlotCount(tx, { classTypeId: id });
           if (upcoming > 0) throw new ApiProblem('HAS_UPCOMING_SLOTS', HttpStatus.CONFLICT);
         }

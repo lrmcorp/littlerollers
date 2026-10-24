@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { IdempotencyService } from '../foundation/idempotency.service';
 import { AuditService } from '../foundation/audit.service';
+import { optionalReason } from '../foundation/reason';
 import type { SessionPrincipal } from '../identity/identity.service';
 import { ApiProblem, ENTITY_ID_REGEX } from '../identity/security';
 import { PackageAccessService } from './package-access.service';
@@ -309,7 +310,6 @@ export class PackagePromotionService {
     correlationId: string,
   ) {
     this.requireManage(principal);
-    if (!Number.isInteger(body?.expectedVersion)) throw invalid('expectedVersion', 'REQUIRED');
     const current = await this.promotionOrThrow(id);
     if (current.status === 'ARCHIVED') throw new ApiProblem('INVALID_STATE', HttpStatus.CONFLICT);
     const fields = resolveFields(body, current.package.priceRp, {
@@ -332,7 +332,11 @@ export class PackagePromotionService {
         if (current.status === 'ACTIVE')
           await this.assertNoOverlap(tx, current.packageId, fields.activeFrom, fields.activeUntil, id);
         const claimed = await tx.packagePromotion.updateMany({
-          where: { id, version: body.expectedVersion, status: { not: 'ARCHIVED' } },
+          where: {
+            id,
+            ...(Number.isInteger(body?.expectedVersion) ? { version: body.expectedVersion } : {}),
+            status: { not: 'ARCHIVED' },
+          },
           data: { ...fields, version: { increment: 1 } },
         });
         if (claimed.count !== 1) throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
@@ -361,11 +365,8 @@ export class PackagePromotionService {
     correlationId: string,
   ) {
     this.requireManage(principal);
-    if (!Number.isInteger(body?.expectedVersion)) throw invalid('expectedVersion', 'REQUIRED');
-    // Jeda dan arsip wajib beralasan (K4); mengaktifkan kembali tidak.
-    const reason = typeof body.reason === 'string' ? body.reason.trim() : '';
-    if (status !== 'ACTIVE' && (reason.length < 3 || reason.length > 500))
-      throw invalid('reason', reason.length === 0 ? 'REQUIRED' : reason.length < 3 ? 'TOO_SHORT' : 'TOO_LONG');
+    // Alasan opsional; bila diisi harus 3–500 karakter.
+    const reason = optionalReason(body?.reason) ?? '';
     const current = await this.promotionOrThrow(id);
     const allowed: Record<PackagePromotionStatus, PackagePromotionStatus[]> = {
       ACTIVE: ['PAUSED'],
@@ -391,7 +392,11 @@ export class PackagePromotionService {
         if (status === 'ACTIVE')
           await this.assertNoOverlap(tx, current.packageId, current.activeFrom, current.activeUntil, id);
         const claimed = await tx.packagePromotion.updateMany({
-          where: { id, version: body.expectedVersion, status: from },
+          where: {
+            id,
+            ...(Number.isInteger(body?.expectedVersion) ? { version: body.expectedVersion } : {}),
+            status: from,
+          },
           data: { status, version: { increment: 1 } },
         });
         if (claimed.count !== 1) throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);

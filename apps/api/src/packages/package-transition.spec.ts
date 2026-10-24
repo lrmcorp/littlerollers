@@ -25,14 +25,15 @@ function setup() {
 }
 
 describe('package deactivate / reactivate', () => {
-  it('refuses to deactivate without a reason and changes nothing', async () => {
+  it('deactivates without a reason, but a reason that is too short changes nothing', async () => {
     const { service, tx, audit } = setup();
-    for (const reason of [undefined, '', '  ', 'ab'])
-      await expect(
-        service.transition(principal as never, id(5), 'INACTIVE', { expectedVersion: 1, reason }, 'k', 'c'),
-      ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
+    await expect(
+      service.transition(principal as never, id(5), 'INACTIVE', { expectedVersion: 1, reason: 'ab' }, 'k', 'c'),
+    ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
     expect(tx.paket.update).not.toHaveBeenCalled();
     expect(audit.catat).not.toHaveBeenCalled();
+    await service.transition(principal as never, id(5), 'INACTIVE', { expectedVersion: 1 }, 'k', 'c');
+    expect(tx.paket.update).toHaveBeenCalledTimes(1);
   });
 
   it('records the typed reason with before/after in the permanent audit', async () => {

@@ -136,7 +136,7 @@ describe('PackagesManagementView duplicate feature', () => {
     const priceInput = screen.getByLabelText('Harga normal') as HTMLInputElement;
     expect(priceInput.value).toBe('1500000');
 
-    const reasonInput = screen.getByLabelText('Alasan') as HTMLInputElement;
+    const reasonInput = screen.getByLabelText(/^Alasan/) as HTMLInputElement;
     expect(reasonInput.value).toBe('Duplikasi dari paket 10x Group Reformer');
   });
 
@@ -210,7 +210,7 @@ describe('PackagesManagementView duplicate feature', () => {
     const user = await openPackageMenu(/Hapus/i);
     expect(await screen.findByRole('heading', { name: 'Hapus paket permanen?' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Hapus permanen' })).toBeDisabled();
-    await user.type(screen.getByLabelText('Alasan'), 'Salah input paket');
+    await user.type(screen.getByLabelText(/^Alasan/), 'Salah input paket');
     await user.click(screen.getByRole('button', { name: 'Hapus permanen' }));
     await waitFor(() => expect(mockRemove).toHaveBeenCalledWith('package', 'pkg-1', 'Salah input paket'));
   });
@@ -231,7 +231,7 @@ describe('PackagesManagementView duplicate feature', () => {
   it('deactivates a package with a typed reason and no invented default', async () => {
     (browserPackagePromotionClient.transitionPackage as unknown as { mockResolvedValue(v: unknown): void }).mockResolvedValue({});
     const user = await openPackageMenu(/^Nonaktifkan$/);
-    await user.type(await screen.findByLabelText('Alasan'), 'Paket tidak dijual lagi');
+    await user.type(await screen.findByLabelText(/^Alasan/), 'Paket tidak dijual lagi');
     await user.click(screen.getByRole('button', { name: 'Nonaktifkan' }));
     await waitFor(() =>
       expect(browserPackagePromotionClient.transitionPackage).toHaveBeenCalledWith(

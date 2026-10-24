@@ -244,11 +244,12 @@ describe('LifecycleService.remove', () => {
 });
 
 describe('LifecycleService.archive', () => {
-  it('requires a reason, hides the entity (inactive + archivedAt) and audits the change', async () => {
+  it('takes an optional reason (too short is rejected), hides the entity (inactive + archivedAt) and audits the change', async () => {
     const { service, delegate, audit } = build({ row: { id: branchA, active: true, archivedAt: null } });
-    await expect(service.archive(superOwner as never, 'branch', branchA, '', 'c')).rejects.toMatchObject({
+    await expect(service.archive(superOwner as never, 'branch', branchA, 'ab', 'c')).rejects.toMatchObject({
       code: 'VALIDATION_ERROR',
     });
+    expect(delegate.update).not.toHaveBeenCalled();
     await service.archive(superOwner as never, 'branch', branchA, 'Cabang ditutup permanen', 'c');
     expect(delegate.update).toHaveBeenCalledWith({
       where: { id: branchA },

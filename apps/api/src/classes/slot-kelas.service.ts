@@ -185,15 +185,23 @@ export class ClassSlotService {
     return value;
   }
 
+  /**
+   * Versi opsional untuk tindakan yang tidak mengubah status kelas (tetapkan instruktur, ubah draf): bila dikirim
+   * tetap diperiksa, bila tidak, penjaga status saja yang berlaku.
+   */
+  private optionalVersion(value: unknown): number | undefined {
+    return value === undefined || value === null ? undefined : this.requireVersion(value);
+  }
+
   /** Pemeriksaan awal dengan pesan jelas; klaim atomik di `claim` tetap penentu akhir bila ada balapan. */
   private assertClaimable(
     slot: { status: ClassSlotStatus; version: number },
-    expectedVersion: number,
+    expectedVersion: number | undefined,
     allowed: readonly ClassSlotStatus[],
   ) {
     if (!allowed.includes(slot.status))
       throw new ApiProblem('INVALID_STATE_TRANSITION', HttpStatus.CONFLICT);
-    if (slot.version !== expectedVersion)
+    if (expectedVersion !== undefined && slot.version !== expectedVersion)
       throw new ApiProblem('STALE_VERSION', HttpStatus.CONFLICT);
   }
 
@@ -201,12 +209,16 @@ export class ClassSlotService {
   private async claim(
     tx: Tx,
     id: string,
-    expectedVersion: number,
+    expectedVersion: number | undefined,
     allowed: readonly ClassSlotStatus[],
     data: Prisma.SlotKelasUncheckedUpdateManyInput,
   ) {
     const claimed = await tx.slotKelas.updateMany({
-      where: { id, version: expectedVersion, status: { in: [...allowed] } },
+      where: {
+        id,
+        ...(expectedVersion !== undefined ? { version: expectedVersion } : {}),
+        status: { in: [...allowed] },
+      },
       data: { ...data, version: { increment: 1 } },
     });
     if (claimed.count === 1) return;
@@ -461,7 +473,7 @@ export class ClassSlotService {
     this.validateKey(key);
     if (!UUID.test(id) || !UUID.test(input.instructorUserId))
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
-    const expectedVersion = this.requireVersion(input.expectedVersion);
+    const expectedVersion = this.optionalVersion(input.expectedVersion);
 
     return this.execute(
       principal,
@@ -528,7 +540,7 @@ export class ClassSlotService {
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
     if (input.instructorUserId != null && !UUID.test(input.instructorUserId))
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
-    const expectedVersion = this.requireVersion(input.expectedVersion);
+    const expectedVersion = this.optionalVersion(input.expectedVersion);
 
     const startAt = instant(input.startAt);
     const endAt = instant(input.endAt);

@@ -73,7 +73,7 @@ describe('StudioVenueList', () => {
     await waitFor(() => expect(onChanged).toHaveBeenCalledWith('Area studio diperbarui.'));
   });
 
-  it('deactivates a room only with a reason, and keeps the dialog open with the readable refusal when classes remain', async () => {
+  it('deactivates a room with an optional reason, and keeps the dialog open with the readable refusal when classes remain', async () => {
     const user = userEvent.setup();
     const { client, onFailure } = setup();
     client.updateRoom.mockImplementation(async () => {
@@ -82,8 +82,8 @@ describe('StudioVenueList', () => {
     await user.click(screen.getAllByRole('button', { name: 'Nonaktifkan ruangan Ruang A' })[0]!);
     const dialog = await screen.findByRole('dialog', { name: 'Nonaktifkan ruangan?' });
     expect(client.updateRoom).not.toHaveBeenCalled();
-    expect(within(dialog).getByRole('button', { name: 'Nonaktifkan' })).toBeDisabled();
-    await user.type(within(dialog).getByLabelText('Alasan'), 'Ruangan direnovasi');
+    expect(within(dialog).getByRole('button', { name: 'Nonaktifkan' })).toBeEnabled();
+    await user.type(within(dialog).getByLabelText(/^Alasan/), 'Ruangan direnovasi');
     await user.click(within(dialog).getByRole('button', { name: 'Nonaktifkan' }));
     await waitFor(() =>
       expect(client.updateRoom).toHaveBeenCalledWith('room-1', {
@@ -102,7 +102,7 @@ describe('StudioVenueList', () => {
     const { client, onChanged } = setup();
     await user.click(screen.getAllByRole('button', { name: 'Nonaktifkan' })[0]!);
     const dialog = await screen.findByRole('dialog', { name: 'Nonaktifkan studio?' });
-    await user.type(within(dialog).getByLabelText('Alasan'), 'Studio ditutup');
+    await user.type(within(dialog).getByLabelText(/^Alasan/), 'Studio ditutup');
     await user.click(within(dialog).getByRole('button', { name: 'Nonaktifkan' }));
     await waitFor(() =>
       expect(client.updateStudio).toHaveBeenCalledWith('studio-1', {

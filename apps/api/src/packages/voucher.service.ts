@@ -2,6 +2,7 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { IdempotencyService } from '../foundation/idempotency.service';
+import { optionalReason } from '../foundation/reason';
 import { AuditService } from '../foundation/audit.service';
 import type { SessionPrincipal } from '../identity/identity.service';
 import { ApiProblem, newId } from '../identity/security';
@@ -469,12 +470,8 @@ export class VoucherService {
     correlationId: string,
   ) {
     this.requireManage(principal);
-    // Jeda dan arsip wajib beralasan (K4); mengaktifkan kembali tidak.
-    const reason = typeof body?.reason === 'string' ? body.reason.trim() : '';
-    if (status !== 'ACTIVE' && (reason.length < 3 || reason.length > 500))
-      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, false, [
-        { field: 'reason', issue: reason.length === 0 ? 'REQUIRED' : reason.length < 3 ? 'TOO_SHORT' : 'TOO_LONG' },
-      ]);
+    // Alasan opsional; bila diisi harus 3–500 karakter.
+    const reason = optionalReason(body?.reason) ?? '';
     return this.idempotency.execute(
       {
         scope: `voucher-transition:${id}`,

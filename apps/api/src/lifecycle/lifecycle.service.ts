@@ -5,6 +5,8 @@ import { AuditService } from '../foundation/audit.service';
 import type { SessionPrincipal } from '../identity/identity.service';
 import { PolicyService } from '../identity/policy.service';
 import { ApiProblem, ENTITY_ID_REGEX } from '../identity/security';
+import { optionalReason } from '../foundation/reason';
+
 
 export type LifecycleKind =
   | 'branch'
@@ -517,7 +519,8 @@ export class LifecycleService {
     reasonInput: unknown,
     correlationId: string,
   ) {
-    const reason = reasonOf(reasonInput);
+    // Arsip data master: alasan opsional (wajib hanya untuk hapus permanen).
+    const reason = optionalReason(reasonInput);
     const spec = SPECS[kind];
     return this.db.$transaction(async (tx) => {
       const row = await this.load(tx, kind, id);

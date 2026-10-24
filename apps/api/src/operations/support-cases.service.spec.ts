@@ -209,9 +209,9 @@ describe('SupportCasesService create', () => {
 });
 
 describe('SupportCasesService update', () => {
-  it('needs the current version and at least one change', async () => {
+  it('needs at least one change; the version is optional', async () => {
     const { service, db } = setup();
-    await expect(service.update(manager, caseId, { status: 'RESOLVED' })).rejects.toMatchObject({
+    await expect(service.update(manager, caseId, {})).rejects.toMatchObject({
       code: 'VALIDATION_ERROR',
     });
     await expect(service.update(manager, caseId, { expectedVersion: 1 })).rejects.toMatchObject({

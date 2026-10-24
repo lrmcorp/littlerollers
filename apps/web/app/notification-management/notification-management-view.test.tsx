@@ -164,8 +164,8 @@ describe('NotificationManagementView', () => {
     expect(writes()[0]![1].method).toBe('PATCH');
     await user.click(within(card).getByRole('button', { name: 'Kembali ke teks bawaan' }));
     const dialog = await screen.findByRole('dialog', { name: 'Arsipkan template notifikasi?' });
-    expect(within(dialog).getByRole('button', { name: 'Arsipkan' })).toBeDisabled();
-    await user.type(within(dialog).getByLabelText('Alasan'), 'Teks lama kurang jelas');
+    expect(within(dialog).getByRole('button', { name: 'Arsipkan' })).toBeEnabled();
+    await user.type(within(dialog).getByLabelText(/^Alasan/), 'Teks lama kurang jelas');
     await user.click(within(dialog).getByRole('button', { name: 'Arsipkan' }));
     await waitFor(() => expect(writes()).toHaveLength(2));
     expect(writes()[1]![0]).toBe('/api/v1/notification-management/templates/t1/ARCHIVED');

@@ -137,16 +137,20 @@ describe('deactivating a room', () => {
   });
 });
 
-describe('deactivating needs a typed reason, reactivating does not', () => {
+describe('deactivating takes an optional reason (3-500 characters when given)', () => {
   it.each([
     ['studio', (s: ReturnType<typeof setup>, reason?: string) => s.service.updateStudio(superOwner, studioId, { name: 'Studio 1', active: false, reason }, 'c')],
     ['room', (s: ReturnType<typeof setup>, reason?: string) => s.service.updateRoom(superOwner, roomId, { name: 'Ruang A', active: false, reason }, 'c')],
-  ] as const)('refuses to deactivate a %s without a reason and changes nothing', async (_kind, call) => {
-    const state = setup();
-    for (const reason of [undefined, '', '  ', 'ab'])
-      await expect(call(state, reason)).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
-    expect(state.tx.studio.update).not.toHaveBeenCalled();
-    expect(state.tx.ruangan.update).not.toHaveBeenCalled();
+  ] as const)('deactivates a %s without a reason, but rejects one that is too short', async (_kind, call) => {
+    const tooShort = setup();
+    await expect(call(tooShort, 'ab')).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
+    expect(tooShort.tx.studio.update).not.toHaveBeenCalled();
+    expect(tooShort.tx.ruangan.update).not.toHaveBeenCalled();
+    for (const reason of [undefined, '', '  ']) {
+      const state = setup();
+      await call(state, reason);
+      expect(state.tx.studio.update.mock.calls.length + state.tx.ruangan.update.mock.calls.length).toBeGreaterThan(0);
+    }
   });
 
   it('reactivating an inactive studio needs no reason', async () => {

@@ -61,7 +61,7 @@ describe('LifecycleDialog', () => {
     const user = userEvent.setup();
     const confirm = await screen.findByRole('button', { name: 'Hapus permanen' });
     expect(confirm).toBeDisabled();
-    await user.type(screen.getByLabelText('Alasan'), 'Salah input');
+    await user.type(screen.getByLabelText(/^Alasan/), 'Salah input');
     await user.click(confirm);
     await waitFor(() => expect(client.remove).toHaveBeenCalledWith('branch', 'b1', 'Salah input'));
     expect(onDone).toHaveBeenCalledWith('Cabang "Green Garden" berhasil dihapus.');
@@ -71,7 +71,7 @@ describe('LifecycleDialog', () => {
     client.archive.mockResolvedValue({});
     const { onDone } = show(branch('archive'));
     const user = userEvent.setup();
-    await user.type(screen.getByLabelText('Alasan'), 'Cabang ditutup');
+    await user.type(screen.getByLabelText(/^Alasan/), 'Cabang ditutup');
     await user.click(screen.getByRole('button', { name: 'Arsipkan' }));
     await waitFor(() => expect(client.archive).toHaveBeenCalledWith('branch', 'b1', 'Cabang ditutup'));
     expect(onDone).toHaveBeenCalledWith('Cabang "Green Garden" berhasil diarsipkan.');
@@ -82,7 +82,7 @@ describe('LifecycleDialog', () => {
     client.archive.mockRejectedValue(new ApiError('x', 409, { code: 'HAS_UPCOMING_SLOTS' }));
     const { onDone } = show(branch('archive'));
     const user = userEvent.setup();
-    await user.type(screen.getByLabelText('Alasan'), 'Cabang ditutup');
+    await user.type(screen.getByLabelText(/^Alasan/), 'Cabang ditutup');
     await user.click(screen.getByRole('button', { name: 'Arsipkan' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Masih ada kelas yang akan berlangsung');
     expect(onDone).not.toHaveBeenCalled();
@@ -92,7 +92,7 @@ describe('LifecycleDialog', () => {
     const deactivate = vi.fn().mockResolvedValue(undefined);
     const { onDone } = show({ kind: 'voucher', id: 'v1', name: 'HEMAT', action: 'deactivate' }, { deactivate });
     const user = userEvent.setup();
-    await user.type(screen.getByLabelText('Alasan'), 'Promo selesai');
+    await user.type(screen.getByLabelText(/^Alasan/), 'Promo selesai');
     await user.click(screen.getByRole('button', { name: 'Jeda' }));
     await waitFor(() => expect(deactivate).toHaveBeenCalledWith('Promo selesai'));
     expect(onDone).toHaveBeenCalledWith('Voucher "HEMAT" berhasil dijeda.');
@@ -104,8 +104,41 @@ describe('LifecycleDialog', () => {
     });
     show(branch('archive'));
     const user = userEvent.setup();
-    await user.type(screen.getByLabelText('Alasan'), 'Cabang ditutup');
+    await user.type(screen.getByLabelText(/^Alasan/), 'Cabang ditutup');
     await user.click(screen.getByRole('button', { name: 'Arsipkan' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Masih ada kelas yang akan berlangsung');
+  });
+
+  it('archives without a reason for ordinary master data, sending an empty reason', async () => {
+    client.archive.mockResolvedValue({});
+    const { onDone } = show(branch('archive'));
+    const user = userEvent.setup();
+    expect(screen.getByLabelText('Alasan (opsional)')).toBeInTheDocument();
+    const confirm = screen.getByRole('button', { name: 'Arsipkan' });
+    expect(confirm).toBeEnabled();
+    await user.click(confirm);
+    await waitFor(() => expect(client.archive).toHaveBeenCalledWith('branch', 'b1', ''));
+    expect(onDone).toHaveBeenCalled();
+  });
+
+  it('still blocks a reason that is filled in but too short', async () => {
+    show(branch('archive'));
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText(/^Alasan/), 'ab');
+    expect(screen.getByRole('button', { name: 'Arsipkan' })).toBeDisabled();
+  });
+
+  it.each([
+    ['user', 'Nonaktifkan'],
+    ['payment-account', 'Nonaktifkan'],
+  ] as const)('keeps the reason mandatory for %s deactivation', async (kind, label) => {
+    const deactivate = vi.fn().mockResolvedValue(undefined);
+    show({ kind, id: 'x1', name: 'Contoh', action: 'deactivate' }, { deactivate });
+    const user = userEvent.setup();
+    expect(screen.getByLabelText('Alasan')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: label })).toBeDisabled();
+    await user.type(screen.getByLabelText('Alasan'), 'Akun dipindahkan');
+    await user.click(screen.getByRole('button', { name: label }));
+    await waitFor(() => expect(deactivate).toHaveBeenCalledWith('Akun dipindahkan'));
   });
 });
