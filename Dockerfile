@@ -13,7 +13,6 @@ RUN apt-get update \
 # Layer caching: copy workspace manifest and package definitions first
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 COPY apps/api/package.json ./apps/api/
-COPY apps/worker/package.json ./apps/worker/
 COPY apps/web/package.json ./apps/web/
 COPY packages/config/package.json ./packages/config/
 COPY packages/eslint-config/package.json ./packages/eslint-config/

@@ -5,10 +5,7 @@ import { loadRuntimeConfig } from './index.js';
 const validEnvironment = {
   NODE_ENV: 'test',
   DATABASE_URL: 'mysql://local:local@127.0.0.1:3306/dailydose',
-  REDIS_URL: 'redis://127.0.0.1:6379',
   HEALTH_PROBE_TIMEOUT_MS: '2000',
-  WORKER_HEARTBEAT_INTERVAL_MS: '10000',
-  WORKER_HEARTBEAT_TTL_SECONDS: '30',
   QUOTA_EVALUATION_SYNTHETIC_ENABLED: 'true',
   QUOTA_EVALUATION_POLL_INTERVAL_MS: '10000',
   QUOTA_EVALUATION_LEASE_MS: '30000',
@@ -25,7 +22,6 @@ const validEnvironment = {
 test('loads a complete synthetic local configuration', () => {
   const config = loadRuntimeConfig(validEnvironment);
   assert.equal(config.environment, 'test');
-  assert.equal(config.redisUrl, 'redis://127.0.0.1:6379');
   assert.equal(config.quotaEvaluation.syntheticEnabled, true);
   assert.deepEqual(config.booking, { enabled: true, cutoffHours: 2 });
   assert.deepEqual(config.reschedule, { enabled: true, cutoffHours: 24 });
@@ -54,18 +50,6 @@ test('loads a complete synthetic local configuration', () => {
     scanTimeoutMs: 15_000,
     abandonedUploadTtlMinutes: 60,
   });
-});
-
-test('allows Redis to be absent in all environments including production', () => {
-  const nonProduction = loadRuntimeConfig({ ...validEnvironment, REDIS_URL: undefined });
-  assert.equal(nonProduction.redisUrl, null);
-  const production = loadRuntimeConfig({
-    ...validEnvironment,
-    NODE_ENV: 'production',
-    REDIS_URL: undefined,
-    PRIVATE_UPLOAD_ROOT: '/var/lib/dailydose/private',
-  });
-  assert.equal(production.redisUrl, null);
 });
 
 test('validates RBAC rollout source and management gate', () => {

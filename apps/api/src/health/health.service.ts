@@ -1,15 +1,15 @@
-import { Inject, Injectable, OnModuleDestroy, Optional } from '@nestjs/common';
-import Redis from 'ioredis';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import { RuntimeConfigService } from '../configuration/runtime-config.service';
 import { PrismaService } from '../database/prisma.service';
 import { PRIVATE_FILE_STORAGE, type PrivateFileStorage } from '../identity/private-file-storage';
+import { SchedulerService } from '../scheduler/scheduler.service';
 import { access } from 'node:fs/promises';
 import { constants } from 'node:fs';
 import { createConnection } from 'node:net';
 
 export type HealthStatus = 'READY' | 'DEGRADED' | 'NOT_READY';
 export interface DependencyHealth {
-  name: 'api' | 'database' | 'redis' | 'worker' | 'private-storage' | 'payment-proof-scanner';
+  name: 'api' | 'database' | 'scheduler' | 'private-storage' | 'payment-proof-scanner';
   status: HealthStatus;
   detailCode: 'TIMEOUT' | 'UNREACHABLE' | 'STALE_HEARTBEAT' | null;
 }
@@ -34,21 +34,13 @@ const timeout = async <T>(promise: Promise<T>, milliseconds: number): Promise<T>
 };
 
 @Injectable()
-export class HealthService implements OnModuleDestroy {
-  private readonly redis: Redis | null;
+export class HealthService {
   constructor(
     private readonly config: RuntimeConfigService,
     private readonly prisma: PrismaService,
     @Inject(PRIVATE_FILE_STORAGE) @Optional() private readonly privateStorage?: PrivateFileStorage,
-  ) {
-    this.redis = config.value.redisUrl
-      ? new Redis(config.value.redisUrl, { lazyConnect: true, maxRetriesPerRequest: 0 })
-      : null;
-  }
-
-  async onModuleDestroy(): Promise<void> {
-    this.redis?.disconnect();
-  }
+    @Optional() private readonly scheduler?: SchedulerService,
+  ) {}
 
   async check(): Promise<HealthResult> {
     const milliseconds = this.config.value.healthProbeTimeoutMs;
@@ -57,31 +49,24 @@ export class HealthService implements OnModuleDestroy {
       this.probe('private-storage', () => this.checkPrivateStorage()),
       this.probe('payment-proof-scanner', () => this.checkPaymentProofScanner()),
     ]);
-    const redisDependencies = this.redis
-      ? await Promise.all([
-          this.probe('redis', async () => {
-            if (this.redis?.status === 'wait') await this.redis.connect();
-            if ((await this.redis?.ping()) !== 'PONG') throw new Error('UNREACHABLE');
+    // Penjadwal hanya dipantau bila hidup (SCHEDULER_ENABLED=true); bila mati tidak ada yang perlu dilaporkan.
+    const schedulerDependencies: DependencyHealth[] = this.scheduler?.enabled
+      ? [
+          await this.probe('scheduler', async () => {
+            if (!this.scheduler?.isHealthy()) throw new Error('STALE_HEARTBEAT');
           }),
-          this.probe('worker', async () => {
-            const heartbeat = await this.redis?.get('dailydose:worker:heartbeat');
-            if (!heartbeat || Date.now() - Date.parse(heartbeat) > 30_000)
-              throw new Error('STALE_HEARTBEAT');
-          }),
-        ])
+        ]
       : [];
     const dependencies: DependencyHealth[] = [
       { name: 'api', status: 'READY', detailCode: null },
       database,
-      ...redisDependencies,
+      ...schedulerDependencies,
       storage,
       paymentProofScanner,
     ];
-    const redis = redisDependencies.find((item) => item.name === 'redis');
-    const worker = redisDependencies.find((item) => item.name === 'worker');
-    const criticalFailure = [database, redis].some((item) => item && item.status !== 'READY');
-    const degraded = [worker, storage, paymentProofScanner].some(
-      (item) => item && item.status !== 'READY',
+    const criticalFailure = database.status !== 'READY';
+    const degraded = [...schedulerDependencies, storage, paymentProofScanner].some(
+      (item) => item.status !== 'READY',
     );
     return {
       status: criticalFailure ? 'NOT_READY' : degraded ? 'DEGRADED' : 'READY',
@@ -151,7 +136,7 @@ export class HealthService implements OnModuleDestroy {
             : 'UNREACHABLE';
       return {
         name,
-        status: name === 'database' || name === 'redis' ? 'NOT_READY' : 'DEGRADED',
+        status: name === 'database' ? 'NOT_READY' : 'DEGRADED',
         detailCode,
       };
     }

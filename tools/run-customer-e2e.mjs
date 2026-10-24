@@ -178,36 +178,10 @@ const prepared = spawnSync(
 );
 if (prepared.status !== 0) throw new Error(prepared.stderr || 'Fixture jadwal E2E gagal dibuat.');
 const fixture = JSON.parse(prepared.stdout);
-const worker =
-  process.env.DD_CUSTOMER_E2E_SKIP_WORKER === 'true'
-    ? undefined
-    : spawn('pnpm', ['--filter', '@dailydose/worker', 'exec', 'nest', 'start'], {
-        cwd: repositoryRoot,
-        env: process.env,
-        stdio: 'inherit',
-      });
-const notificationProjection = worker
-  ? undefined
-  : spawn(
-      'node',
-      [
-        '--import',
-        './apps/api/node_modules/tsx/dist/loader.mjs',
-        'apps/worker/src/notification-projection-runtime.ts',
-      ],
-      {
-        cwd: repositoryRoot,
-        env: { ...process.env, DD_NOTIFICATION_PROJECTION_POLL_MS: '250' },
-        stdio: 'inherit',
-      },
-    );
-
 let playwrightProcess;
 let interruptedSignal;
 const cleanup = () => {
   terminate(playwrightProcess, true);
-  terminate(worker);
-  terminate(notificationProjection);
 };
 const interrupt = (signal) => {
   interruptedSignal = signal;

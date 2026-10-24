@@ -15,12 +15,14 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { PublicContentModule } from './public-content/public-content.module';
 import { EmailModule } from './email/email.module';
 import { LifecycleModule } from './lifecycle/lifecycle.module';
+import { SchedulerModule } from './scheduler/scheduler.module';
 
 @Module({
   imports: [
     ConfigModule,
     EmailModule,
     LifecycleModule,
+    SchedulerModule,
     DatabaseModule,
     FoundationModule,
     HealthModule,

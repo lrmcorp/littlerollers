@@ -66,7 +66,6 @@ services:
       HOSTNAME: 0.0.0.0
       API_BASE_URL: http://127.0.0.1:32121
       PAYMENT_PROOF_SCAN_DRIVER: synthetic
-      REDIS_URL: ''
       PUBLIC_UPLOAD_ROOT: /app/data/public-uploads
     volumes:
       - private-uploads:/app/data/private

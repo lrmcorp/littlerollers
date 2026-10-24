@@ -67,7 +67,6 @@ services:
       PUBLIC_UPLOAD_ROOT: /app/data/public-uploads
       PRIVATE_UPLOAD_ROOT: /app/data/private
       PAYMENT_PROOF_SCAN_DRIVER: synthetic
-      REDIS_URL: ''
     volumes:
       - staging-private-uploads:/app/data/private
       - staging-public-uploads:/app/data/public-uploads

@@ -2,7 +2,6 @@ import { HealthService } from './health.service';
 
 const config = {
   value: {
-    redisUrl: 'redis://127.0.0.1:6379',
     healthProbeTimeoutMs: 10,
     privateUploads: { root: '/private/identity-files' },
     buktiPembayaran: {
@@ -20,9 +19,7 @@ describe('HealthService', () => {
   function service(options?: {
     databaseFails?: boolean;
     databaseTimeout?: boolean;
-    redisFails?: boolean;
-    stale?: boolean;
-    missingHeartbeat?: boolean;
+    scheduler?: 'off' | 'healthy' | 'stale';
     storageFails?: boolean;
     scannerFails?: boolean;
   }) {
@@ -33,24 +30,11 @@ describe('HealthService', () => {
           ? jest.fn().mockRejectedValue(new Error('password=secret'))
           : jest.fn().mockResolvedValue([1]),
     };
-    const health = new HealthService(config as never, prisma as never);
-    const redis = {
-      status: 'ready',
-      ping: options?.redisFails
-        ? jest.fn().mockRejectedValue(new Error('redis://credential'))
-        : jest.fn().mockResolvedValue('PONG'),
-      get: jest
-        .fn()
-        .mockResolvedValue(
-          options?.missingHeartbeat
-            ? null
-            : options?.stale
-              ? new Date(0).toISOString()
-              : new Date().toISOString(),
-        ),
-      disconnect: jest.fn(),
-    };
-    (health as unknown as { redis: typeof redis | null }).redis = redis;
+    const scheduler =
+      options?.scheduler === undefined || options.scheduler === 'off'
+        ? { enabled: false, isHealthy: () => true }
+        : { enabled: true, isHealthy: () => options.scheduler === 'healthy' };
+    const health = new HealthService(config as never, prisma as never, undefined, scheduler as never);
     jest
       .spyOn(health as unknown as { checkPrivateStorage(): Promise<void> }, 'checkPrivateStorage')
       .mockImplementation(() =>
@@ -71,29 +55,26 @@ describe('HealthService', () => {
     expect((await service().check()).status).toBe('READY');
   });
 
-  it('omits Redis and worker probes when Redis is not configured', async () => {
-    const health = service();
-    (health as unknown as { redis: null }).redis = null;
-    const result = await health.check();
+  it('does not report the scheduler while it is switched off, and never probes Redis or a worker', async () => {
+    const result = await service({ scheduler: 'off' }).check();
     expect(result.status).toBe('READY');
-    expect(result.dependencies.map((item) => item.name)).not.toContain('redis');
-    expect(result.dependencies.map((item) => item.name)).not.toContain('worker');
+    const names = result.dependencies.map((item) => item.name) as string[];
+    expect(names).not.toContain('scheduler');
+    expect(names).not.toContain('redis');
+    expect(names).not.toContain('worker');
   });
 
-  it('reports DEGRADED for a stale worker heartbeat', async () => {
-    const result = await service({ stale: true }).check();
+  it('reports the scheduler as READY when its jobs ran recently', async () => {
+    const result = await service({ scheduler: 'healthy' }).check();
+    expect(result.status).toBe('READY');
+    expect(result.dependencies).toContainEqual({ name: 'scheduler', status: 'READY', detailCode: null });
+  });
+
+  it('reports DEGRADED (not NOT_READY) when the scheduler stopped running its jobs', async () => {
+    const result = await service({ scheduler: 'stale' }).check();
     expect(result.status).toBe('DEGRADED');
     expect(result.dependencies).toContainEqual({
-      name: 'worker',
-      status: 'DEGRADED',
-      detailCode: 'STALE_HEARTBEAT',
-    });
-  });
-
-  it('reports DEGRADED when the worker heartbeat is missing', async () => {
-    const result = await service({ missingHeartbeat: true }).check();
-    expect(result.dependencies).toContainEqual({
-      name: 'worker',
+      name: 'scheduler',
       status: 'DEGRADED',
       detailCode: 'STALE_HEARTBEAT',
     });
@@ -122,10 +103,6 @@ describe('HealthService', () => {
     const serialized = JSON.stringify(await service({ databaseFails: true }).check());
     expect(serialized).toContain('NOT_READY');
     expect(serialized).not.toContain('secret');
-  });
-
-  it('reports NOT_READY for Redis failure', async () => {
-    expect((await service({ redisFails: true }).check()).status).toBe('NOT_READY');
   });
 
   it('reports a credential-safe timeout for a database probe', async () => {
