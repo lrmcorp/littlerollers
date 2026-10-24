@@ -15,8 +15,13 @@ const principal = (over: Record<string, unknown> = {}) => ({
   ...over,
 });
 
-function setup(row: Record<string, unknown> | null = { status: 'ACTIVE', preferredBranchId: branchA }) {
+function setup(
+  row: Record<string, unknown> | null = { status: 'ACTIVE', preferredBranchId: branchA, _count: { bookings: 1, purchases: 1 } },
+  history: { bookings?: string[]; purchases?: string[] } = {},
+) {
   const tx = {
+    pemesananKelas: { findMany: jest.fn().mockResolvedValue((history.bookings ?? []).map((userId) => ({ userId }))) },
+    pembelian: { findMany: jest.fn().mockResolvedValue((history.purchases ?? []).map((userId) => ({ userId }))) },
     user: {
       findFirst: jest.fn().mockResolvedValue(row),
       update: jest.fn().mockImplementation(async ({ data }) => ({ id: customerId, preferredBranchId: row?.preferredBranchId ?? null, ...data })),
@@ -50,11 +55,11 @@ describe('customer deactivate / reactivate', () => {
   });
 
   it('hides a customer of another branch from branch-scoped staff, but not from cross-branch staff', async () => {
-    const other = setup({ status: 'ACTIVE', preferredBranchId: branchB });
+    const other = setup({ status: 'ACTIVE', preferredBranchId: branchB, _count: { bookings: 2, purchases: 0 } });
     await expect(deactivate(other, principal(), 'Uji')).rejects.toMatchObject({ code: 'NOT_FOUND' });
     expect(other.tx.user.update).not.toHaveBeenCalled();
 
-    const global = setup({ status: 'ACTIVE', preferredBranchId: branchB });
+    const global = setup({ status: 'ACTIVE', preferredBranchId: branchB, _count: { bookings: 2, purchases: 0 } });
     await deactivate(global, principal({ capabilities: ['customer:write', 'branch:all'], branchIds: [] }), 'Uji');
     expect(global.tx.user.update).toHaveBeenCalled();
   });
@@ -77,7 +82,7 @@ describe('customer deactivate / reactivate', () => {
   });
 
   it('reactivating needs no reason', async () => {
-    const s = setup({ status: 'INACTIVE', preferredBranchId: branchA });
+    const s = setup({ status: 'INACTIVE', preferredBranchId: branchA, _count: { bookings: 0, purchases: 0 } });
     await expect(
       s.service.setStatus(principal() as never, customerId, true, { expectedVersion: 1 }, '', '', 'corr-2'),
     ).resolves.toMatchObject({ status: 'ACTIVE' });
@@ -85,5 +90,15 @@ describe('customer deactivate / reactivate', () => {
       expect.anything(),
       expect.objectContaining({ action: 'customer.reactivated', reason: null }),
     );
+  });
+
+  it('allows staff who served the customer (booking or purchase at their branch) even if the preferred branch differs', async () => {
+    const s = setup({ status: 'ACTIVE', preferredBranchId: branchB, _count: { bookings: 3, purchases: 1 } }, { bookings: [customerId] });
+    await expect(deactivate(s, principal(), 'Uji')).resolves.toMatchObject({ status: 'INACTIVE' });
+  });
+
+  it('allows a customer not yet attached to any branch (no preferred branch, no bookings, no purchases)', async () => {
+    const s = setup({ status: 'ACTIVE', preferredBranchId: null, _count: { bookings: 0, purchases: 0 } });
+    await expect(deactivate(s, principal(), 'Uji')).resolves.toMatchObject({ status: 'INACTIVE' });
   });
 });

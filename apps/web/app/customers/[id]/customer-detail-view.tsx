@@ -221,7 +221,7 @@ export function CustomerDetailView({ id }: { id: string }) {
   const sessionContext = useSessionContext();
   const session = sessionContext?.session;
   // Ubah profil, nonaktifkan, dan unggah dokumen dicek dengan `customer:write` atau `customer:manage`.
-  const canWrite = Boolean(
+  const canWriteRole = Boolean(
     sessionContext?.hasCapability('customer:write') ||
     sessionContext?.hasCapability('customer:manage'),
   );
@@ -230,6 +230,8 @@ export function CustomerDetailView({ id }: { id: string }) {
   const saleBranches = (session?.branches ?? []).map((item) => ({ id: item.id, name: item.name }));
   const [saleOpen, setSaleOpen] = useState(false);
   const [customer, setCustomer] = useState<CustomerDetail>();
+  // Pelanggan di luar cabang staf hanya bisa dilihat (kontak disamarkan); server menolak perubahan terhadapnya.
+  const canWrite = canWriteRole && !customer?.contactMasked;
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [busy, setBusy] = useState(false);
@@ -543,7 +545,14 @@ export function CustomerDetailView({ id }: { id: string }) {
           Pelanggan wajib mengganti password awal sebelum mengakses transaksi bisnis.
         </Feedback>
       )}
-      {!canWrite && (
+      {customer.contactMasked && (
+        <Feedback kind="info">
+          Pelanggan ini belum berkaitan dengan cabang Anda (bukan cabang pilihannya dan belum pernah
+          memesan atau membeli di cabang Anda). Kontak dan data pribadinya disamarkan, dan datanya
+          tidak dapat diubah dari akun Anda.
+        </Feedback>
+      )}
+      {!canWriteRole && (
         <Feedback kind="info">
           Akun Anda hanya dapat melihat data pelanggan. Mengubah profil, status akun, dan status
           berhenti memerlukan izin pengelolaan pelanggan.

@@ -107,3 +107,18 @@ describe('CustomerDetailView nonaktifkan akun', () => {
     expect(setStatus.mock.calls[0]![2]).toMatchObject({ reason: 'Permintaan member' });
   });
 });
+
+describe('CustomerDetailView contact masking (option D)', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    caps.allow = true;
+  });
+
+  it('explains the masking and hides every change action for a customer outside the staff branch', async () => {
+    vi.spyOn(customerClient, 'detail').mockResolvedValue({ ...detail, contactMasked: true, email: 'de***@example.test' } as never);
+    render(<CustomerDetailView id="c1" />);
+    expect(await screen.findByText(/belum berkaitan dengan cabang Anda/)).toBeVisible();
+    expect(screen.queryByRole('button', { name: /Ubah Status/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Edit/i })).not.toBeInTheDocument();
+  });
+});

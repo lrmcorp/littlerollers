@@ -5,6 +5,8 @@ export interface CustomerSummary {
   displayName: string;
   email: string | null;
   phoneE164: string | null;
+  /** True bila pelanggan tidak berkaitan dengan cabang staf: kontak dan data pribadi disamarkan, perubahan ditolak. */
+  contactMasked?: boolean;
   status: CustomerStatus;
   stoppedAt?: string | null;
   isStopped?: boolean;

@@ -26,6 +26,17 @@ export const verificationStatusLabels: Record<string, string> = {
   PENDING: 'Menunggu',
 };
 
+function MaskedHint() {
+  return (
+    <span
+      className="mt-0.5 block text-xs text-dd-muted"
+      title="Pelanggan ini belum berkaitan dengan cabang Anda, jadi kontaknya disamarkan."
+    >
+      Kontak disamarkan
+    </span>
+  );
+}
+
 export function CustomersView() {
   const sessionContext = useSessionContext();
   const session = sessionContext?.session;
@@ -310,6 +321,7 @@ export function CustomersView() {
               <>
                 <strong>{item.displayName}</strong>
                 <div className="text-dd-muted">{item.email || item.phoneE164 || item.id}</div>
+                {item.contactMasked && <MaskedHint />}
               </>
             ),
           },
@@ -358,7 +370,7 @@ export function CustomersView() {
                     <span className="hidden xl:inline">Jual paket</span>
                   </Button>
                 )}
-                {canWrite && (
+                {canWrite && !item.contactMasked && (
                   <TableActionMenu
                     ariaLabel={`Aksi pelanggan ${item.displayName}`}
                     items={[
@@ -393,6 +405,7 @@ export function CustomersView() {
                 <span className="text-sm text-dd-muted">
                   {item.email || item.phoneE164 || item.id}
                 </span>
+                {item.contactMasked && <MaskedHint />}
               </div>
               <StatusBadge tone={item.status === 'ACTIVE' ? 'success' : 'warning'}>
                 {customerStatusLabels[item.status] ?? statusLabel(item.status)}
@@ -417,7 +430,7 @@ export function CustomersView() {
                   <ShoppingCart className="size-3.5 text-dd-forest" /> Jual paket
                 </Button>
               )}
-              {canWrite && (
+              {canWrite && !item.contactMasked && (
                 <TableActionMenu
                   ariaLabel={`Aksi pelanggan ${item.displayName}`}
                   items={[

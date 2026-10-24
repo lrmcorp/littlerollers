@@ -143,3 +143,24 @@ describe('CustomersView create form', () => {
   });
 });
 
+describe('CustomersView contact masking (option D)', () => {
+  const item = (over: Record<string, unknown>) => ({
+    id: 'c1', displayName: 'Dewi', email: 'de***@example.test', phoneE164: '+6281******890', status: 'ACTIVE',
+    version: 1, verificationStatus: 'PENDING', emailVerified: false, mustChangePassword: false, activePackageCount: 0,
+    purchasedSessions: 0, updatedAt: '2026-10-01T00:00:00Z', preferredBranch: null, profile: null,
+    _count: { purchases: 0, customerBookings: 0 }, ...over,
+  });
+
+  it('tells staff the contact is masked and offers no edit actions for that customer, but keeps them for others', async () => {
+    vi.restoreAllMocks();
+    vi.spyOn(customerClient, 'list').mockResolvedValue({
+      items: [item({ contactMasked: true }), item({ id: 'c2', displayName: 'Rina', email: 'rina@example.test', contactMasked: false })],
+      summary: { total: 2 },
+      page: { hasMore: false, nextCursor: null },
+    } as never);
+    render(<CustomersView />);
+    expect((await screen.findAllByText('Kontak disamarkan')).length).toBeGreaterThan(0);
+    expect(screen.queryAllByRole('button', { name: 'Aksi pelanggan Dewi' })).toHaveLength(0);
+    expect(screen.getAllByRole('button', { name: 'Aksi pelanggan Rina' }).length).toBeGreaterThan(0);
+  });
+});

@@ -6,6 +6,7 @@ import { AuditService } from '../foundation/audit.service';
 import { IdempotencyService } from '../foundation/idempotency.service';
 import { WhatsAppGatewayService } from '../notifications/whatsapp-gateway.service';
 import { hashPassword, normalizeEmail } from './credential-security';
+import { maskContactEmail, maskContactPhone, maskCustomerProfile, staffBranchScope } from './customer-visibility';
 import type { SessionPrincipal } from './identity.service';
 import { PolicyService } from './policy.service';
 import { PRIVATE_FILE_STORAGE, type PrivateFileStorage } from './private-file-storage';
@@ -83,6 +84,10 @@ function normalizePhone(value: string): string {
   return normalized;
 }
 
+/** Pelanggan yang belum terkait cabang mana pun (tanpa cabang pilihan, tanpa booking/pembelian). */
+const isUnattached = (row: { preferredBranchId: string | null; _count?: { bookings?: number; purchases?: number } }) =>
+  !row.preferredBranchId && !row._count?.bookings && !row._count?.purchases;
+
 @Injectable()
 export class CustomerManagementService {
   constructor(
@@ -96,6 +101,53 @@ export class CustomerManagementService {
 
   private require(principal: SessionPrincipal, capability: string) {
     this.policy.requireCapability(principal.capabilities, capability);
+  }
+
+  /** Id pelanggan (dari `userIds`) yang berkaitan dengan cabang staf; staf lintas cabang melihat semuanya. */
+  private async relatedCustomerIds(
+    principal: SessionPrincipal,
+    rows: Array<{ id: string; preferredBranchId: string | null; _count?: { bookings?: number; purchases?: number } }>,
+    db: Pick<PrismaService | Prisma.TransactionClient, 'pemesananKelas' | 'pembelian'> = this.db,
+  ): Promise<Set<string>> {
+    const scope = staffBranchScope(principal);
+    if (scope === 'ALL') return new Set(rows.map((row) => row.id));
+    const related = new Set(
+      rows
+        .filter((row) => (row.preferredBranchId && scope.includes(row.preferredBranchId)) || isUnattached(row))
+        .map((row) => row.id),
+    );
+    const rest = rows.filter((row) => !related.has(row.id)).map((row) => row.id);
+    if (rest.length && scope.length) {
+      const [bookings, purchases] = await Promise.all([
+        db.pemesananKelas.findMany({
+          where: { userId: { in: rest }, classSlot: { branchId: { in: scope } } },
+          select: { userId: true },
+          distinct: ['userId'],
+        }),
+        db.pembelian.findMany({
+          where: { userId: { in: rest }, branchId: { in: scope } },
+          select: { userId: true },
+          distinct: ['userId'],
+        }),
+      ]);
+      for (const row of [...bookings, ...purchases]) related.add(row.userId);
+    }
+    return related;
+  }
+
+  /** Akun pelanggan yang boleh diubah staf ini; selain itu 404 (staf, Super Owner, atau pelanggan di luar cabang staf). */
+  private async requireManageableCustomer(
+    principal: SessionPrincipal,
+    id: string,
+    db: PrismaService | Prisma.TransactionClient = this.db,
+  ) {
+    const user = await db.user.findFirst({
+      where: { id, role: { in: ['CUSTOMER', 'MEMBER'] } },
+      include: { _count: { select: { bookings: true, purchases: true } } },
+    });
+    if (!user || !(await this.relatedCustomerIds(principal, [user], db)).has(id))
+      throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+    return user;
   }
 
   async list(
@@ -172,13 +224,15 @@ export class CustomerManagementService {
     const hasMore = pageNumber ? pageNumber < totalPages : users.length > limit;
     const page = pageNumber ? users : (users.length > limit ? users.slice(0, limit) : users);
     const nextCursor = hasMore ? (page.at(-1)?.id ?? null) : null;
+    const related = await this.relatedCustomerIds(principal, page);
 
     return {
       items: page.map((u) => ({
         id: u.id,
         displayName: u.displayName,
-        email: u.email,
-        phoneE164: u.phone,
+        email: related.has(u.id) ? u.email : maskContactEmail(u.email),
+        phoneE164: related.has(u.id) ? u.phone : maskContactPhone(u.phone),
+        contactMasked: !related.has(u.id),
         status: u.status,
         preferredBranchId: u.preferredBranchId,
         verificationStatus: customerVerificationStatus(u.profile),
@@ -188,7 +242,7 @@ export class CustomerManagementService {
           purchases: u._count.purchases,
           customerBookings: u._count.bookings,
         },
-        profile: u.profile,
+        profile: related.has(u.id) ? u.profile : maskCustomerProfile(u.profile),
         createdAt: u.createdAt.toISOString(),
       })),
       total: totalCount,
@@ -287,22 +341,25 @@ export class CustomerManagementService {
     }
 
     const verificationStatus = customerVerificationStatus(customer.profile);
+    // Pelanggan di luar cabang staf: kontak dan data pribadi disamarkan, dokumen identitas dan bukti bayar disembunyikan.
+    const visible = (await this.relatedCustomerIds(principal, [customer])).has(customer.id);
 
     return {
       id: customer.id,
       displayName: customer.displayName,
-      email: customer.email,
-      phoneE164: customer.phone,
+      email: visible ? customer.email : maskContactEmail(customer.email),
+      phoneE164: visible ? customer.phone : maskContactPhone(customer.phone),
+      contactMasked: !visible,
       status: customer.status,
       stoppedAt: customer.stoppedAt?.toISOString() ?? null,
       isStopped: customer.stoppedAt !== null,
       version: 1,
       preferredBranch: branch,
-      profile: customer.profile,
+      profile: visible ? customer.profile : maskCustomerProfile(customer.profile),
       verificationStatus,
       passwordCredential: { mustChangePassword: false },
       identities: [],
-      identityDocuments,
+      identityDocuments: visible ? identityDocuments : [],
       purchases: customer.purchases.map((p) => ({
         id: p.id,
         invoiceNumber: p.invoiceNumber,
@@ -314,7 +371,7 @@ export class CustomerManagementService {
         decidedAt: p.paidAt,
         paymentMethod: p.paymentMethod,
         branchName: p.branch?.name ?? null,
-        paymentProofUrl: p.paymentProof?.fileUrl ?? null,
+        paymentProofUrl: visible ? (p.paymentProof?.fileUrl ?? null) : null,
       })),
       customerPackages: customer.customerPackages.map((cp) => ({
         id: cp.id,
@@ -515,8 +572,7 @@ export class CustomerManagementService {
     const phone = input.phoneE164?.trim() ? normalizePhone(input.phoneE164) : undefined;
 
     const action = async (tx: Prisma.TransactionClient) => {
-      const user = await tx.user.findUnique({ where: { id } });
-      if (!user) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+      const user = await this.requireManageableCustomer(principal, id, tx);
 
       let email: string | undefined = undefined;
       if (input.email !== undefined) {
@@ -625,8 +681,7 @@ export class CustomerManagementService {
     file: { buffer?: Buffer; base64?: string; fileName?: string; mimeType?: string },
   ) {
     this.policy.requireAnyCapability(principal.capabilities, ['customer:write', 'customer:manage']);
-    const customer = await this.db.user.findUnique({ where: { id: customerId } });
-    if (!customer) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+    const customer = await this.requireManageableCustomer(principal, customerId);
 
     let buffer = file.buffer;
     if (!buffer && file.base64) {
@@ -703,12 +758,12 @@ export class CustomerManagementService {
       // Hanya akun pelanggan: endpoint ini tidak boleh dipakai untuk menonaktifkan staf atau Super Owner.
       const before = await tx.user.findFirst({
         where: { id, role: { in: ['CUSTOMER', 'MEMBER'] } },
-        select: { status: true, preferredBranchId: true },
+        select: { status: true, preferredBranchId: true, _count: { select: { bookings: true, purchases: true } } },
       });
       if (!before) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
-      // Pelanggan dengan cabang pilihan hanya boleh diubah oleh staf yang berhak di cabang itu
-      // (atau lintas cabang). Tanpa cabang pilihan, tidak ada cakupan untuk diperiksa.
-      if (before.preferredBranchId && !this.policy.hasCapability(principal, 'customer:write', before.preferredBranchId))
+      // Sama dengan aturan tampilan: hanya pelanggan yang berkaitan dengan cabang staf (atau yang belum terkait
+      // cabang mana pun) yang boleh diubah; staf lintas cabang boleh semuanya.
+      if (!(await this.relatedCustomerIds(principal, [{ id, ...before }], tx)).has(id))
         throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
       const user = await tx.user.update({
         where: { id },
@@ -778,18 +833,7 @@ export class CustomerManagementService {
     _reason?: string,
   ) {
     this.require(principal, 'customer:write');
-    const user = await this.db.user.findFirst({
-      where: { id, role: { in: ['CUSTOMER', 'MEMBER'] } },
-    });
-    if (!user) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
-
-    if (
-      user.preferredBranchId &&
-      !principal.capabilities.includes('branch:all') &&
-      !principal.branchIds.includes(user.preferredBranchId)
-    ) {
-      throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);
-    }
+    const user = await this.requireManageableCustomer(principal, id);
 
     const updated = await this.db.user.update({
       where: { id },
@@ -820,18 +864,7 @@ export class CustomerManagementService {
     id: string,
   ) {
     this.require(principal, 'customer:write');
-    const user = await this.db.user.findFirst({
-      where: { id, role: { in: ['CUSTOMER', 'MEMBER'] } },
-    });
-    if (!user) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
-
-    if (
-      user.preferredBranchId &&
-      !principal.capabilities.includes('branch:all') &&
-      !principal.branchIds.includes(user.preferredBranchId)
-    ) {
-      throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);
-    }
+    const user = await this.requireManageableCustomer(principal, id);
 
     const updated = await this.db.user.update({
       where: { id },
