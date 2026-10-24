@@ -28,11 +28,11 @@ export type FieldVariant = 'default' | 'editorial';
  * input teks/tanggal di halaman itu. Tinggi dasar 48px; `compact` 44px.
  */
 export const editorialControlClassName =
-  'min-h-12 w-full rounded-none border border-ed-line bg-white px-4 py-2 font-sans text-sm text-ed-ink shadow-none outline-none transition placeholder:text-ed-muted hover:border-ed-green/40 focus:border-ed-green focus:ring-2 focus:ring-ed-green/15 disabled:cursor-not-allowed disabled:bg-ed-tint disabled:text-ed-muted aria-[invalid=true]:border-dd-danger aria-[invalid=true]:ring-2 aria-[invalid=true]:ring-dd-danger/20';
+  'w-full rounded-none border border-ed-line bg-white px-4 py-2 font-sans text-sm text-ed-ink shadow-none outline-none transition placeholder:text-ed-muted hover:border-ed-green/40 focus:border-ed-green focus:ring-2 focus:ring-ed-green/15 disabled:cursor-not-allowed disabled:bg-ed-tint disabled:text-ed-muted aria-[invalid=true]:border-dd-danger aria-[invalid=true]:ring-2 aria-[invalid=true]:ring-dd-danger/20';
 
 const controlFor = (variant: FieldVariant | undefined, compact?: boolean) =>
   variant === 'editorial'
-    ? `${editorialControlClassName} ${compact ? 'min-h-11 py-1.5' : ''}`
+    ? `${editorialControlClassName} ${compact ? 'min-h-11 py-1.5' : 'min-h-12'}`
     : `${controlClassName} ${compact ? 'min-h-10 py-1.5' : ''}`;
 
 export function CheckboxInput({
