@@ -689,8 +689,27 @@ export class CustomerManagementService {
           ? bodyOrKey?.reason
           : undefined;
 
+    // Menonaktifkan wajib beralasan (K4); mengaktifkan kembali tidak.
+    const trimmedReason = typeof reason === 'string' ? reason.trim() : '';
+    if (!isActive && (trimmedReason.length < 3 || trimmedReason.length > 500))
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, false, [
+        {
+          field: 'reason',
+          issue: trimmedReason.length === 0 ? 'REQUIRED' : trimmedReason.length < 3 ? 'TOO_SHORT' : 'TOO_LONG',
+        },
+      ]);
+
     const action = async (tx: Prisma.TransactionClient) => {
-      const before = await tx.user.findUnique({ where: { id }, select: { status: true, preferredBranchId: true } });
+      // Hanya akun pelanggan: endpoint ini tidak boleh dipakai untuk menonaktifkan staf atau Super Owner.
+      const before = await tx.user.findFirst({
+        where: { id, role: { in: ['CUSTOMER', 'MEMBER'] } },
+        select: { status: true, preferredBranchId: true },
+      });
+      if (!before) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+      // Pelanggan dengan cabang pilihan hanya boleh diubah oleh staf yang berhak di cabang itu
+      // (atau lintas cabang). Tanpa cabang pilihan, tidak ada cakupan untuk diperiksa.
+      if (before.preferredBranchId && !this.policy.hasCapability(principal, 'customer:write', before.preferredBranchId))
+        throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
       const user = await tx.user.update({
         where: { id },
         data: { status: isActive ? 'ACTIVE' : 'INACTIVE' },
@@ -703,8 +722,8 @@ export class CustomerManagementService {
         targetUserId: id,
         objectType: 'Customer',
         objectId: id,
-        reason,
-        beforeMasked: before ? { status: before.status } : undefined,
+        reason: trimmedReason || null,
+        beforeMasked: { status: before.status },
         afterMasked: { status: user.status },
       });
       return { id: user.id, status: user.status };
@@ -718,7 +737,7 @@ export class CustomerManagementService {
       {
         scope: `customer:status:${id}`,
         key,
-        payload: { active: isActive },
+        payload: { active: isActive, reason: trimmedReason },
         ttlMs: 86400000,
         leaseMs: 30000,
       },

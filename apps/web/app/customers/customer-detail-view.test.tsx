@@ -1,4 +1,5 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { customerClient } from './customer-client';
 import { CustomerDetailView } from './[id]/customer-detail-view';
@@ -15,10 +16,11 @@ vi.mock('next/navigation', () => ({
   usePathname: () => '/customers/c1',
   useSearchParams: () => new URLSearchParams(),
 }));
+const caps = vi.hoisted(() => ({ allow: false }));
 vi.mock('../session-context', () => ({
   useSessionContext: () => ({
     session: { branches: [] },
-    hasCapability: () => false,
+    hasCapability: () => caps.allow,
     activeBranch: null,
   }),
 }));
@@ -51,6 +53,7 @@ const detail = {
 describe('CustomerDetailView konsistensi status', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    caps.allow = false;
     vi.spyOn(customerClient, 'detail').mockResolvedValue(detail as never);
   });
 
@@ -76,5 +79,31 @@ describe('CustomerDetailView konsistensi status', () => {
     render(<CustomerDetailView id="c1" />);
     expect(await screen.findByRole('button', { name: /Paket & Sesi \(0 aktif\)/ })).toBeVisible();
     expect(screen.getByText('Pelanggan belum memiliki paket aktif saat ini.')).toBeVisible();
+  });
+});
+
+describe('CustomerDetailView nonaktifkan akun', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    caps.allow = true;
+    vi.spyOn(customerClient, 'detail').mockResolvedValue(detail as never);
+  });
+
+  it('menolak menonaktifkan tanpa alasan dan mengirim alasan yang diketik (tanpa alasan bawaan)', async () => {
+    const setStatus = vi.spyOn(customerClient, 'setStatus').mockResolvedValue({ id: 'c1', status: 'INACTIVE', version: 3 });
+    const user = userEvent.setup();
+    render(<CustomerDetailView id="c1" />);
+    await user.click(await screen.findByRole('button', { name: /Ubah Status/i }));
+    const dialog = await screen.findByRole('dialog');
+    const reason = within(dialog).getByLabelText('Alasan menonaktifkan');
+    expect(reason).toBeRequired();
+    await user.click(within(dialog).getByRole('button', { name: 'Nonaktifkan Pelanggan' }));
+    expect(setStatus).not.toHaveBeenCalled();
+
+    await user.type(reason, 'Permintaan member');
+    await user.click(within(dialog).getByRole('button', { name: 'Nonaktifkan Pelanggan' }));
+    await waitFor(() => expect(setStatus).toHaveBeenCalledTimes(1));
+    expect(setStatus.mock.calls[0]![1]).toBe('deactivate');
+    expect(setStatus.mock.calls[0]![2]).toMatchObject({ reason: 'Permintaan member' });
   });
 });

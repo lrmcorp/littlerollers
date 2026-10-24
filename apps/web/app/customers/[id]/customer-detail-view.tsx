@@ -361,6 +361,12 @@ export function CustomerDetailView({ id }: { id: string }) {
     if (!customer) return;
     const data = new FormData(event.currentTarget);
     const action = customer.status === 'ACTIVE' ? 'deactivate' : 'reactivate';
+    // Nonaktifkan wajib beralasan; tidak ada alasan bawaan buatan klien.
+    const reason = String(data.get('reason') || '').trim();
+    if (action === 'deactivate' && reason.length < 3) {
+      setError('Alasan menonaktifkan akun wajib diisi (minimal 3 karakter).');
+      return;
+    }
     setBusy(true);
     setError('');
     setSuccess('');
@@ -370,7 +376,7 @@ export function CustomerDetailView({ id }: { id: string }) {
         action,
         {
           expectedVersion: customer.version,
-          reason: String(data.get('reason') || '').trim() || 'Perubahan status pelanggan',
+          ...(reason ? { reason } : {}),
         },
         { idempotencyKey: crypto.randomUUID() },
       );
@@ -1284,8 +1290,11 @@ export function CustomerDetailView({ id }: { id: string }) {
       >
         <form onSubmit={changeStatus} className="space-y-4 py-2">
           <TextInput
-            label="Alasan perubahan status (opsional)"
+            label={customer.status === 'ACTIVE' ? 'Alasan menonaktifkan' : 'Catatan (opsional)'}
             name="reason"
+            maxLength={500}
+            required={customer.status === 'ACTIVE'}
+            minLength={customer.status === 'ACTIVE' ? 3 : undefined}
             placeholder="Contoh: Permintaan member"
           />
           <div className="flex justify-end gap-2 pt-2 border-t border-dd-line">
