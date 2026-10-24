@@ -7,8 +7,6 @@ import { RuntimeConfigService } from '../configuration/runtime-config.service';
 import { PRIVATE_FILE_STORAGE, type PrivateFileStorage } from './private-file-storage';
 import {
   ConfigGatedGoogleProvider,
-  ConfigGatedOtpProvider,
-  ConfigGatedProofProvider,
 } from './provider-adapters';
 import { RateLimitService } from './rate-limit.service';
 import { PolicyService } from './policy.service';
@@ -98,8 +96,6 @@ export class IdentityService {
     private readonly db: PrismaService,
     private readonly policy: PolicyService,
     private readonly google: ConfigGatedGoogleProvider,
-    private readonly otp: ConfigGatedOtpProvider,
-    private readonly proof: ConfigGatedProofProvider,
     private readonly rateLimit: RateLimitService,
     private readonly passwordEmail: QueuedPasswordEmailProvider,
     @Optional() private readonly idempotency?: IdempotencyService,
@@ -595,34 +591,6 @@ export class IdentityService {
     return this.issueSession(user.id, input.channel);
   }
 
-  async requestOtp(
-    phoneE164: string,
-    _correlationId = 'unknown',
-  ): Promise<{ requestId: string; expiresAt: string }> {
-    const subjectHash = digest(phoneE164);
-    await this.rateLimit.consume('OTP_REQUEST', subjectHash);
-    await this.otp.send(phoneE164);
-    const ttl = syntheticConfigSeconds('AUTH_OTP_TTL_SECONDS', 300);
-    const expiresAt = new Date(Date.now() + ttl * 1000);
-    return { requestId: newId(), expiresAt: expiresAt.toISOString() };
-  }
-
-  async verifyOtp(
-    _requestId: string,
-    _code: string,
-    _channel: SessionChannel = 'MOBILE',
-    _correlationId = 'unknown',
-  ): Promise<Awaited<ReturnType<IdentityService['issueSession']>>> {
-    throw new ApiProblem('AUTHENTICATION_REQUIRED', HttpStatus.UNAUTHORIZED);
-  }
-
-  async authenticateProof(
-    _input: { proof: string; channel: SessionChannel },
-    _correlationId: string,
-  ): Promise<Awaited<ReturnType<IdentityService['issueSession']>>> {
-    throw new ApiProblem('AUTHENTICATION_REQUIRED', HttpStatus.UNAUTHORIZED);
-  }
-
   async registerCustomer(
     input: {
       displayName: string;
@@ -787,26 +755,6 @@ export class IdentityService {
     };
   }
 
-  async requestRecovery(
-    _identifier: string,
-    _requestedChannel?: string,
-    _correlationId?: string,
-  ) {
-    return { status: 'SENT' };
-  }
-
-  async verifyRecovery(
-    id: string,
-    _proof: string,
-    _correlationId?: string,
-  ): Promise<Awaited<ReturnType<IdentityService['issueSession']>>> {
-    return this.issueSession(id, 'WEB');
-  }
-
-  async linkIdentity(principal: SessionPrincipal, _input: any, _correlationId?: string) {
-    return { id: principal.userId, status: 'LINKED' };
-  }
-
   async passwordSecurityStatus(principal: SessionPrincipal) {
     const user = await this.db.user.findUnique({
       where: { id: principal.userId },
@@ -846,19 +794,6 @@ export class IdentityService {
     correlationId: string,
   ) {
     return this.authenticateGoogle(input, correlationId);
-  }
-
-  async mintaOtp(phoneE164: string, correlationId?: string) {
-    return this.requestOtp(phoneE164, correlationId);
-  }
-
-  async verifikasiOtp(
-    requestId: string,
-    code: string,
-    channel: SessionChannel = 'MOBILE',
-    correlationId = 'unknown',
-  ) {
-    return this.verifyOtp(requestId, code, channel, correlationId);
   }
 
   async segarkanSesi(rawRefreshToken: string, correlationId?: string) {

@@ -1,3 +1,5 @@
+> **DIARSIPKAN 25 Okt 2026.** Tidak ada aplikasi mobile di repositori, dan path di dokumen ini sudah berbeda dari API nyata. Rute khusus mobile (OTP, pemulihan akun, tautan akun) dicabut dari API; lihat riwayat git bila mobile dibuat kelak.
+
 # Mobile API Contract (Customer Edition)
 ## Daily Dose Pilates iOS & Android Application v2.0
 

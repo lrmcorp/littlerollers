@@ -14,15 +14,6 @@ export interface GoogleIdentityProvider {
   verify(idToken: string, nonce: string): Promise<VerifiedIdentity>;
 }
 
-export interface OtpProvider {
-  send(phoneE164: string): Promise<{ proofHash: string }>;
-}
-
-export interface SyntheticProofProvider {
-  proofHash(kind: 'RECOVERY', subjectHash: string): string;
-  verify(kind: 'RECOVERY', subjectHash: string, proof: string): boolean;
-}
-
 const syntheticEnabled = (): boolean =>
   process.env.NODE_ENV !== 'production' && process.env.AUTH_SYNTHETIC_ENABLED === 'true';
 
@@ -80,27 +71,5 @@ export class ConfigGatedGoogleProvider implements GoogleIdentityProvider {
     }
 
     return configurationRequired();
-  }
-}
-
-@Injectable()
-export class ConfigGatedOtpProvider implements OtpProvider {
-  async send(phoneE164: string): Promise<{ proofHash: string }> {
-    const code = process.env.AUTH_SYNTHETIC_OTP_CODE;
-    if (!syntheticEnabled() || !code) configurationRequired();
-    return { proofHash: digest(`${digest(phoneE164)}:${code}`) };
-  }
-}
-
-@Injectable()
-export class ConfigGatedProofProvider implements SyntheticProofProvider {
-  proofHash(kind: 'RECOVERY', subjectHash: string): string {
-    const proof = process.env.AUTH_SYNTHETIC_RECOVERY_PROOF;
-    if (!syntheticEnabled() || !proof) configurationRequired();
-    return digest(`${kind}:${subjectHash}:${proof}`);
-  }
-
-  verify(kind: 'RECOVERY', subjectHash: string, proof: string): boolean {
-    return safeEqual(this.proofHash(kind, subjectHash), digest(`${kind}:${subjectHash}:${proof}`));
   }
 }

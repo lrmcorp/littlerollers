@@ -8,8 +8,6 @@ import { IdentityService } from './identity.service';
 import { PolicyService } from './policy.service';
 import {
   ConfigGatedGoogleProvider,
-  ConfigGatedOtpProvider,
-  ConfigGatedProofProvider,
 } from './provider-adapters';
 import { RateLimitService } from './rate-limit.service';
 import { QueuedPasswordEmailProvider } from './email-provider';
@@ -55,8 +53,6 @@ import { RolesGuard } from './roles.guard';
     InstructorManagementService,
     PolicyService,
     ConfigGatedGoogleProvider,
-    ConfigGatedOtpProvider,
-    ConfigGatedProofProvider,
     RateLimitService,
     QueuedPasswordEmailProvider,
     LocalPrivateFileStorage,

@@ -4,8 +4,6 @@ import { IdentityService } from './identity.service';
 import { PolicyService } from './policy.service';
 import {
   ConfigGatedGoogleProvider,
-  ConfigGatedOtpProvider,
-  ConfigGatedProofProvider,
 } from './provider-adapters';
 import { RateLimitService } from './rate-limit.service';
 import { ResendPasswordEmailProvider } from './email-provider';
@@ -221,8 +219,6 @@ databaseDescribe('identity MySQL integration', () => {
       db as never,
       policy,
       new ConfigGatedGoogleProvider(),
-      new ConfigGatedOtpProvider(),
-      new ConfigGatedProofProvider(),
       rateLimit,
       passwordEmail,
       idempotency,
@@ -482,67 +478,6 @@ databaseDescribe('identity MySQL integration', () => {
     }
   });
 
-  it('enforces OTP lock/replay/rate limits, recovery and refresh reuse', async () => {
-    const locked = await service.requestOtp('+628111111111', `${namespace}-otp-lock`);
-    for (let attempt = 0; attempt < 5; attempt += 1)
-      await expect(service.verifyOtp(locked.requestId, 'wrong')).rejects.toMatchObject({
-        code: 'AUTHENTICATION_REQUIRED',
-      });
-    await expect(service.verifyOtp(locked.requestId, '123456')).rejects.toMatchObject({
-      code: 'CHALLENGE_EXPIRED',
-    });
-
-    const valid = await service.requestOtp('+628111111111', `${namespace}-otp-valid`);
-    const session = await service.verifyOtp(
-      valid.requestId,
-      '123456',
-      'MOBILE',
-      `${namespace}-otp-verify`,
-    );
-    await expect(service.verifyOtp(valid.requestId, '123456')).rejects.toMatchObject({
-      code: 'CHALLENGE_EXPIRED',
-    });
-    const rotated = await service.refresh(session.refreshToken!, `${namespace}-refresh`);
-    await expect(
-      service.refresh(session.refreshToken!, `${namespace}-reuse`),
-    ).rejects.toMatchObject({ code: 'SESSION_REVOKED' });
-    expect(rotated.refreshToken).toBeTruthy();
-    expect(
-      await db.auditLog.count({
-        where: {
-          correlationId: `${namespace}-reuse`,
-          action: 'security.refresh_reuse_detected',
-        },
-      }),
-    ).toBe(1);
-
-    const recovery = await service.requestRecovery(
-      '+628111111111',
-      'WHATSAPP',
-      `${namespace}-recovery-request`,
-    );
-    await expect(service.verifyRecovery(recovery.requestId, 'wrong')).rejects.toMatchObject({
-      code: 'IDENTITY_CONFLICT',
-    });
-    await service.verifyRecovery(
-      recovery.requestId,
-      'recovery-proof',
-      `${namespace}-recovery-verify`,
-    );
-    expect(
-      await db.auditLog.count({
-        where: {
-          correlationId: `${namespace}-recovery-verify`,
-          action: 'security.recovery_verified',
-        },
-      }),
-    ).toBe(1);
-
-    const limitedPhone = '+628222222222';
-    for (let attempt = 0; attempt < 5; attempt += 1) await service.requestOtp(limitedPhone);
-    await expect(service.requestOtp(limitedPhone)).rejects.toMatchObject({ code: 'RATE_LIMITED' });
-  });
-
   it('deactivation revokes every session with masked audit', async () => {
     await db.user.create({ data: { id: targetId, displayName: 'Integration target' } });
     await db.userRole.create({
@@ -679,41 +614,6 @@ databaseDescribe('identity MySQL integration', () => {
       ),
     ).rejects.toMatchObject({ code: 'FORBIDDEN' });
     expect((await users.listUserAudit(principal, targetId)).items.length).toBeGreaterThan(0);
-  });
-
-  it('keeps concurrent linking unique and audit payloads free of raw credentials and PII', async () => {
-    const token = `${namespace}-link@example.test`;
-    const linked = await Promise.allSettled([
-      service.linkIdentity(
-        principal,
-        { provider: 'GOOGLE', verifiedProviderToken: token, expectedUserId: inviterId },
-        `${namespace}-link-1`,
-      ),
-      service.linkIdentity(
-        principal,
-        { provider: 'GOOGLE', verifiedProviderToken: token, expectedUserId: inviterId },
-        `${namespace}-link-2`,
-      ),
-    ]);
-    expect(linked.some(({ status }) => status === 'fulfilled')).toBe(true);
-    expect(
-      await db.identitas.count({
-        where: { provider: 'GOOGLE', subjectHash: digest(`google:${token}`) },
-      }),
-    ).toBe(1);
-    await expect(
-      service.linkIdentity(
-        principal,
-        { provider: 'GOOGLE', verifiedProviderToken: 'unused', expectedUserId: targetId },
-        `${namespace}-mismatch`,
-      ),
-    ).rejects.toMatchObject({ code: 'IDENTITY_CONFLICT' });
-
-    const auditText = JSON.stringify(
-      await db.auditLog.findMany({ where: { correlationId: { startsWith: namespace } } }),
-    );
-    for (const raw of [token, '+628111111111', '+628222222222', '123456', 'recovery-proof'])
-      expect(auditText).not.toContain(raw);
   });
 
   it('creates one assignment and linked role projection with a masked audit', async () => {

@@ -416,31 +416,6 @@ export class IdentityController {
   }
 
   @Public()
-  @Post('auth/otp/requests')
-  @HttpCode(202)
-  requestOtp(@Req() request: AuthenticatedRequest, @Body() body: { phoneE164: string }) {
-    return this.identities.requestOtp(body.phoneE164, request.correlationId ?? 'unknown');
-  }
-
-  @Public()
-  @Post('auth/otp/verifications')
-  async verifyOtp(
-    @Req() request: AuthenticatedRequest,
-    @Res({ passthrough: true }) response: Response,
-    @Body() body: { requestId: string; code: string },
-  ) {
-    return this.deliverSession(
-      response,
-      await this.identities.verifyOtp(
-        body.requestId,
-        body.code,
-        'MOBILE',
-        request.correlationId ?? 'unknown',
-      ),
-    );
-  }
-
-  @Public()
   @Post('auth/refresh')
   async refresh(
     @Req() request: AuthenticatedRequest,
@@ -456,56 +431,6 @@ export class IdentityController {
     return this.deliverSession(
       response,
       await this.identities.refresh(refreshToken, request.correlationId ?? 'unknown'),
-    );
-  }
-
-  @Public()
-  @Post('auth/recovery-requests')
-  requestRecovery(
-    @Req() request: AuthenticatedRequest,
-    @Body()
-    body: {
-      identifier: string;
-      requestedChannel: 'WHATSAPP' | 'GOOGLE' | 'SUPPORT';
-    },
-  ) {
-    return this.identities.requestRecovery(
-      body.identifier,
-      body.requestedChannel,
-      request.correlationId ?? 'unknown',
-    );
-  }
-
-  @Public()
-  @Post('auth/recoveries/:id/verify')
-  async verifyRecovery(
-    @Req() request: AuthenticatedRequest,
-    @Param('id') id: string,
-    @Res({ passthrough: true }) response: Response,
-    @Body() body: { proof: string },
-  ) {
-    return this.deliverSession(
-      response,
-      await this.identities.verifyRecovery(id, body.proof, request.correlationId ?? 'unknown'),
-    );
-  }
-
-  @SelfService()
-  @Post('auth/account-links')
-  @UseGuards(AuthGuard)
-  linkIdentity(
-    @Req() request: AuthenticatedRequest,
-    @Body()
-    body: {
-      provider: 'GOOGLE' | 'WHATSAPP_PHONE';
-      verifiedProviderToken: string;
-      expectedUserId?: string;
-    },
-  ) {
-    return this.identities.linkIdentity(
-      request.principal,
-      body,
-      request.correlationId ?? 'unknown',
     );
   }
 

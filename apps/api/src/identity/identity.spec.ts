@@ -3,8 +3,6 @@ import { OAuth2Client } from 'google-auth-library';
 import { PolicyService } from './policy.service';
 import {
   ConfigGatedGoogleProvider,
-  ConfigGatedOtpProvider,
-  ConfigGatedProofProvider,
 } from './provider-adapters';
 import { ApiProblem, digest, safeEqual } from './security';
 import { IdentityService } from './identity.service';
@@ -150,9 +148,6 @@ describe('identity security foundation', () => {
       code: 'CONFIGURATION_REQUIRED',
       status: HttpStatus.SERVICE_UNAVAILABLE,
     });
-    await expect(new ConfigGatedOtpProvider().send('+628123456789')).rejects.toBeInstanceOf(
-      ApiProblem,
-    );
   });
 
   it('allows deterministic synthetic adapters only outside production', async () => {
@@ -166,11 +161,6 @@ describe('identity security foundation', () => {
     await expect(
       new ConfigGatedGoogleProvider().verify('opaque-test-token', 'nonce'),
     ).resolves.toMatchObject({ provider: 'GOOGLE' });
-    const otp = await new ConfigGatedOtpProvider().send('+628123456789');
-    expect(otp.proofHash).toBe(digest(`${digest('+628123456789')}:123456`));
-    const proofs = new ConfigGatedProofProvider();
-    expect(proofs.verify('RECOVERY', digest('user-1'), 'recovery-proof')).toBe(true);
-    expect(proofs.verify('RECOVERY', digest('user-1'), 'wrong')).toBe(false);
   });
 
   it('rotates refresh tokens within one family and revokes reused families', async () => {
@@ -207,8 +197,6 @@ describe('identity security foundation', () => {
       db as never,
       new PolicyService(),
       new ConfigGatedGoogleProvider(),
-      new ConfigGatedOtpProvider(),
-      new ConfigGatedProofProvider(),
       { consume: jest.fn() } as never,
       { sendAction: jest.fn() } as never,
     );
@@ -248,8 +236,6 @@ describe('identity security foundation', () => {
       } as never,
       new PolicyService(),
       new ConfigGatedGoogleProvider(),
-      new ConfigGatedOtpProvider(),
-      new ConfigGatedProofProvider(),
       { consume: jest.fn() } as never,
       { sendAction: jest.fn() } as never,
     );
@@ -302,8 +288,6 @@ describe('identity security foundation', () => {
       } as never,
       new PolicyService(),
       new ConfigGatedGoogleProvider(),
-      new ConfigGatedOtpProvider(),
-      new ConfigGatedProofProvider(),
       { consume: jest.fn() } as never,
       { sendAction: jest.fn() } as never,
     );
@@ -788,3 +772,15 @@ describe('identity security foundation', () => {
     );
   });
 });
+
+describe('mobile-only auth paths stay removed', () => {
+  it('has no OTP, account-recovery or account-link handlers (the recovery verify once issued a session for any user id without proof)', async () => {
+    const { IdentityController } = await import('./identity.controller');
+    const { IdentityService: Service } = await import('./identity.service');
+    for (const name of ['requestOtp', 'verifyOtp', 'requestRecovery', 'verifyRecovery', 'linkIdentity', 'authenticateProof']) {
+      expect((Service.prototype as unknown as Record<string, unknown>)[name]).toBeUndefined();
+      expect((IdentityController.prototype as unknown as Record<string, unknown>)[name]).toBeUndefined();
+    }
+  });
+});
+
