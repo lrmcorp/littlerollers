@@ -1,4 +1,4 @@
-import { render as rtlRender, screen, within } from '@testing-library/react';
+import { render as rtlRender, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
 import { describe, expect, it, vi } from 'vitest';
@@ -9,6 +9,20 @@ import { AppFeedbackProvider } from '@/components/app-feedback';
 import QRCode from 'qrcode';
 
 vi.mock('qrcode', () => ({ default: { toCanvas: vi.fn().mockResolvedValue(undefined) } }));
+
+const mockDeletability = vi.fn();
+const mockRemove = vi.fn();
+vi.mock('@/api-clients/lifecycle-client', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/api-clients/lifecycle-client')>();
+  return {
+    ...actual,
+    lifecycleClient: {
+      deletability: (...args: unknown[]) => mockDeletability(...args),
+      remove: (...args: unknown[]) => mockRemove(...args),
+      archive: vi.fn(),
+    },
+  };
+});
 
 // Keep operational fixtures relative to execution time so the seven-day agenda remains relevant.
 const now = new Date();
@@ -762,5 +776,101 @@ describe('ClassSlotView detail drawer layout', () => {
     const dialog = screen.getByRole('dialog', { name: 'Reformer' });
     expect(await within(dialog).findByText('Belum ada peserta')).toBeVisible();
     expect(within(dialog).queryByText(/Halaman 1/)).toBeNull();
+  });
+});
+
+describe('ClassSlotView duplicate and delete', () => {
+  const openDetail = async (detailSlot: Record<string, unknown>, capabilities: readonly string[] = manageCapabilities) => {
+    const target = { ...slot, studioId: 'studio-1', ...detailSlot };
+    const client = fake({ discover: vi.fn().mockResolvedValue({ ...workspace, slots: [target] }) });
+    render(<ClassSlotView client={client} branchOverride={branch} capabilitiesOverride={capabilities} />);
+    const user = userEvent.setup();
+    await screen.findAllByText('Reformer');
+    await user.click(
+      within(screen.getByRole('region', { name: 'Kalender kelas tujuh hari' })).getByRole('button', {
+        name: /Reformer/,
+      }),
+    );
+    return { user, client, target, dialog: screen.getByRole('dialog', { name: 'Reformer' }) };
+  };
+
+  it('duplicates a class into a prefilled draft one week later and creates it only after confirmation', async () => {
+    const { user, client, target, dialog } = await openDetail({ status: 'PUBLISHED', instructorUserId: 'instructor-1' });
+    await user.click(within(dialog).getByRole('button', { name: 'Duplikat sebagai draft' }));
+
+    const form = screen.getByRole('dialog', { name: 'Duplikat kelas' });
+    const nextWeek = new Date(target.startAt.getTime() + 7 * 86_400_000);
+    const clock = (value: Date) =>
+      new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(value);
+    const dateKey = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(nextWeek);
+    expect(within(form).getByLabelText('Tanggal')).toHaveValue(dateKey);
+    expect(within(form).getByLabelText('Mulai')).toHaveValue(clock(target.startAt));
+    expect(within(form).getByLabelText('Selesai eksklusif')).toHaveValue(clock(target.endAt));
+    expect(within(form).getByRole('combobox', { name: /Tipe kelas/ })).toHaveValue('Reformer');
+    expect(within(form).getByRole('combobox', { name: /Area Studio/ })).toHaveValue('Area Studio Utama');
+    expect(within(form).getByRole('combobox', { name: /Instruktur/ })).toHaveValue('Ayu Instructor');
+    expect(client.create).not.toHaveBeenCalled();
+
+    await user.click(within(form).getByRole('button', { name: 'Buat draft' }));
+    await user.click(
+      within(screen.getByRole('dialog', { name: 'Buat draft kelas?' })).getByRole('button', { name: 'Buat draft' }),
+    );
+    await waitFor(() => expect(client.create).toHaveBeenCalledTimes(1));
+    expect(client.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        branchId: 'branch-1',
+        classTypeId: 'type-1',
+        studioId: 'studio-1',
+        instructorUserId: 'instructor-1',
+        // Form berpresisi menit: detik dari jam fixture tidak ikut tersalin.
+        startAt: new Date(Math.floor((target.startAt.getTime() + 7 * 86_400_000) / 60_000) * 60_000),
+        endAt: new Date(Math.floor((target.endAt.getTime() + 7 * 86_400_000) / 60_000) * 60_000),
+      }),
+    );
+  });
+
+  it('offers duplicate but no delete on a published class, and neither to read-only staff', async () => {
+    const { dialog } = await openDetail({ status: 'PUBLISHED' });
+    expect(within(dialog).getByRole('button', { name: 'Duplikat sebagai draft' })).toBeVisible();
+    expect(within(dialog).queryByRole('button', { name: 'Hapus jadwal kelas' })).toBeNull();
+  });
+
+  it('hides duplicate and delete for read-only staff', async () => {
+    const { dialog } = await openDetail({ status: 'DRAFT' }, readCapabilities);
+    expect(within(dialog).queryByRole('button', { name: 'Duplikat sebagai draft' })).toBeNull();
+    expect(within(dialog).queryByRole('button', { name: 'Hapus jadwal kelas' })).toBeNull();
+  });
+
+  it('deletes a clean draft only with a reason, then removes it from the agenda', async () => {
+    mockDeletability.mockResolvedValue({ kind: 'class-slot', id: 'slot-1', deletable: true, blockers: [] });
+    mockRemove.mockResolvedValue({ id: 'slot-1', deleted: true });
+    const { user, dialog } = await openDetail({ status: 'DRAFT', bookedCount: 0 });
+    await user.click(within(dialog).getByRole('button', { name: 'Hapus jadwal kelas' }));
+
+    const confirm = await screen.findByRole('dialog', { name: /Hapus jadwal kelas/ });
+    expect(within(confirm).getByRole('button', { name: 'Hapus permanen' })).toBeDisabled();
+    await user.type(within(confirm).getByLabelText('Alasan'), 'Dibuat di tanggal yang salah');
+    await user.click(within(confirm).getByRole('button', { name: 'Hapus permanen' }));
+
+    await waitFor(() =>
+      expect(mockRemove).toHaveBeenCalledWith('class-slot', 'slot-1', 'Dibuat di tanggal yang salah'),
+    );
+    expect(await screen.findByText(/Jadwal kelas .* berhasil dihapus\./)).toBeVisible();
+    expect(screen.queryByRole('dialog', { name: 'Reformer' })).toBeNull();
+  });
+
+  it('explains what still references a cancelled class instead of deleting it', async () => {
+    mockRemove.mockClear();
+    mockDeletability.mockResolvedValue({
+      kind: 'class-slot',
+      id: 'slot-1',
+      deletable: false,
+      blockers: [{ kind: 'pemesanan_kelas', label: 'booking', count: 3 }],
+    });
+    const { user, dialog } = await openDetail({ status: 'CANCELLED' });
+    await user.click(within(dialog).getByRole('button', { name: 'Hapus jadwal kelas' }));
+    expect(await screen.findByText('Jadwal kelas belum dapat dihapus')).toBeVisible();
+    expect(screen.getByText('Booking')).toBeVisible();
+    expect(mockRemove).not.toHaveBeenCalled();
   });
 });

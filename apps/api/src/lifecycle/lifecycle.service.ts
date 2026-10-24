@@ -19,6 +19,7 @@ export type LifecycleKind =
   | 'public-content'
   | 'notification-template'
   | 'support-case'
+  | 'class-slot'
   | 'user';
 
 export interface Blocker {
@@ -251,6 +252,28 @@ const SPECS: Record<LifecycleKind, Spec> = {
     // Subjek dan isi catatan tidak disalin ke audit.
     snapshot: (row) => ({ customerId: row.customerId, status: row.status, priority: row.priority }),
   },
+  'class-slot': {
+    objectType: 'ClassSlot',
+    table: 'slot_kelas',
+    delegate: 'slotKelas',
+    label: 'Jadwal kelas',
+    capability: 'class-slot:manage',
+    branchOf: async (_db, row) => row.branchId,
+    // Booking, kehadiran, dan reschedule yang merujuk kelas ditangkap pemindaian FK; di sini hanya
+    // status: kelas yang sudah terbit/berjalan/selesai adalah riwayat dan harus dibatalkan, bukan dihapus.
+    extra: async (_db, row) =>
+      ['DRAFT', 'CANCELLED'].includes(row.status)
+        ? []
+        : [{ kind: 'status', label: 'kelas yang sudah terbit, berjalan, atau selesai', count: 1 }],
+    snapshot: (row) => ({
+      branchId: row.branchId,
+      classTypeId: row.classTypeId,
+      instructorId: row.instructorId ?? null,
+      startAt: row.startAt,
+      endAt: row.endAt,
+      status: row.status,
+    }),
+  },
   user: {
     objectType: 'User',
     table: 'user',
@@ -285,6 +308,7 @@ export const GENERIC_REMOVABLE: readonly LifecycleKind[] = [
   'public-content',
   'notification-template',
   'support-case',
+  'class-slot',
   'user',
 ];
 
@@ -308,6 +332,7 @@ const NONACTIVATE_HINT: Partial<Record<LifecycleKind, string>> = {
   room: 'Gunakan Nonaktifkan.',
   'payment-account': 'Gunakan Nonaktifkan.',
   'support-case': 'Tutup kasus ini bila sudah selesai.',
+  'class-slot': 'Batalkan kelas bila sudah terbit.',
   user: 'Gunakan Nonaktifkan.',
 };
 

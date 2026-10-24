@@ -15,6 +15,7 @@ export type LifecycleKind =
   | 'public-content'
   | 'notification-template'
   | 'support-case'
+  | 'class-slot'
   | 'user';
 
 export interface LifecycleBlocker {
@@ -45,6 +46,7 @@ const DELETE_PATH: Record<LifecycleKind, string> = {
   'public-content': 'public-content-management',
   'notification-template': 'notification-management/templates',
   'support-case': 'support-cases',
+  'class-slot': 'class-slots',
   user: 'users',
 };
 

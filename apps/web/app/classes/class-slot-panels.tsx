@@ -35,6 +35,18 @@ import { ClassRosterSection } from './class-roster-section';
 
 type BranchOption = { id: string; code?: string; name: string; timezone: string };
 
+/** Nilai awal form buat kelas, dipakai untuk menduplikasi kelas yang sudah ada. */
+export type CreateTemplate = {
+  classTypeId: string;
+  studioId: string;
+  roomId?: string | null;
+  instructorUserId?: string | null;
+  date: string;
+  startTime: string;
+  endTime: string;
+  instructorFeeRp?: number | null;
+};
+
 export function CreatePanel({
   branchId,
   branches,
@@ -47,7 +59,9 @@ export function CreatePanel({
   onDirty,
   onBranchChange,
   onCreate,
+  template,
 }: {
+  template?: CreateTemplate;
   branchId: string;
   branches?: BranchOption[];
   timezone: string;
@@ -75,7 +89,7 @@ export function CreatePanel({
   const [summary, setSummary] = useState(
     'Pilih tanggal dan waktu. Kuota dan kapasitas kelas akan disesuaikan otomatis berdasarkan tipe kelas yang dipilih.',
   );
-  const [studioId, setStudioId] = useState('');
+  const [studioId, setStudioId] = useState(template?.studioId ?? '');
 
   const activeBranchTimezone =
     branches?.find((b) => b.id === selectedBranchId)?.timezone ?? timezone;
@@ -154,6 +168,7 @@ export function CreatePanel({
         label="Tipe kelas"
         name="classTypeId"
         required
+        defaultValue={template?.classTypeId}
         placeholder="Pilih tipe kelas"
         options={branchClassTypes.map((item) => ({
           id: item.id,
@@ -185,6 +200,7 @@ export function CreatePanel({
         key={studioId || 'no-studio'}
         label="Ruangan"
         name="roomId"
+        defaultValue={studioId === template?.studioId ? (template?.roomId ?? '') : ''}
         disabled={!studioId || rooms.length === 0}
         placeholder={rooms.length ? 'Opsional' : 'Tidak ada ruangan aktif'}
         options={rooms.map((item) => ({
@@ -196,17 +212,25 @@ export function CreatePanel({
       <SearchSelect
         label="Instruktur"
         name="instructorUserId"
+        defaultValue={template?.instructorUserId ?? ''}
         placeholder="Tetapkan nanti"
         options={branchInstructors.map((item) => ({ id: item.id, label: item.displayName }))}
       />
       <div className="grid gap-3 sm:grid-cols-3">
-        <DateInput label="Tanggal" name="date" required />
-        <TextInput label="Mulai" name="startTime" type="time" required />
-        <TextInput label="Selesai eksklusif" name="endTime" type="time" required />
+        <DateInput label="Tanggal" name="date" defaultValue={template?.date} required />
+        <TextInput label="Mulai" name="startTime" type="time" defaultValue={template?.startTime} required />
+        <TextInput
+          label="Selesai eksklusif"
+          name="endTime"
+          type="time"
+          defaultValue={template?.endTime}
+          required
+        />
       </div>
       <TextInput
         label="Modal / Honor Instruktur per Sesi (Rp) - Opsional"
         name="instructorFeeRp"
+        defaultValue={template?.instructorFeeRp ?? undefined}
         type="number"
         min={0}
         step={1000}
@@ -244,7 +268,11 @@ export function DetailPanel({
   onPublish,
   onCancel,
   onComplete,
+  onDuplicate,
+  onDelete,
 }: {
+  onDuplicate?(): void;
+  onDelete?(): void;
   slot: ClassSlot;
   instructorName: string;
   classTypes: ClassTypeOption[];
@@ -278,7 +306,7 @@ export function DetailPanel({
   const [instructorId, setInstructorId] = useState(slot.instructorUserId ?? '');
   const [reason, setReason] = useState<CancellationReason | ''>('');
   const [cancelNote, setCancelNote] = useState('');
-  const [completionReason, setCompletionReason] = useState('Kelas selesai sesuai daftar peserta');
+  const [completionReason, setCompletionReason] = useState('');
   const [attendanceNote, setAttendanceNote] = useState('');
   const [instructorQr, setInstructorQr] = useState<InstructorCheckInIssue | null>(null);
   const [instructorQrBusy, setInstructorQrBusy] = useState(false);
@@ -618,6 +646,7 @@ export function DetailPanel({
           <TextInput
             label="Alasan penyelesaian"
             value={completionReason}
+            placeholder="Tulis alasan penyelesaian (minimal 3 karakter)"
             onChange={(event) => setCompletionReason(event.target.value)}
           />
           <div>
@@ -682,6 +711,39 @@ export function DetailPanel({
               }}
             >
               Batalkan kelas ini
+            </Button>
+          </div>
+        </DetailSection>
+      )}
+
+      {canManage && onDuplicate && (
+        <DetailSection
+          id="class-duplicate-title"
+          title="Duplikat kelas"
+          description="Buat draft kelas baru dengan tipe, studio, ruangan, dan instruktur yang sama, dijadwalkan satu minggu kemudian. Anda dapat mengubahnya sebelum disimpan."
+        >
+          <div>
+            <Button variant="secondary" className="w-full sm:w-auto" disabled={busy} onClick={onDuplicate}>
+              Duplikat sebagai draft
+            </Button>
+          </div>
+        </DetailSection>
+      )}
+
+      {canManage && onDelete && (isDraft || slot.status === 'CANCELLED') && (
+        <DetailSection
+          id="class-delete-title"
+          tone="danger"
+          title="Hapus jadwal kelas"
+          description={
+            isDraft
+              ? 'Draft yang salah dibuat dapat dihapus permanen. Penghapusan dicatat dalam audit dan tidak dapat diurungkan.'
+              : 'Kelas batal yang tidak punya booking atau catatan terkait dapat dihapus permanen. Bila masih ada data terkait, kelas dipertahankan sebagai riwayat.'
+          }
+        >
+          <div>
+            <Button variant="danger" className="w-full sm:w-auto" disabled={busy} onClick={onDelete}>
+              Hapus jadwal kelas
             </Button>
           </div>
         </DetailSection>

@@ -17,6 +17,7 @@ const superOwner = {
     'public-content:manage',
     'notification:manage',
     'support:manage',
+    'class-slot:manage',
     'user:admin',
   ],
   branchIds: [] as string[],
@@ -40,6 +41,7 @@ const fkRows = [
   { t: 'slot_kelas', c: 'roomId', rt: 'ruangan', d: 'SET NULL' },
   { t: 'paket', c: 'classTypeId', rt: 'jenis_kelas', d: 'RESTRICT' },
   { t: 'pembelian', c: 'packageId', rt: 'paket', d: 'RESTRICT' },
+  { t: 'pemesanan_kelas', c: 'classSlotId', rt: 'slot_kelas', d: 'RESTRICT' },
 ];
 
 function build(opts: { counts?: Record<string, number>; row?: Record<string, unknown>; kind?: string } = {}) {
@@ -68,7 +70,7 @@ function build(opts: { counts?: Record<string, number>; row?: Record<string, unk
       delete: delegate.delete,
     },
     pembelian: { count: jest.fn().mockResolvedValue(counts.promoPurchases ?? 0) },
-    slotKelas: { count: jest.fn().mockResolvedValue(counts.upcomingSlots ?? 0) },
+    slotKelas: { ...delegate, count: jest.fn().mockResolvedValue(counts.upcomingSlots ?? 0) },
     rekeningPembayaran: delegate,
     publicContent: delegate,
     supportCase: delegate,
@@ -411,5 +413,61 @@ describe('support cases: delete only an untouched case', () => {
     const { service } = build({ row: { ...openCase, branchId: null } });
     const scoped = { ...superOwner, roles: [{ role: 'ADMIN' as const, branchId: branchA }], capabilities: ['support:manage'], branchIds: [branchA] };
     await expect(service.inspect(scoped as never, 'support-case', id(5))).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+});
+
+describe('class slots: delete only a draft or cancelled class nobody booked', () => {
+  const slot = (status: string) => ({
+    id: id(8),
+    branchId: branchA,
+    classTypeId: id(9),
+    instructorId: null,
+    startAt: new Date('2026-11-02T01:00:00Z'),
+    endAt: new Date('2026-11-02T02:00:00Z'),
+    status,
+  });
+
+  it.each(['DRAFT', 'CANCELLED'])('a %s class without bookings is clean', async (status) => {
+    const { service } = build({ row: slot(status) });
+    await expect(service.inspect(superOwner as never, 'class-slot', id(8))).resolves.toMatchObject({
+      deletable: true,
+    });
+  });
+
+  it.each(['PUBLISHED', 'CONFIRMED', 'COMPLETED'])('a %s class is history and must be cancelled instead', async (status) => {
+    const { service, delegate } = build({ row: slot(status) });
+    const result = await service.inspect(superOwner as never, 'class-slot', id(8));
+    expect(result.blockers.map((b) => b.kind)).toEqual(['status']);
+    await expect(service.remove(superOwner as never, 'class-slot', id(8), 'Salah buat', 'c')).rejects.toMatchObject({
+      code: 'CANNOT_DELETE_WITH_DEPENDENCIES',
+    });
+    expect(delegate.delete).not.toHaveBeenCalled();
+  });
+
+  it('a cancelled class that still has bookings stays as history', async () => {
+    const { service } = build({ row: slot('CANCELLED'), counts: { pemesanan_kelas: 3 } });
+    const result = await service.inspect(superOwner as never, 'class-slot', id(8));
+    expect(result.blockers).toEqual([{ kind: 'pemesanan_kelas', label: 'booking', count: 3 }]);
+  });
+
+  it('deletes a clean draft with a reason and a permanent audit entry', async () => {
+    const { service, audit, delegate } = build({ row: slot('DRAFT') });
+    await service.remove(superOwner as never, 'class-slot', id(8), 'Dibuat di tanggal yang salah', 'c');
+    expect(delegate.delete).toHaveBeenCalledWith({ where: { id: id(8) } });
+    expect(audit.catat.mock.calls[0]![1]).toMatchObject({
+      action: 'lifecycle.class_slot_deleted',
+      objectType: 'ClassSlot',
+      branchId: branchA,
+      reason: 'Dibuat di tanggal yang salah',
+    });
+  });
+
+  it('needs a reason and the class-slot:manage capability for the class branch', async () => {
+    const { service } = build({ row: slot('DRAFT') });
+    await expect(service.remove(superOwner as never, 'class-slot', id(8), '  ', 'c')).rejects.toMatchObject({
+      code: 'VALIDATION_ERROR',
+    });
+    const other = { ...superOwner, roles: [{ role: 'ADMIN' as const, branchId: id(77) }], capabilities: ['class-slot:manage'], branchIds: [id(77)] };
+    await expect(service.inspect(other as never, 'class-slot', id(8))).rejects.toMatchObject({ code: 'NOT_FOUND' });
   });
 });

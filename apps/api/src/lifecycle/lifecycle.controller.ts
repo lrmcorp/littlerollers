@@ -93,6 +93,11 @@ export class LifecycleController {
     return this.lifecycle.remove(req.principal, 'notification-template', id, body?.reason, req.correlationId ?? 'unknown');
   }
 
+  @Delete('class-slots/:id')
+  removeClassSlot(@Req() req: AuthenticatedRequest, @Param('id') id: string, @Body() body: { reason?: string }) {
+    return this.lifecycle.remove(req.principal, 'class-slot', id, body?.reason, req.correlationId ?? 'unknown');
+  }
+
   @Delete('users/:id')
   removeUser(@Req() req: AuthenticatedRequest, @Param('id') id: string, @Body() body: { reason?: string }) {
     return this.lifecycle.remove(req.principal, 'user', id, body?.reason, req.correlationId ?? 'unknown');

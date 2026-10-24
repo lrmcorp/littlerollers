@@ -22,14 +22,15 @@ import {
 import { EmptyState, Feedback, Skeleton, StatusBadge } from '../ui';
 import { AdminPageHeader } from '../components/admin/admin-page-header';
 import { useSessionContext } from '../session-context';
-import { CreatePanel, DetailPanel } from './class-slot-panels';
+import { CreatePanel, DetailPanel, type CreateTemplate } from './class-slot-panels';
+import { LifecycleDialog } from '../components/admin/lifecycle-dialog';
 import { classStatusTone, statusLabels, timezoneLabel } from './class-slot-presenters';
 import { SearchSelect, SelectInput } from '../components/forms';
 import { Button } from '../components/actions';
 import { Drawer, useAppFeedback } from '../components/app-feedback';
 import { browserBookingClient, type BookingClient } from '@/api-clients/booking-client';
 
-type Panel = { kind: 'create' } | { kind: 'detail'; slot: ClassSlot } | null;
+type Panel = { kind: 'create'; template?: CreateTemplate } | { kind: 'detail'; slot: ClassSlot } | null;
 type BranchOption = { id: string; code?: string; name: string; timezone: string };
 /** Nama yang dikirim API bersama slot (tidak ada di tipe ter-generate). */
 type SlotNames = {
@@ -94,6 +95,7 @@ export function ClassSlotView({
   const [failure, setFailure] = useState<string>();
   const [busy, setBusy] = useState(false);
   const [panelDirty, setPanelDirty] = useState(false);
+  const [slotToDelete, setSlotToDelete] = useState<ClassSlot | null>(null);
   const [selectedMobileDay, setSelectedMobileDay] = useState<string>('ALL');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const displayTimezone = branch?.timezone ?? branches[0]?.timezone ?? 'Asia/Jakarta';
@@ -158,6 +160,27 @@ export function ClassSlotView({
   const closePanel = () => {
     setPanelDirty(false);
     setPanel(null);
+  };
+  /** Nilai awal draft baru dari kelas yang ada: sama persis, satu minggu kemudian. */
+  const duplicateTemplate = (slot: ClassSlot): CreateTemplate => {
+    const next = new Date(slot.startAt.getTime() + 7 * 86_400_000);
+    const clock = (value: Date) =>
+      new Intl.DateTimeFormat('en-GB', {
+        timeZone: slot.timezone,
+        hour: '2-digit',
+        minute: '2-digit',
+        hourCycle: 'h23',
+      }).format(value);
+    return {
+      classTypeId: slot.classTypeId,
+      studioId: slot.studioId,
+      roomId: slot.roomId,
+      instructorUserId: slot.instructorUserId,
+      date: localDateKey(next, slot.timezone),
+      startTime: clock(slot.startAt),
+      endTime: clock(slot.endAt),
+      instructorFeeRp: slot.isManualFee ? slot.instructorFeeRp : undefined,
+    };
   };
   const run = async (action: () => Promise<ClassSlot>, success: string) => {
     setBusy(true);
@@ -634,7 +657,9 @@ export function ClassSlotView({
         open={Boolean(panel)}
         title={
           panel?.kind === 'create'
-            ? 'Buat draft kelas'
+            ? panel.template
+              ? 'Duplikat kelas'
+              : 'Buat draft kelas'
             : panel?.kind === 'detail'
               ? classTypeName(panel.slot.classTypeId, panel.slot)
               : 'Kelas'
@@ -706,6 +731,7 @@ export function ClassSlotView({
             instructors={instructors}
             studios={studios}
             busy={busy}
+            template={panel.template}
             onDirty={() => setPanelDirty(true)}
             onBranchChange={async (selectedBranchId) => {
               if (client.getBranchStudios) {
@@ -746,6 +772,8 @@ export function ClassSlotView({
             canVerifyInstructor={canOperateAttendance && Boolean(client.verifyInstructorAttendance)}
             bookingClient={bookingClient}
             busy={busy}
+            onDuplicate={() => openPanel({ kind: 'create', template: duplicateTemplate(panel.slot) })}
+            onDelete={() => setSlotToDelete(panel.slot)}
             onVerifyInstructor={async (notes) => {
               const accepted = await feedback.confirm({
                 tone: 'warning',
@@ -863,6 +891,28 @@ export function ClassSlotView({
           />
         ) : null}
       </Drawer>
+
+      <LifecycleDialog
+        request={
+          slotToDelete
+            ? {
+                kind: 'class-slot',
+                id: slotToDelete.id,
+                name: `${classTypeName(slotToDelete.classTypeId, slotToDelete)} · ${formatBranchLongDate(slotToDelete.startAt, slotToDelete.timezone)} ${formatBranchTime(slotToDelete.startAt, slotToDelete.timezone)}`,
+                action: 'delete',
+              }
+            : null
+        }
+        onClose={() => setSlotToDelete(null)}
+        onDone={async (done) => {
+          const removed = slotToDelete;
+          setSlotToDelete(null);
+          if (removed) setSlots((current) => current.filter((slot) => slot.id !== removed.id));
+          closePanel();
+          setFailure(undefined);
+          setMessage(done);
+        }}
+      />
     </section>
   );
 }
