@@ -19,8 +19,6 @@ const SUPER_OWNER_CAPABILITIES: readonly string[] = [
     'notification:manage',
     'public-content:read',
     'public-content:manage',
-    'support:read',
-    'support:manage',
     'customer:read',
     'customer:manage',
     // Ubah profil, nonaktifkan, dan tandai berhenti pelanggan (Manager memegangnya juga).
@@ -124,8 +122,6 @@ export const ROLE_CAPABILITIES: Record<ApplicationRole, readonly string[]> = {
   ],
   ADMIN: [
     'automation:read',
-    'support:read',
-    'support:manage',
     'branch:operate',
     'user:read',
     // Baca-saja: dibutuhkan form jadwal untuk memilih instruktur cabang (dibatasi cakupan cabang).
@@ -155,8 +151,6 @@ export const ROLE_CAPABILITIES: Record<ApplicationRole, readonly string[]> = {
   ],
   MANAGER: [
     'automation:read',
-    'support:read',
-    'support:manage',
     'branch:manage',
     // Manager membaca staf cabang (matriks hak akses) dan memilih instruktur saat menjadwalkan kelas.
     'user:read',

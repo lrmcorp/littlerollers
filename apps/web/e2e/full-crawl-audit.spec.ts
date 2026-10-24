@@ -28,7 +28,6 @@ const routesToAudit: Array<{ route: string; name: string; category: string }> = 
   { route: '/workspace/classes', name: 'Timetable Kelas', category: 'Operasional Studio' },
   { route: '/workspace/bookings', name: 'Booking & Reschedule', category: 'Operasional Studio' },
   { route: '/check-in-scanner', name: 'Scan Check-in QR', category: 'Operasional Studio' },
-  { route: '/support-cases', name: 'Customer Support', category: 'Operasional Studio' },
 
   // Member & Pelanggan
   { route: '/customers', name: 'Customer Management', category: 'Member & Pelanggan' },

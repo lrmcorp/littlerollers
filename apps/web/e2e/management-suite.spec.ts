@@ -16,8 +16,6 @@ const session = {
     'notification:manage',
     'public-content:read',
     'public-content:manage',
-    'support:read',
-    'support:manage',
   ],
   globalCapabilities: [
     'branch:all',

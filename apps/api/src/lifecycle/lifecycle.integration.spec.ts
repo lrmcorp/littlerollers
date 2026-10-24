@@ -44,7 +44,6 @@ describe('lifecycle deletability on a real MySQL', () => {
   });
 
   afterAll(async () => {
-    await db.supportCase.deleteMany({ where: { id: caseId } });
     await db.voucher.deleteMany({ where: { id: voucherId } });
     await db.ownerCabang.deleteMany({ where: { ownerId: ownerLinkedId } });
     await db.userSession.deleteMany({ where: { userId: memberId } });
@@ -62,13 +61,12 @@ describe('lifecycle deletability on a real MySQL', () => {
     expect(await blockerKinds('room', roomId)).toEqual([]);
   });
 
-  it('counts SET NULL children too, because they carry history (a support case keeps its branch)', async () => {
+  it('does not count a support case left from the removed feature, and deletes it with its customer', async () => {
     await db.supportCase.create({
       data: { id: caseId, subject: `Kasus ${ns}`, customerId: memberId, branchId, tags: [] },
     });
-    expect(await blockerKinds('branch', branchId)).toEqual(['studio:1', 'support_case:1']);
-    // Yang menjadi penghalang akun adalah kasus (RESTRICT pada customerId).
-    expect(await blockerKinds('user', memberId)).toEqual(['support_case:1']);
+    expect(await blockerKinds('branch', branchId)).toEqual(['studio:1']);
+    expect(await blockerKinds('user', memberId)).toEqual([]);
     await db.supportCase.delete({ where: { id: caseId } });
   });
 

@@ -5,22 +5,17 @@ import { IdentityModule } from '../identity/identity.module';
 import { OperationsController } from './operations.controller';
 import { OperationsService } from './operations.service';
 
-import { SupportCasesController } from './support-cases.controller';
-import { SupportCasesService } from './support-cases.service';
 
 @Module({
   imports: [DatabaseModule, FoundationModule, IdentityModule],
   controllers: [
     OperationsController,
-    SupportCasesController,
   ],
   providers: [
     OperationsService,
-    SupportCasesService,
   ],
   exports: [
     OperationsService,
-    SupportCasesService,
   ],
 })
 export class OperationsModule {}

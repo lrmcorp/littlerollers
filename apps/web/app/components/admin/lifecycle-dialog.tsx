@@ -34,7 +34,6 @@ const NOUN: Record<LifecycleKind, string> = {
   'min-quota': 'pengaturan kuota',
   'public-content': 'konten',
   'notification-template': 'template notifikasi',
-  'support-case': 'kasus bantuan',
   'class-slot': 'jadwal kelas',
   user: 'akun',
 };
@@ -117,11 +116,9 @@ export function LifecycleDialog({
         open
         title={`${capitalize(noun)} belum dapat dihapus`}
         description={`"${request.name}" masih memiliki data terkait, sehingga ${
-          request.kind === 'support-case'
-            ? 'hanya bisa ditutup'
-            : request.kind === 'class-slot'
-              ? 'dipertahankan sebagai riwayat; batalkan kelas bila sudah terbit'
-              : `hanya bisa ${pauseVerb(request.kind) === 'Jeda' ? 'dijeda' : 'dinonaktifkan'}${ARCHIVABLE.has(request.kind) ? ' atau diarsipkan' : ''}`
+          request.kind === 'class-slot'
+            ? 'dipertahankan sebagai riwayat; batalkan kelas bila sudah terbit'
+            : `hanya bisa ${pauseVerb(request.kind) === 'Jeda' ? 'dijeda' : 'dinonaktifkan'}${ARCHIVABLE.has(request.kind) ? ' atau diarsipkan' : ''}`
         }.`}
         onClose={onClose}
         footer={

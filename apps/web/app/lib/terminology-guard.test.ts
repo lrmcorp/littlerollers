@@ -21,7 +21,6 @@ const staffDirs = [
   'operations',
   'package-promotions',
   'public-content-management',
-  'support-cases',
   'users',
   'vouchers',
   'workspace',

@@ -20,7 +20,6 @@ export type LifecycleKind =
   | 'min-quota'
   | 'public-content'
   | 'notification-template'
-  | 'support-case'
   | 'class-slot'
   | 'user';
 
@@ -77,8 +76,6 @@ const TABLE_LABELS: Record<string, string> = {
   monthly_close: 'tutup buku',
   correction_journal: 'koreksi keuangan',
   instructor_availability: 'ketersediaan instruktur',
-  support_case: 'kasus bantuan',
-  support_case_note: 'catatan kasus bantuan',
   session_ledger: 'catatan saldo sesi',
   session_adjust_request: 'penyesuaian sesi',
   kehadiran_pelanggan: 'catatan kehadiran',
@@ -96,9 +93,10 @@ const SAFE_IDENT = /^[A-Za-z0-9_]+$/u;
 
 /**
  * Tabel warisan yang tidak lagi dikelola dari UI sehingga barisnya tidak boleh menghalangi hapus.
- * `projection_rate`: fitur proyeksi biaya dihapus; barisnya dibersihkan lewat `cleanup` entitas induk.
+ * `projection_rate` (proyeksi biaya) dan `support_case`/`support_case_note` (kasus bantuan): fitur dihapus; barisnya
+ * dibersihkan lewat `cleanup` entitas induk atau dilepas oleh FK SET NULL.
  */
-const LEGACY_TABLES: ReadonlySet<string> = new Set(['projection_rate']);
+const LEGACY_TABLES: ReadonlySet<string> = new Set(['projection_rate', 'support_case', 'support_case_note']);
 
 interface Edge {
   table: string;
@@ -244,27 +242,6 @@ const SPECS: Record<LifecycleKind, Spec> = {
     extra: draftOnly('template'),
     snapshot: (row) => ({ templateKey: row.templateKey, channel: row.channel, version: row.version, status: row.status }),
   },
-  'support-case': {
-    objectType: 'SupportCase',
-    table: 'support_case',
-    delegate: 'supportCase',
-    label: 'Kasus bantuan',
-    capability: 'support:manage',
-    // Kasus tanpa cabang hanya boleh dikelola staf lintas cabang (sama seperti SupportCasesService).
-    globalOnly: true,
-    branchOf: async (_db, row) => row.branchId ?? null,
-    // Catatan ikut terhapus (CASCADE) sehingga tidak terlihat oleh pemindaian FK; padahal itu riwayat penanganan.
-    extra: async (db, row) => {
-      const blockers: Blocker[] = [];
-      if (row.status !== 'OPEN')
-        blockers.push({ kind: 'status', label: 'kasus yang sudah ditangani atau ditutup', count: 1 });
-      const notes = await (db as any).supportCaseNote.count({ where: { caseId: row.id } });
-      if (notes > 0) blockers.push({ kind: 'support_case_note', label: 'catatan penanganan', count: notes });
-      return blockers;
-    },
-    // Subjek dan isi catatan tidak disalin ke audit.
-    snapshot: (row) => ({ customerId: row.customerId, status: row.status, priority: row.priority }),
-  },
   'class-slot': {
     objectType: 'ClassSlot',
     table: 'slot_kelas',
@@ -294,6 +271,9 @@ const SPECS: Record<LifecycleKind, Spec> = {
     label: 'Akun pengguna',
     capability: 'user:admin',
     globalOnly: true,
+    // Kasus bantuan lama milik pelanggan ini (fitur dihapus) ikut dibersihkan; catatannya terhapus berantai.
+    cleanup: async (db, row) =>
+      (await (db as any).supportCase.deleteMany({ where: { customerId: row.id } })).count,
     extra: async (_db, row) =>
       ['SUPER_OWNER', 'SUPERADMIN'].includes(row.role)
         ? [{ kind: 'protected_account', label: 'akun Super Owner (dilindungi)', count: 1 }]
@@ -320,7 +300,6 @@ export const GENERIC_REMOVABLE: readonly LifecycleKind[] = [
   'min-quota',
   'public-content',
   'notification-template',
-  'support-case',
   'class-slot',
   'user',
 ];
@@ -344,7 +323,6 @@ const NONACTIVATE_HINT: Partial<Record<LifecycleKind, string>> = {
   studio: 'Gunakan Nonaktifkan.',
   room: 'Gunakan Nonaktifkan.',
   'payment-account': 'Gunakan Nonaktifkan.',
-  'support-case': 'Tutup kasus ini bila sudah selesai.',
   'class-slot': 'Batalkan kelas bila sudah terbit.',
   user: 'Gunakan Nonaktifkan.',
 };
@@ -498,7 +476,7 @@ export class LifecycleService {
           reason,
           beforeMasked: {
             ...spec.snapshot(row),
-            ...(legacyRemoved > 0 ? { legacyProjectionRatesRemoved: legacyRemoved } : {}),
+            ...(legacyRemoved > 0 ? { legacyRowsRemoved: legacyRemoved } : {}),
           } as Prisma.InputJsonValue,
         });
         return { id, kind, deleted: true as const, success: true as const };
