@@ -810,7 +810,7 @@ export function ClassSlotView({
                   'Kelas berhasil dipublikasikan.',
                 );
             }}
-            onCancel={async (reason) => {
+            onCancel={async (reason, note) => {
               const accepted = await feedback.confirm({
                 tone: 'danger',
                 title: 'Batalkan kelas?',
@@ -819,7 +819,7 @@ export function ClassSlotView({
               });
               if (accepted)
                 await run(
-                  () => client.cancel(panel.slot.id, reason, panel.slot.version),
+                  () => client.cancel(panel.slot.id, reason, panel.slot.version, note || undefined),
                   'Kelas berhasil dibatalkan.',
                 );
             }}

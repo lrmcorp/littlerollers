@@ -1,3 +1,4 @@
+import { requireReason } from '../foundation/reason';
 import { HttpStatus, Injectable, Optional } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { AuditService } from '../foundation/audit.service';
@@ -157,10 +158,11 @@ export class OwnerBranchService {
     };
   }
 
-  async unassignOwner(principal: SessionPrincipal, id: string) {
+  async unassignOwner(principal: SessionPrincipal, id: string, reasonInput?: string) {
     if (!this.isSuperOwner(principal)) {
       throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);
     }
+    const reason = requireReason(reasonInput);
 
     if (!UUID_REGEX.test(id)) {
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
@@ -178,6 +180,7 @@ export class OwnerBranchService {
       action: 'owner_branch.unassigned',
       objectType: 'OwnerBranch',
       objectId: id,
+      reason,
       beforeMasked: { ownerId: existing.ownerId, branchId: existing.branchId },
     });
 

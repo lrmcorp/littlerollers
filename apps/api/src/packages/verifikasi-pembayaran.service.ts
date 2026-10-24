@@ -585,6 +585,11 @@ export class PaymentReviewService {
         : ['PROOF_INVALID', 'AMOUNT_MISMATCH', 'DUPLICATE_PURCHASE', 'OTHER_REVIEW_REQUIRED'];
     if (input.reasonCode && !allowedReasons.includes(input.reasonCode))
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+    // Menolak pembayaran wajib punya alasan (kode alasan; "lainnya" juga wajib catatan).
+    if (decision === 'REJECTED' && !input.reasonCode)
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, false, [
+        { field: 'reasonCode', issue: 'REQUIRED' },
+      ]);
     const note = input.note?.trim();
     if (input.reasonCode === 'OTHER_REVIEW_REQUIRED' && (!note || note.length < 3))
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);

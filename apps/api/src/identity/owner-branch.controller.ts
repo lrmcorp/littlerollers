@@ -38,7 +38,11 @@ export class OwnerBranchController {
   }
 
   @Delete(':id')
-  unassign(@Req() request: AuthenticatedRequest, @Param('id') id: string) {
-    return this.ownerBranchService.unassignOwner(request.principal, id);
+  unassign(
+    @Req() request: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() body?: { reason?: string },
+  ) {
+    return this.ownerBranchService.unassignOwner(request.principal, id, body?.reason);
   }
 }

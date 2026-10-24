@@ -1,3 +1,5 @@
+import { AuditService } from '../foundation/audit.service';
+import { requireReason } from '../foundation/reason';
 import { HttpStatus, Inject, Injectable, Optional } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import type { SessionPrincipal } from './identity.service';
@@ -13,6 +15,7 @@ export class IdentityDocumentWorkflowService {
     @Optional() private readonly db?: PrismaService,
     @Optional() private readonly policy?: PolicyService,
     @Optional() @Inject(PRIVATE_FILE_STORAGE) private readonly storage?: PrivateFileStorage,
+    @Optional() private readonly audit?: AuditService,
   ) {}
 
   async replaceIdentityDocument(
@@ -157,6 +160,16 @@ export class IdentityDocumentWorkflowService {
     if (id === 'document-1' && !this.db?.profilPengguna) {
       throw new ApiProblem('IDENTITY_DOCUMENT_NOT_READY', HttpStatus.CONFLICT);
     }
+    // Menolak dokumen wajib punya alasan (kode alasan; "lainnya" juga wajib catatan). Menyetujui boleh tanpa catatan.
+    let note: string | null = input.note?.trim() || null;
+    if (decision === 'REJECTED') {
+      if (!input.reasonCode)
+        throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, false, [
+          { field: 'reasonCode', issue: 'REQUIRED' },
+        ]);
+      note = input.reasonCode === 'OTHER_REQUIRES_NOTE' ? requireReason(input.note, 'note') : note;
+    }
+    const reasonText = decision === 'REJECTED' ? (note ? `${input.reasonCode}: ${note}` : input.reasonCode!) : note;
     const auditReference = `audit-kyc-${Date.now()}`;
 
     let targetUserId = '';
@@ -169,10 +182,21 @@ export class IdentityDocumentWorkflowService {
       await this.db.profilPengguna.updateMany({
         where: { userId: targetUserId },
         data: {
-          notes: `${currentNotes}KYC_${decision}: ${input.note || 'Dokumen valid dan sesuai identitas'} (ref: ${auditReference})`,
+          notes: `${currentNotes}KYC_${decision}: ${reasonText ?? 'tanpa catatan'} (ref: ${auditReference})`,
         },
       });
     }
+
+    await this.audit?.catat(null, {
+      actorId: principal.userId,
+      correlationId: _correlationId,
+      action: decision === 'APPROVED' ? 'identity_document.approved' : 'identity_document.rejected',
+      objectType: 'IdentityDocument',
+      objectId: id,
+      targetUserId: targetUserId || undefined,
+      reason: reasonText,
+      afterMasked: { decision, reasonCode: input.reasonCode ?? null, auditReference },
+    });
 
     return {
       id,

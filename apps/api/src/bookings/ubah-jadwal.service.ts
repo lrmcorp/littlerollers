@@ -343,6 +343,12 @@ export class ReschedulesService {
     _correlationId: string,
   ) {
     this.policy.requireCapability(principal.capabilities, 'reschedule:decide');
+    // Menolak permintaan ubah jadwal wajib punya kode alasan yang dikenal (K4).
+    const REJECT_CODES: RescheduleDecisionReasonCode[] = ['TARGET_UNAVAILABLE', 'OUTSIDE_POLICY', 'OUT_OF_SCOPE', 'OTHER'];
+    if (decision === 'reject' && !REJECT_CODES.includes(input?.reasonCode))
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, false, [
+        { field: 'reasonCode', issue: input?.reasonCode ? 'INVALID' : 'REQUIRED' },
+      ]);
     return this.idempotency.execute(
       {
         scope: `reschedule-decide:${id}`,

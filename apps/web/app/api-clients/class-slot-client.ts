@@ -139,6 +139,8 @@ export interface ClassSlotClient {
       | 'SAFETY_ISSUE'
       | 'OTHER_REVIEW_REQUIRED',
     expectedVersion: number,
+    /** Wajib bila alasannya "lainnya" (OTHER_REVIEW_REQUIRED). */
+    note?: string,
   ): Promise<ClassSlot>;
   completionControl(id: string): Promise<{
     classSlotId: string;
@@ -439,12 +441,12 @@ export const browserClassSlotClient: ClassSlotClient = {
     }));
   },
 
-  cancel(id, reasonCode, expectedVersion) {
+  cancel(id, reasonCode, expectedVersion, note) {
     return apiFetch<ClassSlot>(`/class-slots/${encodeURIComponent(id)}/cancel`, {
       method: 'POST',
       idempotent: true,
       headers: { 'idempotency-key': key() },
-      body: JSON.stringify({ reasonCode, expectedVersion }),
+      body: JSON.stringify({ reasonCode, expectedVersion, ...(note?.trim() ? { note: note.trim() } : {}) }),
       label: 'Membatalkan kelas…',
     }).then((slot) => ({
       ...slot,

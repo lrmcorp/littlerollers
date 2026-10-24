@@ -1,3 +1,4 @@
+import { requireReason } from '../foundation/reason';
 import { HttpStatus, Injectable, Optional } from '@nestjs/common';
 import { ClassSlotStatus, Prisma, SessionMutationType } from '@prisma/client';
 import { createHash } from 'node:crypto';
@@ -665,13 +666,20 @@ export class ClassSlotService {
   async cancel(
     principal: SessionPrincipal,
     id: string,
-    input: { reasonCode: ClassSlotCancellationReason; expectedVersion?: number },
+    input: { reasonCode: ClassSlotCancellationReason; expectedVersion?: number; note?: string },
     key: string,
     _correlationId: string,
   ) {
     this.manage(principal);
     this.validateKey(key);
     const expectedVersion = this.requireVersion(input?.expectedVersion);
+    // Membatalkan kelas wajib punya alasan: kode yang dikenal, dan "lainnya" wajib disertai catatan.
+    if (!CANCELLATION_REASONS.includes(input?.reasonCode))
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, false, [
+        { field: 'reasonCode', issue: input?.reasonCode ? 'INVALID' : 'REQUIRED' },
+      ]);
+    const note =
+      input.reasonCode === 'OTHER_REVIEW_REQUIRED' ? requireReason(input.note, 'note') : input.note?.trim() || undefined;
 
     return this.execute(
       principal,
@@ -698,7 +706,7 @@ export class ClassSlotService {
           tx, principal, _correlationId, 'class_slot.cancelled', slot,
           { status: slot.status, bookedCount: slot.bookings.length },
           { status: ClassSlotStatus.CANCELLED, releasedBookings: slot.bookings.length },
-          input.reasonCode,
+          note ? `${input.reasonCode}: ${note}` : input.reasonCode,
         );
 
         // Refund all booked members

@@ -558,9 +558,9 @@ export function UserDetailView({
         branches={branches}
         submitting={submitting}
         onClose={closeAction}
-        onSubmit={(roles) =>
+        onSubmit={(roles, reason) =>
           runMutation(async () => {
-            await client.updateRoles(user.id, roles, user.version);
+            await client.updateRoles(user.id, roles, user.version, reason);
           }, 'Role dan cakupan berhasil diperbarui. Seluruh sesi pengguna telah dicabut.')
         }
       />

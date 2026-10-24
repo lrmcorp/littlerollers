@@ -132,7 +132,7 @@ describe('modules that had no audit now record their mutations', () => {
         delete: jest.fn().mockResolvedValue({}),
       },
     };
-    await new OwnerBranchService(db as never, audit as never).unassignOwner(superOwner as never, id(9));
+    await new OwnerBranchService(db as never, audit as never).unassignOwner(superOwner as never, id(9), 'Owner pindah tugas');
     expect(audit.catat).toHaveBeenCalledWith(
       null,
       expect.objectContaining({
@@ -140,9 +140,13 @@ describe('modules that had no audit now record their mutations', () => {
         objectType: 'OwnerBranch',
         objectId: id(9),
         branchId: id(2),
+        reason: 'Owner pindah tugas',
         beforeMasked: { ownerId: id(4), branchId: id(2) },
       }),
     );
+    await expect(
+      new OwnerBranchService(db as never, audit as never).unassignOwner(superOwner as never, id(9)),
+    ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
   });
 
   it('records the reason when an instructor assignment ends', async () => {

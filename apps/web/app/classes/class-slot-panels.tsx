@@ -19,7 +19,7 @@ import { formatBranchTime, zonedLocalDateTime } from '@/lib/class-time';
 import { formatRupiah } from '../lib/formatters';
 import { Feedback, StatusBadge } from '../ui';
 import { Button, ButtonLink } from '../components/actions';
-import { SearchSelect, SelectInput, DateInput, TextInput } from '../components/forms';
+import { SearchSelect, SelectInput, DateInput, Textarea, TextInput } from '../components/forms';
 import { useAppFeedback } from '../components/app-feedback';
 import {
   cancellationLabels,
@@ -271,12 +271,13 @@ export function DetailPanel({
     instructorFeeRp?: number | null;
   }): Promise<void>;
   onPublish(): Promise<void>;
-  onCancel(reason: CancellationReason): Promise<void>;
+  onCancel(reason: CancellationReason, note?: string): Promise<void>;
   onComplete(reason: string): Promise<void>;
 }) {
   const feedback = useAppFeedback();
   const [instructorId, setInstructorId] = useState(slot.instructorUserId ?? '');
   const [reason, setReason] = useState<CancellationReason | ''>('');
+  const [cancelNote, setCancelNote] = useState('');
   const [completionReason, setCompletionReason] = useState('Kelas selesai sesuai daftar peserta');
   const [attendanceNote, setAttendanceNote] = useState('');
   const [instructorQr, setInstructorQr] = useState<InstructorCheckInIssue | null>(null);
@@ -661,13 +662,23 @@ export function DetailPanel({
               </option>
             ))}
           </SelectInput>
+          {reason === 'OTHER_REVIEW_REQUIRED' && (
+            <Textarea
+              label="Jelaskan alasan pembatalan"
+              value={cancelNote}
+              maxLength={500}
+              required
+              placeholder="Minimal 3 karakter"
+              onChange={(event) => setCancelNote(event.target.value)}
+            />
+          )}
           <div>
             <Button
               variant="danger"
               className="w-full sm:w-auto"
-              disabled={busy || !reason}
+              disabled={busy || !reason || (reason === 'OTHER_REVIEW_REQUIRED' && cancelNote.trim().length < 3)}
               onClick={() => {
-                if (reason) void onCancel(reason);
+                if (reason) void onCancel(reason, reason === 'OTHER_REVIEW_REQUIRED' ? cancelNote.trim() : undefined);
               }}
             >
               Batalkan kelas ini

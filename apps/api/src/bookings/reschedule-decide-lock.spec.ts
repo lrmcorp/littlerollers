@@ -86,7 +86,7 @@ describe('persetujuan ubah jadwal menjaga kuota slot tujuan', () => {
 
   it('penolakan hanya mengunci permintaan, tidak mengunci slot', async () => {
     const { service, calls } = setup();
-    await service.decide(admin, id(30), 'reject', {} as never, 'key-2', 'corr-2');
+    await service.decide(admin, id(30), 'reject', { reasonCode: 'OUTSIDE_POLICY' }, 'key-2', 'corr-2');
     expect(calls.filter((c) => c.includes('FROM slot_kelas'))).toHaveLength(0);
     expect(calls[0]).toContain('FROM ubah_jadwal');
   });
@@ -109,5 +109,14 @@ describe('persetujuan ubah jadwal menjaga kuota slot tujuan', () => {
     const { service, tx } = setup({ bookingStatus: 'CANCELLED' });
     await expect(approve(service)).rejects.toMatchObject({ code: 'RESCHEDULE_ALREADY_DECIDED' });
     expect(tx.slotKelas.update).not.toHaveBeenCalled();
+  });
+
+  it('menolak penolakan tanpa kode alasan yang dikenal, sebelum menyentuh data', async () => {
+    const { service, calls } = setup();
+    for (const reasonCode of [undefined, '', 'ELIGIBILITY_VERIFIED', 'ASAL'])
+      await expect(
+        service.decide(admin, id(30), 'reject', { reasonCode } as never, 'key-3', 'corr-3'),
+      ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
+    expect(calls).toHaveLength(0);
   });
 });

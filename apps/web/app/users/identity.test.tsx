@@ -429,6 +429,51 @@ describe('identity UI', () => {
     expect(fake.deactivate).toHaveBeenCalledWith('user-1', 1, 'Cuti panjang');
   });
 
+  it('asks for a reason before saving a role change and sends it (no invented default)', async () => {
+    window.history.replaceState({}, '', '/users/user-2?action=roles');
+    const user = {
+      id: 'user-2',
+      displayName: 'Staff Finance',
+      phoneE164: null,
+      status: 'ACTIVE' as const,
+      version: 3,
+      createdAt: '2026-07-23T00:00:00.000Z',
+      updatedAt: '2026-07-23T00:00:00.000Z',
+      roles: [{ role: 'FINANCE' as const, branchId: null }],
+      directRoles: [{ role: 'FINANCE' as const, branchId: null }],
+      assignmentRoles: [],
+      effectiveCapabilities: [],
+    };
+    const fake = client({
+      getUser: vi.fn().mockResolvedValue(user),
+      roleCatalog: vi.fn().mockResolvedValue([
+        { role: 'FINANCE', capabilities: ['user:read'], assignable: true, readOnly: false, scope: 'GLOBAL' },
+      ]),
+      updateRoles: vi.fn().mockResolvedValue(user),
+    });
+    render(
+      <UserDetailView
+        id="user-2"
+        client={fake}
+        capabilitiesOverride={['user:read', 'user:admin', 'audit:read']}
+      />,
+    );
+    const save = await screen.findByRole('button', { name: 'Simpan Perubahan Role' });
+    expect(save).toBeDisabled();
+    await userEvent.type(screen.getByLabelText('Alasan perubahan role'), 'Pindah divisi');
+    expect(save).toBeEnabled();
+    await userEvent.click(save);
+    await waitFor(() =>
+      expect(fake.updateRoles).toHaveBeenCalledWith(
+        'user-2',
+        [{ role: 'FINANCE', branchId: null }],
+        3,
+        'Pindah divisi',
+      ),
+    );
+    window.history.replaceState({}, '', '/');
+  });
+
   it('defaults user mutations to deny and exposes searchable dynamic role management', async () => {
     const fake = client({
       roleCatalog: vi.fn().mockResolvedValue([

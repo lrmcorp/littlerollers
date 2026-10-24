@@ -351,8 +351,36 @@ describe('ClassSlotView', () => {
     );
     await user.click(within(dialog).getByRole('button', { name: 'Batalkan kelas ini' }));
     await user.click(screen.getByRole('button', { name: 'Batalkan kelas' }));
-    expect(client.cancel).toHaveBeenCalledWith('slot-1', 'INSTRUCTOR_UNAVAILABLE', 0);
+    expect(client.cancel).toHaveBeenCalledWith('slot-1', 'INSTRUCTOR_UNAVAILABLE', 0, undefined);
     expect(await screen.findByText('Kelas berhasil dibatalkan.')).toBeVisible();
+  });
+
+  it('asks for a written note when the cancellation reason is "other" and sends it', async () => {
+    const client = fake();
+    render(
+      <ClassSlotView
+        client={client}
+        branchOverride={branch}
+        capabilitiesOverride={manageCapabilities}
+      />,
+    );
+    const user = userEvent.setup();
+    await screen.findAllByText('Reformer');
+    await user.click(
+      within(screen.getByRole('region', { name: 'Kalender kelas tujuh hari' })).getByRole(
+        'button',
+        { name: /Reformer/ },
+      ),
+    );
+    const dialog = screen.getByRole('dialog', { name: 'Reformer' });
+    await user.selectOptions(within(dialog).getByLabelText('Alasan pembatalan'), 'OTHER_REVIEW_REQUIRED');
+    const cancel = within(dialog).getByRole('button', { name: 'Batalkan kelas ini' });
+    expect(cancel).toBeDisabled();
+    await user.type(within(dialog).getByLabelText('Jelaskan alasan pembatalan'), 'Pipa bocor');
+    expect(cancel).toBeEnabled();
+    await user.click(cancel);
+    await user.click(screen.getByRole('button', { name: 'Batalkan kelas' }));
+    expect(client.cancel).toHaveBeenCalledWith('slot-1', 'OTHER_REVIEW_REQUIRED', 0, 'Pipa bocor');
   });
 });
 

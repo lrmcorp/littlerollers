@@ -1,3 +1,4 @@
+import { requireReason } from '../foundation/reason';
 import { HttpStatus, Injectable, Logger, Optional } from '@nestjs/common';
 import { Prisma, type Role, type UserStatus } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
@@ -550,6 +551,8 @@ export class UserAdministrationService {
     _idempotencyKey?: string,
   ) {
     this.policy.requireCapability(principal.capabilities, 'user:admin');
+    // Mengubah peran wajib beralasan (K4).
+    const reason = requireReason(input.reason);
     const roleName = input.roles[0]?.role || 'ADMIN';
     const role: Role = toDbRole(roleName);
     const branchId = input.roles[0]?.branchId || null;
@@ -568,7 +571,7 @@ export class UserAdministrationService {
       principal,
       targetUserId: targetId,
       correlationId: _correlationId,
-      reason: input.reason,
+      reason,
       branchId,
       detail: { from: undefined, role },
     });

@@ -1,3 +1,4 @@
+import { requireReason } from '../foundation/reason';
 import { HttpStatus, Injectable, Optional } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
@@ -274,6 +275,7 @@ export class AssignmentService {
     _correlationId: string,
   ) {
     this.policy.requireCapability(principal.capabilities, 'assignment:manage');
+    const reason = requireReason(input?.reason);
 
     const ownerBranch = await this.db.ownerCabang.findUnique({ where: { id: assignmentId } });
     if (ownerBranch) {
@@ -290,7 +292,7 @@ export class AssignmentService {
         action: 'assignment.ended',
         objectType: 'Assignment',
         objectId: assignmentId,
-        reason: input?.reason,
+        reason,
         beforeMasked: { type: 'OWNER', userId: ownerBranch.ownerId, branchId: ownerBranch.branchId },
         afterMasked: { effectiveAt: input?.effectiveAt },
       });
@@ -315,7 +317,7 @@ export class AssignmentService {
       action: 'assignment.ended',
       objectType: 'Assignment',
       objectId: assignmentId,
-      reason: input?.reason,
+      reason,
       beforeMasked: { type: 'INSTRUCTOR', userId: assignment.coachId, branchId: assignment.branchId },
       afterMasked: { effectiveAt: input?.effectiveAt },
     });

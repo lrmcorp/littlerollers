@@ -133,14 +133,18 @@ export function RoleDialog({
   branches: { id: string; code: string; name: string }[];
   submitting: boolean;
   onClose(): void;
-  onSubmit(roles: { role: ApplicationRole; branchId?: string | null }[]): Promise<void>;
+  onSubmit(roles: { role: ApplicationRole; branchId?: string | null }[], reason: string): Promise<void>;
 }) {
   const guard = useDialogFormGuard(open, onClose, 'perubahan role');
+  const [reason, setReason] = useState('');
   const [selection, setSelection] = useState<RoleSelectionValue>(() =>
     selectionFromRoles(user.directRoles),
   );
   useEffect(() => {
-    if (open) setSelection(selectionFromRoles(user.directRoles));
+    if (open) {
+      setSelection(selectionFromRoles(user.directRoles));
+      setReason('');
+    }
   }, [open, user.directRoles]);
   const roles = useMemo(() => rolesFromSelection(catalog, selection), [catalog, selection]);
   const invalid =
@@ -148,7 +152,8 @@ export function RoleDialog({
     roles.some(
       (item) =>
         catalog.find(({ role }) => role === item.role)?.scope === 'BRANCH' && !item.branchId,
-    );
+    ) ||
+    reason.trim().length < 3;
   return (
     <Modal
       open={open}
@@ -180,7 +185,7 @@ export function RoleDialog({
         onChange={() => guard.setDirty(true)}
         onSubmit={(event) => {
           event.preventDefault();
-          void onSubmit(roles);
+          void onSubmit(roles, reason.trim());
         }}
       >
         <RoleSelection
@@ -191,6 +196,18 @@ export function RoleDialog({
             setSelection(value);
             guard.setDirty(true);
           }}
+        />
+        <Textarea
+          label="Alasan perubahan role"
+          value={reason}
+          maxLength={500}
+          required
+          placeholder="Minimal 3 karakter"
+          onChange={(event) => {
+            setReason(event.target.value);
+            guard.setDirty(true);
+          }}
+          description="Alasan tersimpan pada catatan audit."
         />
         <div className="rounded-dd-md border border-dd-warning/30 bg-dd-warning-soft p-3.5 text-xs font-semibold text-dd-warning">
           Perubahan role berlaku segera dan seluruh sesi aktif pengguna akan diperbarui saat login berikutnya.

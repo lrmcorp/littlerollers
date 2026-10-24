@@ -61,7 +61,7 @@ describe('riwayat audit akun staf', () => {
 
   it('mencatat perubahan peran, nonaktif, dan aktif kembali', async () => {
     const { service, created } = setup();
-    await service.updateUserRoles(principal, 'target-1', { roles: [{ role: 'MANAGER', branchId: null }] }, 'corr-2');
+    await service.updateUserRoles(principal, 'target-1', { roles: [{ role: 'MANAGER', branchId: null }], reason: 'Promosi jabatan' }, 'corr-2');
     await service.deactivate(principal, 'target-1', 'cuti', undefined, 'corr-3');
     await service.reactivate(principal, 'target-1', 'kembali', undefined, 'corr-4');
     expect(created.map((entry) => entry.action)).toEqual([
@@ -70,6 +70,15 @@ describe('riwayat audit akun staf', () => {
       'security.user_reactivated',
     ]);
     expect(created[1]).toMatchObject({ reason: 'cuti', correlationId: 'corr-3' });
+  });
+
+  it('menolak ubah peran tanpa alasan dan tidak mengubah apa pun', async () => {
+    const { service, created } = setup();
+    for (const reason of [undefined, '', '  ', 'ab'])
+      await expect(
+        service.updateUserRoles(principal, 'target-1', { roles: [{ role: 'MANAGER', branchId: null }], reason }, 'corr-r'),
+      ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
+    expect(created).toHaveLength(0);
   });
 
   it('menolak nonaktifkan akun tanpa alasan dan tidak mengubah apa pun', async () => {

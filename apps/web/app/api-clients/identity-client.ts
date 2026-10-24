@@ -184,8 +184,9 @@ export interface IdentityClient {
   updateRoles(
     id: string,
     roles: { role: ApplicationRole; branchId?: string | null }[],
-    expectedVersion?: number,
-    reason?: string,
+    expectedVersion: number | undefined,
+    /** Wajib: alasan perubahan role tercatat di audit. */
+    reason: string,
   ): Promise<UserSummary>;
   /** Alasan wajib saat menonaktifkan; aktifkan kembali tanpa alasan. */
   deactivate(id: string, expectedVersion: number | undefined, reason: string): Promise<void>;
@@ -468,7 +469,7 @@ export const browserIdentityClient: IdentityClient = {
       body: JSON.stringify({ email, reason }),
     });
   },
-  async updateRoles(id, roles, expectedVersion = 1, reason = 'Pembaruan role via Web Admin') {
+  async updateRoles(id, roles, expectedVersion = 1, reason) {
     try {
       const user = await request(`/users/${encodeURIComponent(id)}/roles`, {
         method: 'POST',
