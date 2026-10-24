@@ -50,7 +50,7 @@ export function LandingPillars() {
           >
             <span className="text-xs font-bold text-ed-green">{number}</span>
             <div>
-              <h3 className="m-0 text-[clamp(22px,2.2vw,30px)] leading-[1.1] font-medium tracking-[-0.05em]">
+              <h3 className="m-0 text-[clamp(22px,2.2vw,30px)] leading-[1.25] font-medium tracking-[-0.02em]">
                 {title}
               </h3>
               <p className="ed-eyebrow mt-3 mb-0 text-ed-green">{subtitle}</p>

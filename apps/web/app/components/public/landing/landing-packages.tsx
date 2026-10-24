@@ -53,11 +53,11 @@ export function LandingPackages() {
           <ol className="m-0 list-none border-t border-ed-mint/25 p-0">
             {steps.map(([number, label, description]) => (
               <li
-                className="grid gap-x-8 gap-y-2 border-b border-ed-mint/25 py-7 transition-colors duration-200 hover:bg-ed-cream/5 sm:grid-cols-[48px_minmax(0,0.9fr)_minmax(0,1.4fr)] sm:items-baseline"
+                className="grid gap-x-8 gap-y-3 border-b border-ed-mint/25 py-7 transition-colors duration-200 hover:bg-ed-cream/5 sm:grid-cols-[48px_minmax(0,0.9fr)_minmax(0,1.4fr)] sm:items-baseline sm:gap-y-2"
                 key={number}
               >
                 <span className="text-xs font-bold text-ed-mint">{number}</span>
-                <h3 className="m-0 text-[clamp(22px,2.2vw,30px)] leading-[1.1] font-medium tracking-[-0.05em]">
+                <h3 className="m-0 text-[clamp(22px,2.2vw,30px)] leading-[1.25] font-medium tracking-[-0.02em]">
                   {label}
                 </h3>
                 <p className="m-0 text-[15px] leading-[1.65] text-ed-mint">{description}</p>

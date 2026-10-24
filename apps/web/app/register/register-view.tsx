@@ -127,16 +127,16 @@ function UploadPreview({ file, kind }: { file: File | null; kind: 'selfie' | 'kt
 
   if (!previewUrl || !file) return null;
   return (
-    <figure className="mt-3 flex items-center gap-3.5 rounded-dd-md border border-dd-line bg-dd-cream/50 p-2.5 shadow-dd-soft">
+    <figure className="mt-3 flex items-center gap-3.5 rounded-none border border-ed-line bg-ed-tint/50 p-3 shadow-none">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={previewUrl}
         alt={`Pratinjau ${kind === 'selfie' ? 'foto selfie' : 'foto KTP'}`}
-        className="size-16 rounded-dd-sm object-cover border border-dd-line/80 shadow-sm"
+        className="size-16 rounded-none object-cover border border-ed-line"
       />
       <figcaption className="flex flex-1 flex-col text-xs">
-        <strong className="truncate font-semibold text-dd-ink max-w-[220px]">{file.name}</strong>
-        <span className="text-dd-muted mt-0.5">
+        <strong className="truncate font-semibold text-ed-ink max-w-[220px]">{file.name}</strong>
+        <span className="text-ed-muted mt-0.5">
           {(file.size / 1_000_000).toLocaleString('id-ID', { maximumFractionDigits: 1 })} MB
         </span>
       </figcaption>
@@ -195,17 +195,17 @@ function UploadField({
 
       {/* Upload Dropzone Container */}
       <div
-        className={`relative flex flex-col items-center justify-center rounded-dd-md border-2 border-dashed p-4 text-center transition ${
+        className={`relative flex flex-col items-center justify-center rounded-none border border-dashed p-4 text-center transition-colors ${
           file
-            ? 'border-dd-forest bg-dd-success-soft/30'
+            ? 'border-ed-forest bg-ed-tint'
             : error
               ? 'border-dd-danger bg-dd-danger-soft/20'
-              : 'border-dd-line bg-dd-surface-muted/30 hover:border-dd-forest/60 hover:bg-dd-surface-muted/60'
+              : 'border-ed-line bg-ed-tint/30 hover:border-ed-forest hover:bg-ed-tint/60'
         }`}
       >
         <div className="flex items-center gap-3">
           <label
-            className="inline-flex cursor-pointer items-center gap-2 rounded-dd-sm bg-white px-4 py-2 text-xs font-bold text-dd-forest shadow-dd-soft border border-dd-line/80 hover:bg-dd-surface-muted transition"
+            className="inline-flex cursor-pointer items-center gap-2 rounded-none bg-white px-4 py-2 text-xs font-bold uppercase tracking-wider text-ed-forest border border-ed-line hover:bg-ed-tint transition-colors"
             htmlFor={id}
           >
             <UploadCloud className="size-4" />
@@ -216,14 +216,14 @@ function UploadField({
               type="button"
               disabled={disabled}
               onClick={onRemove}
-              className="inline-flex items-center gap-1.5 rounded-dd-sm border border-dd-line/80 bg-white px-3 py-2 text-xs font-bold text-dd-danger hover:bg-dd-danger-soft transition"
+              className="inline-flex items-center gap-1.5 rounded-none border border-red-200 bg-white px-3 py-2 text-xs font-bold uppercase tracking-wider text-red-700 hover:bg-red-50 transition-colors"
             >
               <X className="size-3.5" />
               Hapus
             </button>
           )}
         </div>
-        <p id={hintId} className="mt-2 text-[11px] text-dd-muted m-0">
+        <p id={hintId} className="mt-2 text-[11px] text-ed-muted m-0">
           {hint}
         </p>
       </div>
@@ -329,8 +329,8 @@ export function RegisterView() {
     >
       {googleEnabled && (
         <div className="mb-6 space-y-4">
-          <div className="rounded-dd-lg border border-dd-line/80 bg-white p-4 shadow-dd-card">
-            <p className="mb-3 text-center text-xs font-semibold text-dd-muted">
+          <div className="rounded-none border border-ed-line bg-ed-tint/30 p-4 shadow-none">
+            <p className="mb-3 text-center text-xs font-semibold text-ed-muted">
               Daftar cepat dengan akun Google Anda:
             </p>
             <GoogleIdentityButton
@@ -340,7 +340,7 @@ export function RegisterView() {
               onFailure={handleGoogleFailure}
             />
           </div>
-          <div className="flex items-center gap-4 text-xs font-bold tracking-wider text-dd-muted uppercase before:h-px before:flex-1 before:bg-dd-line after:h-px after:flex-1 after:bg-dd-line">
+          <div className="flex items-center gap-4 text-xs font-bold tracking-wider text-ed-muted uppercase before:h-px before:flex-1 before:bg-ed-line after:h-px after:flex-1 after:bg-ed-line">
             atau isi data akun secara manual
           </div>
         </div>
@@ -388,20 +388,20 @@ export function RegisterView() {
         }}
       >
         {/* Info Pendaftaran Cepat */}
-        <div className="flex items-center justify-between rounded-dd-md border border-dd-forest/20 bg-dd-forest/5 p-3 text-xs shadow-xs">
-          <div className="flex items-center gap-2 text-dd-forest font-semibold">
-            <User className="size-4 text-dd-forest" />
+        <div className="flex items-center justify-between rounded-none border border-ed-line bg-ed-tint/50 p-3 text-xs">
+          <div className="flex items-center gap-2 text-ed-forest font-semibold">
+            <User className="size-4 text-ed-green" />
             <span>Pendaftaran Akun Baru</span>
           </div>
-          <span className="rounded bg-white px-2.5 py-0.5 font-bold text-dd-forest text-[11px] shadow-xs border border-dd-forest/15">
+          <span className="rounded-none border border-ed-line bg-white px-2.5 py-0.5 font-bold text-ed-forest text-[11px] uppercase tracking-wider">
             Cepat &amp; Praktis
           </span>
         </div>
 
         {/* Section 1: Data Diri & Kontak */}
-        <div className="space-y-4 rounded-dd-md border border-dd-line/60 bg-dd-surface-muted/20 p-4">
-          <div className="flex items-center gap-2 border-b border-dd-line/40 pb-2 text-xs font-bold text-dd-forest uppercase">
-            <User className="size-3.5" /> 1. Data Diri &amp; Kontak
+        <div className="space-y-4 rounded-none border border-ed-line bg-white p-5">
+          <div className="flex items-center gap-2 border-b border-ed-line pb-2 text-xs font-bold uppercase tracking-[0.12em] text-ed-forest">
+            <User className="size-3.5 text-ed-green" /> 1. Data Diri &amp; Kontak
           </div>
           <TextInput
             id="register-display-name"
@@ -455,9 +455,9 @@ export function RegisterView() {
         </div>
 
         {/* Section 2: Keamanan Akun */}
-        <div className="space-y-4 rounded-dd-md border border-dd-line/60 bg-dd-surface-muted/20 p-4">
-          <div className="flex items-center gap-2 border-b border-dd-line/40 pb-2 text-xs font-bold text-dd-forest uppercase">
-            <Lock className="size-3.5" /> 2. Keamanan Akun
+        <div className="space-y-4 rounded-none border border-ed-line bg-white p-5">
+          <div className="flex items-center gap-2 border-b border-ed-line pb-2 text-xs font-bold uppercase tracking-[0.12em] text-ed-forest">
+            <Lock className="size-3.5 text-ed-green" /> 2. Keamanan Akun
           </div>
           <PasswordField
             id="register-password"
@@ -484,17 +484,17 @@ export function RegisterView() {
         {/* Section 3: Verifikasi Identitas (Opsional) */}
         <div
           id="register-section-identity"
-          className="space-y-4 rounded-dd-md border border-dd-line/80 bg-white p-4 shadow-xs"
+          className="space-y-4 rounded-none border border-ed-line bg-white p-5 shadow-none"
         >
-          <div className="flex items-center justify-between border-b border-dd-line/40 pb-2">
-            <div className="flex items-center gap-2 text-xs font-bold text-dd-forest uppercase">
-              <ShieldCheck className="size-3.5" /> 3. Dokumen Identitas (Opsional — Bisa Nanti)
+          <div className="flex items-center justify-between border-b border-ed-line pb-2">
+            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.12em] text-ed-forest">
+              <ShieldCheck className="size-3.5 text-ed-green" /> 3. Dokumen Identitas (Opsional — Bisa Nanti)
             </div>
-            <span className="rounded bg-dd-surface-muted px-2 py-0.5 text-[10px] font-bold text-dd-muted uppercase">
+            <span className="rounded-none border border-ed-line bg-ed-tint px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-ed-muted">
               Bisa Dilewati
             </span>
           </div>
-          <div className="rounded-dd-sm bg-dd-surface-muted/60 p-3 text-xs leading-relaxed text-dd-muted border border-dd-line/60">
+          <div className="rounded-none bg-ed-tint/50 p-3 text-xs leading-relaxed text-ed-muted border border-ed-line">
             Foto KTP dan foto selfie diperlukan saat verifikasi keanggotaan studio atau pembelian paket sesi pertama. Anda dapat mengunggahnya sekarang atau <strong>melewatinya untuk langsung mendaftar</strong>.
           </div>
           <UploadField
@@ -528,10 +528,10 @@ export function RegisterView() {
         {/* Section 4: Privacy Notice & Consent */}
         <div
           id="register-privacy-notice"
-          className="flex items-start gap-3 rounded-dd-md border border-dd-line/80 bg-dd-cream/70 p-3.5 text-xs leading-relaxed text-dd-muted shadow-sm"
+          className="flex items-start gap-3 rounded-none border border-ed-line bg-ed-tint/60 p-3.5 text-xs leading-relaxed text-ed-muted shadow-none"
           role="note"
         >
-          <ShieldCheck className="size-5 shrink-0 text-dd-forest mt-0.5" />
+          <ShieldCheck className="size-5 shrink-0 text-ed-green mt-0.5" />
           <span>
             Selfie dan foto KTP hanya digunakan untuk verifikasi identitas, disimpan secara privat,
             dan hanya dapat diakses oleh tim yang berwenang.
@@ -578,11 +578,11 @@ export function RegisterView() {
           <div className="space-y-2">
             <Feedback kind="error">{message}</Feedback>
             {(message.includes('terdaftar') || message.includes('digunakan')) && (
-              <div className="rounded-dd-md bg-dd-cream/50 p-2.5 text-center text-xs text-dd-ink border border-dd-line/60">
+              <div className="rounded-none bg-ed-tint/50 p-3 text-center text-xs text-ed-ink border border-ed-line">
                 <span>Sudah memiliki akun? </span>
                 <Link
                   href="/sign-in"
-                  className="font-bold text-dd-forest hover:underline"
+                  className="font-bold text-ed-forest hover:underline"
                 >
                   Masuk ke Akun Sekarang &rarr;
                 </Link>

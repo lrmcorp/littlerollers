@@ -68,7 +68,7 @@ export function LandingStudio({ stats }: { stats: readonly LandingStudioStat[] }
                 key={term}
               >
                 <dt className="ed-eyebrow text-ed-mint">{term}</dt>
-                <dd className="mt-3 text-[clamp(20px,2vw,28px)] leading-[1.15] font-medium tracking-[-0.04em]">
+                <dd className="mt-3 text-[clamp(20px,2vw,28px)] leading-[1.25] font-medium tracking-[-0.015em]">
                   {value}
                 </dd>
               </div>

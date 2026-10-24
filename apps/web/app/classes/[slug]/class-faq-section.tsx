@@ -30,10 +30,10 @@ export function ClassFaqSection({ items }: { items?: PublicFaqItem[] | null }) {
   const list = items && items.length > 0 ? items : DEFAULT_CLASS_FAQ;
   return (
     <section className="border-t border-ed-line bg-ed-cream py-12" aria-labelledby="class-faq-title">
-      <div className={`ed-wrap max-w-4xl`}>
+      <div className="ed-wrap max-w-4xl">
         <div className="text-center">
-          <p className="text-xs font-bold tracking-[0.14em] text-ed-green uppercase">Panduan Kelas</p>
-          <h2 id="class-faq-title" className="mt-1 text-2xl font-bold text-ed-ink sm:text-3xl">
+          <p className="ed-eyebrow text-ed-green">Panduan Kelas</p>
+          <h2 id="class-faq-title" className="mt-2 text-2xl font-bold tracking-tight text-ed-ink sm:text-3xl">
             Pertanyaan Seputar Kelas Ini
           </h2>
         </div>
@@ -41,9 +41,9 @@ export function ClassFaqSection({ items }: { items?: PublicFaqItem[] | null }) {
           {list.map((entry) => (
             <div
               key={entry.id}
-              className="rounded-none border border-ed-line bg-white p-5 "
+              className="rounded-none border border-ed-line bg-white p-6 shadow-none"
             >
-              <h3 className="flex items-start gap-2 text-base font-bold text-ed-ink">
+              <h3 className="flex items-start gap-2.5 text-base font-bold text-ed-ink">
                 <HelpCircle className="mt-0.5 size-4 shrink-0 text-ed-green" aria-hidden="true" />
                 {entry.question}
               </h3>

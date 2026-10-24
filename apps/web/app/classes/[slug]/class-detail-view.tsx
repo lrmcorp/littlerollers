@@ -22,6 +22,7 @@ import {
 } from '@/api-clients/public-detail-client';
 import {
   AudienceAction,
+  DetailFactTag,
   DetailFailure,
   DetailHero,
   DetailLoading,
@@ -108,19 +109,16 @@ export function ClassDetailView({
             summary={item.profile.summary}
             imageKey={item.profile.heroImageKey}
             facts={
-              <div className="flex flex-wrap gap-2.5 text-sm">
-                <span className="inline-flex items-center gap-2 rounded-full border border-ed-line bg-white px-3.5 py-2 font-medium text-ed-ink ">
-                  <Gauge className="size-4 text-ed-green" />
+              <div className="flex flex-wrap gap-2 text-sm">
+                <DetailFactTag icon={Gauge}>
                   {classLevelLabel(item.profile.level)}
-                </span>
-                <span className="inline-flex items-center gap-2 rounded-full border border-ed-green/30 bg-dd-success-soft px-3.5 py-2 font-semibold text-ed-green ">
-                  <Timer className="size-4 text-ed-green" />
+                </DetailFactTag>
+                <DetailFactTag icon={Timer} variant="accent">
                   Durasi {item.profile.durationMinutes} Menit
-                </span>
-                <span className="inline-flex items-center gap-2 rounded-full border border-ed-line bg-white px-3.5 py-2 font-medium text-ed-ink ">
-                  <MapPin className="size-4 text-ed-green" />
+                </DetailFactTag>
+                <DetailFactTag icon={MapPin}>
                   {item.studios.length} Studio Tersedia
-                </span>
+                </DetailFactTag>
               </div>
             }
             actions={
@@ -137,13 +135,13 @@ export function ClassDetailView({
           />
 
           {/* Section 1: Tentang Kelas & Manfaat */}
-          <section className={`ed-wrap grid gap-10 py-12 lg:grid-cols-[1fr_0.85fr]`}>
+          <section className="ed-wrap grid gap-10 py-12 lg:grid-cols-[1fr_0.85fr]">
             <article className="space-y-8">
               <div>
-                <p className="text-xs font-bold tracking-[0.14em] text-ed-green uppercase">
+                <p className="ed-eyebrow text-ed-green">
                   Tentang Kelas
                 </p>
-                <h2 className="mt-2 text-2xl font-bold text-ed-ink sm:text-3xl">
+                <h2 className="mt-2 text-2xl font-bold tracking-tight text-ed-ink sm:text-3xl">
                   Bergerak dengan Presisi & Tujuan
                 </h2>
                 <p className="mt-4 text-base leading-relaxed text-ed-muted">
@@ -153,20 +151,20 @@ export function ClassDetailView({
 
               {/* Fokus Latihan */}
               <div className="grid gap-4 sm:grid-cols-2">
-                <div className="rounded-none border border-ed-line bg-white p-5 ">
-                  <div className="flex size-9 items-center justify-center rounded-none bg-ed-green/10 text-ed-green">
+                <div className="rounded-none border border-ed-line bg-white p-5">
+                  <div className="flex size-9 items-center justify-center rounded-none bg-ed-tint text-ed-green">
                     <HeartPulse className="size-5" />
                   </div>
-                  <h3 className="mt-3 text-base font-semibold text-ed-ink">Kekuatan Inti (Core)</h3>
+                  <h3 className="mt-3 text-base font-bold text-ed-ink">Kekuatan Inti (Core)</h3>
                   <p className="mt-1 text-xs leading-relaxed text-ed-muted">
                     Melatih otot penopang tubuh bagian dalam untuk stabilitas maksimal.
                   </p>
                 </div>
-                <div className="rounded-none border border-ed-line bg-white p-5 ">
-                  <div className="flex size-9 items-center justify-center rounded-none bg-ed-green/10 text-ed-green">
+                <div className="rounded-none border border-ed-line bg-white p-5">
+                  <div className="flex size-9 items-center justify-center rounded-none bg-ed-tint text-ed-green">
                     <Dumbbell className="size-5" />
                   </div>
-                  <h3 className="mt-3 text-base font-semibold text-ed-ink">Postur & Keselarasan</h3>
+                  <h3 className="mt-3 text-base font-bold text-ed-ink">Postur & Keselarasan</h3>
                   <p className="mt-1 text-xs leading-relaxed text-ed-muted">
                     Memperbaiki pola gerak harian dan meredakan ketegangan otot leher serta
                     punggung.
@@ -184,7 +182,7 @@ export function ClassDetailView({
                   <ul className="mt-4 grid gap-3 sm:grid-cols-2">
                     {item.profile.benefits.map((benefit) => (
                       <li
-                        className="flex items-start gap-3 rounded-none border border-ed-line bg-white p-4 "
+                        className="flex items-start gap-3 rounded-none border border-ed-line bg-white p-4"
                         key={benefit}
                       >
                         <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-ed-green" />
@@ -199,7 +197,7 @@ export function ClassDetailView({
             {/* Sidebar Kanan: Perlengkapan & Studio */}
             <aside className="space-y-6">
               {/* Perlengkapan */}
-              <div className="rounded-none border border-ed-line bg-white p-6 ">
+              <div className="rounded-none border border-ed-line bg-white p-6">
                 <h3 className="flex items-center gap-2 text-lg font-bold text-ed-ink">
                   <Info className="size-5 text-ed-green" />
                   Peralatan Kelas
@@ -209,20 +207,20 @@ export function ClassDetailView({
                 </p>
                 <ul className="mt-4 space-y-2.5">
                   {item.profile.equipment.map((value) => (
-                    <li key={value} className="flex items-center gap-2.5 text-sm text-ed-ink">
-                      <span className="size-2 rounded-full bg-ed-green" />
+                    <li key={value} className="flex items-center gap-2.5 text-sm font-medium text-ed-ink">
+                      <span className="size-1 bg-ed-green" />
                       {value}
                     </li>
                   ))}
                 </ul>
-                <div className="mt-4 rounded-none border border-ed-line/80 bg-ed-cream p-3 text-xs leading-relaxed text-ed-muted">
+                <div className="mt-4 rounded-none border border-ed-line bg-ed-tint/60 p-4 text-xs leading-relaxed text-ed-muted">
                   <strong className="block font-semibold text-ed-ink">Perlengkapan Peserta:</strong>
                   Peralatan reformer dan perlengkapan latihan disediakan lengkap oleh studio. Anda cukup membawa kaus kaki antiselip (<em>grip socks</em>) dan pakaian olahraga yang nyaman.
                 </div>
               </div>
 
               {/* Studio Tersedia */}
-              <div className="rounded-none border border-ed-line bg-ed-cream p-6">
+              <div className="rounded-none border border-ed-line bg-ed-tint/60 p-6">
                 <h3 className="flex items-center gap-2 text-lg font-bold text-ed-ink">
                   <MapPin className="size-5 text-ed-green" />
                   Studio yang Menyediakan Kelas Ini
@@ -253,10 +251,10 @@ export function ClassDetailView({
               <div className="ed-wrap">
                 <div className="flex flex-wrap items-center justify-between gap-4">
                   <div>
-                    <p className="text-xs font-bold tracking-[0.14em] text-ed-green uppercase">
+                    <p className="ed-eyebrow text-ed-green">
                       Pilihan Paket
                     </p>
-                    <h2 className="mt-1 text-2xl font-bold text-ed-ink sm:text-3xl">
+                    <h2 className="mt-1 text-2xl font-bold tracking-tight text-ed-ink sm:text-3xl">
                       Paket Terkait Kelas Ini
                     </h2>
                   </div>
@@ -268,11 +266,11 @@ export function ClassDetailView({
                 <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                   {item.packages.slice(0, 6).map((pkg) => (
                     <article
-                      className="flex flex-col justify-between rounded-none border border-ed-line bg-ed-cream p-6 transition-shadow hover:"
+                      className="flex flex-col justify-between rounded-none border border-ed-line bg-ed-tint/40 p-6 shadow-none"
                       key={`${pkg.id}:${pkg.branch.id}`}
                     >
                       <div>
-                        <span className="inline-block rounded-full bg-dd-success-soft px-2.5 py-0.5 text-[11px] font-bold text-dd-success uppercase">
+                        <span className="inline-block rounded-none border border-ed-green/30 bg-ed-tint px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-ed-forest">
                           {pkg.branch.name}
                         </span>
                         <h3 className="mt-3 text-xl font-bold text-ed-ink">{pkg.name}</h3>
@@ -305,13 +303,13 @@ export function ClassDetailView({
 
           {/* Section 3: Jadwal Mendatang */}
           {item.schedules.length > 0 && (
-            <section className={`ed-wrap py-12`}>
+            <section className="ed-wrap py-12">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
-                  <p className="text-xs font-bold tracking-[0.14em] text-ed-green uppercase">
+                  <p className="ed-eyebrow text-ed-green">
                     Jadwal Terdekat
                   </p>
-                  <h2 className="mt-1 text-2xl font-bold text-ed-ink sm:text-3xl">
+                  <h2 className="mt-1 text-2xl font-bold tracking-tight text-ed-ink sm:text-3xl">
                     Sesi {classNameFormatted} Mendatang
                   </h2>
                 </div>
@@ -332,7 +330,7 @@ export function ClassDetailView({
                     <Link
                       key={schedule.id}
                       href={`/schedule/${schedule.id}`}
-                      className="group flex flex-col justify-between rounded-none border border-ed-line bg-white p-5 no-underline transition-all hover:border-ed-green hover:"
+                      className="group flex flex-col justify-between rounded-none border border-ed-line bg-white p-5 no-underline transition-all hover:border-ed-green"
                     >
                       <div>
                         <div className="flex items-center justify-between gap-2">
@@ -346,12 +344,12 @@ export function ClassDetailView({
                             }).format(sStart)}
                           </span>
                           <span
-                            className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${
+                            className={`rounded-none border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
                               schedule.available < 1
-                                ? 'bg-dd-danger-soft text-dd-danger'
+                                ? 'border-red-900/30 bg-red-50 text-red-900'
                                 : schedule.available <= 2
-                                  ? 'bg-dd-warning-soft text-dd-warning'
-                                  : 'bg-dd-success-soft text-dd-success'
+                                  ? 'border-amber-800/30 bg-amber-50 text-amber-900'
+                                  : 'border-ed-green/30 bg-ed-tint text-ed-forest'
                             }`}
                           >
                             {schedule.available < 1 ? 'Penuh' : `${schedule.available} tempat`}

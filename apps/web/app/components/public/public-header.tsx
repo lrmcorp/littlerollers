@@ -94,7 +94,7 @@ const headerStyles = {
     inner:
       'mx-auto flex min-h-[72px] w-full items-center gap-5 px-5 sm:px-8 lg:min-h-[86px] lg:px-[clamp(20px,4vw,76px)]',
     brand: 'w-[150px] shrink-0 sm:w-[190px] lg:w-[220px]',
-    navList: 'ml-auto hidden items-center gap-[clamp(13px,1.6vw,27px)] lg:flex',
+    navList: 'ml-auto hidden items-center gap-[clamp(16px,1.8vw,28px)] lg:flex',
     navLink:
       'inline-flex min-h-11 items-center whitespace-nowrap border-b-2 py-2 text-[13px] font-semibold text-ed-ink no-underline transition-colors',
     navCurrent: 'border-ed-green',

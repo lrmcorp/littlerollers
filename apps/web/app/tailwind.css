@@ -141,17 +141,15 @@
 @utility ed-display {
   margin: 0;
   font-weight: 400;
-  letter-spacing: -0.072em;
-  /* Spasi antarkata sedikit dilonggarkan: judul Indonesia lebih panjang dari referensi. */
-  word-spacing: 0.05em;
-  line-height: 0.93;
+  letter-spacing: -0.028em;
+  line-height: 1.06;
 }
 
 @utility ed-serif {
   font-family: var(--font-editorial-serif);
   font-style: italic;
   font-weight: 400;
-  letter-spacing: -0.07em;
+  letter-spacing: -0.01em;
 }
 
 @utility ed-eyebrow {

@@ -237,14 +237,14 @@ export function BookingDetailView({
 
   if (loading)
     return (
-      <section className="rounded-dd-xl border border-dd-line bg-white p-6">
+      <section className="rounded-none border border-ed-line bg-white p-6 shadow-none">
         <Skeleton label="Memuat detail booking" />
       </section>
     );
   if (!booking)
     return (
-      <section className="rounded-dd-xl border border-dd-line bg-white p-6">
-        <h1 className="text-2xl font-semibold">Booking tidak tersedia</h1>
+      <section className="rounded-none border border-ed-line bg-white p-6 shadow-none">
+        <h1 className="font-serif text-2xl font-normal tracking-tight text-ed-ink">Booking tidak tersedia</h1>
         {detailError && (
           <div className="mt-4">
             <AlertBanner tone="danger" title="Detail belum dapat dimuat" message={detailError} />
@@ -264,26 +264,26 @@ export function BookingDetailView({
       <header>
         <Link
           href="/bookings"
-          className="inline-flex items-center gap-2 text-sm font-semibold text-dd-forest no-underline"
+          className="inline-flex items-center gap-2 text-sm font-semibold text-ed-forest hover:text-ed-green no-underline"
         >
           <ArrowLeft className="size-4" />
           Booking Saya
         </Link>
-        <p className="mt-5 text-xs font-bold uppercase tracking-[0.16em] text-dd-forest">
+        <p className="mt-5 text-xs font-bold uppercase tracking-[0.18em] text-ed-green">
           Detail booking
         </p>
-        <h1 id="booking-detail-title" className="mt-2 text-2xl font-semibold sm:text-3xl">
+        <h1 id="booking-detail-title" className="font-serif mt-2 text-2xl font-normal tracking-tight text-ed-ink sm:text-3xl">
           {booking.classSlot?.classType.name ?? 'Kelas Daily Dose'}
         </h1>
-        <p className="mt-2 text-sm text-dd-muted">
+        <p className="mt-2 text-sm text-ed-muted">
           {statusLabels[booking.status] ?? 'Status booking'} · Booking •{booking.id.slice(-8)}
         </p>
       </header>
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <article className="rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card">
-          <CalendarDays className="size-6 text-dd-forest" />
-          <h2 className="mt-4 text-sm font-semibold text-dd-ink">Waktu Sesi</h2>
-          <p className="mt-1 text-xs leading-5 text-dd-muted">
+        <article className="rounded-none border border-ed-line bg-white p-5 shadow-none">
+          <CalendarDays className="size-6 text-ed-forest" />
+          <h2 className="mt-4 text-xs font-semibold uppercase tracking-wider text-ed-muted">Waktu Sesi</h2>
+          <p className="font-serif mt-1 text-sm font-normal text-ed-ink leading-relaxed">
             {booking.classSlot
               ? booking.classSlot.startAt.toLocaleString('id-ID', {
                   weekday: 'short',
@@ -297,28 +297,28 @@ export function BookingDetailView({
           </p>
         </article>
 
-        <article className="rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card">
-          <MapPin className="size-6 text-dd-forest" />
-          <h2 className="mt-4 text-sm font-semibold text-dd-ink">Studio & Lokasi</h2>
-          <p className="mt-1 text-xs leading-5 text-dd-muted">
+        <article className="rounded-none border border-ed-line bg-white p-5 shadow-none">
+          <MapPin className="size-6 text-ed-forest" />
+          <h2 className="mt-4 text-xs font-semibold uppercase tracking-wider text-ed-muted">Studio & Lokasi</h2>
+          <p className="font-serif mt-1 text-sm font-normal text-ed-ink leading-relaxed">
             {booking.classSlot?.studio?.name
               ? `${booking.classSlot.studio.name} · ${booking.branch?.name}`
               : (booking.branch?.name ?? 'Studio Daily Dose')}
           </p>
         </article>
 
-        <article className="rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card">
-          <User className="size-6 text-dd-forest" />
-          <h2 className="mt-4 text-sm font-semibold text-dd-ink">Instruktur</h2>
-          <p className="mt-1 text-xs leading-5 text-dd-muted">
+        <article className="rounded-none border border-ed-line bg-white p-5 shadow-none">
+          <User className="size-6 text-ed-forest" />
+          <h2 className="mt-4 text-xs font-semibold uppercase tracking-wider text-ed-muted">Instruktur</h2>
+          <p className="font-serif mt-1 text-sm font-normal text-ed-ink leading-relaxed">
             {booking.classSlot?.instructor?.displayName ?? 'Tim Daily Dose'}
           </p>
         </article>
 
-        <article className="rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card">
-          <Users className="size-6 text-dd-forest" />
-          <h2 className="mt-4 text-sm font-semibold text-dd-ink">Kapasitas Slot</h2>
-          <p className="mt-1 text-xs leading-5 text-dd-muted">
+        <article className="rounded-none border border-ed-line bg-white p-5 shadow-none">
+          <Users className="size-6 text-ed-forest" />
+          <h2 className="mt-4 text-xs font-semibold uppercase tracking-wider text-ed-muted">Kapasitas Slot</h2>
+          <p className="font-serif mt-1 text-sm font-normal text-ed-ink leading-relaxed">
             {booking.classSlot?.capacity
               ? `${booking.classSlot.bookedCount ?? 1}/${booking.classSlot.capacity} terisi (${Math.max(0, booking.classSlot.capacity - (booking.classSlot.bookedCount ?? 1))} sisa tempat)`
               : 'Tersedia'}
@@ -334,16 +334,16 @@ export function BookingDetailView({
       )}
       {booking.status === 'BOOKED' && !booking.attendance && (
         <section
-          className="overflow-hidden rounded-dd-xl border border-dd-forest/20 bg-gradient-to-b from-dd-forest/5 to-white p-6 shadow-dd-card"
+          className="overflow-hidden rounded-none border border-ed-line bg-ed-tint/30 p-6 shadow-none"
           aria-label="Pass Check-in Studio"
         >
           <div className="flex flex-col items-center text-center sm:flex-row sm:items-start sm:text-left sm:gap-6">
             <div className="flex flex-col items-center">
-              <div className="rounded-dd-lg border border-dd-line bg-white p-3 shadow-sm">
+              <div className="rounded-none border border-ed-line bg-white p-3 shadow-none">
                 <canvas ref={canvasRef} className="block size-[220px]" />
               </div>
               {qrLoading && (
-                <p className="mt-2 text-xs text-dd-muted animate-pulse">Menyiapkan QR Pass…</p>
+                <p className="mt-2 text-xs text-ed-muted animate-pulse">Menyiapkan QR Pass…</p>
               )}
               {qrPayload && (
                 <Button
@@ -358,23 +358,23 @@ export function BookingDetailView({
               )}
             </div>
             <div className="mt-4 flex-1 sm:mt-0">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-dd-forest/10 px-3 py-1 text-xs font-bold text-dd-forest">
+              <span className="inline-flex items-center gap-1.5 rounded-none border border-ed-line bg-ed-tint px-3 py-1 text-xs font-semibold uppercase tracking-wider text-ed-forest">
                 <QrCode className="size-3.5" />
                 Pass Check-in Studio
               </span>
-              <h2 className="mt-2 text-lg font-semibold text-dd-ink">
+              <h2 className="font-serif mt-2 text-lg font-normal tracking-tight text-ed-ink">
                 Tunjukkan QR Ini Saat Tiba di Studio
               </h2>
-              <p className="mt-1 text-xs leading-relaxed text-dd-muted sm:text-sm">
+              <p className="mt-1 text-xs leading-relaxed text-ed-muted sm:text-sm">
                 Tunjukkan kode QR ini ke meja resepsionis untuk mencatat kehadiran Anda.
                 QR aktif mulai 30 menit sebelum sesi kelas dimulai.
               </p>
-              <div className="mt-4 flex flex-wrap gap-2 text-xs text-dd-muted">
-                <span className="rounded bg-white px-2.5 py-1 border border-dd-line font-mono font-medium">
+              <div className="mt-4 flex flex-wrap gap-2 text-xs text-ed-muted">
+                <span className="rounded-none bg-white px-2.5 py-1 border border-ed-line font-mono font-medium">
                   Ref: •{booking.id.slice(-8)}
                 </span>
                 {booking.classSlot && (
-                  <span className="rounded bg-white px-2.5 py-1 border border-dd-line">
+                  <span className="rounded-none bg-white px-2.5 py-1 border border-ed-line">
                     Studio: {booking.classSlot.studio?.name ?? booking.branch?.name ?? 'Daily Dose'}
                   </span>
                 )}
@@ -385,7 +385,7 @@ export function BookingDetailView({
                     href={qrPassUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-1 text-xs font-semibold text-dd-forest underline hover:text-dd-ink"
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-ed-forest underline hover:text-ed-green"
                   >
                     Buka tampilan QR layar penuh
                     <ExternalLink className="size-3" />
@@ -393,7 +393,7 @@ export function BookingDetailView({
                 </div>
               )}
               {qrError && !qrPayload && (
-                <p className="mt-3 text-xs text-dd-warning bg-dd-warning-soft rounded-dd-md p-2 border border-dd-warning/30">
+                <p className="mt-3 text-xs text-amber-900 bg-amber-50 rounded-none p-2 border border-amber-800/20">
                   {qrError}
                 </p>
               )}
@@ -485,9 +485,9 @@ export function BookingDetailView({
         />
       )}
       {booking.status === 'BOOKED' && !booking.attendance && (
-        <section className="rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card">
-          <h2 className="text-lg font-semibold">Perubahan atau Pembatalan Booking</h2>
-          <p className="mt-2 text-sm leading-6 text-dd-muted">
+        <section className="rounded-none border border-ed-line bg-white p-5 shadow-none sm:p-6">
+          <h2 className="font-serif text-lg font-normal tracking-tight text-ed-ink">Perubahan atau Pembatalan Booking</h2>
+          <p className="mt-2 text-sm leading-relaxed text-ed-muted">
             Perubahan jadwal (reschedule) dan pembatalan mandiri dapat dilakukan sebelum batas waktu H-24 sebelum kelas dimulai.
           </p>
           <div className="mt-4 flex flex-wrap gap-3">
@@ -516,15 +516,15 @@ export function BookingDetailView({
           </div>
 
           {cancelDialogOpen && (
-            <div className="mt-5 space-y-3 rounded-dd-lg border border-dd-danger/30 bg-dd-danger-soft/60 p-4">
-              <h3 className="text-sm font-semibold text-dd-danger">
+            <div className="mt-5 space-y-3 rounded-none border border-rose-200 bg-rose-50/70 p-4">
+              <h3 className="text-sm font-semibold text-rose-800">
                 Konfirmasi Pembatalan Booking
               </h3>
-              <p className="text-xs leading-relaxed text-dd-danger/90 sm:text-sm">
+              <p className="text-xs leading-relaxed text-rose-800/90 sm:text-sm">
                 Apakah Anda yakin ingin membatalkan booking kelas ini? Kuota sesi paket Anda akan otomatis dikembalikan secara utuh.
               </p>
               {cancelError && (
-                <p className="text-xs font-semibold text-dd-danger bg-dd-danger-soft p-2.5 rounded-dd-md border border-dd-danger/30">
+                <p className="text-xs font-semibold text-rose-800 bg-rose-100 p-2.5 rounded-none border border-rose-300">
                   {cancelError}
                 </p>
               )}
@@ -551,7 +551,7 @@ export function BookingDetailView({
       )}
       {showForm && options?.canRequest && (
         <form
-          className="space-y-5 rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card"
+          className="space-y-5 rounded-none border border-ed-line bg-white p-5 shadow-none sm:p-6"
           aria-label="Pengajuan reschedule"
           onSubmit={(event) => {
             event.preventDefault();
@@ -589,8 +589,8 @@ export function BookingDetailView({
           }}
         >
           <div>
-            <h2 className="text-lg font-semibold">Pilih jadwal pengganti</h2>
-            <p className="mt-1 text-sm text-dd-muted">
+            <h2 className="font-serif text-lg font-normal tracking-tight text-ed-ink">Pilih jadwal pengganti</h2>
+            <p className="mt-1 text-sm text-ed-muted">
               Hanya jadwal yang masih memenuhi syarat ditampilkan.
             </p>
           </div>

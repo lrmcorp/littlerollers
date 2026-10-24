@@ -170,7 +170,7 @@ export function CustomerPaymentFlow({
     <div className="space-y-6">
       <ol
         aria-label="Tahapan checkout"
-        className="grid grid-cols-2 gap-2 rounded-dd-xl border border-dd-line bg-white p-3 sm:grid-cols-4"
+        className="grid grid-cols-2 gap-2 rounded-none border border-ed-line bg-white p-2.5 sm:grid-cols-4"
       >
         {steps.map((label, index) => {
           const number = index + 1;
@@ -180,18 +180,18 @@ export function CustomerPaymentFlow({
             <li
               key={label}
               aria-current={active ? 'step' : undefined}
-              className={`flex items-center gap-2 rounded-dd-lg px-3 py-2 text-xs font-semibold sm:text-sm ${
+              className={`flex items-center gap-2.5 rounded-none px-3 py-2 text-xs font-semibold sm:text-sm ${
                 active
-                  ? 'bg-dd-forest text-white'
+                  ? 'bg-ed-forest text-white'
                   : complete
-                    ? 'bg-dd-success-soft text-dd-success'
-                    : 'text-dd-muted'
+                    ? 'border border-ed-line bg-ed-tint text-ed-forest'
+                    : 'text-ed-muted bg-ed-tint/30'
               }`}
             >
-              <span className="grid size-6 shrink-0 place-items-center rounded-full border border-current text-[11px]">
+              <span className="grid size-5 shrink-0 place-items-center rounded-none border border-current font-serif text-[11px]">
                 {complete ? <Check className="size-3.5" /> : number}
               </span>
-              {label}
+              <span className="tracking-tight">{label}</span>
             </li>
           );
         })}
@@ -251,73 +251,73 @@ export function CustomerPaymentFlow({
       )}
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(320px,.9fr)]">
-        <section className="rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card sm:p-6">
-          <p className="text-xs font-bold uppercase tracking-[0.14em] text-dd-forest">
+        <section className="rounded-none border border-ed-line bg-white p-5 shadow-none sm:p-6">
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-ed-green">
             Ringkasan pesanan
           </p>
           <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
             <div>
-              <h2 className="text-xl font-semibold text-dd-ink sm:text-2xl">{order.packageName}</h2>
-              <p className="mt-1 text-sm text-dd-muted">
+              <h2 className="font-serif text-xl font-normal tracking-tight text-ed-ink sm:text-2xl">{order.packageName}</h2>
+              <p className="mt-1 text-sm text-ed-muted">
                 {order.branchName} · {order.sessionCount} sesi · {order.durationDays} hari
               </p>
             </div>
-            <span className="rounded-full bg-dd-surface-muted px-3 py-1 text-xs font-semibold text-dd-ink">
+            <span className="rounded-none border border-ed-line bg-ed-tint px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wider text-ed-forest">
               {orderStatusLabels[order.status]}
             </span>
           </div>
-          <dl className="mt-6 divide-y divide-dd-line rounded-dd-lg border border-dd-line">
+          <dl className="mt-6 divide-y divide-ed-line rounded-none border border-ed-line">
             <div className="flex items-center justify-between gap-4 px-4 py-3">
-              <dt className="text-sm text-dd-muted">Harga paket</dt>
-              <dd className="font-semibold">{formatRupiah(order.baseAmountRp)}</dd>
+              <dt className="text-sm text-ed-muted">Harga paket</dt>
+              <dd className="font-semibold text-ed-ink">{formatRupiah(order.baseAmountRp)}</dd>
             </div>
             {order.promotion && (
               <div className="flex items-center justify-between gap-4 px-4 py-3">
-                <dt className="text-sm text-dd-muted">Promo paket · {order.promotion.name}</dt>
-                <dd className="font-semibold text-dd-forest">
+                <dt className="text-sm text-ed-muted">Promo paket · {order.promotion.name}</dt>
+                <dd className="font-semibold text-ed-forest">
                   -{formatRupiah(order.promotion.discountRp)}
                 </dd>
               </div>
             )}
             {order.promotion && (
               <div className="flex items-center justify-between gap-4 px-4 py-3">
-                <dt className="text-sm text-dd-muted">Harga promo</dt>
-                <dd className="font-semibold">
+                <dt className="text-sm text-ed-muted">Harga promo</dt>
+                <dd className="font-semibold text-ed-ink">
                   {formatRupiah(order.promotionalPriceRp ?? order.baseAmountRp)}
                 </dd>
               </div>
             )}
             {order.voucher && (
               <div className="flex items-center justify-between gap-4 px-4 py-3">
-                <dt className="text-sm text-dd-muted">Diskon voucher · {order.voucher.code}</dt>
-                <dd className="font-semibold text-dd-forest">
+                <dt className="text-sm text-ed-muted">Diskon voucher · {order.voucher.code}</dt>
+                <dd className="font-semibold text-ed-forest">
                   -{formatRupiah(order.voucher.discountRp)}
                 </dd>
               </div>
             )}
             {order.priceAfterDiscountRp !== order.baseAmountRp && (
               <div className="flex items-center justify-between gap-4 px-4 py-3">
-                <dt className="text-sm text-dd-muted">Harga setelah diskon</dt>
-                <dd className="font-semibold">
+                <dt className="text-sm text-ed-muted">Harga setelah diskon</dt>
+                <dd className="font-semibold text-ed-ink">
                   {formatRupiah(order.priceAfterDiscountRp ?? order.baseAmountRp)}
                 </dd>
               </div>
             )}
-            <div className="flex items-center justify-between gap-4 bg-dd-surface-muted px-4 py-4">
+            <div className="flex items-center justify-between gap-4 bg-ed-tint/50 px-4 py-4">
               <dt>
-                <span className="block font-semibold text-dd-ink">
+                <span className="block font-semibold text-ed-ink">
                   Nominal yang perlu ditransfer
                 </span>
-                <span className="mt-1 block text-xs text-dd-muted">
+                <span className="mt-1 block text-xs text-ed-muted">
                   {paymentCode ? `Identifikasi transfer · ${paymentCode}` : 'Nominal standar'}
                 </span>
               </dt>
-              <dd className="text-xl font-bold text-dd-forest">
+              <dd className="font-serif text-2xl font-normal text-ed-forest">
                 {formatRupiah(order.payableAmountRp)}
               </dd>
             </div>
           </dl>
-          <p className="mt-4 text-xs leading-5 text-dd-muted">
+          <p className="mt-4 text-xs leading-relaxed text-ed-muted">
             Tiga digit terakhir pada nominal membantu tim Finance mencocokkan transfer manual dengan
             pesanan Anda.
           </p>
@@ -325,10 +325,10 @@ export function CustomerPaymentFlow({
 
         {['AWAITING_PAYMENT', 'ACTION_REQUIRED'].includes(order.status) ? (
           paymentMethod === 'QRIS' ? (
-            <section className="rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card sm:p-6">
+            <section className="rounded-none border border-ed-line bg-white p-5 shadow-none sm:p-6">
               {/* Tab Selector (UAT #26) */}
               <div
-                className="mb-5 flex rounded-dd-lg border border-dd-line bg-dd-surface-muted p-1"
+                className="mb-5 flex rounded-none border border-ed-line bg-ed-tint/50 p-1"
                 role="tablist"
                 aria-label="Pilihan Metode Pembayaran"
               >
@@ -337,7 +337,7 @@ export function CustomerPaymentFlow({
                   role="tab"
                   aria-selected="true"
                   onClick={() => setPaymentMethod('QRIS')}
-                  className="flex flex-1 items-center justify-center gap-1.5 rounded-dd-md bg-dd-forest px-3 py-2 text-xs font-bold text-white shadow-xs cursor-pointer"
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-none bg-ed-forest px-3 py-2 text-xs font-semibold text-white shadow-none cursor-pointer"
                 >
                   <QrCode className="size-4" />
                   <span>QRIS Instan</span>
@@ -347,7 +347,7 @@ export function CustomerPaymentFlow({
                   role="tab"
                   aria-selected="false"
                   onClick={() => setPaymentMethod('BANK_TRANSFER')}
-                  className="flex flex-1 items-center justify-center gap-1.5 rounded-dd-md px-3 py-2 text-xs font-bold text-dd-ink transition-all hover:text-dd-forest cursor-pointer"
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-none px-3 py-2 text-xs font-semibold text-ed-ink transition-all hover:text-ed-forest cursor-pointer"
                 >
                   <Smartphone className="size-4" />
                   <span>Transfer Bank</span>
@@ -355,64 +355,64 @@ export function CustomerPaymentFlow({
               </div>
 
               <div className="text-center">
-                <div className="inline-flex items-center gap-2 rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-bold text-rose-600">
+                <div className="inline-flex items-center gap-2 rounded-none border border-rose-300 bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700">
                   <span>QRIS</span>
                   <span className="text-rose-300">·</span>
                   <span className="font-semibold text-rose-800">Standar Pembayaran Nasional</span>
                 </div>
-                <h2 className="mt-2 text-xl font-bold text-dd-ink">Scan QRIS Instan</h2>
-                <p className="text-xs text-dd-muted">
+                <h2 className="font-serif mt-2 text-xl font-normal tracking-tight text-ed-ink">Scan QRIS Instan</h2>
+                <p className="text-xs text-ed-muted">
                   NMID: ID1020038829101 · Daily Dose Pilates {order.branchName}
                 </p>
               </div>
 
-              <div className="mt-4 flex flex-col items-center justify-center rounded-dd-xl border-2 border-dashed border-dd-line bg-dd-paper p-4 sm:p-5">
-                <div className="flex flex-col items-center rounded-dd-lg border border-dd-line bg-white p-4 shadow-sm">
+              <div className="mt-4 flex flex-col items-center justify-center rounded-none border-2 border-dashed border-ed-line bg-ed-tint/20 p-4 sm:p-5">
+                <div className="flex flex-col items-center rounded-none border border-ed-line bg-white p-4 shadow-none">
                   <QrisSvgPattern />
-                  <div className="mt-3 flex items-center gap-1.5 text-[11px] font-semibold text-dd-forest">
-                    <CheckCircle2 className="size-3.5 text-dd-forest" />
+                  <div className="mt-3 flex items-center gap-1.5 text-[11px] font-semibold text-ed-forest">
+                    <CheckCircle2 className="size-3.5 text-ed-forest" />
                     <span>Nominal Otomatis Terdeteksi</span>
                   </div>
                 </div>
 
-                <div className="mt-4 flex w-full items-center justify-between rounded-dd-lg border border-dd-line bg-white p-3">
+                <div className="mt-4 flex w-full items-center justify-between rounded-none border border-ed-line bg-white p-3">
                   <div>
-                    <span className="text-[11px] font-semibold uppercase tracking-wider text-dd-muted">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-ed-muted">
                       Nominal Pembayaran
                     </span>
-                    <strong className="block text-lg font-bold text-dd-forest">
+                    <strong className="block font-serif text-lg font-normal text-ed-forest">
                       {formatRupiah(order.payableAmountRp)}
                     </strong>
                   </div>
                   <button
                     type="button"
                     onClick={() => copy(String(order.payableAmountRp), 'Nominal')}
-                    className="flex items-center gap-1 rounded-dd-md border border-dd-line px-3 py-1.5 text-xs font-semibold text-dd-ink hover:bg-dd-paper cursor-pointer"
+                    className="flex items-center gap-1 rounded-none border border-ed-line px-3 py-1.5 text-xs font-semibold text-ed-ink hover:bg-ed-tint cursor-pointer"
                   >
                     <Clipboard className="size-3.5" />
                     <span>Salin</span>
                   </button>
                 </div>
 
-                <div className="mt-3 flex items-center gap-2 text-xs font-medium text-dd-muted">
-                  <Clock3 className="size-4 shrink-0 text-dd-warning" />
+                <div className="mt-3 flex items-center gap-2 text-xs font-medium text-ed-muted">
+                  <Clock3 className="size-4 shrink-0 text-amber-800" />
                   <span>
                     {remaining > 0 ? `${durationLabel} tersisa` : 'Batas pembayaran berakhir'}
                   </span>
                 </div>
               </div>
 
-              <div className="mt-4 rounded-dd-lg bg-dd-surface-muted p-3 text-center">
-                <span className="block text-[11px] font-bold uppercase tracking-wider text-dd-muted">
+              <div className="mt-4 rounded-none border border-ed-line bg-ed-tint/40 p-3 text-center">
+                <span className="block text-[11px] font-semibold uppercase tracking-wider text-ed-muted">
                   Didukung oleh semua aplikasi
                 </span>
-                <p className="mt-1 text-xs font-semibold text-dd-ink">
+                <p className="mt-1 text-xs font-semibold text-ed-ink">
                   GoPay · OVO · ShopeePay · DANA · BCA · Mandiri · BRImo · BNI · Semua Bank
                 </p>
               </div>
 
-              <div className="mt-4 space-y-1.5 text-xs text-dd-muted">
-                <p className="font-bold text-dd-ink">Langkah Pembayaran:</p>
+              <div className="mt-4 space-y-1.5 text-xs text-ed-muted">
+                <p className="font-semibold text-ed-ink">Langkah Pembayaran:</p>
                 <ol className="list-decimal list-inside space-y-1 pl-1">
                   <li>Buka aplikasi m-Banking atau E-Wallet Anda.</li>
                   <li>Pilih menu <strong>Scan QR / Bayar QRIS</strong>.</li>
@@ -422,12 +422,12 @@ export function CustomerPaymentFlow({
                 </ol>
               </div>
 
-              <div className="mt-5 border-t border-dd-line pt-4">
+              <div className="mt-5 border-t border-ed-line pt-4">
                 <a
                   href={waUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex w-full items-center justify-center gap-2 rounded-dd-lg bg-[#25D366] px-4 py-2.5 text-xs font-bold text-white shadow-sm transition-colors hover:bg-[#20ba5a] sm:text-sm"
+                  className="flex w-full items-center justify-center gap-2 rounded-none bg-[#208346] hover:bg-[#1a6e3a] px-4 py-2.5 text-xs font-semibold text-white shadow-none transition-colors sm:text-sm"
                 >
                   <MessageCircle className="size-4" />
                   <span>Konfirmasi via WhatsApp CS</span>
@@ -435,10 +435,10 @@ export function CustomerPaymentFlow({
               </div>
             </section>
           ) : paymentAccountAvailable ? (
-            <section className="rounded-dd-xl border border-dd-forest/25 bg-dd-forest p-5 text-white shadow-dd-card sm:p-6">
+            <section className="rounded-none border border-ed-forest bg-ed-forest p-5 text-white shadow-none sm:p-6">
               {/* Tab Selector (UAT #26) */}
               <div
-                className="mb-5 flex rounded-dd-lg border border-white/20 bg-white/10 p-1"
+                className="mb-5 flex rounded-none border border-white/20 bg-white/10 p-1"
                 role="tablist"
                 aria-label="Pilihan Metode Pembayaran"
               >
@@ -447,7 +447,7 @@ export function CustomerPaymentFlow({
                   role="tab"
                   aria-selected="false"
                   onClick={() => setPaymentMethod('QRIS')}
-                  className="flex flex-1 items-center justify-center gap-1.5 rounded-dd-md px-3 py-2 text-xs font-bold text-white/80 transition-all hover:text-white cursor-pointer"
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-none px-3 py-2 text-xs font-semibold text-white/80 transition-all hover:text-white cursor-pointer"
                 >
                   <QrCode className="size-4" />
                   <span>QRIS Instan</span>
@@ -457,18 +457,18 @@ export function CustomerPaymentFlow({
                   role="tab"
                   aria-selected="true"
                   onClick={() => setPaymentMethod('BANK_TRANSFER')}
-                  className="flex flex-1 items-center justify-center gap-1.5 rounded-dd-md bg-white px-3 py-2 text-xs font-bold text-dd-forest shadow-xs cursor-pointer"
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-none bg-white px-3 py-2 text-xs font-semibold text-ed-forest shadow-none cursor-pointer"
                 >
                   <Smartphone className="size-4" />
                   <span>Transfer Bank</span>
                 </button>
               </div>
 
-              <p className="text-xs font-bold uppercase tracking-[0.14em] text-white/65">
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/70">
                 Tujuan transfer
               </p>
-              <h2 className="mt-2 text-xl font-semibold">{order.paymentAccount!.bankName}</h2>
-              <p className="mt-1 text-sm text-white/70">
+              <h2 className="font-serif mt-2 text-xl font-normal tracking-tight">{order.paymentAccount!.bankName}</h2>
+              <p className="mt-1 text-sm text-white/75">
                 a.n. {order.paymentAccount!.accountHolderName}
               </p>
               <div className="mt-5 space-y-3">
@@ -483,7 +483,7 @@ export function CustomerPaymentFlow({
                   onCopy={() => copy(String(order.payableAmountRp), 'Nominal transfer')}
                 />
               </div>
-              <div className="mt-5 flex items-center gap-2 rounded-dd-lg bg-white/10 px-3 py-3 text-sm">
+              <div className="mt-5 flex items-center gap-2 rounded-none border border-white/20 bg-white/10 px-3 py-3 text-sm">
                 <Clock3 className="size-4 shrink-0" />
                 <span>
                   {remaining > 0 ? `${durationLabel} tersisa` : 'Batas pembayaran berakhir'}
@@ -495,7 +495,7 @@ export function CustomerPaymentFlow({
                   href={waUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex w-full items-center justify-center gap-2 rounded-dd-lg bg-[#25D366] px-4 py-2.5 text-xs font-bold text-white shadow-sm transition-colors hover:bg-[#20ba5a] sm:text-sm"
+                  className="flex w-full items-center justify-center gap-2 rounded-none bg-[#208346] hover:bg-[#1a6e3a] px-4 py-2.5 text-xs font-semibold text-white shadow-none transition-colors sm:text-sm"
                 >
                   <MessageCircle className="size-4" />
                   <span>Konfirmasi via WhatsApp CS</span>
@@ -503,9 +503,9 @@ export function CustomerPaymentFlow({
               </div>
             </section>
           ) : (
-            <section className="rounded-dd-xl border border-dd-line bg-dd-surface-muted p-5 shadow-dd-card sm:p-6">
+            <section className="rounded-none border border-ed-line bg-ed-tint/40 p-5 shadow-none sm:p-6">
               <div
-                className="mb-5 flex rounded-dd-lg border border-dd-line bg-white p-1"
+                className="mb-5 flex rounded-none border border-ed-line bg-white p-1"
                 role="tablist"
                 aria-label="Pilihan Metode Pembayaran"
               >
@@ -514,7 +514,7 @@ export function CustomerPaymentFlow({
                   role="tab"
                   aria-selected="false"
                   onClick={() => setPaymentMethod('QRIS')}
-                  className="flex flex-1 items-center justify-center gap-1.5 rounded-dd-md bg-dd-forest px-3 py-2 text-xs font-bold text-white shadow-xs cursor-pointer"
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-none bg-ed-forest px-3 py-2 text-xs font-semibold text-white shadow-none cursor-pointer"
                 >
                   <QrCode className="size-4" />
                   <span>QRIS Instan</span>
@@ -524,30 +524,30 @@ export function CustomerPaymentFlow({
                   role="tab"
                   aria-selected="true"
                   onClick={() => setPaymentMethod('BANK_TRANSFER')}
-                  className="flex flex-1 items-center justify-center gap-1.5 rounded-dd-md px-3 py-2 text-xs font-bold text-dd-ink cursor-pointer"
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-none px-3 py-2 text-xs font-semibold text-ed-ink cursor-pointer"
                 >
                   <Smartphone className="size-4" />
                   <span>Transfer Bank</span>
                 </button>
               </div>
 
-              <p className="text-xs font-bold uppercase tracking-[0.14em] text-dd-muted">
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-ed-green">
                 Informasi rekening
               </p>
-              <h2 className="mt-2 text-xl font-semibold">Rekening transfer manual tidak tersedia</h2>
-              <p className="mt-2 text-sm leading-6 text-dd-muted">
+              <h2 className="font-serif mt-2 text-xl font-normal tracking-tight text-ed-ink">Rekening transfer manual tidak tersedia</h2>
+              <p className="mt-2 text-sm leading-relaxed text-ed-muted">
                 Pesanan ini tidak memiliki snapshot rekening bank. Silakan gunakan metode{' '}
-                <strong>QRIS Instan</strong> di tab sebelah untuk melakukan pembayaran langsung.
+                <strong className="text-ed-ink">QRIS Instan</strong> di tab sebelah untuk melakukan pembayaran langsung.
               </p>
             </section>
           )
         ) : paymentAccountAvailable ? (
-          <section className="rounded-dd-xl border border-dd-forest/25 bg-dd-forest p-5 text-white shadow-dd-card sm:p-6">
-            <p className="text-xs font-bold uppercase tracking-[0.14em] text-white/65">
+          <section className="rounded-none border border-ed-forest bg-ed-forest p-5 text-white shadow-none sm:p-6">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/70">
               Tujuan transfer
             </p>
-            <h2 className="mt-2 text-xl font-semibold">{order.paymentAccount!.bankName}</h2>
-            <p className="mt-1 text-sm text-white/70">
+            <h2 className="font-serif mt-2 text-xl font-normal tracking-tight">{order.paymentAccount!.bankName}</h2>
+            <p className="mt-1 text-sm text-white/75">
               a.n. {order.paymentAccount!.accountHolderName}
             </p>
             <div className="mt-5 space-y-3">
@@ -562,7 +562,7 @@ export function CustomerPaymentFlow({
                 onCopy={() => copy(String(order.payableAmountRp), 'Nominal transfer')}
               />
             </div>
-            <div className="mt-5 flex items-center gap-2 rounded-dd-lg bg-white/10 px-3 py-3 text-sm">
+            <div className="mt-5 flex items-center gap-2 rounded-none border border-white/20 bg-white/10 px-3 py-3 text-sm">
               <Clock3 className="size-4 shrink-0" />
               <span>
                 {remaining > 0 ? `${durationLabel} tersisa` : 'Batas pembayaran berakhir'}
@@ -571,17 +571,17 @@ export function CustomerPaymentFlow({
           </section>
         ) : (
           <section
-            className={`rounded-dd-xl border border-dd-line bg-dd-surface-muted ${
+            className={`rounded-none border border-ed-line bg-ed-tint/40 ${
               ['AWAITING_PAYMENT', 'ACTION_REQUIRED'].includes(order.status)
-                ? 'p-5 shadow-dd-card sm:p-6'
+                ? 'p-5 shadow-none sm:p-6'
                 : 'p-4'
             }`}
           >
-            <p className="text-xs font-bold uppercase tracking-[0.14em] text-dd-muted">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-ed-green">
               Informasi rekening
             </p>
             <h2
-              className={`mt-2 font-semibold ${
+              className={`font-serif mt-2 font-normal tracking-tight text-ed-ink ${
                 ['AWAITING_PAYMENT', 'ACTION_REQUIRED'].includes(order.status)
                   ? 'text-xl'
                   : 'text-base'
@@ -589,7 +589,7 @@ export function CustomerPaymentFlow({
             >
               Rekening tidak tersedia
             </h2>
-            <p className="mt-2 text-sm leading-6 text-dd-muted">
+            <p className="mt-2 text-sm leading-relaxed text-ed-muted">
               {['AWAITING_PAYMENT', 'ACTION_REQUIRED'].includes(order.status)
                 ? 'Pesanan ini tidak memiliki snapshot rekening yang aman untuk digunakan. Jangan melakukan transfer untuk pesanan ini.'
                 : 'Informasi rekening tidak tersimpan pada pesanan lama ini. Status dan histori transaksi tetap dapat dilihat.'}
@@ -605,21 +605,21 @@ export function CustomerPaymentFlow({
 
       {order.paymentProofId && (
         <section
-          className="rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card sm:p-6"
+          className="rounded-none border border-ed-line bg-white p-5 shadow-none sm:p-6"
           aria-labelledby="payment-proof-title"
         >
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="flex items-start gap-3">
               <span
-                className={`grid size-11 shrink-0 place-items-center rounded-dd-lg ${proofVisual.classes}`}
+                className={`grid size-11 shrink-0 place-items-center rounded-none border border-ed-line ${proofVisual.classes}`}
               >
                 <ProofIcon className="size-5" aria-hidden="true" />
               </span>
               <div>
-                <h2 id="payment-proof-title" className="text-lg font-semibold">
+                <h2 id="payment-proof-title" className="font-serif text-lg font-normal tracking-tight text-ed-ink">
                   Bukti pembayaran yang dikirim
                 </h2>
-                <p className="mt-1 text-sm text-dd-muted">
+                <p className="mt-1 text-sm text-ed-muted">
                   {proofStatusLabel(order.paymentProofStatus)}
                 </p>
               </div>
@@ -650,11 +650,11 @@ export function CustomerPaymentFlow({
           </div>
 
           {order.status === 'PENDING' && (
-            <div className="mt-4 flex items-start gap-2.5 rounded-dd-lg border border-dd-info/30 bg-dd-info-soft/70 p-3.5 text-xs text-dd-info sm:text-sm">
-              <Clock3 className="size-4 shrink-0 text-dd-info mt-0.5" />
+            <div className="mt-4 flex items-start gap-2.5 rounded-none border border-ed-line bg-ed-tint/60 p-3.5 text-xs text-ed-forest sm:text-sm">
+              <Clock3 className="size-4 shrink-0 text-ed-forest mt-0.5" />
               <div>
-                <p className="font-semibold text-dd-ink">Estimasi verifikasi: 15–30 menit</p>
-                <p className="mt-0.5 text-dd-muted">
+                <p className="font-semibold text-ed-ink">Estimasi verifikasi: 15–30 menit</p>
+                <p className="mt-0.5 text-ed-muted">
                   Tim Finance memverifikasi transaksi setiap hari pukul 07.00 – 21.00 WIB. Begitu diverifikasi, saldo paket Anda otomatis bertambah dan siap dipakai untuk memesan kelas.
                 </p>
               </div>
@@ -674,7 +674,7 @@ export function CustomerPaymentFlow({
             <div
               ref={proofPreviewRef}
               tabIndex={-1}
-              className="mt-5 outline-none focus-visible:ring-2 focus-visible:ring-dd-forest"
+              className="mt-5 outline-none focus-visible:ring-1 focus-visible:ring-ed-forest"
               role="region"
               aria-label="Preview bukti pembayaran"
             >
@@ -682,14 +682,14 @@ export function CustomerPaymentFlow({
                 <img
                   src={proofPreviewUrl}
                   alt="Bukti pembayaran yang dikirim"
-                  className="max-h-[34rem] w-full rounded-dd-lg border border-dd-line bg-white object-contain"
+                  className="max-h-[34rem] w-full rounded-none border border-ed-line bg-white object-contain"
                 />
               ) : (
                 <object
                   data={proofPreviewUrl}
                   type={proofPreviewType}
                   title="Bukti pembayaran yang dikirim"
-                  className="h-[34rem] w-full rounded-dd-lg border border-dd-line bg-white"
+                  className="h-[34rem] w-full rounded-none border border-ed-line bg-white"
                 >
                   <p>Preview PDF tidak didukung browser ini.</p>
                 </object>
@@ -698,7 +698,7 @@ export function CustomerPaymentFlow({
           ) : (
             !proofPreviewError && (
               <div
-                className="mt-5 rounded-dd-lg border border-dashed border-dd-forest/25 bg-dd-surface-muted px-5 py-4 text-sm leading-6 text-dd-muted"
+                className="mt-5 rounded-none border border-dashed border-ed-line bg-ed-tint/30 px-5 py-4 text-sm leading-relaxed text-ed-muted"
                 role="status"
                 aria-live="polite"
               >
@@ -712,27 +712,27 @@ export function CustomerPaymentFlow({
       )}
 
       {canUpload && (
-        <section className="rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card sm:p-6">
+        <section className="rounded-none border border-ed-line bg-white p-5 shadow-none sm:p-6">
           <div className="flex items-start gap-3">
-            <span className="grid size-11 shrink-0 place-items-center rounded-dd-lg bg-dd-brass-soft text-dd-warning">
+            <span className="grid size-11 shrink-0 place-items-center rounded-none border border-amber-800/20 bg-amber-50 text-amber-900">
               <UploadCloud className="size-5" />
             </span>
             <div>
-              <h2 className="text-lg font-semibold">
+              <h2 className="font-serif text-lg font-normal tracking-tight text-ed-ink">
                 {order.status === 'ACTION_REQUIRED'
                   ? 'Unggah bukti pengganti'
                   : 'Unggah bukti pembayaran'}
               </h2>
-              <p className="mt-1 text-sm leading-6 text-dd-muted">
+              <p className="mt-1 text-sm leading-relaxed text-ed-muted">
                 JPEG, PNG, atau PDF maksimum 10 MB. Pastikan nominal dan tujuan transfer terlihat
                 jelas.
               </p>
             </div>
           </div>
-          <label className="mt-5 flex min-h-32 cursor-pointer flex-col items-center justify-center rounded-dd-xl border border-dashed border-dd-line bg-dd-surface-muted p-5 text-center focus-within:ring-2 focus-within:ring-dd-forest">
-            <UploadCloud className="size-7 text-dd-forest" />
-            <strong className="mt-2 text-sm">Pilih atau jatuhkan bukti pembayaran</strong>
-            <span className="mt-1 text-xs text-dd-muted">JPEG, PNG, PDF · maks. 10 MB</span>
+          <label className="mt-5 flex min-h-32 cursor-pointer flex-col items-center justify-center rounded-none border border-dashed border-ed-line bg-ed-tint/30 p-5 text-center focus-within:ring-1 focus-within:ring-ed-forest">
+            <UploadCloud className="size-7 text-ed-forest" />
+            <strong className="mt-2 text-sm text-ed-ink">Pilih atau jatuhkan bukti pembayaran</strong>
+            <span className="mt-1 text-xs text-ed-muted">JPEG, PNG, PDF · maks. 10 MB</span>
             <input
               className="sr-only"
               type="file"
@@ -764,14 +764,14 @@ export function CustomerPaymentFlow({
               width={720}
               height={420}
               unoptimized
-              className="mt-4 max-h-72 w-full rounded-dd-lg border border-dd-line object-contain"
+              className="mt-4 max-h-72 w-full rounded-none border border-ed-line object-contain"
             />
           )}
           {file && (
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-dd-lg border border-dd-line px-4 py-3">
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-none border border-ed-line bg-white px-4 py-3">
               <div className="min-w-0">
-                <strong className="block truncate text-sm">{file.name}</strong>
-                <span className="text-xs text-dd-muted">
+                <strong className="block truncate text-sm text-ed-ink">{file.name}</strong>
+                <span className="text-xs text-ed-muted">
                   {(file.size / 1024 / 1024).toFixed(2)} MB
                 </span>
               </div>
@@ -790,7 +790,7 @@ export function CustomerPaymentFlow({
               </Button>
             </div>
           )}
-          <p className="mt-4 min-h-5 text-sm text-dd-muted" aria-live="polite" role="status">
+          <p className="mt-4 min-h-5 text-sm text-ed-muted" aria-live="polite" role="status">
             {busy && uploadSession
               ? uploadStageLabels[uploadSession.stage]
               : !file
@@ -891,26 +891,26 @@ function proofStatusVisual(status: CustomerOrder['paymentProofStatus']) {
   if (!status)
     return {
       icon: FileQuestion,
-      classes: 'bg-dd-surface-muted text-dd-muted',
+      classes: 'bg-ed-tint/60 text-ed-muted',
     };
   if (status.uploadStatus !== 'FINALIZED' || status.scanStatus === 'PENDING')
     return {
       icon: status.uploadStatus === 'FINALIZED' ? FileClock : UploadCloud,
-      classes: 'bg-dd-info-soft text-dd-info',
+      classes: 'bg-sky-50 text-sky-800 border-sky-200',
     };
   if (status.scanStatus === 'CLEAN')
     return {
       icon: FileCheck2,
-      classes: 'bg-dd-success-soft text-dd-success',
+      classes: 'bg-ed-tint text-ed-forest border-ed-line',
     };
   if (['REJECTED', 'INFECTED', 'ERROR'].includes(status.scanStatus))
     return {
       icon: AlertTriangle,
-      classes: 'bg-dd-danger-soft text-dd-danger',
+      classes: 'bg-rose-50 text-rose-800 border-rose-200',
     };
   return {
     icon: FileQuestion,
-    classes: 'bg-dd-surface-muted text-dd-muted',
+    classes: 'bg-ed-tint/60 text-ed-muted',
   };
 }
 
@@ -926,18 +926,18 @@ function proofUnavailableLabel(status: CustomerOrder['paymentProofStatus']) {
 
 function CopyRow({ label, value, onCopy }: { label: string; value: string; onCopy(): void }) {
   return (
-    <div className="rounded-dd-lg border border-white/15 bg-white/10 p-3">
-      <span className="block text-[11px] font-semibold uppercase tracking-[0.12em] text-white/60">
+    <div className="rounded-none border border-white/20 bg-white/10 p-3">
+      <span className="block text-[11px] font-semibold uppercase tracking-[0.14em] text-white/70">
         {label}
       </span>
       <div className="mt-1 flex items-center justify-between gap-3">
-        <strong className="break-all text-lg">{value || 'Tidak tersedia'}</strong>
+        <strong className="break-all font-serif text-lg font-normal">{value || 'Tidak tersedia'}</strong>
         <IconButton
           label={`Salin ${label.toLowerCase()}`}
           variant="ghost"
           onClick={onCopy}
           disabled={!value}
-          className="size-9 border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white"
+          className="size-9 rounded-none border border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white"
         >
           <Clipboard className="size-4" />
         </IconButton>

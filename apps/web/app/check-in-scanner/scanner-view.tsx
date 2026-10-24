@@ -130,7 +130,7 @@ export function CheckInScannerView() {
         titleId="scanner-title"
         description={
           mode === 'instructor'
-            ? 'Pindai QR presensi yang ditampilkan staf studio 30 menit sebelum kelas. Presensi hanya tercatat untuk instruktur pemilik kelas.'
+            ? 'Arahkan kamera HP ke layar Kiosk / tablet meja resepsionis studio untuk mencatat kehadiran mengajar Anda (tersedia 30 menit sebelum kelas).'
             : 'Pindai QR pass pelanggan saat datang. Backend memvalidasi booking, cabang, status, dan window jadwal.'
         }
         actions={

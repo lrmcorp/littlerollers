@@ -93,6 +93,20 @@ export const frontendPages: FrontendPageDefinition[] = [
     roleRelevance: ['ADMIN', 'MANAGER', 'SUPER_OWNER', 'INSTRUCTOR', 'COACH'],
   },
   {
+    href: '/kiosk',
+    label: 'Layar Kiosk Studio',
+    shortLabel: 'Kiosk Studio',
+    description:
+      'Layar penuh Kiosk untuk tablet meja resepsionis studio untuk menampilkan jadwal dan QR presensi instruktur otomatis.',
+    group: 'Operasional Studio',
+    capabilities: [],
+    priority: 5,
+    branchScope: 'topbar',
+    accent: 'info',
+    icon: 'tv',
+    roleRelevance: ['ADMIN', 'MANAGER', 'SUPER_OWNER', 'OWNER'],
+  },
+  {
     href: '/support-cases',
     label: 'Bantuan Pelanggan',
     shortLabel: 'Bantuan',
@@ -179,6 +193,7 @@ export const frontendPages: FrontendPageDefinition[] = [
     priority: 11,
     branchScope: 'topbar',
     accent: 'neutral',
+    roleRelevance: ['SUPER_OWNER', 'OWNER', 'MANAGER', 'ADMIN', 'FINANCE'],
   },
   {
     href: '/identity-verifications',

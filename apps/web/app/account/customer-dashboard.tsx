@@ -62,7 +62,7 @@ export function CustomerDashboard() {
   if (!session) return null;
   if (loading)
     return (
-      <section className="rounded-dd-xl border border-dd-line bg-white p-6">
+      <section className="rounded-none border border-ed-line bg-white p-6 shadow-none">
         <Skeleton label="Menyiapkan dashboard" />
       </section>
     );
@@ -87,13 +87,13 @@ export function CustomerDashboard() {
     <main className="space-y-7" aria-labelledby="customer-dashboard-title">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-dd-forest">
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-ed-green">
             Beranda Member
           </p>
-          <h1 id="customer-dashboard-title" className="mt-2 text-2xl font-semibold sm:text-3xl">
+          <h1 id="customer-dashboard-title" className="font-serif mt-2 text-2xl font-normal tracking-tight text-ed-ink sm:text-3xl">
             Halo, {session.displayName}
           </h1>
-          <p className="mt-2 text-sm leading-6 text-dd-muted">
+          <p className="mt-2 text-sm leading-relaxed text-ed-muted">
             Jadwal, paket, dan pembayaran yang perlu Anda perhatikan.
           </p>
         </div>
@@ -171,13 +171,13 @@ export function CustomerDashboard() {
           {overview?.upcomingBookings.map((booking) => (
             <article
               key={booking.id}
-              className="flex flex-wrap items-center justify-between gap-3 border-t border-dd-line py-4 first:border-t-0"
+              className="flex flex-wrap items-center justify-between gap-3 border-t border-ed-line py-4 first:border-t-0"
             >
               <div>
-                <strong className="block text-sm">{booking.className}</strong>
-                <span className="mt-1 block text-xs text-dd-muted">{booking.branchName}</span>
+                <strong className="block text-sm text-ed-ink">{booking.className}</strong>
+                <span className="mt-1 block text-xs text-ed-muted">{booking.branchName}</span>
               </div>
-              <time className="text-right text-sm font-semibold">
+              <time className="font-serif text-right text-sm font-normal text-ed-forest">
                 {new Date(booking.startAt).toLocaleString('id-ID', {
                   weekday: 'short',
                   day: 'numeric',
@@ -202,15 +202,15 @@ export function CustomerDashboard() {
             <Link
               href={`/checkout?order=${encodeURIComponent(order.id)}`}
               key={order.id}
-              className="flex flex-wrap items-center justify-between gap-3 border-t border-dd-line py-4 text-dd-ink no-underline first:border-t-0"
+              className="flex flex-wrap items-center justify-between gap-3 border-t border-ed-line py-4 text-ed-ink no-underline transition-colors hover:bg-ed-tint/30 first:border-t-0"
             >
               <div>
-                <strong className="block text-sm">{order.packageName}</strong>
-                <span className="mt-1 block text-xs text-dd-muted">
+                <strong className="block text-sm text-ed-ink">{order.packageName}</strong>
+                <span className="mt-1 block text-xs text-ed-muted">
                   {order.branchName} · {orderStatusLabels[order.status]}
                 </span>
               </div>
-              <strong className="text-sm text-dd-forest">
+              <strong className="font-serif text-sm font-normal text-ed-forest">
                 {formatRupiah(order.payableAmountRp)}
               </strong>
             </Link>
@@ -227,14 +227,14 @@ export function CustomerDashboard() {
       >
         <div className="grid gap-3 sm:grid-cols-2">
           {overview?.packages.map((item) => (
-            <article key={item.id} className="rounded-dd-lg bg-dd-surface-muted p-4">
-              <span className="text-xs font-semibold text-dd-muted">{item.branchName}</span>
-              <strong className="mt-1 block">{item.packageName}</strong>
+            <article key={item.id} className="rounded-none border border-ed-line bg-ed-tint/40 p-4">
+              <span className="text-xs font-semibold uppercase tracking-wider text-ed-muted">{item.branchName}</span>
+              <strong className="mt-1 block font-serif text-base font-normal text-ed-ink">{item.packageName}</strong>
               <div className="mt-4 flex items-end justify-between gap-3">
-                <span className="text-sm text-dd-muted">
+                <span className="text-xs text-ed-muted">
                   Berlaku sampai {new Date(item.expiryAt).toLocaleDateString('id-ID')}
                 </span>
-                <strong className="text-xl text-dd-forest">{item.available} sesi</strong>
+                <strong className="font-serif text-xl font-normal text-ed-forest">{item.available} sesi</strong>
               </div>
             </article>
           ))}
@@ -258,13 +258,13 @@ function MetricCard({
   return (
     <Link
       href={href}
-      className="rounded-dd-xl border border-dd-line bg-white p-5 text-dd-ink no-underline shadow-dd-card transition hover:-translate-y-0.5"
+      className="group rounded-none border border-ed-line bg-white p-5 text-ed-ink no-underline shadow-none transition-colors hover:border-ed-forest hover:bg-ed-tint/20"
     >
-      <span className="grid size-10 place-items-center rounded-dd-lg bg-dd-surface-muted text-dd-forest">
+      <span className="grid size-10 place-items-center rounded-none border border-ed-line bg-ed-tint text-ed-forest">
         <Icon className="size-5" />
       </span>
-      <strong className="mt-4 block text-2xl">{value}</strong>
-      <span className="mt-1 block text-xs text-dd-muted">{label}</span>
+      <strong className="mt-4 block font-serif text-3xl font-normal tracking-tight text-ed-ink">{value}</strong>
+      <span className="mt-1 block text-xs font-medium uppercase tracking-wider text-ed-muted">{label}</span>
     </Link>
   );
 }
@@ -285,13 +285,13 @@ function DashboardSection({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card sm:p-6">
+    <section className="rounded-none border border-ed-line bg-white p-5 shadow-none sm:p-6">
       <header className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-lg font-semibold">{title}</h2>
-          <p className="mt-1 text-xs leading-5 text-dd-muted">{description}</p>
+          <h2 className="font-serif text-lg font-normal tracking-tight text-ed-ink">{title}</h2>
+          <p className="mt-1 text-xs leading-relaxed text-ed-muted">{description}</p>
         </div>
-        <Link href={href} className="shrink-0 text-xs font-semibold text-dd-forest">
+        <Link href={href} className="shrink-0 text-xs font-semibold uppercase tracking-wider text-ed-forest hover:text-ed-green">
           Lihat semua
         </Link>
       </header>
@@ -299,7 +299,7 @@ function DashboardSection({
         {hasItems ? (
           children
         ) : (
-          <p className="rounded-dd-lg bg-dd-surface-muted p-4 text-sm text-dd-muted">{empty}</p>
+          <p className="rounded-none border border-ed-line bg-ed-tint/40 p-4 text-sm text-ed-muted">{empty}</p>
         )}
       </div>
     </section>

@@ -11,6 +11,7 @@ const footerLinks = [
       { href: '/locations', label: 'Lokasi Studio' },
       { href: '/classes', label: 'Jadwal Kelas' },
       { href: '/packages', label: 'Paket & Harga' },
+      { href: '/kiosk', label: 'Layar Kiosk Studio' },
     ],
   },
   {
@@ -197,7 +198,7 @@ function EditorialPublicFooter() {
       <div className="ed-wrap flex flex-col items-start justify-between gap-6 border-b border-white/35 py-12 sm:flex-row sm:items-end">
         <div>
           <span className="ed-eyebrow text-ed-mint">Kabar studio</span>
-          <p className="ed-display mt-4 max-w-[18ch] text-[clamp(32px,4vw,56px)]">
+          <p className="ed-display mt-4 max-w-[22ch] text-[clamp(32px,4vw,56px)] text-balance">
             Tetap dekat dengan <span className="ed-serif text-ed-mint">ritme gerakmu.</span>
           </p>
         </div>

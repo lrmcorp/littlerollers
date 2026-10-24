@@ -26,7 +26,7 @@ const fallbackClassImage = '/images/public/classes/reformer-pilates.png';
 const rowGrid =
   'grid grid-cols-[88px_minmax(0,1fr)] items-center gap-x-5 sm:grid-cols-[120px_minmax(0,1fr)] sm:gap-x-7 lg:grid-cols-[40px_160px_minmax(0,1fr)] lg:gap-x-8';
 const rowBody =
-  'grid gap-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)_auto] lg:items-center lg:gap-8';
+  'grid gap-3.5 sm:gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)_auto] lg:items-center lg:gap-8';
 
 function ClassRow({ item, index }: { item: PublicClass; index: number }) {
   const { code, name, summary, level, heroImageKey, slug } = item;
@@ -49,7 +49,7 @@ function ClassRow({ item, index }: { item: PublicClass; index: number }) {
       </div>
       <div className={rowBody}>
         <div>
-          <h3 className="m-0 text-[clamp(22px,2.2vw,30px)] leading-[1.1] font-medium tracking-[-0.05em]">
+          <h3 className="m-0 text-[clamp(22px,2.2vw,30px)] leading-[1.25] font-medium tracking-[-0.02em]">
             {name}
           </h3>
           <p className="ed-eyebrow mt-2 mb-0 text-ed-green">{classLevelLabel(level)}</p>

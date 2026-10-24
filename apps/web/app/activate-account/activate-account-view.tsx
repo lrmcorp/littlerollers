@@ -46,7 +46,7 @@ export function ActivateAccountView({
           Password
           <span className="relative">
             <input
-              className="min-h-[50px] w-full rounded-dd-sm border border-dd-line px-4 pr-24"
+              className="min-h-[50px] w-full rounded-none border border-ed-line bg-white px-4 pr-24 text-sm text-ed-ink outline-none transition-colors focus:border-ed-forest focus:ring-1 focus:ring-ed-forest"
               name="password"
               type={show ? 'text' : 'password'}
               minLength={8}
@@ -55,7 +55,7 @@ export function ActivateAccountView({
               required
             />
             <button
-              className="absolute inset-y-0 right-1 px-3 text-sm font-bold text-dd-forest"
+              className="absolute inset-y-0 right-1 px-3 text-xs font-bold uppercase tracking-wider text-ed-forest hover:text-ed-deep"
               type="button"
               onClick={() => setShow((value) => !value)}
             >
@@ -66,7 +66,7 @@ export function ActivateAccountView({
         <label className="grid gap-2 text-sm font-bold">
           Ulangi password
           <input
-            className="min-h-[50px] rounded-dd-sm border border-dd-line px-4"
+            className="min-h-[50px] rounded-none border border-ed-line bg-white px-4 text-sm text-ed-ink outline-none transition-colors focus:border-ed-forest focus:ring-1 focus:ring-ed-forest"
             name="confirmation"
             type={show ? 'text' : 'password'}
             minLength={8}
@@ -76,7 +76,7 @@ export function ActivateAccountView({
           />
         </label>
         <button
-          className="min-h-[50px] rounded-dd-sm bg-dd-forest px-5 font-bold text-white"
+          className="min-h-[50px] rounded-none bg-dd-forest px-5 font-bold text-white transition-colors hover:bg-ed-deep disabled:bg-ed-line disabled:text-ed-muted"
           disabled={status === 'loading'}
         >
           {status === 'loading' ? 'Mengaktifkan…' : 'Aktifkan akun'}

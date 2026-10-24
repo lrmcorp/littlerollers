@@ -68,7 +68,7 @@ export function CustomerPackagesView() {
       {error && <Feedback kind="error">{error}</Feedback>}
 
       <div
-        className="my-2 inline-flex rounded-dd-md border border-dd-line bg-white p-1"
+        className="my-2 inline-flex rounded-none border border-ed-line bg-ed-tint/50 p-1"
         role="tablist"
         aria-label="Tab paket"
       >
@@ -78,10 +78,10 @@ export function CustomerPackagesView() {
             type="button"
             role="tab"
             aria-selected={tab === value}
-            className={`min-h-10 rounded-dd-sm px-4 text-sm font-semibold transition cursor-pointer ${
+            className={`min-h-10 rounded-none px-4 text-sm font-semibold transition cursor-pointer ${
               tab === value
-                ? 'bg-dd-forest text-white'
-                : 'bg-transparent text-dd-muted hover:bg-dd-surface-muted hover:text-dd-ink'
+                ? 'bg-ed-forest text-white'
+                : 'bg-transparent text-ed-muted hover:bg-ed-tint hover:text-ed-ink'
             }`}
             onClick={() => setTab(value)}
           >
@@ -108,22 +108,22 @@ export function CustomerPackagesView() {
               const expired = isExpiredPackage(item);
               return (
                 <article
-                  className="rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card sm:p-6"
+                  className="rounded-none border border-ed-line bg-white p-5 shadow-none sm:p-6"
                   key={item.id}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-start gap-2.5">
-                      <span className="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-dd-surface-muted text-xs font-bold text-dd-muted mt-0.5">
+                      <span className="inline-flex size-6 shrink-0 items-center justify-center rounded-none border border-ed-line bg-ed-tint font-serif text-xs font-normal text-ed-forest mt-0.5">
                         #{cursorHistory.length * 20 + index + 1}
                       </span>
                       <div>
-                        <p className="text-xs font-bold uppercase tracking-[0.14em] text-dd-forest">
+                        <p className="text-xs font-bold uppercase tracking-[0.18em] text-ed-green">
                           {item.branchName ?? 'Daily Dose'}
                         </p>
-                        <h2 className="mt-1 text-xl font-semibold">
+                        <h2 className="font-serif mt-1 text-xl font-normal tracking-tight text-ed-ink">
                           {item.packageName ?? 'Paket kelas'}
                         </h2>
-                        <p className="mt-1 text-sm text-dd-muted">
+                        <p className="mt-1 text-sm text-ed-muted">
                           {item.classTypeName ?? 'Kelas Daily Dose'}
                         </p>
                       </div>
@@ -145,34 +145,34 @@ export function CustomerPackagesView() {
                     </StatusBadge>
                   </div>
                   <dl className="mt-5 grid grid-cols-3 gap-2">
-                    <div className="rounded-dd-lg bg-dd-surface-muted p-3">
+                    <div className="rounded-none border border-ed-line/70 bg-ed-tint/40 p-3">
                       <dt
-                        className={`text-xs ${
+                        className={`text-xs uppercase tracking-wider ${
                           expired && item.available > 0
-                            ? 'text-dd-danger font-semibold'
-                            : 'text-dd-muted'
+                            ? 'text-rose-800 font-semibold'
+                            : 'text-ed-muted'
                         }`}
                       >
                         {expired ? (item.available > 0 ? 'Hangus' : 'Habis') : 'Tersedia'}
                       </dt>
                       <dd
-                        className={`mt-1 text-xl font-semibold ${
-                          expired && item.available > 0 ? 'text-dd-danger' : 'text-dd-ink'
+                        className={`mt-1 font-serif text-xl font-normal ${
+                          expired && item.available > 0 ? 'text-rose-800' : 'text-ed-forest'
                         }`}
                       >
                         {item.available}
                       </dd>
                     </div>
-                    <div className="rounded-dd-lg bg-dd-surface-muted p-3">
-                      <dt className="text-xs text-dd-muted">Dipesan</dt>
-                      <dd className="mt-1 text-xl font-semibold">{item.reserved}</dd>
+                    <div className="rounded-none border border-ed-line/70 bg-ed-tint/40 p-3">
+                      <dt className="text-xs uppercase tracking-wider text-ed-muted">Dipesan</dt>
+                      <dd className="mt-1 font-serif text-xl font-normal text-ed-ink">{item.reserved}</dd>
                     </div>
-                    <div className="rounded-dd-lg bg-dd-surface-muted p-3">
-                      <dt className="text-xs text-dd-muted">Total</dt>
-                      <dd className="mt-1 text-xl font-semibold">{item.ledgerBalance}</dd>
+                    <div className="rounded-none border border-ed-line/70 bg-ed-tint/40 p-3">
+                      <dt className="text-xs uppercase tracking-wider text-ed-muted">Total</dt>
+                      <dd className="mt-1 font-serif text-xl font-normal text-ed-ink">{item.ledgerBalance}</dd>
                     </div>
                   </dl>
-                  <p className="mt-4 text-sm text-dd-muted">
+                  <p className="mt-4 text-xs leading-relaxed text-ed-muted">
                     {expired
                       ? `Kedaluwarsa pada ${new Date(item.expiryAt).toLocaleDateString('id-ID')}`
                       : `Berlaku sampai ${new Date(item.expiryAt).toLocaleDateString('id-ID')}`}

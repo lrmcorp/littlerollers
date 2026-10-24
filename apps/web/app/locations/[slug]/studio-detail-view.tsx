@@ -11,6 +11,7 @@ import {
 } from '@/api-clients/public-detail-client';
 import {
   AudienceAction,
+  DetailFactTag,
   DetailFailure,
   DetailHero,
   DetailLoading,
@@ -65,10 +66,9 @@ export function StudioDetailView({
             imageKey={item.publicProfile.heroImageKey}
             facts={
               <div className="flex flex-wrap gap-3 text-sm">
-                <span className="inline-flex items-center gap-2 rounded-full border border-ed-line bg-white px-4 py-2">
-                  <MapPin className="size-4 text-ed-green" />
+                <DetailFactTag icon={MapPin}>
                   {item.publicProfile.address}
-                </span>
+                </DetailFactTag>
               </div>
             }
             actions={
@@ -80,9 +80,9 @@ export function StudioDetailView({
               </>
             }
           />
-          <section className={`ed-wrap grid gap-8 py-10 lg:grid-cols-[1fr_0.72fr]`}>
+          <section className="ed-wrap grid gap-8 py-10 lg:grid-cols-[1fr_0.72fr]">
             <div>
-              <h2 className="text-3xl font-semibold">Galeri studio</h2>
+              <h2 className="text-2xl font-bold tracking-tight text-ed-ink sm:text-3xl">Galeri studio</h2>
               <div className="mt-5 grid gap-4 sm:grid-cols-2">
                 {(item.publicProfile.galleryImageKeys ?? [])
                   .filter((k): k is string => Boolean(k) && k !== 'null')
@@ -103,36 +103,36 @@ export function StudioDetailView({
               </div>
             </div>
             <aside className="grid content-start gap-5">
-              <div className="rounded-none border border-ed-line bg-white p-6 ">
-                <Clock3 className="size-6 text-ed-green" />
-                <h2 className="mt-4 text-xl font-semibold">Jam buka</h2>
+              <div className="rounded-none border border-ed-line bg-white p-6 shadow-none">
+                <Clock3 className="size-5 text-ed-green" />
+                <h2 className="mt-3 text-lg font-bold text-ed-ink">Jam buka</h2>
                 <dl className="mt-4 grid gap-3 text-sm">
                   {(item.publicProfile.openingHours ?? []).map((row) => (
                     <div className="flex justify-between gap-4" key={row.days}>
                       <dt className="text-ed-muted">{row.days}</dt>
-                      <dd className="font-semibold">{row.hours}</dd>
+                      <dd className="font-semibold text-ed-ink">{row.hours}</dd>
                     </div>
                   ))}
                 </dl>
               </div>
-              <div className="rounded-none border border-ed-line bg-ed-cream p-6">
-                <h2 className="text-xl font-semibold">Fasilitas</h2>
+              <div className="rounded-none border border-ed-line bg-ed-tint/60 p-6 shadow-none">
+                <h2 className="text-lg font-bold text-ed-ink">Fasilitas</h2>
                 <ul className="mt-4 grid list-none gap-3 p-0 text-sm">
                   {(item.publicProfile.amenities ?? []).map((value) => (
-                    <li className="flex gap-2" key={value}>
-                      <Check className="size-4 text-ed-green" />
-                      {value}
+                    <li className="flex gap-2 text-ed-ink" key={value}>
+                      <Check className="size-4 shrink-0 text-ed-green" />
+                      <span>{value}</span>
                     </li>
                   ))}
                 </ul>
               </div>
-              <div className="rounded-none border border-ed-line bg-white p-6">
-                <h2 className="text-xl font-semibold">Petunjuk kedatangan</h2>
-                <p className="mt-3 text-sm leading-6 text-ed-muted">
+              <div className="rounded-none border border-ed-line bg-white p-6 shadow-none">
+                <h2 className="text-lg font-bold text-ed-ink">Petunjuk kedatangan</h2>
+                <p className="mt-3 text-sm leading-relaxed text-ed-muted">
                   {item.publicProfile.arrivalInformation}
                 </p>
                 {item.publicProfile.parkingInformation && (
-                  <p className="mt-3 text-sm leading-6 text-ed-muted">
+                  <p className="mt-3 text-sm leading-relaxed text-ed-muted">
                     {item.publicProfile.parkingInformation}
                   </p>
                 )}
@@ -141,18 +141,18 @@ export function StudioDetailView({
           </section>
           <section className="border-y border-ed-line bg-white py-10">
             <div className="ed-wrap">
-              <h2 className="text-3xl font-semibold">Kelas di studio ini</h2>
+              <h2 className="text-2xl font-bold tracking-tight text-ed-ink sm:text-3xl">Kelas di studio ini</h2>
               <div className="mt-5 grid gap-4 md:grid-cols-3">
                 {item.classes.map((entry) => (
                   <article
-                    className="rounded-none border border-ed-line bg-ed-cream p-5"
+                    className="rounded-none border border-ed-line bg-ed-tint/40 p-5 shadow-none"
                     key={entry.code}
                   >
-                    <p className="text-xs font-bold text-ed-green uppercase">
+                    <p className="ed-eyebrow text-ed-green">
                       {classLevelLabel(entry.profile.level)}
                     </p>
-                    <h3 className="mt-2 text-xl font-semibold">{entry.name}</h3>
-                    <p className="mt-2 text-sm leading-6 text-ed-muted">{entry.profile.summary}</p>
+                    <h3 className="mt-2 text-xl font-bold text-ed-ink">{entry.name}</h3>
+                    <p className="mt-2 text-sm leading-relaxed text-ed-muted">{entry.profile.summary}</p>
                     <Link
                       className={`${publicSecondaryButton} mt-4`}
                       href={`/classes/${entry.profile.slug}`}
@@ -164,25 +164,25 @@ export function StudioDetailView({
               </div>
             </div>
           </section>
-          <section className={`ed-wrap grid gap-10 py-10 lg:grid-cols-2`}>
+          <section className="ed-wrap grid gap-10 py-10 lg:grid-cols-2">
             <div>
-              <h2 className="text-3xl font-semibold">Jadwal berikutnya</h2>
+              <h2 className="text-2xl font-bold tracking-tight text-ed-ink sm:text-3xl">Jadwal berikutnya</h2>
               <div className="mt-5">
                 <RelatedSchedules items={item.schedules} />
               </div>
             </div>
             <div>
-              <h2 className="text-3xl font-semibold">Paket tersedia</h2>
+              <h2 className="text-2xl font-bold tracking-tight text-ed-ink sm:text-3xl">Paket tersedia</h2>
               <div className="mt-5 grid gap-3">
                 {item.packages.slice(0, 4).map((pkg) => (
                   <Link
-                    className="flex items-center justify-between gap-4 rounded-none border border-ed-line bg-white p-4 text-ed-ink no-underline"
+                    className="flex items-center justify-between gap-4 rounded-none border border-ed-line bg-white p-4 text-ed-ink no-underline transition-colors hover:border-ed-green shadow-none"
                     href={`/packages/${pkg.id}`}
                     key={pkg.id}
                   >
                     <span>
-                      <strong className="block">{pkg.name}</strong>
-                      <small className="text-ed-muted">
+                      <strong className="block text-sm font-bold text-ed-ink">{pkg.name}</strong>
+                      <small className="text-xs text-ed-muted">
                         {pkg.sessionCount} sesi · {pkg.durationDays} hari
                       </small>
                     </span>

@@ -60,7 +60,7 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
 
   return (
     <main
-      className="grid min-h-svh grid-cols-1 lg:grid-cols-[minmax(0,1.1fr)_minmax(460px,0.9fr)] bg-dd-cream font-sans text-dd-ink"
+      className="ed-scope grid min-h-svh grid-cols-1 lg:grid-cols-[minmax(0,1.1fr)_minmax(460px,0.9fr)] bg-ed-cream text-ed-ink"
       id="main-content"
     >
       <a className="skip-link" href="#auth-form">
@@ -69,7 +69,7 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
 
       {/* Left Visual Panel */}
       <section
-        className="relative isolate hidden lg:flex flex-col justify-between overflow-hidden p-12 min-h-svh sticky top-0 self-start"
+        className="auth-visual-panel relative isolate hidden lg:flex flex-col justify-between overflow-hidden p-12 min-h-svh sticky top-0 self-start border-r border-ed-line"
         aria-label="Daily Dose Pilates"
       >
         <div className="absolute inset-0 -z-20 overflow-hidden">
@@ -81,35 +81,34 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
             sizes="55vw"
             alt=""
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-dd-forest-dark/95 via-dd-forest-dark/65 to-dd-forest-dark/35" />
+          <div className="absolute inset-0 bg-gradient-to-t from-ed-deep/95 via-ed-forest/80 to-ed-forest/50" />
         </div>
 
-        {/* Top Badge */}
-        <div className="flex items-center gap-2 text-white">
-          <span className="flex items-center gap-1.5 rounded-full bg-white/15 px-3.5 py-1 text-xs font-bold tracking-wider uppercase backdrop-blur-md">
-            <Sparkles className="size-3.5 text-dd-brass" /> Daily Dose Portal
+        {/* Top Brand Tag */}
+        <div className="flex items-center gap-2 text-white/90">
+          <span className="text-xs font-bold tracking-[0.16em] uppercase text-ed-mint">
+            Daily Dose Portal
           </span>
         </div>
 
-        {/* Bottom Tagline */}
-        <div className="space-y-6 text-white max-w-lg">
+        {/* Bottom Editorial Copy */}
+        <div className="space-y-5 text-white max-w-lg">
           <div className="space-y-3">
-            <p className="text-xs font-bold tracking-[0.16em] text-dd-brass uppercase">
+            <p className="ed-eyebrow text-ed-mint tracking-[0.18em]">
               Move better, live better
             </p>
-            <h1 className="font-sans text-4xl xl:text-5xl font-bold leading-[1.05] tracking-tight">
-              Welcome back to your Daily Dose.
+            <h1 className="ed-display text-4xl xl:text-5xl font-normal leading-[1.02] tracking-[-0.04em] text-ed-cream">
+              Welcome back to{' '}
+              <span className="ed-serif italic text-ed-mint">your Daily Dose.</span>
             </h1>
-            <blockquote className="border-l-2 border-dd-brass/80 pl-4 font-sans text-lg italic text-white/90">
+            <blockquote className="border-l border-ed-mint/60 pl-4 ed-serif text-lg italic text-ed-cream/90">
               “Stronger body. Calmer mind.”
             </blockquote>
           </div>
-          <div className="flex items-center gap-4 text-xs font-medium text-white/75 pt-2">
-            <span className="flex items-center gap-1.5">
-              <ShieldCheck className="size-4 text-dd-brass" /> Enkripsi SSL 256-Bit
-            </span>
+          <div className="flex items-center gap-4 text-xs font-medium text-ed-cream/75 pt-3 border-t border-white/10">
+            <span>Akses Multi-Cabang Resmi</span>
             <span>•</span>
-            <span>Akses Multi-Cabang</span>
+            <span>Studio Terverifikasi</span>
           </div>
         </div>
       </section>
@@ -120,14 +119,14 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
         aria-labelledby="sign-in-title"
       >
         <div
-          className="w-full max-w-[480px] rounded-dd-xl border border-dd-line/80 bg-white/95 p-6 sm:p-10 shadow-dd-card backdrop-blur-md"
+          className="w-full max-w-[480px] rounded-none border border-ed-line bg-white p-6 sm:p-10 shadow-none"
           id="auth-form"
         >
           {/* Header Top */}
-          <div className="mb-8 flex items-center justify-between gap-4 border-b border-dd-line/60 pb-5">
+          <div className="mb-8 flex items-center justify-between gap-4 border-b border-ed-line pb-5">
             <BrandMark className="w-36 sm:w-40" priority />
             <Link
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-dd-forest hover:underline transition no-underline"
+              className="inline-flex min-h-[44px] items-center gap-2 rounded-none px-3 text-xs font-bold uppercase tracking-wider text-ed-forest hover:bg-ed-tint transition-colors no-underline"
               href="/"
             >
               <ArrowLeft className="size-3.5" />
@@ -136,16 +135,16 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
           </div>
 
           <div className="space-y-2">
-            <span className="inline-block rounded-full bg-dd-forest/10 px-3 py-0.5 text-[11px] font-bold tracking-wider text-dd-forest uppercase">
+            <p className="ed-eyebrow text-ed-green">
               Akses Member Resmi
-            </span>
+            </p>
             <h2
-              className="font-sans text-2xl sm:text-3xl font-bold tracking-tight text-dd-ink"
+              className="ed-display text-2xl sm:text-3xl font-normal tracking-[-0.04em] text-ed-ink"
               id="sign-in-title"
             >
               Masuk ke Daily Dose
             </h2>
-            <p className="text-sm leading-relaxed text-dd-muted">
+            <p className="text-sm leading-relaxed text-ed-muted">
               {googleEnabled
                 ? 'Masuk dengan email atau nomor WhatsApp yang terdaftar, atau lanjutkan dengan akun Google Anda.'
                 : 'Masuk dengan email atau nomor WhatsApp yang terdaftar beserta password Anda.'}
@@ -166,12 +165,12 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
                 .catch(fail);
             }}
           >
-            <label className="block space-y-1.5 text-xs font-bold text-dd-ink">
+            <label className="block space-y-1.5 text-xs font-bold uppercase tracking-wider text-ed-ink">
               <span>Email atau Nomor WhatsApp</span>
               <div className="relative flex items-center">
                 <input
                   aria-label="Email atau Nomor WhatsApp"
-                  className="w-full min-h-11 rounded-dd-md border border-dd-line bg-white px-3.5 py-2.5 text-sm text-dd-ink outline-none transition focus:border-dd-forest focus:ring-2 focus:ring-dd-forest/15"
+                  className="w-full min-h-12 rounded-none border border-ed-line bg-white px-4 py-2.5 text-sm text-ed-ink outline-none transition-colors focus:border-ed-forest focus:ring-1 focus:ring-ed-forest"
                   name="email"
                   type="text"
                   autoComplete="username"
@@ -181,11 +180,11 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
               </div>
             </label>
 
-            <label className="block space-y-1.5 text-xs font-bold text-dd-ink">
+            <label className="block space-y-1.5 text-xs font-bold uppercase tracking-wider text-ed-ink">
               <span>Password</span>
               <div className="relative flex items-center">
                 <input
-                  className="w-full min-h-11 rounded-dd-md border border-dd-line bg-white px-3.5 pr-20 py-2.5 text-sm text-dd-ink outline-none transition focus:border-dd-forest focus:ring-2 focus:ring-dd-forest/15"
+                  className="w-full min-h-12 rounded-none border border-ed-line bg-white px-4 pr-24 py-2.5 text-sm text-ed-ink outline-none transition-colors focus:border-ed-forest focus:ring-1 focus:ring-ed-forest"
                   name="password"
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="current-password"
@@ -196,7 +195,7 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
                 />
                 <button
                   aria-pressed={showPassword}
-                  className="absolute right-2 px-2.5 py-1 text-xs font-bold text-dd-forest hover:text-dd-forest-dark transition"
+                  className="absolute right-2 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-ed-forest hover:text-ed-deep transition-colors"
                   type="button"
                   onClick={() => setShowPassword((value) => !value)}
                 >
@@ -206,14 +205,14 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
             </label>
 
             <div className="flex items-center justify-between gap-4 pt-1 text-xs">
-              <Link className="font-bold text-dd-forest hover:underline" href="/forgot-password">
+              <Link className="font-bold text-ed-forest hover:underline" href="/forgot-password">
                 Lupa password?
               </Link>
-              <span className="text-dd-muted">Akses sesuai hak akun</span>
+              <span className="text-ed-muted">Akses sesuai hak akun</span>
             </div>
 
             <button
-              className="mt-2 flex min-h-11 w-full items-center justify-center rounded-dd-md bg-dd-forest px-5 text-sm font-bold text-white shadow-dd-soft transition hover:bg-dd-forest-dark disabled:bg-dd-sage active:scale-[0.99]"
+              className="mt-3 flex min-h-[50px] w-full items-center justify-center rounded-none bg-dd-forest px-5 text-sm font-bold text-white transition-colors hover:bg-ed-deep disabled:bg-ed-line disabled:text-ed-muted active:bg-ed-deep shadow-none"
               disabled={state === 'loading' || !hydrated}
               type="submit"
             >
@@ -237,20 +236,20 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
             </div>
           )}
 
-          <div className="mt-6 border-t border-dd-line/60 pt-4 text-center space-y-2">
-            <p className="text-xs text-dd-muted">
+          <div className="mt-6 border-t border-ed-line pt-4 text-center space-y-2">
+            <p className="text-xs text-ed-muted">
               Belum punya akun?{' '}
-              <Link className="font-bold text-dd-forest hover:underline" href="/register">
+              <Link className="font-bold text-ed-forest hover:underline" href="/register">
                 Daftar akun baru
               </Link>
             </p>
-            <p className="text-xs text-dd-muted">
+            <p className="text-xs text-ed-muted">
               Lupa akun atau butuh bantuan?{' '}
               <a
                 href="https://wa.me/62895329736127"
                 target="_blank"
                 rel="noreferrer"
-                className="font-bold text-dd-forest hover:underline"
+                className="font-bold text-ed-forest hover:underline"
               >
                 Chat WhatsApp Admin Studio
               </a>
@@ -264,15 +263,15 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
 
           {googleEnabled && (
             <>
-              <div className="my-6 flex items-center gap-4 text-xs font-bold tracking-wider text-dd-muted uppercase before:h-px before:flex-1 before:bg-dd-line after:h-px after:flex-1 after:bg-dd-line">
+              <div className="my-6 flex items-center gap-4 text-xs font-bold tracking-wider text-ed-muted uppercase before:h-px before:flex-1 before:bg-ed-line after:h-px after:flex-1 after:bg-ed-line">
                 atau
               </div>
               <GoogleIdentityButton client={client} onComplete={complete} onFailure={fail} />
             </>
           )}
 
-          <div className="mt-6 border-t border-dd-line/80 pt-4 text-xs leading-relaxed text-dd-muted">
-            <strong className="block font-semibold text-dd-ink">
+          <div className="mt-6 border-t border-ed-line pt-4 text-xs leading-relaxed text-ed-muted">
+            <strong className="block font-semibold text-ed-ink">
               Akses terlindungi &amp; Terenkripsi
             </strong>
             Seluruh data dan tindakan dibatasi berdasarkan hak akses peran serta cabang resmi

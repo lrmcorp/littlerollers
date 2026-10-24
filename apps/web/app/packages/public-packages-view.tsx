@@ -12,7 +12,6 @@ import {
   RotateCcw,
   Search,
   SlidersHorizontal,
-  Sparkles,
   X,
 } from 'lucide-react';
 import {
@@ -387,10 +386,10 @@ export function PublicPackagesView({
                   return (
                     <button
                       type="button"
-                      className={`flex min-h-16 items-center gap-3.5 rounded-none border p-4 text-left  transition-all duration-200 cursor-pointer ${
+                      className={`flex min-h-16 items-center gap-3.5 rounded-none border p-4 text-left transition-colors duration-200 cursor-pointer ${
                         selected
-                          ? 'border-ed-green bg-ed-green text-white  ring-2 ring-ed-green/20'
-                          : 'border-ed-line/80 bg-white/95 text-ed-ink hover:-translate-y-0.5 hover:border-ed-green/60'
+                          ? 'border-ed-green bg-ed-green text-white ring-2 ring-ed-green/20'
+                          : 'border-ed-line bg-white text-ed-ink hover:border-ed-green/60'
                       }`}
                       aria-pressed={selected}
                       key={item.id}
@@ -398,7 +397,7 @@ export function PublicPackagesView({
                     >
                       <span
                         className={`grid size-11 shrink-0 place-items-center rounded-none transition ${
-                          selected ? 'bg-white/20 text-white' : 'bg-dd-success-soft text-ed-green border border-dd-success/30'
+                          selected ? 'bg-white/20 text-white' : 'border border-ed-green/30 bg-ed-tint text-ed-forest'
                         }`}
                       >
                         <MapPin className="size-5" aria-hidden="true" />
@@ -420,7 +419,7 @@ export function PublicPackagesView({
             )}
 
             {/* Filter & Search Bar */}
-            <div className="mt-5 rounded-none border border-ed-line/80 bg-white/95 p-4 sm:p-5 ">
+            <div className="mt-5 rounded-none border border-ed-line/80 bg-white p-4 sm:p-5">
               <div className="mb-3 flex items-center justify-between gap-2">
                 <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-ed-green">
                   <SlidersHorizontal className="size-3.5" aria-hidden="true" />
@@ -466,7 +465,7 @@ export function PublicPackagesView({
                       <button
                         type="button"
                         aria-label="Hapus kata kunci pencarian"
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-full p-1 text-ed-muted transition hover:bg-ed-tint hover:text-ed-ink cursor-pointer"
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-none p-1 text-ed-muted transition hover:bg-ed-tint hover:text-ed-ink cursor-pointer"
                         onClick={() => {
                           setSearchQuery('');
                           syncCatalogQuery(branchId, classTypeId, '', priceRange, sessionRange);
@@ -480,8 +479,8 @@ export function PublicPackagesView({
 
                 {/* 2. Tipe Kelas */}
                 <div className="min-w-0">
-                    variant="editorial"
                   <SearchSelect
+                    variant="editorial"
                     label="Tipe kelas"
                     compact
                     value={classTypeId}
@@ -497,8 +496,8 @@ export function PublicPackagesView({
 
                 {/* 3. Rentang Harga */}
                 <div className="min-w-0">
-                    variant="editorial"
                   <SearchSelect
+                    variant="editorial"
                     label="Rentang harga"
                     compact
                     value={priceRange}
@@ -514,8 +513,8 @@ export function PublicPackagesView({
 
                 {/* 4. Jumlah Sesi */}
                 <div className="min-w-0">
-                    variant="editorial"
                   <SearchSelect
+                    variant="editorial"
                     label="Jumlah sesi"
                     compact
                     value={sessionRange}
@@ -567,7 +566,7 @@ export function PublicPackagesView({
                     <p>{message}</p>
                     <button
                       type="button"
-                      className="mt-4 min-h-11 rounded-none border border-dd-danger/30 bg-white px-5 font-bold text-sm transition hover:bg-ed-tint"
+                      className="mt-4 min-h-11 rounded-none border border-red-900/30 bg-white px-5 font-bold text-sm text-red-900 transition hover:bg-red-50"
                       onClick={() => void retryCatalog()}
                     >
                       Coba lagi
@@ -632,7 +631,7 @@ export function PublicPackagesView({
                     const href = packageCtaHref(audience, purchase);
                     return (
                       <article
-                        className={`flex min-h-[340px] flex-col rounded-none border bg-white/95 p-6  transition-all duration-300 hover: hover:-translate-y-0.5 sm:p-7 ${
+                        className={`flex min-h-[340px] flex-col rounded-none border bg-white p-6 transition-colors duration-200 sm:p-7 ${
                           recommended
                             ? 'border-ed-green ring-1 ring-ed-green/30'
                             : 'border-ed-line/80'
@@ -640,12 +639,12 @@ export function PublicPackagesView({
                         key={item.id}
                       >
                         <div className="flex min-h-7 flex-wrap items-start justify-between gap-2">
-                          <span className="inline-flex items-center rounded-full bg-ed-green/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-ed-green">
+                          <span className="inline-flex items-center rounded-none border border-ed-green/30 bg-ed-tint px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-ed-forest">
                             {item.classType.name}
                           </span>
                           {recommended && (
-                            <span className="inline-flex items-center gap-1.5 rounded-full border border-ed-green/40 bg-ed-mist/80 px-3 py-0.5 text-[11px] font-semibold tracking-wider text-ed-green uppercase ">
-                              <span className="size-1.5 rounded-full bg-ed-green" />
+                            <span className="inline-flex items-center gap-1.5 rounded-none border border-ed-green/40 bg-ed-tint px-2.5 py-0.5 text-[10px] font-bold tracking-wider text-ed-forest uppercase">
+                              <span className="size-1 bg-ed-green" />
                               Direkomendasikan
                             </span>
                           )}

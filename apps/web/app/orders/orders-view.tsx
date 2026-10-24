@@ -130,23 +130,23 @@ export function OrdersView() {
               key={card.key}
               aria-pressed={selected}
               onClick={() => updateFilters({ status: card.status })}
-              className={`min-w-[115px] shrink-0 rounded-dd-lg border p-3 text-left transition lg:min-w-0 ${
+              className={`min-w-[115px] shrink-0 rounded-none border p-3 text-left transition-colors cursor-pointer lg:min-w-0 ${
                 selected
-                  ? 'border-dd-forest bg-dd-forest text-white shadow-dd-soft'
-                  : 'border-dd-line bg-white text-dd-ink hover:border-dd-forest/40'
+                  ? 'border-ed-forest bg-ed-forest text-white shadow-none'
+                  : 'border-ed-line bg-white text-ed-ink hover:border-ed-forest/60 hover:bg-ed-tint/30'
               }`}
             >
-              <span className={`block text-xs ${selected ? 'text-white/70' : 'text-dd-muted'}`}>
+              <span className={`block text-[11px] font-semibold uppercase tracking-wider ${selected ? 'text-white/70' : 'text-ed-muted'}`}>
                 {card.label}
               </span>
-              <strong className="mt-1 block text-xl">{summary[card.key]}</strong>
+              <strong className="mt-1 block font-serif text-2xl font-normal">{summary[card.key]}</strong>
             </button>
           );
         })}
       </section>
 
       <form
-        className="grid gap-3 rounded-dd-xl border border-dd-line bg-white p-4 shadow-dd-card md:grid-cols-[minmax(0,1fr)_180px_170px_170px_auto]"
+        className="grid gap-3 rounded-none border border-ed-line bg-white p-4 shadow-none md:grid-cols-[minmax(0,1fr)_180px_170px_170px_auto]"
         onSubmit={(event) => {
           event.preventDefault();
           updateFilters({ q: draftQuery.trim() });
@@ -217,44 +217,44 @@ export function OrdersView() {
           <div className="grid gap-3">
             {data.items.map((item, index) => (
               <Link
-                className="group grid gap-4 rounded-dd-xl border border-dd-line bg-white p-5 text-dd-ink no-underline shadow-dd-card transition hover:-translate-y-0.5 hover:border-dd-forest/30 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
+                className="group grid gap-4 rounded-none border border-ed-line bg-white p-5 text-ed-ink no-underline shadow-none transition-colors hover:border-ed-forest hover:bg-ed-tint/10 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
                 href={`/orders/${encodeURIComponent(item.id)}?returnTo=${encodeURIComponent(returnTo)}`}
                 key={item.id}
               >
                 <span className="min-w-0">
                   <span className="flex flex-wrap items-center gap-2">
-                    <span className="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-dd-surface-muted text-xs font-bold text-dd-muted">
+                    <span className="inline-flex size-6 shrink-0 items-center justify-center rounded-none border border-ed-line bg-ed-tint font-serif text-xs font-normal text-ed-forest">
                       #{cursorHistory.length * 20 + index + 1}
                     </span>
-                    <strong className="text-base">{item.packageName}</strong>
+                    <strong className="font-serif text-base font-normal tracking-tight text-ed-ink">{item.packageName}</strong>
                     <StatusBadge tone={tone(item.status)}>
                       {orderStatusLabels[item.status]}
                     </StatusBadge>
                   </span>
-                  <small className="mt-2 flex flex-wrap items-center gap-2 text-dd-muted">
+                  <small className="mt-2 flex flex-wrap items-center gap-2 text-xs text-ed-muted">
                     <span>{item.branchName}</span>
                     <span aria-hidden="true">·</span>
                     <span>{item.submittedAt.toLocaleDateString('id-ID')}</span>
                     {item.expiresAt && item.status === 'AWAITING_PAYMENT' && (
                       <>
                         <span aria-hidden="true">·</span>
-                        <span className="inline-flex items-center gap-1 text-dd-warning">
+                        <span className="inline-flex items-center gap-1 text-amber-800">
                           <CalendarClock className="size-3.5" />
                           Bayar sebelum {item.expiresAt.toLocaleString('id-ID')}
                         </span>
                       </>
                     )}
                   </small>
-                  <span className="mt-3 block text-xs font-semibold text-dd-muted">
+                  <span className="mt-2.5 block text-xs font-semibold text-ed-muted">
                     {urgency(item)}
                   </span>
                 </span>
                 <span className="flex items-center justify-between gap-4 sm:justify-end">
-                  <strong className="text-lg text-dd-forest">
+                  <strong className="font-serif text-lg font-normal text-ed-forest">
                     {formatRupiah(item.payableAmountRp)}
                   </strong>
                   <ArrowRight
-                    className="size-4 text-dd-muted transition group-hover:translate-x-1 group-hover:text-dd-forest"
+                    className="size-4 text-ed-muted transition-colors group-hover:text-ed-forest"
                     aria-hidden="true"
                   />
                 </span>

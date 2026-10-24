@@ -218,7 +218,9 @@ export function HeroCarousel({ config }: { config?: HeroCarouselPayload | null }
               >
                 {slide.title}{' '}
                 {slide.highlightTitle && (
-                  <span className="ed-serif block text-ed-mint">{slide.highlightTitle}</span>
+                  <span className="ed-serif mt-1.5 block text-ed-mint sm:mt-2">
+                    {slide.highlightTitle}
+                  </span>
                 )}
               </h1>
 

@@ -63,7 +63,7 @@ export function LandingTestimonials() {
         <Reveal className="mt-12 sm:mt-[75px]">
           <figure className="m-0 max-w-[1080px]">
             <blockquote className="m-0">
-              <p className="m-0 text-[clamp(24px,3.2vw,44px)] leading-[1.18] font-normal tracking-[-0.045em] text-balance">
+              <p className="m-0 text-[clamp(22px,2.8vw,40px)] leading-[1.38] font-normal tracking-[-0.015em] text-balance">
                 “{featured.quote}”
               </p>
             </blockquote>
@@ -88,7 +88,7 @@ export function LandingTestimonials() {
         </Reveal>
 
         <Reveal className="bg-ed-mist px-6 py-8 text-center sm:px-10">
-          <p className="ed-serif m-0 text-[clamp(22px,2.4vw,32px)] leading-[1.25]">
+          <p className="ed-serif m-0 text-[clamp(22px,2.4vw,32px)] leading-[1.38] tracking-normal">
             “Consistency is not perfection. It is choosing to return to yourself.”
           </p>
           <span className="ed-eyebrow mt-4 text-ed-green">Daily Dose Movement Philosophy</span>

@@ -45,17 +45,17 @@ export function OrderDetailView({ id }: { id: string }) {
 
   if (loading)
     return (
-      <section className="rounded-dd-xl border border-dd-line bg-white p-6 shadow-dd-card">
+      <section className="rounded-none border border-ed-line bg-white p-6 shadow-none">
         <Skeleton label="Memuat pesanan" />
       </section>
     );
 
   if (!order)
     return (
-      <section className="rounded-dd-xl border border-dd-line bg-white p-6 shadow-dd-card">
-        <p className="text-xs font-bold uppercase tracking-[0.16em] text-dd-forest">Pesanan</p>
-        <h1 className="mt-2 text-2xl font-semibold">Pesanan tidak tersedia</h1>
-        <p className="mt-2 text-sm text-dd-muted">
+      <section className="rounded-none border border-ed-line bg-white p-6 shadow-none">
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-ed-green">Pesanan</p>
+        <h1 className="font-serif mt-2 text-2xl font-normal tracking-tight text-ed-ink">Pesanan tidak tersedia</h1>
+        <p className="mt-2 text-sm text-ed-muted">
           Pesanan mungkin sudah tidak dapat diakses atau bukan milik akun ini.
         </p>
         {error && (
@@ -83,18 +83,18 @@ export function OrderDetailView({ id }: { id: string }) {
       <header>
         <Link
           href={returnTo}
-          className="inline-flex items-center gap-2 text-sm font-semibold text-dd-forest no-underline"
+          className="inline-flex items-center gap-2 text-sm font-semibold text-ed-forest hover:text-ed-green no-underline"
         >
           <ArrowLeft className="size-4" />
           Semua pesanan
         </Link>
-        <p className="mt-5 text-xs font-bold uppercase tracking-[0.16em] text-dd-forest">
+        <p className="mt-5 text-xs font-bold uppercase tracking-[0.18em] text-ed-green">
           Pesanan •{order.id.slice(-8)}
         </p>
-        <h1 id="order-title" className="mt-2 text-2xl font-semibold sm:text-3xl">
+        <h1 id="order-title" className="font-serif mt-2 text-2xl font-normal tracking-tight text-ed-ink sm:text-3xl">
           {order.packageName}
         </h1>
-        <p className="mt-2 text-sm leading-6 text-dd-muted">
+        <p className="mt-2 text-sm leading-relaxed text-ed-muted">
           Pantau pembayaran, unggah bukti, dan lihat riwayat pesanan pada satu halaman.
         </p>
       </header>
@@ -108,17 +108,17 @@ export function OrderDetailView({ id }: { id: string }) {
       />
 
       {order.activation && (
-        <section className="rounded-dd-xl border border-dd-success/25 bg-dd-success-soft p-5 sm:p-6">
+        <section className="rounded-none border border-ed-line bg-ed-tint/60 p-5 sm:p-6">
           <div className="flex items-start gap-3">
-            <span className="grid size-11 shrink-0 place-items-center rounded-dd-lg bg-white text-dd-success">
+            <span className="grid size-11 shrink-0 place-items-center rounded-none border border-ed-line bg-white text-ed-forest">
               <PackageCheck className="size-5" aria-hidden="true" />
             </span>
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.14em] text-dd-success">
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-ed-green">
                 Paket aktif
               </p>
-              <h2 className="mt-1 text-xl font-semibold">{order.packageName}</h2>
-              <p className="mt-2 text-sm text-dd-muted">
+              <h2 className="font-serif mt-1 text-xl font-normal tracking-tight text-ed-ink">{order.packageName}</h2>
+              <p className="mt-2 text-sm text-ed-muted">
                 {order.activation.sessionCount} sesi · aktif sejak{' '}
                 {new Date(order.activation.activationDate).toLocaleDateString('id-ID')} · berlaku sampai{' '}
                 {new Date(order.activation.expiryAt).toLocaleDateString('id-ID')}
@@ -131,13 +131,13 @@ export function OrderDetailView({ id }: { id: string }) {
         </section>
       )}
 
-      <section className="rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card sm:p-6">
+      <section className="rounded-none border border-ed-line bg-white p-5 shadow-none sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.14em] text-dd-brass-dark">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-ed-green">
               Histori pesanan
             </p>
-            <h2 className="mt-1 text-xl font-semibold">Timeline pembayaran</h2>
+            <h2 className="font-serif mt-1 text-xl font-normal tracking-tight text-ed-ink">Timeline pembayaran</h2>
           </div>
           <StatusBadge tone={order.timelineComplete ? 'success' : 'neutral'}>
             {order.timelineComplete ? 'Riwayat lengkap' : 'Riwayat legacy'}
@@ -164,11 +164,11 @@ export function OrderDetailView({ id }: { id: string }) {
                 >
                   {index < order.timeline!.items.length - 1 && (
                     <span
-                      className="absolute left-[15px] top-8 h-[calc(100%-1rem)] w-px bg-dd-line"
+                      className="absolute left-[15px] top-8 h-[calc(100%-1rem)] w-px bg-ed-line"
                       aria-hidden="true"
                     />
                   )}
-                  <span className="relative z-[1] grid size-8 place-items-center rounded-full border border-dd-line bg-white text-dd-forest">
+                  <span className="relative z-[1] grid size-8 place-items-center rounded-none border border-ed-line bg-white text-ed-forest">
                     {item.type === 'PAYMENT_APPROVED' || item.type === 'PACKAGE_ACTIVATED' ? (
                       <CheckCircle2 className="size-4" aria-hidden="true" />
                     ) : (
@@ -176,14 +176,14 @@ export function OrderDetailView({ id }: { id: string }) {
                     )}
                   </span>
                   <div>
-                    <strong className="block text-sm">{copy.title}</strong>
+                    <strong className="block text-sm text-ed-ink">{copy.title}</strong>
                     <time
-                      className="mt-1 block text-xs text-dd-muted"
+                      className="mt-1 block text-xs text-ed-muted"
                       dateTime={item.occurredAt.toISOString()}
                     >
                       {formatter.format(item.occurredAt)}
                     </time>
-                    <p className="mt-2 text-sm leading-6 text-dd-muted">
+                    <p className="mt-2 text-sm leading-relaxed text-ed-muted">
                       {reason ?? copy.description}
                     </p>
                   </div>
@@ -192,7 +192,7 @@ export function OrderDetailView({ id }: { id: string }) {
             })}
           </ol>
         ) : (
-          <p className="mt-5 rounded-dd-lg bg-dd-surface-muted p-4 text-sm text-dd-muted">
+          <p className="mt-5 rounded-none border border-ed-line bg-ed-tint/40 p-4 text-sm text-ed-muted">
             Belum ada histori yang dapat ditampilkan.
           </p>
         )}

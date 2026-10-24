@@ -93,7 +93,7 @@ export function CustomerBookingsView({
         context={<ButtonLink href="/classes#schedule">Booking kelas baru</ButtonLink>}
       />
       <div
-        className="my-5 inline-flex rounded-dd-md border border-dd-line bg-white p-1"
+        className="my-5 inline-flex rounded-none border border-ed-line bg-ed-tint/50 p-1"
         role="tablist"
         aria-label="Linimasa booking"
       >
@@ -103,10 +103,10 @@ export function CustomerBookingsView({
             type="button"
             role="tab"
             aria-selected={timeline === value}
-            className={`min-h-10 rounded-dd-sm px-4 text-sm font-semibold transition cursor-pointer ${
+            className={`min-h-10 rounded-none px-4 text-sm font-semibold transition cursor-pointer ${
               timeline === value
-                ? 'bg-dd-forest text-white'
-                : 'bg-transparent text-dd-muted hover:bg-dd-surface-muted hover:text-dd-ink'
+                ? 'bg-ed-forest text-white'
+                : 'bg-transparent text-ed-muted hover:bg-ed-tint hover:text-ed-ink'
             }`}
             onClick={() => setTimeline(value)}
           >
@@ -138,19 +138,19 @@ export function CustomerBookingsView({
               return (
                 <Link
                   href={`/bookings/${encodeURIComponent(item.id)}`}
-                  className="block rounded-dd-xl border border-dd-line bg-white p-5 text-dd-ink no-underline shadow-dd-card hover:border-dd-forest/40 transition-colors"
+                  className="group block rounded-none border border-ed-line bg-white p-5 text-ed-ink no-underline shadow-none hover:border-ed-forest hover:bg-ed-tint/10 transition-colors"
                   key={item.id}
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="flex items-start gap-2.5">
-                      <span className="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-dd-surface-muted text-xs font-bold text-dd-muted mt-0.5">
+                      <span className="inline-flex size-6 shrink-0 items-center justify-center rounded-none border border-ed-line bg-ed-tint font-serif text-xs font-normal text-ed-forest mt-0.5">
                         #{cursorHistory.length * 20 + index + 1}
                       </span>
                       <div>
-                        <strong className="block text-lg font-semibold text-dd-ink">
+                        <strong className="font-serif block text-lg font-normal tracking-tight text-ed-ink">
                           {item.classSlot?.classType.name ?? 'Kelas Daily Dose'}
                         </strong>
-                        <span className="mt-1 block text-xs text-dd-muted">
+                        <span className="mt-1 block text-xs text-ed-muted">
                           {item.classSlot?.studio?.name
                             ? `${item.classSlot.studio.name} · ${item.branch?.name}`
                             : (item.branch?.name ?? 'Studio Daily Dose')}
@@ -169,15 +169,15 @@ export function CustomerBookingsView({
                   </div>
 
                   <div
-                    className={`mt-4 grid gap-2.5 rounded-dd-lg bg-dd-surface-muted p-3.5 text-xs text-dd-muted ${
+                    className={`mt-4 grid gap-2.5 rounded-none border border-ed-line/70 bg-ed-tint/40 p-3.5 text-xs text-ed-muted ${
                       timeline === 'UPCOMING' ? 'sm:grid-cols-2 lg:grid-cols-3' : 'sm:grid-cols-2'
                     }`}
                   >
                     <div>
-                      <span className="block text-[11px] uppercase tracking-wider font-semibold text-dd-forest">
+                      <span className="block text-[11px] uppercase tracking-[0.14em] font-semibold text-ed-green">
                         Waktu Sesi
                       </span>
-                      <strong className="mt-0.5 block text-xs font-semibold text-dd-ink">
+                      <strong className="mt-0.5 block text-xs font-semibold text-ed-ink">
                         {item.classSlot
                           ? formatBookingSlotTime(
                               item.classSlot.startAt,
@@ -189,20 +189,20 @@ export function CustomerBookingsView({
                     </div>
 
                     <div>
-                      <span className="block text-[11px] uppercase tracking-wider font-semibold text-dd-forest">
+                      <span className="block text-[11px] uppercase tracking-[0.14em] font-semibold text-ed-green">
                         Instruktur
                       </span>
-                      <strong className="mt-0.5 block text-xs font-semibold text-dd-ink truncate">
+                      <strong className="mt-0.5 block text-xs font-semibold text-ed-ink truncate">
                         {item.classSlot?.instructor?.displayName ?? 'Tim Daily Dose'}
                       </strong>
                     </div>
 
                     {timeline === 'UPCOMING' && (
                       <div>
-                        <span className="block text-[11px] uppercase tracking-wider font-semibold text-dd-forest">
+                        <span className="block text-[11px] uppercase tracking-[0.14em] font-semibold text-ed-green">
                           Ketersediaan Slot
                         </span>
-                        <strong className="mt-0.5 block text-xs font-semibold text-dd-ink">
+                        <strong className="mt-0.5 block text-xs font-semibold text-ed-ink">
                           {item.classSlot?.capacity
                             ? `${item.classSlot.bookedCount ?? 1}/${item.classSlot.capacity} terisi (${availablePlaces ?? 0} sisa tempat)`
                             : 'Tersedia'}
@@ -211,11 +211,11 @@ export function CustomerBookingsView({
                     )}
                   </div>
 
-                  <div className="mt-3 flex items-center justify-between text-xs text-dd-muted pt-2 border-t border-dd-line/50">
+                  <div className="mt-3 flex items-center justify-between text-xs text-ed-muted pt-2 border-t border-ed-line">
                     <span className="truncate max-w-xs sm:max-w-md">
-                      Paket: <strong className="font-medium text-dd-ink">{item.package?.name ?? 'Paket Customer'}</strong>
+                      Paket: <strong className="font-medium text-ed-ink">{item.package?.name ?? 'Paket Customer'}</strong>
                     </span>
-                    <span className="inline-flex items-center gap-1 font-semibold text-dd-forest shrink-0">
+                    <span className="inline-flex items-center gap-1 font-semibold text-ed-forest group-hover:text-ed-green shrink-0">
                       <span>{timeline === 'HISTORY' ? 'Lihat detail' : 'Lihat detail & QR Pass'}</span>
                       <ArrowRight className="size-3.5" />
                     </span>

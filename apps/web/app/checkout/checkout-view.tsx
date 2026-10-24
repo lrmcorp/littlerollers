@@ -84,7 +84,7 @@ export function CheckoutView() {
 
   if (loading)
     return (
-      <section className="rounded-dd-xl border border-dd-line bg-white p-6 shadow-dd-card">
+      <section className="rounded-none border border-ed-line bg-white p-6 shadow-none">
         <Skeleton label="Menyiapkan checkout" />
       </section>
     );
@@ -93,13 +93,13 @@ export function CheckoutView() {
     return (
       <main className="space-y-6 pt-2" aria-labelledby="checkout-title">
         <header>
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-dd-forest">
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-ed-green">
             Checkout aman
           </p>
-          <h1 id="checkout-title" className="mt-2 text-2xl font-semibold sm:text-3xl">
+          <h1 id="checkout-title" className="font-serif mt-2 text-2xl font-normal tracking-tight text-ed-ink sm:text-3xl">
             Selesaikan pembayaran
           </h1>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-dd-muted">
+          <p className="mt-2 max-w-3xl text-sm leading-relaxed text-ed-muted">
             Gunakan nominal yang ditampilkan agar transfer dapat dicocokkan, lalu unggah bukti pada
             halaman ini.
           </p>
@@ -123,15 +123,17 @@ export function CheckoutView() {
 
     if (isAuthError && packageId) {
       return (
-        <section className="rounded-dd-xl border border-dd-line bg-white p-8 shadow-dd-card max-w-xl mx-auto text-center space-y-4">
-          <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-dd-forest/10 text-dd-forest">
+        <section className="rounded-none border border-ed-line bg-white p-8 shadow-none max-w-xl mx-auto text-center space-y-4">
+          <div className="mx-auto flex size-12 items-center justify-center rounded-none border border-ed-line bg-ed-tint text-ed-forest">
             <ShieldCheck className="size-6" />
           </div>
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-dd-forest">
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-ed-green">
             Pembelian Paket Sesi
           </p>
-          <h1 className="text-2xl font-semibold text-dd-ink">Masuk untuk Melanjutkan Pembelian</h1>
-          <p className="text-sm leading-6 text-dd-muted">
+          <h1 className="font-serif text-2xl font-normal tracking-tight text-ed-ink sm:text-3xl">
+            Masuk untuk Melanjutkan Pembelian
+          </h1>
+          <p className="text-sm leading-relaxed text-ed-muted">
             Untuk mengaitkan paket sesi Pilates dengan akun Anda dan memproses pembayaran secara aman,
             silakan masuk atau buat akun baru terlebih dahulu.
           </p>
@@ -161,17 +163,17 @@ export function CheckoutView() {
         error?.toLowerCase().includes('sedang berlangsung');
 
       return (
-        <section className="rounded-dd-xl border border-dd-line bg-white p-8 shadow-dd-card max-w-xl mx-auto text-center space-y-4">
-          <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-dd-brass-soft text-dd-forest">
+        <section className="rounded-none border border-ed-line bg-white p-8 shadow-none max-w-xl mx-auto text-center space-y-4">
+          <div className="mx-auto flex size-12 items-center justify-center rounded-none border border-amber-800/20 bg-amber-50 text-amber-900">
             <ShieldCheck className="size-6" />
           </div>
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-dd-forest">
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-900">
             Verifikasi Identitas Member
           </p>
-          <h1 className="text-2xl font-semibold text-dd-ink">
+          <h1 className="font-serif text-2xl font-normal tracking-tight text-ed-ink sm:text-3xl">
             {isPending ? 'Verifikasi KTP Sedang Diproses' : 'Verifikasi KTP Diperlukan'}
           </h1>
-          <p className="text-sm leading-6 text-dd-muted">
+          <p className="text-sm leading-relaxed text-ed-muted">
             {isPending
               ? 'Dokumen KTP Anda sedang dalam proses peninjauan oleh tim Daily Dose. Setelah verifikasi disetujui, Anda dapat melanjutkan pembelian paket.'
               : 'Lengkapi verifikasi KTP terlebih dahulu untuk dapat membeli paket sesi Pilates di Daily Dose.'}
@@ -189,10 +191,10 @@ export function CheckoutView() {
     }
 
     return (
-      <section className="rounded-dd-xl border border-dd-line bg-white p-6 shadow-dd-card">
-        <p className="text-xs font-bold uppercase tracking-[0.16em] text-dd-forest">Checkout</p>
-        <h1 className="mt-2 text-2xl font-semibold">Paket belum tersedia</h1>
-        <p className="mt-2 text-sm leading-6 text-dd-muted">
+      <section className="rounded-none border border-ed-line bg-white p-6 shadow-none">
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-ed-green">Checkout</p>
+        <h1 className="font-serif mt-2 text-2xl font-normal tracking-tight text-ed-ink">Paket belum tersedia</h1>
+        <p className="mt-2 text-sm leading-relaxed text-ed-muted">
           Checkout harus dimulai dari paket dan studio yang sesuai.
         </p>
         {error && (
@@ -212,18 +214,18 @@ export function CheckoutView() {
       <header>
         <Link
           href={`/packages?branch=${encodeURIComponent(options.package.branchId)}`}
-          className="inline-flex items-center gap-2 text-sm font-semibold text-dd-forest no-underline"
+          className="inline-flex items-center gap-2 text-sm font-semibold text-ed-forest hover:text-ed-green no-underline"
         >
           <ArrowLeft className="size-4" />
           Kembali ke paket
         </Link>
-        <p className="mt-5 text-xs font-bold uppercase tracking-[0.16em] text-dd-forest">
+        <p className="mt-5 text-xs font-bold uppercase tracking-[0.18em] text-ed-green">
           Checkout aman
         </p>
-        <h1 id="checkout-title" className="mt-2 text-2xl font-semibold sm:text-3xl">
+        <h1 id="checkout-title" className="font-serif mt-2 text-2xl font-normal tracking-tight text-ed-ink sm:text-3xl">
           Ringkasan pembelian
         </h1>
-        <p className="mt-2 max-w-3xl text-sm leading-6 text-dd-muted">
+        <p className="mt-2 max-w-3xl text-sm leading-relaxed text-ed-muted">
           Periksa paket dan studio sebelum membuat pesanan. Nominal transfer terverifikasi akan
           ditampilkan setelah pesanan berhasil dibuat.
         </p>
@@ -256,31 +258,31 @@ export function CheckoutView() {
 
       <ol
         aria-label="Tahapan checkout"
-        className="grid grid-cols-2 gap-2 rounded-dd-xl border border-dd-line bg-white p-3 sm:grid-cols-4"
+        className="grid grid-cols-2 gap-2 rounded-none border border-ed-line bg-white p-2.5 sm:grid-cols-4"
       >
         {['Ringkasan', 'Pembayaran', 'Unggah bukti', 'Status'].map((label, index) => (
           <li
             key={label}
             aria-current={index === 0 ? 'step' : undefined}
-            className={`flex items-center gap-2 rounded-dd-lg px-3 py-2 text-xs font-semibold sm:text-sm ${
-              index === 0 ? 'bg-dd-forest text-white' : 'text-dd-muted'
+            className={`flex items-center gap-2.5 rounded-none px-3 py-2 text-xs font-semibold sm:text-sm ${
+              index === 0 ? 'bg-ed-forest text-white' : 'text-ed-muted bg-ed-tint/30'
             }`}
           >
-            <span className="grid size-6 place-items-center rounded-full border border-current text-[11px]">
+            <span className="grid size-5 place-items-center rounded-none border border-current font-serif text-[11px]">
               {index + 1}
             </span>
-            {label}
+            <span className="tracking-tight">{label}</span>
           </li>
         ))}
       </ol>
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,.85fr)]">
-        <section className="rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card sm:p-6">
-          <p className="text-xs font-bold uppercase tracking-[0.14em] text-dd-forest">
+        <section className="rounded-none border border-ed-line bg-white p-5 shadow-none sm:p-6">
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-ed-green">
             Paket dipilih
           </p>
-          <h2 className="mt-3 text-2xl font-semibold">{options.package.name}</h2>
-          <p className="mt-1 text-sm text-dd-muted">
+          <h2 className="font-serif mt-3 text-2xl font-normal tracking-tight text-ed-ink">{options.package.name}</h2>
+          <p className="mt-1 text-sm text-ed-muted">
             {options.package.classTypes.find((item) => item.id === selectedClassTypeId)?.name ??
               'Pilih jenis kelas'}{' '}
             · {options.package.isMultiBranch ? 'Semua Cabang (Multi-Branch)' : options.package.branchName}
@@ -305,16 +307,16 @@ export function CheckoutView() {
             </div>
           )}
           <dl className="mt-6 grid gap-3 sm:grid-cols-3">
-            <div className="rounded-dd-lg bg-dd-surface-muted p-4">
-              <dt className="text-xs text-dd-muted">Jumlah sesi</dt>
-              <dd className="mt-1 font-semibold">{options.package.sessionCount} sesi</dd>
+            <div className="rounded-none border border-ed-line/70 bg-ed-tint/40 p-4">
+              <dt className="text-xs font-medium uppercase tracking-wider text-ed-muted">Jumlah sesi</dt>
+              <dd className="mt-1 font-serif text-lg text-ed-ink">{options.package.sessionCount} sesi</dd>
             </div>
-            <div className="rounded-dd-lg bg-dd-surface-muted p-4">
-              <dt className="text-xs text-dd-muted">Masa berlaku</dt>
-              <dd className="mt-1 font-semibold">{options.package.durationDays} hari</dd>
+            <div className="rounded-none border border-ed-line/70 bg-ed-tint/40 p-4">
+              <dt className="text-xs font-medium uppercase tracking-wider text-ed-muted">Masa berlaku</dt>
+              <dd className="mt-1 font-serif text-lg text-ed-ink">{options.package.durationDays} hari</dd>
             </div>
-            <div className="rounded-dd-lg bg-dd-surface-muted p-4">
-              <dt className="text-xs text-dd-muted">Harga paket</dt>
+            <div className="rounded-none border border-ed-line/70 bg-ed-tint/40 p-4">
+              <dt className="text-xs font-medium uppercase tracking-wider text-ed-muted">Harga paket</dt>
               <dd className="mt-2">
                 <PackagePrice
                   priceRp={options.package.priceRp}
@@ -327,32 +329,32 @@ export function CheckoutView() {
           </dl>
         </section>
 
-        <aside className="rounded-dd-xl border border-dd-brass/50 bg-dd-brass-soft p-5 sm:p-6">
-          <ShieldCheck className="size-8 text-dd-forest" />
-          <h2 className="mt-4 text-lg font-semibold">Transfer manual terverifikasi</h2>
-          <ul className="mt-4 space-y-3 text-sm leading-6 text-dd-muted">
+        <aside className="rounded-none border border-ed-line bg-ed-tint/60 p-5 sm:p-6">
+          <ShieldCheck className="size-7 text-ed-forest" />
+          <h2 className="font-serif mt-3 text-lg font-normal tracking-tight text-ed-ink">Transfer manual terverifikasi</h2>
+          <ul className="mt-4 space-y-3 text-sm leading-relaxed text-ed-muted">
             <li className="flex gap-2">
-              <Check className="mt-1 size-4 shrink-0 text-dd-forest" />
+              <Check className="mt-1 size-4 shrink-0 text-ed-green" />
               Rekening tujuan disimpan sebagai snapshot pesanan.
             </li>
             <li className="flex gap-2">
-              <Check className="mt-1 size-4 shrink-0 text-dd-forest" />
+              <Check className="mt-1 size-4 shrink-0 text-ed-green" />
               Tiga digit terakhir pada nominal digunakan sebagai identifikasi transfer.
             </li>
             <li className="flex gap-2">
-              <Check className="mt-1 size-4 shrink-0 text-dd-forest" />
+              <Check className="mt-1 size-4 shrink-0 text-ed-green" />
               Bukti pembayaran diperiksa privat oleh Finance.
             </li>
           </ul>
-          <p className="mt-4 text-xs leading-5 text-dd-muted">
+          <p className="mt-4 text-xs leading-relaxed text-ed-muted">
             Jangan transfer sebelum pesanan berhasil dibuat dan nominal pembayaran sudah muncul.
           </p>
         </aside>
       </div>
 
-      <section className="rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card sm:p-6">
-        <h2 className="text-lg font-semibold text-dd-ink">Punya voucher?</h2>
-        <p className="mt-1 text-sm text-dd-muted">
+      <section className="rounded-none border border-ed-line bg-white p-5 shadow-none sm:p-6">
+        <h2 className="font-serif text-lg font-normal tracking-tight text-ed-ink">Punya voucher?</h2>
+        <p className="mt-1 text-sm text-ed-muted">
           Masukkan kode voucher sebelum membuat pesanan. Diskon dihitung otomatis oleh sistem.
         </p>
         <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
@@ -403,33 +405,33 @@ export function CheckoutView() {
           </Button>
         </div>
         {voucherPreview && (
-          <dl className="mt-4 grid gap-2 rounded-dd-lg bg-dd-surface-muted p-4 text-sm sm:grid-cols-4">
+          <dl className="mt-4 grid gap-2 rounded-none border border-ed-line bg-ed-tint/40 p-4 text-sm sm:grid-cols-4">
             {voucherPreview.packagePromotionDiscountRp > 0 && (
               <div>
-                <dt className="text-dd-muted">Promo paket</dt>
-                <dd className="font-semibold text-dd-forest">
+                <dt className="text-xs text-ed-muted">Promo paket</dt>
+                <dd className="font-semibold text-ed-forest">
                   -{formatRupiah(voucherPreview.packagePromotionDiscountRp)}
                 </dd>
               </div>
             )}
             <div>
-              <dt className="text-dd-muted">Voucher</dt>
-              <dd className="font-semibold">{voucherPreview.code}</dd>
+              <dt className="text-xs text-ed-muted">Voucher</dt>
+              <dd className="font-semibold text-ed-ink">{voucherPreview.code}</dd>
             </div>
             <div>
-              <dt className="text-dd-muted">Diskon</dt>
-              <dd className="font-semibold text-dd-forest">
+              <dt className="text-xs text-ed-muted">Diskon</dt>
+              <dd className="font-semibold text-ed-forest">
                 -{formatRupiah(voucherPreview.discountRp)}
                 {voucherPreview.discountType === 'PERCENTAGE' && voucherPreview.discountValue ? (
-                  <span className="ml-1 text-xs font-bold text-dd-brass-dark">
+                  <span className="ml-1 text-xs font-bold text-amber-800">
                     ({voucherPreview.discountValue}%)
                   </span>
                 ) : null}
               </dd>
             </div>
             <div>
-              <dt className="text-dd-muted">Harga setelah diskon</dt>
-              <dd className="font-semibold">{formatRupiah(voucherPreview.priceAfterDiscountRp)}</dd>
+              <dt className="text-xs text-ed-muted">Harga setelah diskon</dt>
+              <dd className="font-semibold text-ed-ink">{formatRupiah(voucherPreview.priceAfterDiscountRp)}</dd>
             </div>
           </dl>
         )}
@@ -439,7 +441,7 @@ export function CheckoutView() {
         description={
           <p>Pesanan memiliki batas pembayaran {options.paymentAccount.paymentWindowHours} jam.</p>
         }
-        className="border-dd-forest/15"
+        className="border-ed-line/70"
       >
         <Button
           type="button"

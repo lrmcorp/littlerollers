@@ -372,9 +372,9 @@ export function PublicClassesView({
             {isCustomer &&
               session?.identityVerificationStatus &&
               session.identityVerificationStatus !== 'APPROVED' && (
-                <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-none border border-dd-warning/30 bg-dd-warning-soft p-4 text-xs sm:text-sm text-dd-warning">
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-none border border-amber-800/30 bg-amber-50 p-4 text-xs sm:text-sm text-amber-900">
                   <div className="flex items-center gap-2.5">
-                    <AlertCircle className="size-4 text-dd-warning shrink-0" />
+                    <AlertCircle className="size-4 text-amber-800 shrink-0" />
                     <span>
                       Verifikasi identitas (KTP &amp; Selfie) Anda sedang ditinjau atau perlu
                       dilengkapi sebelum sesi dapat direservasi mandiri.
@@ -382,7 +382,7 @@ export function PublicClassesView({
                   </div>
                   <Link
                     href="/account/verification"
-                    className="font-semibold text-dd-warning underline shrink-0 hover:text-ed-ink"
+                    className="font-semibold text-amber-900 underline shrink-0 hover:text-ed-ink"
                   >
                     Cek Status Verifikasi →
                   </Link>
@@ -390,9 +390,9 @@ export function PublicClassesView({
               )}
 
             {isCustomer && customerPackages.length > 0 && (
-              <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-none border border-dd-success/30 bg-dd-success-soft/70 p-4 text-xs sm:text-sm ">
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-none border border-ed-green/30 bg-ed-tint p-4 text-xs sm:text-sm">
                 <div className="flex items-center gap-2.5">
-                  <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-dd-success/20 text-ed-green">
+                  <div className="flex size-7 shrink-0 items-center justify-center rounded-none bg-ed-mist text-ed-forest">
                     <Ticket className="size-3.5" aria-hidden="true" />
                   </div>
                   <div>
@@ -400,7 +400,7 @@ export function PublicClassesView({
                     <strong className="text-ed-ink">{customerPackages[0]!.packageName}</strong>
                     <span className="text-ed-muted"> · {customerPackages[0]!.branchName}</span>
                     <span className="text-ed-muted"> · Sisa </span>
-                    <strong className="text-dd-success font-semibold">
+                    <strong className="text-ed-forest font-semibold">
                       {customerPackages[0]!.available} sesi
                     </strong>
                     <span className="text-ed-muted">
@@ -445,7 +445,7 @@ export function PublicClassesView({
                           }
                         }
                       }}
-                      className="size-4 accent-ed-green rounded"
+                      className="size-4 accent-ed-green rounded-none"
                     />
                     <span>Hanya kelas sesuai paket saya</span>
                   </label>
@@ -472,7 +472,7 @@ export function PublicClassesView({
                     </h3>
                   </div>
                   {branch && (
-                    <span className="inline-flex items-center gap-1.5 self-start rounded-full bg-ed-green/10 px-3 py-1 text-xs font-semibold text-ed-green sm:self-auto">
+                    <span className="inline-flex items-center gap-1.5 self-start rounded-none border border-ed-green/30 bg-ed-tint px-2.5 py-1 text-xs font-semibold uppercase tracking-wider text-ed-forest sm:self-auto">
                       <MapPin className="size-3.5" /> Studio Aktif: {branch.name}
                     </span>
                   )}
@@ -489,16 +489,16 @@ export function PublicClassesView({
                         type="button"
                         key={b.id}
                         onClick={() => handleSelectBranch(b.id)}
-                        className={`min-h-[44px] rounded-none px-4 py-2 text-sm font-bold transition-all cursor-pointer flex items-center gap-2 border ${
+                        className={`min-h-[44px] rounded-none px-4 py-2 text-sm font-bold transition-colors cursor-pointer flex items-center gap-2 border ${
                           isSelected
-                            ? 'border-ed-green bg-ed-green text-white  ring-2 ring-ed-green/20'
+                            ? 'border-ed-green bg-ed-green text-white ring-2 ring-ed-green/20'
                             : 'border-ed-line bg-ed-cream text-ed-ink hover:border-ed-green/50 hover:bg-white'
                         }`}
                       >
                         <MapPin className={`size-4 ${isSelected ? 'text-white' : 'text-ed-green'}`} />
                         <span>{b.name}</span>
                         <span
-                          className={`text-xs px-1.5 py-0.5 rounded font-mono ${
+                          className={`text-xs px-1.5 py-0.5 rounded-none font-mono ${
                             isSelected ? 'bg-white/20 text-white' : 'bg-ed-line/50 text-ed-muted'
                           }`}
                         >
@@ -545,7 +545,7 @@ export function PublicClassesView({
                     type="button"
                     className={`${
                       !day
-                        ? 'border-ed-green bg-ed-green text-white  ring-2 ring-ed-green/20'
+                        ? 'border-ed-green bg-ed-green text-white ring-2 ring-ed-green/20'
                         : 'border-ed-line bg-ed-cream text-ed-ink hover:border-ed-green/50 hover:bg-white'
                     } min-h-[50px] shrink-0 rounded-none border px-4 py-2 text-center text-sm font-semibold transition-all cursor-pointer flex flex-col items-center justify-center`}
                     onClick={() => {
@@ -564,7 +564,7 @@ export function PublicClassesView({
                         key={item.key}
                         className={`${
                           isSelected
-                            ? 'border-ed-green bg-ed-green text-white  ring-2 ring-ed-green/20'
+                            ? 'border-ed-green bg-ed-green text-white ring-2 ring-ed-green/20'
                             : 'border-ed-line bg-ed-cream text-ed-ink hover:border-ed-green/50 hover:bg-white'
                         } min-h-[50px] min-w-[76px] shrink-0 rounded-none border px-3 py-1.5 text-center transition-all cursor-pointer flex flex-col items-center justify-center`}
                         onClick={() => {
@@ -582,7 +582,7 @@ export function PublicClassesView({
                         </span>
                         <span className="text-sm font-bold leading-tight">{item.dayNum}</span>
                         <span
-                          className={`mt-0.5 rounded px-1 text-[10px] font-semibold ${
+                          className={`mt-0.5 rounded-none px-1 text-[10px] font-semibold ${
                             isSelected
                               ? 'bg-white/20 text-white'
                               : item.count > 0
@@ -663,7 +663,7 @@ export function PublicClassesView({
               </div>
             ) : status === 'error' ? (
               <div
-                className="mt-8 rounded-none border border-dd-danger/30 bg-dd-danger-soft p-10 text-center"
+                className="mt-8 rounded-none border border-red-900/30 bg-red-50 p-10 text-center text-red-900"
                 role="alert"
               >
                 <strong className="font-sans text-2xl">Jadwal belum tersedia</strong>
@@ -677,14 +677,14 @@ export function PublicClassesView({
                 </button>
               </div>
             ) : !branchId ? (
-              <div className="mt-8 rounded-none border border-ed-line bg-white p-10 text-center ">
+              <div className="mt-8 rounded-none border border-ed-line bg-white p-10 text-center">
                 <strong className="font-sans text-2xl">Pilih studio untuk melihat kelas</strong>
                 <p className="mt-2 text-ed-muted">
                   Silakan pilih studio terlebih dahulu untuk menampilkan jadwal kelas yang tersedia.
                 </p>
               </div>
             ) : visible.length === 0 ? (
-              <div className="mt-8 rounded-none border border-ed-line bg-white p-10 text-center ">
+              <div className="mt-8 rounded-none border border-ed-line bg-white p-10 text-center">
                 <strong className="font-sans text-2xl">Belum ada kelas pada filter ini</strong>
                 <p className="mt-2 text-ed-muted">
                   Ubah tanggal atau tipe kelas untuk melihat pilihan lain.
@@ -716,13 +716,13 @@ export function PublicClassesView({
               <div className="mt-8 grid gap-6" aria-live="polite">
                 {Object.entries(grouped).map(([date, items]) => (
                   <section
-                    className="overflow-hidden rounded-none border border-ed-line bg-white "
+                    className="overflow-hidden rounded-none border border-ed-line bg-white"
                     aria-labelledby={`day-${date}`}
                     key={date}
                   >
-                    <header className="border-b border-ed-line bg-ed-cream px-5 py-4">
-                      <span className="text-xs font-bold tracking-wider text-ed-green">{date}</span>
-                      <h3 className="mt-1 font-sans text-2xl font-semibold" id={`day-${date}`}>
+                    <header className="border-b border-ed-line bg-ed-tint/60 px-5 py-4">
+                      <span className="ed-eyebrow text-ed-green">{date}</span>
+                      <h3 className="mt-1 font-sans text-xl sm:text-2xl font-bold tracking-tight text-ed-ink" id={`day-${date}`}>
                         {dateLabel(items[0]!.startAt, items[0]!.timezone)}
                       </h3>
                     </header>
@@ -742,10 +742,10 @@ export function PublicClassesView({
                             </span>
                           </div>
                           <div>
-                            <span className="text-xs font-bold text-ed-green">
+                            <span className="text-xs font-bold uppercase tracking-wider text-ed-green">
                               {slot.classType.code}
                             </span>
-                            <h4 className="mt-1 font-sans text-xl font-semibold">
+                            <h4 className="mt-1 font-sans text-xl font-bold tracking-tight text-ed-ink">
                               {slot.classType.name}
                             </h4>
                             <p className="mt-1 text-sm text-ed-muted">
@@ -787,7 +787,7 @@ export function PublicClassesView({
                               {slot.available > 0 ? `Sisa ${slot.available} tempat` : 'Kelas penuh'}
                             </strong>
                             {isCustomer && slot.canBook && findMatchingPackage(slot) && (
-                              <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-dd-success-soft px-2 py-0.5 text-[11px] font-semibold text-dd-success border border-dd-success/30">
+                              <span className="mt-1 inline-flex items-center gap-1 rounded-none border border-ed-green/30 bg-ed-tint px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-ed-forest">
                                 <Check className="size-3" /> Paket Sesuai (
                                 {findMatchingPackage(slot)!.available} sesi)
                               </span>
@@ -796,7 +796,7 @@ export function PublicClassesView({
                               slot.canBook &&
                               !findMatchingPackage(slot) &&
                               customerPackages.length > 0 && (
-                                <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-dd-warning-soft px-2 py-0.5 text-[11px] font-medium text-dd-warning border border-dd-warning/30">
+                                <span className="mt-1 inline-flex items-center gap-1 rounded-none border border-amber-800/30 bg-amber-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-900">
                                   Perlu paket studio/kelas ini
                                 </span>
                               )}
@@ -805,7 +805,7 @@ export function PublicClassesView({
                             className={`${
                               isActionable(slot)
                                 ? isCustomer && !findMatchingPackage(slot)
-                                ? `${publicSecondaryButton} border-ed-green text-ed-green hover:bg-dd-success-soft`
+                                ? `${publicSecondaryButton} border-ed-green text-ed-green hover:bg-ed-tint`
                                 : publicPrimaryButton
                                 : `${publicSecondaryButton} pointer-events-none opacity-50`
                             } w-full sm:w-auto`}

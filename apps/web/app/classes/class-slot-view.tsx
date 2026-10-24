@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, SlidersHorizontal } from 'lucide-react';
+import { ChevronLeft, ChevronRight, SlidersHorizontal, Tv } from 'lucide-react';
 import {
   browserClassSlotClient,
   classSlotFailure,
@@ -26,7 +26,7 @@ import { CreatePanel, DetailPanel, type CreateTemplate } from './class-slot-pane
 import { LifecycleDialog } from '../components/admin/lifecycle-dialog';
 import { classStatusTone, statusLabels, timezoneLabel } from './class-slot-presenters';
 import { SearchSelect, SelectInput } from '../components/forms';
-import { Button } from '../components/actions';
+import { Button, ButtonLink } from '../components/actions';
 import { Drawer, useAppFeedback } from '../components/app-feedback';
 import { browserBookingClient, type BookingClient } from '@/api-clients/booking-client';
 
@@ -418,7 +418,21 @@ export function ClassSlotView({
               {week?.label}
             </strong>
           </div>
-          <div className="shrink-0 w-full sm:w-auto">
+          <div className="shrink-0 w-full sm:w-auto flex flex-col sm:flex-row items-center gap-2">
+            {canManageAttendance && (
+              <ButtonLink
+                variant="secondary"
+                size="sm"
+                href={branch?.code ? `/kiosk/${encodeURIComponent(branch.code.toLowerCase())}` : '/kiosk'}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Buka Layar Kiosk Studio di tab baru untuk tablet meja resepsionis"
+                className="w-full sm:w-auto min-h-[40px] sm:min-h-0 inline-flex items-center gap-1.5"
+              >
+                <Tv className="size-4 shrink-0" />
+                <span>Layar Kiosk Studio</span>
+              </ButtonLink>
+            )}
             <Button
               className="w-full sm:w-auto min-h-[40px] sm:min-h-0"
               disabled={!canCreateSlot}
@@ -761,6 +775,7 @@ export function ClassSlotView({
         ) : panel?.kind === 'detail' ? (
           <DetailPanel
             slot={panel.slot}
+            branchCode={branch?.code ?? branches.find((b) => b.id === panel.slot.branchId)?.code}
             instructorName={instructorName(panel.slot.instructorUserId, panel.slot)}
             classTypes={classTypes}
             instructors={instructors}

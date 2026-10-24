@@ -251,6 +251,7 @@ type SlotDetails = {
 
 export function DetailPanel({
   slot,
+  branchCode,
   instructorName,
   classTypes,
   instructors,
@@ -274,6 +275,7 @@ export function DetailPanel({
   onDuplicate?(): void;
   onDelete?(): void;
   slot: ClassSlot;
+  branchCode?: string;
   instructorName: string;
   classTypes: ClassTypeOption[];
   instructors: InstructorOption[];
@@ -498,13 +500,31 @@ export function DetailPanel({
                 Belum tercatat. Honor kelas ini ditandai &quot;belum terverifikasi&quot; di laporan
                 keuangan sampai presensi instruktur dicatat.
               </p>
+              {isConfirmed && !canManageAttendance && (
+                <div className="mt-3 p-4 rounded-dd-md border border-dd-line bg-dd-surface-muted flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <strong className="block text-sm text-dd-ink">Presensi Mengajar</strong>
+                    <span className="text-xs text-dd-muted">
+                      Arahkan kamera HP Anda ke QR di layar tablet studio saat tiba di studio.
+                    </span>
+                  </div>
+                  <ButtonLink
+                    variant="primary"
+                    size="sm"
+                    href="/check-in-scanner"
+                    className="w-full sm:w-auto shrink-0"
+                  >
+                    Buka Scanner Presensi (Scan QR)
+                  </ButtonLink>
+                </div>
+              )}
               {isConfirmed && canManageAttendance && bookingClient.issueInstructorCheckIn && (
                 <div className="grid gap-3 rounded-dd-md border border-dd-line bg-dd-surface-muted p-4">
                   <p className="m-0 text-sm">
                     Tampilkan QR di layar studio agar dipindai instruktur dari menu Scan QR (tersedia
                     30 menit sebelum kelas). Menampilkan ulang mengganti QR sebelumnya.
                   </p>
-                  <div>
+                  <div className="flex flex-wrap gap-2">
                     <Button
                       variant="secondary"
                       className="w-full sm:w-auto"
@@ -514,6 +534,16 @@ export function DetailPanel({
                     >
                       {instructorQr ? 'Ganti QR presensi' : 'Tampilkan QR presensi instruktur'}
                     </Button>
+                    <ButtonLink
+                      variant="ghost"
+                      size="sm"
+                      href={branchCode ? `/kiosk/${encodeURIComponent(branchCode.toLowerCase())}` : '/kiosk'}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full sm:w-auto text-xs"
+                    >
+                      Buka Layar Kiosk Cabang ↗
+                    </ButtonLink>
                   </div>
                   {instructorQrError && <Feedback kind="warning">{instructorQrError}</Feedback>}
                   {instructorQr && (
