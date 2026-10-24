@@ -1,7 +1,14 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { PublicContentManagementView } from './public-content-management-view';
+import { AppFeedbackProvider } from '../components/app-feedback';
+import { PublicContentManagementView as View } from './public-content-management-view';
+
+const PublicContentManagementView = () => (
+  <AppFeedbackProvider>
+    <View />
+  </AppFeedbackProvider>
+);
 
 vi.mock('next/image', () => ({
   default: ({ alt }: { alt: string }) => <span role="img" aria-label={alt} />,
@@ -83,6 +90,23 @@ describe('PublicContentManagementView', () => {
     expect(writes()[0]![1].method).toBe('PATCH');
     expect(writes()[1]![0]).toBe('/api/v1/public-content-management/d1/PUBLISHED');
     expect(await screen.findByText(/berhasil dipublikasikan/)).toBeVisible();
+  });
+
+  it('removes a slide only after the in-app confirmation, without the native browser dialog', async () => {
+    const nativeConfirm = vi.fn(() => true);
+    vi.stubGlobal('confirm', nativeConfirm);
+    render(<PublicContentManagementView />);
+    await screen.findByText(/Hero Carousel Beranda \(1 Slide\)/);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Hapus slide' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Batal' }));
+    expect(screen.getByText(/Hero Carousel Beranda \(1 Slide\)/)).toBeVisible();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Hapus slide' }));
+    const dialog = await screen.findByRole('dialog');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Hapus slide' }));
+    expect(await screen.findByText(/Hero Carousel Beranda \(0 Slide\)/)).toBeVisible();
+    expect(nativeConfirm).not.toHaveBeenCalled();
   });
 
   it('explains an unsafe link instead of a generic failure', async () => {

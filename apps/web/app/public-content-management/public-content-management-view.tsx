@@ -26,6 +26,7 @@ import { LifecycleDialog, type LifecycleAction } from '../components/admin/lifec
 import { SearchSelect } from '../components/forms';
 import { Feedback, Skeleton, StatusBadge } from '../ui';
 import { AdminPageHeader } from '../components/admin/admin-page-header';
+import { useAppFeedback } from '../components/app-feedback';
 import { useSessionContext } from '../session-context';
 import type { HeroCarouselPayload, HeroSlideItem } from '@/api-clients/account-client';
 import { contentFailure, request } from './content-api';
@@ -47,6 +48,7 @@ export { contentFailure };
 
 export function PublicContentManagementView() {
   const session = useSessionContext()?.session;
+  const feedback = useAppFeedback();
   const [activeTab, setActiveTab] = useState<'slider' | 'faq' | 'all'>('slider');
   const [items, setItems] = useState<any[]>();
   const [error, setError] = useState('');
@@ -218,8 +220,14 @@ export function PublicContentManagementView() {
     setSliderConfig((prev) => ({ ...prev, slides: updated }));
   }
 
-  function deleteSlide(index: number) {
-    if (!confirm('Hapus slide ini dari slider?')) return;
+  async function deleteSlide(index: number) {
+    const accepted = await feedback.confirm({
+      tone: 'warning',
+      title: 'Hapus slide dari draf?',
+      message: 'Slide dihapus dari draf ini. Simpan draf untuk menerapkannya; versi yang sedang terbit tidak berubah.',
+      confirmLabel: 'Hapus slide',
+    });
+    if (!accepted) return;
     const updated = sliderConfig.slides
       .filter((_, i) => i !== index)
       .map((s, i) => ({ ...s, order: i + 1 }));
@@ -837,7 +845,7 @@ export function PublicContentManagementView() {
                       </Button>
                       <button
                         type="button"
-                        onClick={() => deleteSlide(index)}
+                        onClick={() => void deleteSlide(index)}
                         aria-label="Hapus slide"
                         className="rounded p-1.5 text-dd-danger hover:bg-dd-danger-soft"
                       >
