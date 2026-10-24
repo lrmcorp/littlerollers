@@ -14,7 +14,7 @@ export const publicStatePanel =
   'rounded-none border border-ed-line bg-ed-tint/60 p-8 sm:p-10 text-center shadow-none';
 
 export const publicField =
-  'min-h-12 w-full rounded-none border border-ed-line bg-white px-4 text-sm text-ed-ink outline-none transition focus:border-ed-forest focus:ring-1 focus:ring-ed-forest';
+  'min-h-12 w-full rounded-none border border-ed-line bg-white px-4 text-sm text-ed-ink outline-none transition focus:border-ed-forest focus:ring-1 focus:ring-ed-forest disabled:cursor-not-allowed disabled:bg-ed-tint disabled:text-ed-muted';
 
 export const publicTag =
   'inline-flex items-center gap-1.5 rounded-none border border-ed-line bg-white px-2.5 py-1 text-xs font-semibold uppercase tracking-wider text-ed-ink';

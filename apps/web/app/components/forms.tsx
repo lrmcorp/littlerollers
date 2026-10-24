@@ -21,6 +21,20 @@ export const controlClassName =
 const selectChevronClassName =
   "cursor-pointer appearance-none bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2216%22 height=%2216%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23667069%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22><path d=%22m6 9 6 6 6-6%22/></svg>')] bg-[length:1rem] bg-[right_0.75rem_center] bg-no-repeat pr-9";
 
+export type FieldVariant = 'default' | 'editorial';
+
+/**
+ * Kontrol bergaya editorial untuk halaman publik (persegi, garis tipis, tanpa bayangan), selaras dengan
+ * input teks/tanggal di halaman itu. Tinggi dasar 48px; `compact` 44px.
+ */
+export const editorialControlClassName =
+  'min-h-12 w-full rounded-none border border-ed-line bg-white px-4 py-2 font-sans text-sm text-ed-ink shadow-none outline-none transition placeholder:text-ed-muted hover:border-ed-green/40 focus:border-ed-green focus:ring-2 focus:ring-ed-green/15 disabled:cursor-not-allowed disabled:bg-ed-tint disabled:text-ed-muted aria-[invalid=true]:border-dd-danger aria-[invalid=true]:ring-2 aria-[invalid=true]:ring-dd-danger/20';
+
+const controlFor = (variant: FieldVariant | undefined, compact?: boolean) =>
+  variant === 'editorial'
+    ? `${editorialControlClassName} ${compact ? 'min-h-11 py-1.5' : ''}`
+    : `${controlClassName} ${compact ? 'min-h-10 py-1.5' : ''}`;
+
 export function CheckboxInput({
   label,
   description,
@@ -70,6 +84,7 @@ export function FormField({
   error,
   required,
   className = '',
+  variant,
   children,
 }: {
   label: string;
@@ -78,11 +93,15 @@ export function FormField({
   error?: ReactNode;
   required?: boolean;
   className?: string;
+  variant?: FieldVariant;
   children: ReactNode;
 }) {
   return (
     <div className={`grid min-w-0 gap-1.5 ${className}`}>
-      <label htmlFor={htmlFor} className="text-sm font-semibold text-dd-ink">
+      <label
+        htmlFor={htmlFor}
+        className={`text-sm font-semibold ${variant === 'editorial' ? 'text-ed-ink' : 'text-dd-ink'}`}
+      >
         {label}
         {required && (
           <span className="ml-1 text-dd-danger" aria-hidden="true">
@@ -105,6 +124,8 @@ type SharedFieldProps = {
   trailingIcon?: ReactNode;
   compact?: boolean;
   wrapperClassName?: string;
+  /** `editorial` untuk halaman publik; bawaan mengikuti gaya panel admin. */
+  variant?: FieldVariant;
 };
 
 export const TextInput = forwardRef<
@@ -119,6 +140,7 @@ export const TextInput = forwardRef<
     trailingIcon,
     compact,
     wrapperClassName,
+    variant,
     className = '',
     id: providedId,
     required,
@@ -142,7 +164,7 @@ export const TextInput = forwardRef<
         aria-label={props['aria-label'] ?? label}
         required={required}
         aria-invalid={Boolean(error) || undefined}
-        className={`${controlClassName} ${compact ? 'min-h-10 py-1.5' : ''} ${leadingIcon ? 'pl-9' : ''} ${trailingIcon ? 'pr-9' : ''} ${className}`}
+        className={`${controlFor(variant, compact)} ${leadingIcon ? 'pl-9' : ''} ${trailingIcon ? 'pr-9' : ''} ${className}`}
       />
       {trailingIcon && (
         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-dd-muted">
@@ -159,6 +181,7 @@ export const TextInput = forwardRef<
       error={error}
       required={required}
       className={wrapperClassName}
+      variant={variant}
     >
       {input}
     </FormField>
@@ -203,6 +226,7 @@ export const SelectInput = forwardRef<
     error,
     compact,
     wrapperClassName,
+    variant,
     className = '',
     id: providedId,
     required,
@@ -221,7 +245,7 @@ export const SelectInput = forwardRef<
       aria-label={props['aria-label'] ?? label}
       required={required}
       aria-invalid={Boolean(error) || undefined}
-      className={`${controlClassName} ${selectChevronClassName} ${compact ? 'min-h-10 py-1.5' : ''} ${className}`}
+      className={`${controlFor(variant, compact)} ${selectChevronClassName} ${className}`}
     >
       {children}
     </select>
@@ -234,6 +258,7 @@ export const SelectInput = forwardRef<
       error={error}
       required={required}
       className={wrapperClassName}
+      variant={variant}
     >
       {input}
     </FormField>
@@ -265,6 +290,8 @@ export type SearchSelectProps = {
   clearable?: boolean;
   compact?: boolean;
   wrapperClassName?: string;
+  /** `editorial` untuk halaman publik; bawaan mengikuti gaya panel admin. */
+  variant?: FieldVariant;
   loading?: boolean;
   emptyMessage?: string;
   loadError?: string;
@@ -328,6 +355,7 @@ export function SearchSelect({
   clearable = true,
   compact,
   wrapperClassName,
+  variant,
   loading,
   emptyMessage = 'Data tidak ditemukan.',
   loadError,
@@ -338,6 +366,7 @@ export function SearchSelect({
   onRetry,
   onChange,
 }: SearchSelectProps) {
+  const editorial = variant === 'editorial';
   const id = useId();
   const listId = `${id}-listbox`;
   const rootRef = useRef<HTMLDivElement>(null);
@@ -402,12 +431,13 @@ export function SearchSelect({
       error={error}
       required={required}
       className={wrapperClassName}
+      variant={variant}
     >
       <div ref={rootRef} className="relative min-w-0">
         {name && <input type="hidden" name={name} value={currentValue} />}
         <div className="relative">
           <Search
-            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-dd-muted"
+            className={`pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 ${editorial ? 'text-ed-muted' : 'text-dd-muted'}`}
             aria-hidden="true"
           />
           <input
@@ -423,7 +453,7 @@ export function SearchSelect({
             disabled={disabled}
             value={query}
             placeholder={open ? searchPlaceholder : placeholder}
-            className={`${controlClassName} ${compact ? 'min-h-10 py-1.5' : ''} pl-9 pr-16`}
+            className={`${controlFor(variant, compact)} pl-9 pr-16`}
             onFocus={() => {
               setOpen(true);
               setQuery('');
@@ -475,7 +505,7 @@ export function SearchSelect({
             </button>
           ) : null}
           <ChevronDown
-            className={`pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-dd-muted transition-transform ${open ? 'rotate-180' : ''}`}
+            className={`pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 transition-transform ${editorial ? 'text-ed-muted' : 'text-dd-muted'} ${open ? 'rotate-180' : ''}`}
             aria-hidden="true"
           />
         </div>
@@ -483,7 +513,7 @@ export function SearchSelect({
           <div
             id={listId}
             role="listbox"
-            className="absolute inset-x-0 top-full z-[140] mt-1 max-h-[min(20rem,45dvh)] overflow-y-auto rounded-dd-md border border-dd-line bg-white p-1 shadow-dd-float"
+            className={`absolute inset-x-0 top-full z-[140] mt-1 max-h-[min(20rem,45dvh)] overflow-y-auto border bg-white p-1 ${editorial ? 'ed-scope rounded-none border-ed-line shadow-none' : 'rounded-dd-md border-dd-line shadow-dd-float'}`}
           >
             {loading && (
               <p className="flex items-center gap-2 px-3 py-3 text-sm text-dd-muted" role="status">
@@ -516,20 +546,20 @@ export function SearchSelect({
                   role="option"
                   aria-selected={option.id === currentValue}
                   disabled={option.disabled}
-                  className={`flex w-full items-start gap-3 rounded-dd-sm border-0 px-3 py-2.5 text-left disabled:cursor-not-allowed disabled:opacity-45 ${index === activeIndex ? 'bg-dd-surface-muted' : 'bg-transparent hover:bg-dd-surface-muted'}`}
+                  className={`flex w-full items-start gap-3 border-0 px-3 py-2.5 text-left disabled:cursor-not-allowed disabled:opacity-45 ${editorial ? 'rounded-none' : 'rounded-dd-sm'} ${index === activeIndex ? (editorial ? 'bg-ed-tint' : 'bg-dd-surface-muted') : editorial ? 'bg-transparent hover:bg-ed-tint' : 'bg-transparent hover:bg-dd-surface-muted'}`}
                   onMouseEnter={() => setActiveIndex(index)}
                   onClick={() => commit(option)}
                 >
                   <span className="min-w-0 flex-1">
-                    <strong className="block truncate text-sm text-dd-ink">{option.label}</strong>
+                    <strong className={`block truncate text-sm ${editorial ? 'text-ed-ink' : 'text-dd-ink'}`}>{option.label}</strong>
                     {option.description && (
-                      <span className="mt-0.5 block text-xs leading-5 text-dd-muted">
+                      <span className={`mt-0.5 block text-xs leading-5 ${editorial ? 'text-ed-muted' : 'text-dd-muted'}`}>
                         {option.description}
                       </span>
                     )}
                   </span>
                   {option.id === currentValue && (
-                    <Check className="mt-0.5 size-4 shrink-0 text-dd-forest" aria-hidden="true" />
+                    <Check className={`mt-0.5 size-4 shrink-0 ${editorial ? 'text-ed-green' : 'text-dd-forest'}`} aria-hidden="true" />
                   )}
                 </button>
               ))}
@@ -762,6 +792,7 @@ export const Textarea = forwardRef<
     description,
     error,
     wrapperClassName,
+    variant,
     className = '',
     id: providedId,
     required,
@@ -779,7 +810,7 @@ export const Textarea = forwardRef<
       aria-label={props['aria-label'] ?? label}
       required={required}
       aria-invalid={Boolean(error) || undefined}
-      className={`${controlClassName} min-h-28 resize-y ${className}`}
+      className={`${controlFor(variant)} min-h-28 resize-y ${className}`}
     />
   );
   return label ? (
@@ -790,6 +821,7 @@ export const Textarea = forwardRef<
       error={error}
       required={required}
       className={wrapperClassName}
+      variant={variant}
     >
       {input}
     </FormField>

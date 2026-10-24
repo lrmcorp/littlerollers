@@ -15,6 +15,11 @@ type BrandMarkProps = {
   priority?: boolean;
   className?: string;
   ariaLabel?: string;
+  /**
+   * `light` memakai logo putih untuk latar berwarna primer/gelap (hijau footer, sidebar).
+   * `default` memakai logo hijau untuk latar terang.
+   */
+  tone?: 'default' | 'light';
 };
 
 export function BrandMark({
@@ -22,12 +27,13 @@ export function BrandMark({
   priority = false,
   className = '',
   ariaLabel = 'Daily Dose Pilates — kembali ke halaman utama',
+  tone = 'default',
 }: BrandMarkProps) {
   return (
     <Link className={`inline-flex items-center ${className}`} href={href} aria-label={ariaLabel}>
       <Image
         className="block h-auto w-full object-contain"
-        src="/images/logo.png"
+        src={tone === 'light' ? '/images/logo-white.png' : '/images/logo.png'}
         width={500}
         height={138}
         alt="Daily Dose Pilates"

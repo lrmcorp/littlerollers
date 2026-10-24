@@ -138,7 +138,8 @@ export function AppNavigation({
           <div className={collapsed ? 'lg:w-10 lg:overflow-hidden' : ''}>
             <BrandMark
               ariaLabel={`Daily Dose Pilates — ${customerOnly ? 'Dashboard Saya' : 'Dashboard'}`}
-              className="h-auto w-[166px] brightness-0 invert"
+              tone="light"
+              className="h-auto w-[166px]"
               href={customerOnly ? '/account' : instructorOnly ? '/workspace/classes' : '/workspace'}
               priority
             />

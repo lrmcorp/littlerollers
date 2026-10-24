@@ -106,6 +106,8 @@ export function LocationsView() {
         <section className="border-b border-ed-line bg-ed-mist/60 py-6" aria-label="Cari dan filter studio">
           <div className="ed-wrap grid grid-cols-[1fr_1fr_auto] items-end gap-4 max-[900px]:grid-cols-2 max-[540px]:grid-cols-1">
             <SearchSelect
+              variant="editorial"
+              compact
               label="Wilayah"
               value={region === 'Semua lokasi' ? '' : region}
               placeholder="Semua lokasi"
@@ -144,6 +146,7 @@ export function LocationsView() {
                 <strong>{visibleLocations.length}</strong> studio tersedia
               </p>
               <SelectInput
+                variant="editorial"
                 compact
                 wrapperClassName="min-w-48"
                 label="Urutkan"

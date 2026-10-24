@@ -209,7 +209,8 @@ function EditorialPublicFooter() {
       <div className="ed-wrap grid gap-12 py-[65px] sm:grid-cols-[1.4fr_repeat(3,1fr)] lg:gap-16">
         <div>
           <BrandMark
-            className="w-[200px] bg-ed-cream px-3 py-2"
+            tone="light"
+            className="w-[200px]"
             ariaLabel="Daily Dose Pilates — kembali ke halaman utama"
           />
           <p className="mt-6 max-w-[310px] text-sm leading-relaxed text-ed-mist">
