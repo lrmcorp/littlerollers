@@ -31,27 +31,24 @@ export function isCustomerCatalogPath(pathname: string) {
 
 export const internalStaffRoles = new Set([
   'SUPER_OWNER',
-  'SUPERADMIN',
   'OWNER',
   'ADMIN',
   'MANAGER',
   'FINANCE',
-  'OPS',
   'INSTRUCTOR',
-  'COACH',
 ]);
 
 export function isCustomerOnlySession(session: WebSession | null | undefined): boolean {
   if (!session || !session.roles || session.roles.length === 0) return false;
   const hasStaffRole = session.roles.some((role) => internalStaffRoles.has(role));
   if (hasStaffRole) return false;
-  return session.roles.some((role) => role === 'CUSTOMER' || role === 'MEMBER');
+  return session.roles.some((role) => role === 'CUSTOMER');
 }
 
-/** True only when every role held is INSTRUCTOR/COACH — a dual role (e.g. + ADMIN) keeps full access. */
+/** True only when every role held is INSTRUCTOR — a dual role (e.g. + ADMIN) keeps full access. */
 export function isInstructorOnlySession(session: WebSession | null | undefined): boolean {
   if (!session || !session.roles || session.roles.length === 0) return false;
-  return session.roles.every((role) => role === 'INSTRUCTOR' || role === 'COACH');
+  return session.roles.every((role) => role === 'INSTRUCTOR');
 }
 
 export function packageAudienceState(session: WebSession | null | undefined): PackageAudienceState {

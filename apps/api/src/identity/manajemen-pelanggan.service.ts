@@ -115,7 +115,7 @@ export class CustomerManagementService {
     db: PrismaService | Prisma.TransactionClient = this.db,
   ) {
     const user = await db.user.findFirst({
-      where: { id, role: { in: ['CUSTOMER', 'MEMBER'] } },
+      where: { id, role: 'CUSTOMER' },
       include: { _count: { select: { bookings: true, purchases: true } } },
     });
     if (!user || !(await this.relatedCustomerIds(principal, [user], db)).has(id))
@@ -154,7 +154,7 @@ export class CustomerManagementService {
       : undefined;
 
     const where: Prisma.UserWhereInput = {
-      role: { in: ['CUSTOMER', 'MEMBER'] },
+      role: 'CUSTOMER',
       ...(filters.status ? { status: filters.status as any } : {}),
       ...(filters.preferredBranchId ? { preferredBranchId: filters.preferredBranchId } : {}),
       ...(searchClause ? searchClause : {}),
@@ -163,7 +163,7 @@ export class CustomerManagementService {
     };
 
     const countWhere: Prisma.UserWhereInput = {
-      role: { in: ['CUSTOMER', 'MEMBER'] },
+      role: 'CUSTOMER',
       ...(filters.status ? { status: filters.status as any } : {}),
       ...(filters.preferredBranchId ? { preferredBranchId: filters.preferredBranchId } : {}),
       ...(searchClause ? searchClause : {}),
@@ -239,7 +239,7 @@ export class CustomerManagementService {
   async detail(principal: SessionPrincipal, id: string) {
     this.require(principal, 'customer:read');
     const customer = await this.db.user.findFirst({
-      where: { id, role: { in: ['CUSTOMER', 'MEMBER'] } },
+      where: { id, role: 'CUSTOMER' },
       include: {
         profile: true,
         customerPackages: {
@@ -453,7 +453,7 @@ export class CustomerManagementService {
           email,
           phone: phoneE164,
           passwordHash,
-          role: 'MEMBER',
+          role: 'CUSTOMER',
           preferredBranchId: input.preferredBranchId ?? null,
           status: 'ACTIVE',
         },
@@ -787,7 +787,7 @@ export class CustomerManagementService {
     const action = async (tx: Prisma.TransactionClient) => {
       // Hanya akun pelanggan: endpoint ini tidak boleh dipakai untuk menonaktifkan staf atau Super Owner.
       const before = await tx.user.findFirst({
-        where: { id, role: { in: ['CUSTOMER', 'MEMBER'] } },
+        where: { id, role: 'CUSTOMER' },
         select: { status: true, preferredBranchId: true, _count: { select: { bookings: true, purchases: true } } },
       });
       if (!before) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);

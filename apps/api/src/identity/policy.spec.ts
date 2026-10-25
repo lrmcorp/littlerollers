@@ -25,7 +25,7 @@ describe('PolicyService role catalog', () => {
     );
     expect(ROLE_CAPABILITIES.FINANCE).toContain('voucher:read');
     expect(ROLE_CAPABILITIES.CUSTOMER).toContain('voucher:redeem');
-    for (const role of ['ADMIN', 'MANAGER', 'INSTRUCTOR', 'OPS'] as const) {
+    for (const role of ['ADMIN', 'MANAGER', 'INSTRUCTOR'] as const) {
       expect(ROLE_CAPABILITIES[role]).not.toContain('voucher:manage');
       expect(ROLE_CAPABILITIES[role]).not.toContain('package-promotion:manage');
     }
@@ -173,7 +173,6 @@ describe('PolicyService role catalog', () => {
 
     // Coach without specific branch -> gets branch:all
     const globalCoachAccess = policy.resolveAccess('user-coach-1', [
-      { role: 'COACH', branchId: null },
       { role: 'INSTRUCTOR', branchId: null },
     ]);
     expect(globalCoachAccess.capabilities).toContain('branch:all');
@@ -181,7 +180,6 @@ describe('PolicyService role catalog', () => {
     // Customer/Member without branch -> does NOT get branch:all
     const customerAccess = policy.resolveAccess('user-customer-1', [
       { role: 'CUSTOMER', branchId: null },
-      { role: 'MEMBER', branchId: null },
     ]);
     expect(customerAccess.capabilities).not.toContain('branch:all');
   });

@@ -105,12 +105,12 @@ describe('InstructorManagementService attendance data', () => {
     expect(detail.blockers.completedWithoutCheckIn).toBe(2);
   });
 
-  it('lists teachers stored under either instructor role (COACH and INSTRUCTOR)', async () => {
+  it('lists only accounts with the instructor role', async () => {
     const { service, userFindMany } = build();
     await service.list(superOwner, {});
     expect(userFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({ role: { in: ['COACH', 'INSTRUCTOR'] } }),
+        where: expect.objectContaining({ role: 'INSTRUCTOR' }),
       }),
     );
   });

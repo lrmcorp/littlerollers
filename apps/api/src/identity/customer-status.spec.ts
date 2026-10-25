@@ -49,7 +49,7 @@ describe('customer deactivate / reactivate', () => {
     const s = setup(null);
     await expect(deactivate(s, principal(), 'Uji')).rejects.toMatchObject({ code: 'NOT_FOUND' });
     expect(s.tx.user.findFirst).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { id: customerId, role: { in: ['CUSTOMER', 'MEMBER'] } } }),
+      expect.objectContaining({ where: { id: customerId, role: 'CUSTOMER' } }),
     );
     expect(s.tx.user.update).not.toHaveBeenCalled();
   });

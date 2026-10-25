@@ -7,6 +7,7 @@ import { mapUserToEffectiveRoles, type SessionPrincipal } from './identity.servi
 import { PolicyService } from './policy.service';
 import { ApiProblem } from './security';
 import { ROLE_CAPABILITIES, type ApplicationRole } from './role-capabilities';
+import { canonicalRole } from './role-aliases';
 
 /**
  * Peran & Hak Akses (versi jujur, hanya-baca).
@@ -18,35 +19,28 @@ import { ROLE_CAPABILITIES, type ApplicationRole } from './role-capabilities';
  * langsung pengguna (dengan validasi). RBAC dinamis dikerjakan sebagai tahap terpisah.
  */
 
-/** Kosakata kanonik; SUPERADMIN/COACH/MEMBER hanyalah alias lama dari SUPER_OWNER/INSTRUCTOR/CUSTOMER. */
+/** Kosakata kanonik (nama lama SUPERADMIN/COACH/MEMBER diterjemahkan oleh `canonicalRole`). */
 const CANONICAL_ROLES: readonly ApplicationRole[] = [
   'SUPER_OWNER',
   'OWNER',
   'MANAGER',
   'ADMIN',
   'FINANCE',
-  'OPS',
   'INSTRUCTOR',
   'CUSTOMER',
 ];
-const ROLE_ALIASES: Record<string, ApplicationRole> = {
-  SUPERADMIN: 'SUPER_OWNER',
-  COACH: 'INSTRUCTOR',
-  MEMBER: 'CUSTOMER',
-};
 const ROLE_LABELS: Record<string, string> = {
   SUPER_OWNER: 'Super Admin',
   OWNER: 'Owner cabang',
   MANAGER: 'Manager cabang',
   ADMIN: 'Admin cabang',
   FINANCE: 'Finance',
-  OPS: 'Operations',
   INSTRUCTOR: 'Instruktur',
   CUSTOMER: 'Pelanggan',
 };
 const SENSITIVE = /:(manage|admin|decide|recover|export|delete|resolve|run|reconcile|credential|revoke)/;
 const GLOBAL_ONLY = new Set(['branch:all', 'role-permission:manage', 'identity-verification:decide']);
-const PROTECTED_ROLES: ReadonlySet<string> = new Set(['SUPER_OWNER', 'SUPERADMIN']);
+const PROTECTED_ROLES: ReadonlySet<string> = new Set(['SUPER_OWNER']);
 const EPOCH = new Date(0).toISOString();
 
 const humanize = (key: string) =>
@@ -125,7 +119,7 @@ export class AccessManagementService {
     const counts = await this.db.user.groupBy({ by: ['role'], _count: { _all: true } });
     const countOf = (role: ApplicationRole) =>
       counts
-        .filter(({ role: stored }) => (ROLE_ALIASES[stored] ?? stored) === role)
+        .filter(({ role: stored }) => canonicalRole(stored) === role)
         .reduce((sum, item) => sum + item._count._all, 0);
     const items = CANONICAL_ROLES.map((role) => this.roleView(role, countOf(role)));
     return { items, summary: { total: items.length, active: items.length, inactive: 0 } };
@@ -133,7 +127,7 @@ export class AccessManagementService {
 
   async getRole(principal: SessionPrincipal, id: string) {
     this.authorize(principal);
-    const code = (ROLE_ALIASES[id.toUpperCase()] ?? id.toUpperCase()) as ApplicationRole;
+    const code = canonicalRole(id.toUpperCase()) as ApplicationRole;
     if (!CANONICAL_ROLES.includes(code)) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
     return this.roleView(code);
   }
@@ -157,7 +151,7 @@ export class AccessManagementService {
           select: { id: true, code: true, name: true },
         })
       : [];
-    const role = (ROLE_ALIASES[user.role] ?? user.role) as ApplicationRole;
+    const role = canonicalRole(user.role) as ApplicationRole;
     const catalogEntry = this.policy.roleCatalog().find((item) => item.role === role);
 
     return {
@@ -168,7 +162,7 @@ export class AccessManagementService {
         version: 1,
       },
       roleAssignments: (effectiveRoles.length ? effectiveRoles : [{ role, branchId: null }])
-        .filter(({ role: item }) => !ROLE_ALIASES[item])
+        .filter(({ role: item }) => canonicalRole(item) === item)
         .map(({ role: item, branchId }) => ({
           id: `${user.id}:${item}:${branchId ?? 'all'}`,
           roleId: item,

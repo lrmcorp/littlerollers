@@ -125,7 +125,7 @@ async function runAudit() {
     const [classTypeA, classTypeB] = classTypes;
 
     const instructor = await db.user.findFirstOrThrow({
-      where: { role: { in: [Role.INSTRUCTOR, Role.COACH] } },
+      where: { role: Role.INSTRUCTOR },
     });
 
     const passwordHash = await argon2.hash('TestCustomer123!');

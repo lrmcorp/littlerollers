@@ -119,9 +119,11 @@ describe('capability coverage', () => {
     }
   });
 
-  it('keeps the legacy SUPERADMIN alias identical to SUPER_OWNER plus legacy branch grants', () => {
-    const extra = ROLE_CAPABILITIES.SUPERADMIN.filter((capability) => !superOwner.has(capability));
-    expect(extra.sort()).toEqual(['branch:manage', 'branch:operate', 'branch:own']);
-    expect([...superOwner].filter((c) => !ROLE_CAPABILITIES.SUPERADMIN.includes(c))).toEqual([]);
+  it('Super Owner keeps the branch grants that used to come only through the SUPERADMIN alias', () => {
+    for (const capability of ['branch:manage', 'branch:operate', 'branch:own'])
+      expect(superOwner.has(capability)).toBe(true);
+    expect(Object.keys(ROLE_CAPABILITIES).sort()).toEqual(
+      ['ADMIN', 'CUSTOMER', 'FINANCE', 'INSTRUCTOR', 'MANAGER', 'OWNER', 'SUPER_OWNER'],
+    );
   });
 });

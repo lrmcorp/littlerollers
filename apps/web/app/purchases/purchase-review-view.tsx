@@ -454,7 +454,7 @@ export function PurchaseReviewView({
 
   const isSuper = Boolean(
     sessionContext?.session?.roles?.some((r) =>
-      ['SUPER_OWNER', 'SUPERADMIN'].includes(r),
+      r === 'SUPER_OWNER',
     ),
   );
 

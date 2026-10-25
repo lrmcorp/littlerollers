@@ -7,7 +7,7 @@ describe('Customer & Member Shell Isolation and Workspace Button Protection', ()
   const memberCustomerSession: WebSession = {
     id: 'user-member-1',
     displayName: 'Ahmad Member',
-    roles: ['CUSTOMER', 'MEMBER'],
+    roles: ['CUSTOMER'],
     branchIds: [],
     capabilities: ['customer:self', 'booking:self:read', 'booking:self:create'],
     branches: [],
@@ -19,7 +19,7 @@ describe('Customer & Member Shell Isolation and Workspace Button Protection', ()
   const memberOnlySession: WebSession = {
     id: 'user-member-2',
     displayName: 'Budi Member Only',
-    roles: ['MEMBER'],
+    roles: ['CUSTOMER'],
     branchIds: [],
     capabilities: ['customer:self', 'booking:self:read', 'booking:self:create'],
     branches: [],
@@ -31,7 +31,7 @@ describe('Customer & Member Shell Isolation and Workspace Button Protection', ()
   const staffAdminSession: WebSession = {
     id: 'user-admin-1',
     displayName: 'Super Admin',
-    roles: ['ADMIN', 'SUPERADMIN'],
+    roles: ['ADMIN', 'SUPER_OWNER'],
     branchIds: [],
     capabilities: ['branches:read', 'branches:write'],
     branches: [],
@@ -43,7 +43,7 @@ describe('Customer & Member Shell Isolation and Workspace Button Protection', ()
   const staffWithCustomerSession: WebSession = {
     id: 'user-hybrid-1',
     displayName: 'Manager with Personal Member Account',
-    roles: ['MANAGER', 'CUSTOMER', 'MEMBER'],
+    roles: ['MANAGER', 'CUSTOMER'],
     branchIds: [],
     capabilities: ['branches:read'],
     branches: [],
@@ -59,9 +59,8 @@ describe('Customer & Member Shell Isolation and Workspace Button Protection', ()
     expect(isCustomerOnlySession(staffWithCustomerSession)).toBe(false);
   });
 
-  it('ensures internal staff roles never contain CUSTOMER or MEMBER', () => {
+  it('ensures internal staff roles never contain CUSTOMER', () => {
     expect(internalStaffRoles.has('CUSTOMER')).toBe(false);
-    expect(internalStaffRoles.has('MEMBER')).toBe(false);
     expect(internalStaffRoles.has('ADMIN')).toBe(true);
     expect(internalStaffRoles.has('MANAGER')).toBe(true);
     expect(internalStaffRoles.has('SUPER_OWNER')).toBe(true);

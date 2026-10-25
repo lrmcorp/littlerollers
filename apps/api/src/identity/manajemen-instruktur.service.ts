@@ -30,7 +30,7 @@ export class InstructorManagementService {
 
     const branchIds = branchId ? [branchId] : principal.branchIds;
     return {
-      role: { in: ['COACH', 'INSTRUCTOR'] },
+      role: 'INSTRUCTOR',
       status: 'ACTIVE',
       ...(principal.capabilities.includes('branch:all') && !branchId
         ? {}

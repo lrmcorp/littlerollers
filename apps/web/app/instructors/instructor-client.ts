@@ -111,10 +111,10 @@ export const instructorClient = {
       email: input.email.trim().toLowerCase(),
       displayName: input.displayName.trim(),
       password: input.password?.trim() || undefined,
-      roles: ['COACH'],
+      roles: ['INSTRUCTOR'],
       branchIds: input.branchIds ?? [],
       roleAssignments: (input.branchIds ?? []).map((branchId) => ({
-        role: 'COACH',
+        role: 'INSTRUCTOR',
         branchId,
       })),
     });

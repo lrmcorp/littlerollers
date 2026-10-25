@@ -121,7 +121,7 @@ export class LedgerService {
       customerUserId?: string;
     },
   ) {
-    const isCustomer = principal.roles.some((r) => r.role === 'CUSTOMER' || r.role === 'MEMBER');
+    const isCustomer = principal.roles.some((r) => r.role === 'CUSTOMER');
     if (isCustomer) {
       this.policy.requireCapability(principal.capabilities, 'ledger:read');
     }
@@ -792,7 +792,7 @@ export class LedgerService {
         // Pemisahan tugas: staf kasir dan manajer cabang dilarang memutus permintaannya sendiri (Maker-Checker).
         // Hanya Super Owner dan Superadmin yang memiliki wewenang persetujuan mandiri.
         const canSelfApprove = principal.roles.some((r) =>
-          ['SUPER_OWNER', 'SUPERADMIN'].includes(r.role as string),
+          r.role === 'SUPER_OWNER',
         );
         if (!canSelfApprove && row.requestedById === principal.userId)
           throw problem('SEPARATION_OF_DUTIES', HttpStatus.FORBIDDEN);

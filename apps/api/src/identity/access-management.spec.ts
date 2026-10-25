@@ -75,7 +75,6 @@ describe('AccessManagementService is honest about what exists', () => {
       'MANAGER',
       'ADMIN',
       'FINANCE',
-      'OPS',
       'INSTRUCTOR',
       'CUSTOMER',
     ]);

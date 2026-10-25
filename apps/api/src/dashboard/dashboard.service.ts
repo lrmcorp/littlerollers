@@ -90,7 +90,7 @@ export class DashboardService {
   constructor(private readonly db: PrismaService) {}
 
   async customerOverview(principal: SessionPrincipal) {
-    const isCustomer = principal.roles.some(({ role }) => role === 'CUSTOMER' || role === 'MEMBER');
+    const isCustomer = principal.roles.some(({ role }) => role === 'CUSTOMER');
     if (!isCustomer && principal.roles.length > 0) {
       // allow access for customer/member or review principals
     }
@@ -458,7 +458,7 @@ export class DashboardService {
     principal: SessionPrincipal,
     query: { branchId?: string; from?: string; until?: string },
   ) {
-    const nonOperationalRoles = new Set(['INSTRUCTOR', 'COACH', 'CUSTOMER', 'MEMBER']);
+    const nonOperationalRoles = new Set(['INSTRUCTOR', 'CUSTOMER']);
     const lacksOperationalRole = principal.roles.every(({ role }) => nonOperationalRoles.has(role));
     if (lacksOperationalRole && !principal.capabilities.includes('dashboard:read')) {
       throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);
@@ -466,7 +466,7 @@ export class DashboardService {
     const global =
       principal.capabilities.includes('branch:all') ||
       principal.roles.some(
-        ({ role, branchId }) => branchId === null && ['SUPER_OWNER', 'FINANCE', 'SUPERADMIN'].includes(role),
+        ({ role, branchId }) => branchId === null && ['SUPER_OWNER', 'FINANCE'].includes(role),
       );
     if (query.branchId && !global && !principal.branchIds.includes(query.branchId)) {
       throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);
@@ -592,7 +592,7 @@ export class DashboardService {
       this.db.user?.count
         ? this.db.user.count({
             where: {
-              role: { in: ['CUSTOMER', 'MEMBER'] },
+              role: 'CUSTOMER',
               ...verificationStatusWhere('PENDING'),
             },
           })
@@ -723,9 +723,7 @@ export class DashboardService {
         ? 'OWNER'
         : roles.includes('FINANCE')
           ? 'FINANCE'
-          : roles.includes('OPS')
-            ? 'OPERATIONS'
-            : 'BRANCH_OPERATIONS';
+          : 'BRANCH_OPERATIONS';
     const allMetrics = [
       {
         key: 'gross-sales',
@@ -868,7 +866,6 @@ export class DashboardService {
         'pending-payments',
         'finance-anomalies',
       ],
-      OPERATIONS: [],
     };
 
     const allowedSections = {
@@ -876,8 +873,8 @@ export class DashboardService {
       owner: roleFocus === 'OWNER',
       branchOperations: roleFocus === 'BRANCH_OPERATIONS',
       finance: roleFocus === 'FINANCE',
-      operations: roleFocus === 'OPERATIONS',
-      trend: roleFocus !== 'OPERATIONS',
+      operations: false,
+      trend: true,
       queue: true,
       risk: ['EXECUTIVE', 'OWNER', 'BRANCH_OPERATIONS'].includes(roleFocus),
       branchComparison: ['EXECUTIVE', 'OWNER', 'FINANCE'].includes(roleFocus),

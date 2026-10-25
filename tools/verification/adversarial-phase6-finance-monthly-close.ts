@@ -88,7 +88,7 @@ async function main() {
       });
       cleanupUserIds.push(user.id);
 
-      const isGlobal = role === Role.SUPER_OWNER || role === Role.SUPERADMIN;
+      const isGlobal = role === Role.SUPER_OWNER || role === Role.SUPER_OWNER;
       const capabilities: string[] = [];
 
       if (isGlobal) {

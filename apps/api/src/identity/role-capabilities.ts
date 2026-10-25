@@ -5,11 +5,7 @@ export type ApplicationRole =
   | 'MANAGER'
   | 'OWNER'
   | 'SUPER_OWNER'
-  | 'FINANCE'
-  | 'OPS'
-  | 'SUPERADMIN'
-  | 'COACH'
-  | 'MEMBER';
+  | 'FINANCE';
 
 /** Super Owner memegang seluruh izin operasional (kecuali izin self-service pelanggan/instruktur). */
 const SUPER_OWNER_CAPABILITIES: readonly string[] = [
@@ -32,6 +28,10 @@ const SUPER_OWNER_CAPABILITIES: readonly string[] = [
     'user:read',
     'user:admin',
     'branch:all',
+    // Izin cabang warisan yang dulu datang lewat peran SUPERADMIN.
+    'branch:own',
+    'branch:manage',
+    'branch:operate',
     'session:revoke',
     'assignment:read',
     'assignment:manage',
@@ -94,26 +94,7 @@ export const ROLE_CAPABILITIES: Record<ApplicationRole, readonly string[]> = {
     'reschedule:self:read',
     'reschedule:self:request',
   ],
-  MEMBER: [
-    'customer:self',
-    'package:read',
-    'voucher:redeem',
-    'ledger:read',
-    'class-slot:read',
-    'booking:self:read',
-    'booking:self:create',
-    'booking:self:cancel',
-    'reschedule:self:read',
-    'reschedule:self:request',
-  ],
   INSTRUCTOR: [
-    'class:assigned:read',
-    'attendance:self',
-    'availability:self:read',
-    'availability:self:create',
-    'class-slot:read',
-  ],
-  COACH: [
     'class:assigned:read',
     'attendance:self',
     'availability:self:read',
@@ -200,10 +181,6 @@ export const ROLE_CAPABILITIES: Record<ApplicationRole, readonly string[]> = {
     'attendance:read',
   ],
   SUPER_OWNER: SUPER_OWNER_CAPABILITIES,
-  // Alias lama: identik dengan SUPER_OWNER ditambah izin cabang warisan.
-  SUPERADMIN: [
-    ...new Set([...SUPER_OWNER_CAPABILITIES, 'branch:own', 'branch:manage', 'branch:operate']),
-  ],
   FINANCE: [
     'automation:read',
     'finance:read',
@@ -218,5 +195,4 @@ export const ROLE_CAPABILITIES: Record<ApplicationRole, readonly string[]> = {
     'ledger:read',
     'ledger:adjust:read',
   ],
-  OPS: ['operations:read', 'operations:recover'],
 };

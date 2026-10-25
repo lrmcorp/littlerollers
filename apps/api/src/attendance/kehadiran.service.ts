@@ -26,7 +26,7 @@ export function isOwningCustomer(
   customerUserId: string,
 ): boolean {
   return (
-    principal.roles.some(({ role }) => role === 'CUSTOMER' || role === 'MEMBER') &&
+    principal.roles.some(({ role }) => role === 'CUSTOMER') &&
     principal.userId === customerUserId
   );
 }

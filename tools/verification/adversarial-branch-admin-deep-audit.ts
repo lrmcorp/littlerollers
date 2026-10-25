@@ -176,7 +176,7 @@ async function runBranchAdminAudit() {
 
     // Instruktur & Studio
     const instructor = await db.user.findFirstOrThrow({
-      where: { role: { in: [Role.INSTRUCTOR, Role.COACH] } },
+      where: { role: Role.INSTRUCTOR },
     });
     const studiosA = await db.studio.findMany({ where: { branchId: branchA.id }, take: 1 });
     const studioA = studiosA[0] ?? (await db.studio.findFirstOrThrow());

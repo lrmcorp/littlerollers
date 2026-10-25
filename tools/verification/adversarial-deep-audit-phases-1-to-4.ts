@@ -201,7 +201,7 @@ async function runAdversarialDeepAudit() {
           email,
           phone: `+62812${Math.floor(10000000 + Math.random() * 90000000)}`,
           displayName: `Adv Customer ${tag}`,
-          role: Role.MEMBER,
+          role: Role.CUSTOMER,
           status: 'ACTIVE',
           profile: {
             create: {
@@ -679,7 +679,7 @@ async function runAdversarialDeepAudit() {
     {
       const start = Date.now();
       try {
-        const rolesToTest = [Role.MEMBER, Role.INSTRUCTOR, Role.ADMIN, Role.MANAGER];
+        const rolesToTest = [Role.CUSTOMER, Role.INSTRUCTOR, Role.ADMIN, Role.MANAGER];
         let allBlocked = true;
 
         for (const r of rolesToTest) {

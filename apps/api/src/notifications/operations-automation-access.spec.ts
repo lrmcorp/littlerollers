@@ -14,12 +14,12 @@ describe('tombol berbahaya otomasi hanya untuk Super Owner', () => {
     },
   );
 
-  it('hanya Super Owner/Superadmin yang memegang izin automation:run', () => {
+  it('hanya Super Owner yang memegang izin automation:run', () => {
     const holders = Object.entries(ROLE_CAPABILITIES)
       .filter(([, capabilities]) => capabilities.includes('automation:run'))
       .map(([role]) => role)
       .sort();
-    expect(holders).toEqual(['SUPERADMIN', 'SUPER_OWNER']);
+    expect(holders).toEqual(['SUPER_OWNER']);
   });
 
   it('Admin dan Manager tetap bisa melihat log pengingat', () => {

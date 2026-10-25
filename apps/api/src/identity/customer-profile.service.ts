@@ -46,7 +46,7 @@ export class CustomerProfileService {
     const displayName = input.displayName?.trim();
     if (!displayName || displayName.length < 2 || displayName.length > 160)
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
-    const isCustomer = principal.roles.some(({ role }) => role === 'CUSTOMER' || role === 'MEMBER');
+    const isCustomer = principal.roles.some(({ role }) => role === 'CUSTOMER');
     if (!isCustomer && input.preferredBranchId)
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
     const branch = input.preferredBranchId

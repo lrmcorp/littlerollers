@@ -181,7 +181,7 @@ export function PaymentReviewDetailView({
     const purchase = detail?.purchase;
     const isSuper = Boolean(
       sessionContext?.session?.roles?.some((r) =>
-        ['SUPER_OWNER', 'SUPERADMIN'].includes(r),
+        r === 'SUPER_OWNER',
       ),
     );
     const isRecorder = Boolean(
@@ -763,7 +763,7 @@ export function PaymentReviewDetailView({
             {canDecide && isPendingDecision ? (() => {
               const isSuper = Boolean(
                 sessionContext?.session?.roles?.some((r) =>
-                  ['SUPER_OWNER', 'SUPERADMIN'].includes(r),
+                  r === 'SUPER_OWNER',
                 ),
               );
               const isRecorder = Boolean(

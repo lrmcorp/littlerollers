@@ -7,7 +7,7 @@ type Tx = Prisma.TransactionClient | PrismaService;
 
 export type NotificationCategory = 'PAYMENT' | 'BOOKING' | 'SCHEDULE' | 'SYSTEM' | 'PROMO' | string;
 export type NotificationTone = 'INFO' | 'SUCCESS' | 'WARNING' | 'DANGER' | string;
-export type ApplicationRole = 'SUPERADMIN' | 'ADMIN' | 'COACH' | 'MEMBER' | string;
+export type ApplicationRole = 'SUPER_OWNER' | 'ADMIN' | 'INSTRUCTOR' | 'CUSTOMER' | string;
 
 export interface NotificationItem {
   id: string;

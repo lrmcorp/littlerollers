@@ -28,6 +28,7 @@ import { CustomerManagementService } from './manajemen-pelanggan.service';
 import { InstructorManagementController } from './instructor-management.controller';
 import { InstructorManagementService } from './manajemen-instruktur.service';
 import { RolesGuard } from './roles.guard';
+import { RoleAliasMigrationService } from './role-alias-migration.service';
 
 @Module({
   imports: [DatabaseModule],
@@ -38,6 +39,7 @@ import { RolesGuard } from './roles.guard';
     InstructorManagementController,
   ],
   providers: [
+    RoleAliasMigrationService,
     IdentityService,
     CustomerProfileService,
     IdentityReviewQueryService,

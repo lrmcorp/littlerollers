@@ -1,23 +1,17 @@
 /**
- * Label peran untuk UI. Backend masih mengirim dua kosakata role (lihat `roles.guard.ts`):
- * SUPERADMIN/COACH/MEMBER dari kolom legacy sejajar dengan SUPER_OWNER/INSTRUCTOR/CUSTOMER,
- * dan role custom dapat dibuat dari halaman Hak Akses. Karena itu pencarian label tidak boleh
- * mengasumsikan kode role selalu dikenal.
+ * Label peran untuk UI. Backend hanya mengirim kode kanonik (SUPER_OWNER, OWNER, MANAGER, ADMIN,
+ * FINANCE, INSTRUCTOR, CUSTOMER). Pencarian label tetap tidak boleh mengasumsikan kode selalu dikenal.
  */
 type RoleLabelVariant = 'scoped' | 'short';
 
 const labels: Record<string, { scoped: string; short: string }> = {
   SUPER_OWNER: { scoped: 'Super Admin', short: 'Super Admin' },
-  SUPERADMIN: { scoped: 'Super Admin', short: 'Super Admin' },
   OWNER: { scoped: 'Owner cabang', short: 'Owner' },
   ADMIN: { scoped: 'Admin cabang', short: 'Admin' },
   MANAGER: { scoped: 'Manager cabang', short: 'Manager' },
   FINANCE: { scoped: 'Finance', short: 'Finance' },
-  OPS: { scoped: 'Operations', short: 'Operations' },
   INSTRUCTOR: { scoped: 'Instruktur', short: 'Instruktur' },
-  COACH: { scoped: 'Instruktur', short: 'Instruktur' },
   CUSTOMER: { scoped: 'Pelanggan', short: 'Pelanggan' },
-  MEMBER: { scoped: 'Pelanggan', short: 'Pelanggan' },
 };
 
 function humanizeRoleCode(role: string): string {

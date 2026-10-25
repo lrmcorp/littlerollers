@@ -33,8 +33,8 @@ describe('lifecycle deletability on a real MySQL', () => {
     await db.$connect();
     await db.user.createMany({
       data: [
-        { id: actorId, displayName: `Actor ${ns}`, role: 'SUPERADMIN' },
-        { id: memberId, displayName: `Member ${ns}`, role: 'MEMBER' },
+        { id: actorId, displayName: `Actor ${ns}`, role: 'SUPER_OWNER' },
+        { id: memberId, displayName: `Member ${ns}`, role: 'CUSTOMER' },
         { id: ownerLinkedId, displayName: `Owner ${ns}`, role: 'OWNER' },
       ],
     });

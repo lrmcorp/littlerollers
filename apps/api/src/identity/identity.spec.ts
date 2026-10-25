@@ -29,7 +29,6 @@ describe('identity security foundation', () => {
       'OWNER',
       'SUPER_OWNER',
       'FINANCE',
-      'OPS',
     ] as const;
     const capabilities = policy.capabilities(roles.map((role) => ({ role, branchId: 'branch-a' })));
     expect(capabilities).toEqual(
@@ -125,7 +124,7 @@ describe('identity security foundation', () => {
         expect.arrayContaining(['class-slot:read', 'class-slot:manage', 'attendance:manage']),
       );
     }
-    for (const role of ['FINANCE', 'OPS'] as const) {
+    for (const role of ['FINANCE'] as const) {
       expect(capabilities(role)).not.toContain('class-slot:read');
       expect(capabilities(role)).not.toContain('class-slot:manage');
     }
@@ -258,7 +257,7 @@ describe('identity security foundation', () => {
       id: 'new-user-1',
       email: 'new-customer@example.test',
       displayName: 'new-customer',
-      role: 'MEMBER',
+      role: 'CUSTOMER',
       status: 'ACTIVE',
     };
     const tx = {
@@ -300,7 +299,7 @@ describe('identity security foundation', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           email: 'new-customer@example.test',
-          role: 'MEMBER',
+          role: 'CUSTOMER',
           status: 'ACTIVE',
         }),
       }),

@@ -10,6 +10,7 @@ import { ApiProblem, newId } from './security';
 import { hashPassword } from './credential-security';
 import type { ApplicationRole } from './role-capabilities';
 import { buildPhoneSearchVariants } from './manajemen-pelanggan.service';
+import { canonicalRole } from './role-aliases';
 
 /** Halaman staf yang memakai pemilih user: penugasan, master, hak akses, audit. */
 const USER_LOOKUP_CAPABILITIES = [
@@ -35,12 +36,13 @@ function normalizePhone(value: string): string {
 
 function toDbRole(roleName?: string): Role {
   if (!roleName) return 'ADMIN';
-  if (roleName === 'COACH' || roleName === 'INSTRUCTOR') return 'COACH';
-  if (roleName === 'SUPERADMIN' || roleName === 'SUPER_OWNER') return 'SUPER_OWNER';
+  const canonical = canonicalRole(roleName);
+  if (canonical === 'INSTRUCTOR') return 'INSTRUCTOR';
+  if (canonical === 'SUPER_OWNER') return 'SUPER_OWNER';
   if (roleName === 'MANAGER') return 'MANAGER';
   if (roleName === 'FINANCE') return 'FINANCE';
   if (roleName === 'OWNER') return 'OWNER';
-  if (roleName === 'CUSTOMER' || roleName === 'MEMBER') return 'MEMBER';
+  if (canonical === 'CUSTOMER') return 'CUSTOMER';
   return 'ADMIN';
 }
 
@@ -97,7 +99,7 @@ export class UserAdministrationService {
         source: 'DIRECT' as const,
       },
     ];
-    const audience = role === 'MEMBER' ? 'CUSTOMER' : 'STAFF';
+    const audience = role === 'CUSTOMER' ? 'CUSTOMER' : 'STAFF';
 
     return {
       id: user.id,
@@ -156,7 +158,7 @@ export class UserAdministrationService {
       ...(filters.status ? { status: filters.status as UserStatus } : {}),
       ...(filters.role ? { role: filters.role as Role } : {}),
       ...(filters.audience === 'CUSTOMER'
-        ? { role: { in: ['CUSTOMER', 'MEMBER'] } }
+        ? { role: 'CUSTOMER' }
         : filters.audience === 'STAFF'
           ? {
               role: {
@@ -167,8 +169,6 @@ export class UserAdministrationService {
                   'FINANCE',
                   'ADMIN',
                   'INSTRUCTOR',
-                  'SUPERADMIN',
-                  'COACH',
                 ],
               },
             }
@@ -197,7 +197,7 @@ export class UserAdministrationService {
         where: {
           role: filters.role
             ? (filters.role as any)
-            : { notIn: ['CUSTOMER', 'MEMBER'] },
+            : { not: 'CUSTOMER' },
         },
         _count: { _all: true },
       }),
@@ -240,14 +240,14 @@ export class UserAdministrationService {
     const andClauses: Prisma.UserWhereInput[] = [];
 
     if (filters.instructorsOnly) {
-      andClauses.push({ role: 'COACH' });
+      andClauses.push({ role: 'INSTRUCTOR' });
     }
 
     if (filters.branchId) {
       andClauses.push({
         OR: [
           { preferredBranchId: filters.branchId },
-          { role: { in: ['COACH', 'SUPER_OWNER', 'SUPERADMIN', 'ADMIN', 'OWNER'] } },
+          { role: { in: ['INSTRUCTOR', 'SUPER_OWNER', 'ADMIN', 'OWNER'] } },
         ],
       });
     }
@@ -312,7 +312,7 @@ export class UserAdministrationService {
     const phoneVariants = q ? buildPhoneSearchVariants(q) : [];
 
     const where: Prisma.UserWhereInput = {
-      role: 'MEMBER',
+      role: 'CUSTOMER',
       status: 'ACTIVE',
       ...(q
         ? {

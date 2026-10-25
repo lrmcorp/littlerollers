@@ -401,9 +401,6 @@ describe('capability-aware session shell', () => {
 
   it('routes instructor/coach-only accounts to their class schedule instead of the operational workspace', () => {
     expect(defaultSessionDestination(instructorSession)).toBe('/workspace/classes');
-    expect(defaultSessionDestination({ ...instructorSession, roles: ['COACH'] })).toBe(
-      '/workspace/classes',
-    );
     expect(canAccessSessionPath(instructorSession, '/workspace')).toBe(false);
     expect(canAccessSessionPath(instructorSession, '/workspace/classes')).toBe(true);
     expect(canAccessSessionPath(instructorSession, '/workspace/payments')).toBe(false);

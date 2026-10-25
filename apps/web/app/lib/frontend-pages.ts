@@ -48,7 +48,7 @@ export const frontendPages: FrontendPageDefinition[] = [
     branchScope: 'topbar',
     accent: 'brand',
     icon: 'layout-dashboard',
-    roleRelevance: ['SUPER_OWNER', 'OWNER', 'ADMIN', 'MANAGER', 'FINANCE', 'OPS'],
+    roleRelevance: ['SUPER_OWNER', 'OWNER', 'ADMIN', 'MANAGER', 'FINANCE'],
   },
   {
     href: '/workspace/classes',
@@ -90,7 +90,7 @@ export const frontendPages: FrontendPageDefinition[] = [
     priority: 4,
     branchScope: 'topbar',
     accent: 'info',
-    roleRelevance: ['ADMIN', 'MANAGER', 'SUPER_OWNER', 'INSTRUCTOR', 'COACH'],
+    roleRelevance: ['ADMIN', 'MANAGER', 'SUPER_OWNER', 'INSTRUCTOR'],
   },
   {
     href: '/kiosk',
@@ -117,7 +117,7 @@ export const frontendPages: FrontendPageDefinition[] = [
     priority: 7,
     branchScope: 'topbar',
     accent: 'brand',
-    roleRelevance: ['INSTRUCTOR', 'COACH'],
+    roleRelevance: ['INSTRUCTOR'],
   },
   {
     href: '/workspace/reminders',

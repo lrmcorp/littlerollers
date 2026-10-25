@@ -50,7 +50,7 @@ export class FinanceService {
     const isGlobal =
       principal.capabilities.includes('branch:all') ||
       principal.roles.some((r) =>
-        ['SUPER_OWNER', 'SUPERADMIN', 'FINANCE'].includes(r.role as string),
+        ['SUPER_OWNER', 'FINANCE'].includes(r.role as string),
       );
     if (isGlobal) return;
 
@@ -74,7 +74,7 @@ export class FinanceService {
     const isGlobal =
       principal.capabilities.includes('branch:all') ||
       principal.roles.some((r) =>
-        ['SUPER_OWNER', 'SUPERADMIN', 'FINANCE'].includes(r.role as string),
+        ['SUPER_OWNER', 'FINANCE'].includes(r.role as string),
       );
 
     const branchFilter = input.branchId
@@ -143,7 +143,7 @@ export class FinanceService {
     const isGlobal =
       principal.capabilities.includes('branch:all') ||
       principal.roles.some((r) =>
-        ['SUPER_OWNER', 'SUPERADMIN', 'FINANCE'].includes(r.role as string),
+        ['SUPER_OWNER', 'FINANCE'].includes(r.role as string),
       );
 
     const branchFilter = input.branchId
@@ -268,7 +268,7 @@ export class FinanceService {
     const isGlobal =
       principal.capabilities.includes('branch:all') ||
       principal.roles.some((r) =>
-        ['SUPER_OWNER', 'SUPERADMIN', 'FINANCE'].includes(r.role as string),
+        ['SUPER_OWNER', 'FINANCE'].includes(r.role as string),
       );
 
     const branchFilter = input.branchId
@@ -558,7 +558,7 @@ export class FinanceService {
     const isGlobal =
       principal.capabilities.includes('branch:all') ||
       principal.roles.some((r) =>
-        ['SUPER_OWNER', 'SUPERADMIN', 'FINANCE'].includes(r.role as string),
+        ['SUPER_OWNER', 'FINANCE'].includes(r.role as string),
       );
     const branchFilter = input.branchId
       ? { branchId: input.branchId }
@@ -860,7 +860,7 @@ export class FinanceService {
   ) {
     this.policy.requireCapability(principal.capabilities, 'finance:read');
     const isOwnerOrSuper = principal.roles.some((r) =>
-      ['SUPER_OWNER', 'SUPERADMIN', 'OWNER', 'FINANCE'].includes(r.role as string),
+      ['SUPER_OWNER', 'OWNER', 'FINANCE'].includes(r.role as string),
     );
     if (!isOwnerOrSuper) {
       throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);

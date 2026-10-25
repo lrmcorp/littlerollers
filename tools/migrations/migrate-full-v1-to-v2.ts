@@ -394,12 +394,12 @@ async function main() {
       }
     }
 
-    let role: Role = Role.MEMBER;
+    let role: Role = Role.CUSTOMER;
     const rName = u.role_name ? String(u.role_name).toLowerCase().trim() : '';
     if (v1Id === 1) {
       role = Role.SUPER_OWNER;
     } else if (rName.includes('super admin')) {
-      role = Role.SUPERADMIN;
+      role = Role.SUPER_OWNER;
     } else if (rName.includes('owner')) {
       role = Role.OWNER;
     } else if (rName.includes('admin')) {

@@ -25,7 +25,7 @@ const customer = principal(
 
 describe('lookups only serve staff pages that need them', () => {
   const findMany = jest.fn().mockResolvedValue([
-    { id: 'u1', displayName: 'Coach A', role: 'COACH', phone: '+6281234567890', preferredBranchId: null },
+    { id: 'u1', displayName: 'Coach A', role: 'INSTRUCTOR', phone: '+6281234567890', preferredBranchId: null },
   ]);
   const service = new UserAdministrationService(
     {
@@ -48,7 +48,7 @@ describe('lookups only serve staff pages that need them', () => {
 
   it('serves users to assignment/master/user admins without phone numbers', async () => {
     const result = await service.lookupUsers(principal(['assignment:manage']), {});
-    expect(result.items[0]).toMatchObject({ id: 'u1', label: 'Coach A', description: 'COACH' });
+    expect(result.items[0]).toMatchObject({ id: 'u1', label: 'Coach A', description: 'INSTRUCTOR' });
     expect(JSON.stringify(result)).not.toContain('+6281234567890');
   });
 

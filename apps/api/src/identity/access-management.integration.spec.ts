@@ -39,8 +39,8 @@ databaseDescribe('access management integration', () => {
     });
     await db.user.createMany({
       data: [
-        { id: actorId, displayName: 'RBAC Super Owner', role: 'SUPERADMIN' },
-        { id: targetId, displayName: 'RBAC Target', role: 'MEMBER' },
+        { id: actorId, displayName: 'RBAC Super Owner', role: 'SUPER_OWNER' },
+        { id: targetId, displayName: 'RBAC Target', role: 'CUSTOMER' },
       ],
     });
     await db.userSession.create({

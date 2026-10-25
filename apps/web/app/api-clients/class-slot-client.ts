@@ -163,7 +163,7 @@ export interface ClassSlotClient {
 const key = () => crypto.randomUUID();
 
 /**
- * Beberapa akun (mis. INSTRUCTOR/COACH) hanya punya `class-slot:read` dan tidak punya
+ * Beberapa akun (mis. INSTRUCTOR) hanya punya `class-slot:read` dan tidak punya
  * `master:read`/`user:read`/`assignment:read`. Panggilan pelengkap ini hanya untuk opsi filter dan
  * form buat kelas, jadi 403 di sini tidak boleh menggagalkan jadwal utama yang sudah berhasil dimuat.
  */

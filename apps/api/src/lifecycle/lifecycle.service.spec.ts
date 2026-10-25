@@ -221,7 +221,7 @@ describe('LifecycleService.remove', () => {
   });
 
   it('only a Super Owner may delete an account, never their own, and the audit shows the person masked', async () => {
-    const row = { id: id(6), role: 'MEMBER', displayName: 'Rina', status: 'INACTIVE', email: 'rina@example.test' };
+    const row = { id: id(6), role: 'CUSTOMER', displayName: 'Rina', status: 'INACTIVE', email: 'rina@example.test' };
     const admin = build({ row });
     await expect(
       admin.service.remove({ ...superOwner, roles: [{ role: 'ADMIN', branchId: null }] } as never, 'user', id(6), 'salah undang', 'c'),

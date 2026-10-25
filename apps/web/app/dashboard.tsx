@@ -264,9 +264,7 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
         : 'OWNER'
       : session.roles.includes('FINANCE')
         ? 'FINANCE'
-        : session.roles.includes('OPS')
-          ? 'OPERATIONS'
-          : 'BRANCH_OPERATIONS');
+        : 'BRANCH_OPERATIONS');
   const copy = roleCopy[focus];
   const queueTotal = overview?.queues.reduce((sum, item) => sum + item.count, 0) ?? 0;
   const queueCounts = Object.fromEntries(
@@ -344,8 +342,7 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
       {!activeBranch &&
         session.branches.length > 0 &&
         !session.roles.includes('SUPER_OWNER') &&
-        !session.roles.includes('FINANCE') &&
-        !session.roles.includes('OPS') && (
+        !session.roles.includes('FINANCE') && (
           <Feedback kind="warning">
             Pilih cabang aktif di bagian atas sebelum membuka atau menjalankan pekerjaan yang
             memiliki cakupan cabang.

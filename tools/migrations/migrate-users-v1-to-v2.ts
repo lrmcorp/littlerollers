@@ -243,13 +243,13 @@ async function main() {
 
     // Role mapping
     const roles = userRoles.get(v1Id) || new Set<number>();
-    let role: Role = Role.MEMBER;
+    let role: Role = Role.CUSTOMER;
     if (roles.has(1)) {
-      role = Role.SUPERADMIN;
+      role = Role.SUPER_OWNER;
     } else if (roles.has(4) || roles.has(5) || roles.has(6) || roles.has(7)) {
       role = Role.ADMIN;
     } else if (roles.has(2)) {
-      role = Role.COACH;
+      role = Role.INSTRUCTOR;
     }
 
     // Status mapping
@@ -305,7 +305,7 @@ async function main() {
     };
 
     usersToInsert.push(parsed);
-    if (role === Role.COACH) {
+    if (role === Role.INSTRUCTOR) {
       coachesList.push(parsed);
     }
   }
@@ -473,10 +473,10 @@ async function main() {
   // 6. Ringkasan & Verifikasi
   console.log('\n📊 === VERIFIKASI AKHIR MIGRASI PENGGUNA ===');
   const totalUsers = await db.user.count();
-  const superAdmins = await db.user.count({ where: { role: Role.SUPERADMIN } });
+  const superAdmins = await db.user.count({ where: { role: Role.SUPER_OWNER } });
   const admins = await db.user.count({ where: { role: Role.ADMIN } });
-  const coaches = await db.user.count({ where: { role: Role.COACH } });
-  const members = await db.user.count({ where: { role: Role.MEMBER } });
+  const coaches = await db.user.count({ where: { role: Role.INSTRUCTOR } });
+  const members = await db.user.count({ where: { role: Role.CUSTOMER } });
   const remainingDummies = await db.user.count({
     where: { email: { endsWith: '.local' } },
   });

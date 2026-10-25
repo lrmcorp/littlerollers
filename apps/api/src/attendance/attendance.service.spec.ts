@@ -26,14 +26,6 @@ describe('customer QR check-in ownership', () => {
     expect(isOwningCustomer(principal, 'customer-b')).toBe(false);
   });
 
-  it('allows MEMBER role for customer self-service check-in', () => {
-    expect(
-      isOwningCustomer(
-        { userId: 'member-a', roles: [{ role: 'MEMBER' as const, branchId: null }] },
-        'member-a',
-      ),
-    ).toBe(true);
-  });
 
   it('does not treat a staff role as the owning customer path', () => {
     expect(

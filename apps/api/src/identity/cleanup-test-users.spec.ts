@@ -18,7 +18,7 @@ describe('Isolasi Akun Testing & Instruktur Nonaktif (Poin 13)', () => {
         id: 'inst-1',
         displayName: 'Instruktur Resmi',
         email: 'resmi@dailydose.test',
-        role: 'COACH',
+        role: 'INSTRUCTOR',
         status: 'ACTIVE',
         instructorAssignments: [],
         _count: { instructedClassSlots: 5, instructorAttendances: 5 },
@@ -41,7 +41,7 @@ describe('Isolasi Akun Testing & Instruktur Nonaktif (Poin 13)', () => {
       expect.objectContaining({
         where: expect.objectContaining({
           status: 'ACTIVE',
-          role: { in: ['COACH', 'INSTRUCTOR'] },
+          role: 'INSTRUCTOR',
         }),
       }),
     );
@@ -54,7 +54,7 @@ describe('Isolasi Akun Testing & Instruktur Nonaktif (Poin 13)', () => {
       {
         id: 'inst-1',
         displayName: 'Instruktur Resmi',
-        role: 'COACH',
+        role: 'INSTRUCTOR',
         status: 'ACTIVE',
         preferredBranchId: 'b1',
       },
@@ -73,7 +73,7 @@ describe('Isolasi Akun Testing & Instruktur Nonaktif (Poin 13)', () => {
       expect.objectContaining({
         where: expect.objectContaining({
           status: 'ACTIVE',
-          AND: expect.arrayContaining([{ role: 'COACH' }]),
+          AND: expect.arrayContaining([{ role: 'INSTRUCTOR' }]),
         }),
       }),
     );

@@ -160,7 +160,7 @@ describe('customer writes use the same rule (404 for staff accounts and other-br
       service.updateProfile(writer() as never, id(1), { displayName: 'Baru', email: 'x@example.test' }, '', '', 'c'),
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });
     expect(tx.user.findFirst).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { id: id(1), role: { in: ['CUSTOMER', 'MEMBER'] } } }),
+      expect.objectContaining({ where: { id: id(1), role: 'CUSTOMER' } }),
     );
     expect(tx.user.update).not.toHaveBeenCalled();
   });

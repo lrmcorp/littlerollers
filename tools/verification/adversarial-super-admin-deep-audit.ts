@@ -168,7 +168,7 @@ async function runSuperAdminAudit() {
 
     // 6. Instruktur Test
     const instructor = await db.user.findFirstOrThrow({
-      where: { role: { in: [Role.INSTRUCTOR, Role.COACH] } },
+      where: { role: Role.INSTRUCTOR },
     });
 
     const studios = await db.studio.findMany({ where: { branchId: branchA.id }, take: 1 });
@@ -678,7 +678,7 @@ async function runSuperAdminAudit() {
       // Cari instruktur lain untuk membuktikan bahwa yang bentrok adalah STUDIONYA
       const otherInstructor = await db.user.findFirst({
         where: {
-          role: { in: [Role.INSTRUCTOR, Role.COACH] },
+          role: Role.INSTRUCTOR,
           id: { not: instructor.id },
         },
       });

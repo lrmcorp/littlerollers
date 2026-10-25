@@ -31,7 +31,7 @@ databaseDescribe('synthetic instructor availability MySQL integration', () => {
 
   beforeAll(async () => {
     await db.$connect();
-    await db.user.create({ data: { id: instructorId, displayName: 'Synthetic instructor', role: 'COACH' } });
+    await db.user.create({ data: { id: instructorId, displayName: 'Synthetic instructor', role: 'INSTRUCTOR' } });
     await db.cabang.createMany({
       data: [
         { id: branchId, code: `${namespace}-a`, name: 'Jakarta', timezone: 'Asia/Jakarta' },

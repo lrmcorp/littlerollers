@@ -537,12 +537,12 @@ describe('LedgerService.directAdjustment (Non-Happy Path & Direct Execution)', (
     });
   });
 
-  it('TEST-1.6: allows SUPERADMIN to approve their own request via decideAdjustment without SEPARATION_OF_DUTIES', async () => {
+  it('TEST-1.6: allows SUPER_OWNER to approve their own request via decideAdjustment without SEPARATION_OF_DUTIES', async () => {
     const { service, tx } = setup();
     const branchManager = {
       sessionId: 's',
       userId: admin.userId, // same user as requester
-      roles: [{ role: 'SUPERADMIN' as const, branchId: branchA }],
+      roles: [{ role: 'SUPER_OWNER' as const, branchId: branchA }],
       capabilities: ['ledger:adjust:decide', 'ledger:read', 'ledger:adjust:read'],
       branchIds: [branchA],
     };

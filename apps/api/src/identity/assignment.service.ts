@@ -184,12 +184,12 @@ export class AssignmentService {
 
     if (input.assignmentType === 'OWNER') {
       const isSuperOwner = principal.roles.some((r) =>
-        ['SUPER_OWNER', 'SUPERADMIN'].includes(r.role as string),
+        r.role === 'SUPER_OWNER',
       );
       if (!isSuperOwner) throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);
 
       const promotedToOwner =
-        user.role !== 'OWNER' && user.role !== 'SUPER_OWNER' && (user.role as any) !== 'SUPERADMIN';
+        user.role !== 'OWNER' && user.role !== 'SUPER_OWNER' && true;
       if (promotedToOwner) {
         await this.db.user.update({
           where: { id: user.id },
@@ -280,7 +280,7 @@ export class AssignmentService {
     const ownerBranch = await this.db.ownerCabang.findUnique({ where: { id: assignmentId } });
     if (ownerBranch) {
       const isSuperOwner = principal.roles.some((r) =>
-        ['SUPER_OWNER', 'SUPERADMIN'].includes(r.role as string),
+        r.role === 'SUPER_OWNER',
       );
       if (!isSuperOwner) throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);
 

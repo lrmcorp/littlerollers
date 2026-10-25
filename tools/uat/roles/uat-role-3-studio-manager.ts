@@ -258,7 +258,7 @@ async function runStudioManagerUat() {
         displayName: 'Amanda Member',
         email: 'amanda.member@dailydose.test',
         phone: '+6281277665544',
-        role: Role.MEMBER,
+        role: Role.CUSTOMER,
         status: 'ACTIVE',
         preferredBranchId: ggBranch.id,
       },

@@ -285,7 +285,7 @@ const SPECS: Record<LifecycleKind, Spec> = {
       (await (db as any).supportCase.deleteMany({ where: { customerId: row.id } })).count +
       (await (db as any).correctionJournal.deleteMany({ where: { requestedById: row.id } })).count,
     extra: async (_db, row) =>
-      ['SUPER_OWNER', 'SUPERADMIN'].includes(row.role)
+      row.role === 'SUPER_OWNER'
         ? [{ kind: 'protected_account', label: 'akun Super Owner (dilindungi)', count: 1 }]
         : [],
     snapshot: (row) => ({
@@ -393,7 +393,7 @@ export class LifecycleService {
     } else if (spec.globalOnly && !this.policy.hasGlobalCapability(principal, spec.capability)) {
       throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
     }
-    if (kind === 'user' && !principal.roles.some(({ role }) => ['SUPER_OWNER', 'SUPERADMIN'].includes(role as string)))
+    if (kind === 'user' && !principal.roles.some(({ role }) => role === 'SUPER_OWNER'))
       throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);
   }
 

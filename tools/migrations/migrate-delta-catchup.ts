@@ -127,7 +127,7 @@ async function main() {
           phone: finalPhone,
           displayName: u.name ? String(u.name).trim() : 'Member Daily Dose',
           passwordHash: u.password || null,
-          role: Role.MEMBER,
+          role: Role.CUSTOMER,
           status: UserStatus.ACTIVE,
           preferredBranchId: branchId,
           createdAt,

@@ -328,14 +328,14 @@ export async function seedUsersAndRoles(
   // Coaches / Instructors (Authentic V1 Instructors)
   const coachSarah = await db.user.upsert({
     where: { email: 'instdevi@ddose.com' },
-    update: { role: Role.COACH, status: UserStatus.ACTIVE },
+    update: { role: Role.INSTRUCTOR, status: UserStatus.ACTIVE },
     create: {
       id: '10000000-0000-4000-8000-000000000003',
       email: 'instdevi@ddose.com',
       displayName: 'Devi',
       phone: '+6287825588055',
       passwordHash: defaultPasswordHash,
-      role: Role.COACH,
+      role: Role.INSTRUCTOR,
       status: UserStatus.ACTIVE,
       preferredBranchId: gg.id,
       profile: {
@@ -349,13 +349,13 @@ export async function seedUsersAndRoles(
 
   const coachBudi = await db.user.upsert({
     where: { email: 'inststephen@ddose.com' },
-    update: { role: Role.COACH, status: UserStatus.ACTIVE },
+    update: { role: Role.INSTRUCTOR, status: UserStatus.ACTIVE },
     create: {
       id: '10000000-0000-4000-8000-000000001101',
       email: 'inststephen@ddose.com',
       displayName: 'Stephen',
       passwordHash: defaultPasswordHash,
-      role: Role.COACH,
+      role: Role.INSTRUCTOR,
       status: UserStatus.ACTIVE,
       preferredBranchId: gg.id,
       profile: {
@@ -369,13 +369,13 @@ export async function seedUsersAndRoles(
 
   const coachJessica = await db.user.upsert({
     where: { email: 'instangel@ddose.com' },
-    update: { role: Role.COACH, status: UserStatus.ACTIVE },
+    update: { role: Role.INSTRUCTOR, status: UserStatus.ACTIVE },
     create: {
       id: '10000000-0000-4000-8000-000000001102',
       email: 'instangel@ddose.com',
       displayName: 'Angel',
       passwordHash: defaultPasswordHash,
-      role: Role.COACH,
+      role: Role.INSTRUCTOR,
       status: UserStatus.ACTIVE,
       preferredBranchId: mk.id,
       profile: {
@@ -434,14 +434,14 @@ export async function seedUsersAndRoles(
   // Customer Members (Authentic V1 Customers)
   const customerAnisa = await db.user.upsert({
     where: { email: 'cindyedelene@gmail.com' },
-    update: { role: Role.MEMBER, status: UserStatus.ACTIVE },
+    update: { role: Role.CUSTOMER, status: UserStatus.ACTIVE },
     create: {
       id: '10000000-0000-4000-8000-000000000012',
       email: 'cindyedelene@gmail.com',
       displayName: 'Cindy Edelene Arief',
       phone: '+628158159818',
       passwordHash: defaultPasswordHash,
-      role: Role.MEMBER,
+      role: Role.CUSTOMER,
       status: UserStatus.ACTIVE,
       preferredBranchId: gg.id,
       profile: {
@@ -456,14 +456,14 @@ export async function seedUsersAndRoles(
 
   const customerDimas = await db.user.upsert({
     where: { email: 'rynrliando@gmail.com' },
-    update: { role: Role.MEMBER, status: UserStatus.ACTIVE },
+    update: { role: Role.CUSTOMER, status: UserStatus.ACTIVE },
     create: {
       id: '10000000-0000-4000-8000-000000000004',
       email: 'rynrliando@gmail.com',
       displayName: 'Gerald',
       phone: '+6287777287778',
       passwordHash: defaultPasswordHash,
-      role: Role.MEMBER,
+      role: Role.CUSTOMER,
       status: UserStatus.ACTIVE,
       preferredBranchId: mk.id,
       profile: {

@@ -82,7 +82,7 @@ export class IdentityReviewQueryService {
     const limit = Math.min(Math.max(filters.limit ?? 20, 1), 50);
     const page = Math.max(Number(filters.page ?? 1), 1);
     const skip = filters.cursor ? 1 : (page - 1) * limit;
-    const andConditions: any[] = [{ role: { in: ['CUSTOMER', 'MEMBER'] } }];
+    const andConditions: any[] = [{ role: 'CUSTOMER' }];
 
     if (filters.customerUserId) {
       andConditions.push({ id: filters.customerUserId });
@@ -170,7 +170,7 @@ export class IdentityReviewQueryService {
             SUM(CASE WHEN (p.ktp_url IS NOT NULL AND p.selfie_url IS NOT NULL AND IFNULL(p.notes, '') LIKE '%KYC_APPROVED%') THEN 1 ELSE 0 END) as approvedCustomers
           FROM user u
           LEFT JOIN profil_pengguna p ON u.id = p.userId
-          WHERE u.role IN ('CUSTOMER', 'MEMBER')
+          WHERE u.role = 'CUSTOMER'
         `;
         if (raw && raw[0]) {
           totalCustomersCount = Number(raw[0].totalCustomers ?? totalCount);

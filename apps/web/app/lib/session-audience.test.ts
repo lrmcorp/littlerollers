@@ -47,14 +47,10 @@ describe('public detail routing and audience', () => {
   it('allows customers to purchase packages regardless of KYC verification status', () => {
     expect(packageAudienceState(session(['CUSTOMER'], 'PENDING'))).toBe('CUSTOMER_APPROVED');
     expect(packageAudienceState(session(['CUSTOMER'], 'APPROVED'))).toBe('CUSTOMER_APPROVED');
-    expect(packageAudienceState(session(['CUSTOMER', 'MEMBER'], 'APPROVED'))).toBe('CUSTOMER_APPROVED');
-    expect(packageAudienceState(session(['MEMBER'], 'APPROVED'))).toBe('CUSTOMER_APPROVED');
   });
 
-  it('treats INSTRUCTOR/COACH-only accounts as instructor-only', () => {
+  it('treats INSTRUCTOR-only accounts as instructor-only', () => {
     expect(isInstructorOnlySession(session(['INSTRUCTOR'], 'NOT_REQUIRED'))).toBe(true);
-    expect(isInstructorOnlySession(session(['COACH'], 'NOT_REQUIRED'))).toBe(true);
-    expect(isInstructorOnlySession(session(['INSTRUCTOR', 'COACH'], 'NOT_REQUIRED'))).toBe(true);
   });
 
   it('keeps dual-role accounts (e.g. INSTRUCTOR + ADMIN) out of instructor-only scope', () => {

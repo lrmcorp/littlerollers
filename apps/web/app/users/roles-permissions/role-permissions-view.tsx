@@ -164,7 +164,7 @@ export function RolePermissionsView({
     (role) =>
       role.active &&
       (!role.systemRole ||
-        ['ADMIN', 'MANAGER', 'FINANCE', 'OPS', 'SUPER_OWNER'].includes(role.systemRole)),
+        ['ADMIN', 'MANAGER', 'FINANCE', 'SUPER_OWNER'].includes(role.systemRole)),
   );
   const visibleRoles = useMemo(() => {
     const query = roleSearch.trim().toLowerCase();

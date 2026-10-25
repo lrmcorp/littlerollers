@@ -16,7 +16,7 @@ export type UiFailure =
   | 'NOT_IMPLEMENTED';
 
 export type ApplicationRole =
-  'CUSTOMER' | 'INSTRUCTOR' | 'ADMIN' | 'MANAGER' | 'OWNER' | 'SUPER_OWNER' | 'FINANCE' | 'OPS';
+  'CUSTOMER' | 'INSTRUCTOR' | 'ADMIN' | 'MANAGER' | 'OWNER' | 'SUPER_OWNER' | 'FINANCE';
 
 export interface UserRoleSummary {
   role: ApplicationRole;
@@ -260,7 +260,7 @@ function mapUser(user: any): UserSummary {
     effectiveCapabilities: mapped.effectiveCapabilities ?? [],
     audience:
       mapped.audience ??
-      (roles.some(({ role }) => role === 'CUSTOMER' || (role as string) === 'MEMBER')
+      (roles.some(({ role }) => role === 'CUSTOMER')
         ? 'CUSTOMER'
         : 'STAFF'),
     identityVerification: user.identityVerification

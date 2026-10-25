@@ -34,10 +34,7 @@ type PrincipalAccess = {
   capabilityDenials?: Array<{ capability: string; branchId: string | null; sourceId: string }>;
 };
 
-const NON_STAFF_ROLES: ReadonlySet<ApplicationRole> = new Set([
-  'CUSTOMER',
-  'MEMBER',
-]);
+const NON_STAFF_ROLES: ReadonlySet<ApplicationRole> = new Set(['CUSTOMER']);
 
 const isStaffRole = (role: ApplicationRole): boolean => !NON_STAFF_ROLES.has(role);
 
@@ -89,7 +86,7 @@ export class PolicyService {
   }
 
   roleCatalog() {
-    const assignable = new Set<ApplicationRole>(['ADMIN', 'MANAGER', 'FINANCE', 'OPS', 'INSTRUCTOR']);
+    const assignable = new Set<ApplicationRole>(['ADMIN', 'MANAGER', 'FINANCE', 'INSTRUCTOR']);
     const branchScoped = new Set<ApplicationRole>(['INSTRUCTOR', 'ADMIN', 'MANAGER', 'OWNER']);
     return (Object.keys(ROLE_CAPABILITIES) as ApplicationRole[]).map((role) => ({
       role,
@@ -215,7 +212,7 @@ export class PolicyService {
   requireCustomerSelf(roles: readonly EffectiveRole[], capabilities: readonly string[]): void {
     const customerOnly =
       roles.length > 0 &&
-      roles.every(({ role }) => role === 'CUSTOMER' || role === 'MEMBER');
+      roles.every(({ role }) => role === 'CUSTOMER');
     if (!customerOnly || !capabilities.includes('customer:self'))
       throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);
   }

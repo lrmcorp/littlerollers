@@ -142,7 +142,7 @@ export function defaultSessionDestination(session: WebSession): string {
   if (session.passwordChangeRequired) return '/account/security?required=true';
   if (isInstructorOnlySession(session)) return '/workspace/classes';
   if (session.roles.some((role) => internalStaffRoles.has(role))) return '/workspace';
-  if (session.roles.some((role) => role === 'CUSTOMER' || role === 'MEMBER'))
+  if (session.roles.some((role) => role === 'CUSTOMER'))
     return '/classes#schedule';
   return '/workspace';
 }

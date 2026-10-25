@@ -635,7 +635,7 @@ export class CustomerOrderService {
       },
       async (tx) => {
         const customer = await tx.user.findUnique({ where: { id: customerUserId } });
-        if (!customer || !['CUSTOMER', 'MEMBER'].includes(customer.role))
+        if (!customer || customer.role !== 'CUSTOMER')
           throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
         if (customer.status !== 'ACTIVE')
           throw new ApiProblem('CUSTOMER_NOT_ACTIVE', HttpStatus.CONFLICT);

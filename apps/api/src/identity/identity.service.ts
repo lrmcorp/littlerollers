@@ -30,6 +30,7 @@ import {
   syntheticConfigSeconds,
 } from './security';
 import { NotificationWriterService } from '../notifications/notification-writer.service';
+import { canonicalRole } from './role-aliases';
 
 export interface SessionPrincipal {
   sessionId: string;
@@ -48,17 +49,11 @@ export function mapUserToEffectiveRoles(user: {
   preferredBranchId?: string | null;
   ownedBranches?: Array<{ branchId: string }>;
 }): Array<{ role: ApplicationRole; branchId: string | null }> {
-  switch (user.role) {
+  switch (canonicalRole(user.role)) {
     case 'SUPER_OWNER':
-    case 'SUPERADMIN':
-      return [
-        { role: 'SUPER_OWNER', branchId: null },
-        { role: 'SUPERADMIN', branchId: null },
-      ];
+      return [{ role: 'SUPER_OWNER', branchId: null }];
     case 'FINANCE':
-      return [
-        { role: 'FINANCE', branchId: null },
-      ];
+      return [{ role: 'FINANCE', branchId: null }];
     case 'OWNER': {
       const owned = user.ownedBranches ?? [];
       if (owned.length > 0) {
@@ -67,26 +62,14 @@ export function mapUserToEffectiveRoles(user: {
       return [{ role: 'OWNER', branchId: user.preferredBranchId ?? null }];
     }
     case 'MANAGER':
-      return [
-        { role: 'MANAGER', branchId: user.preferredBranchId ?? null },
-      ];
+      return [{ role: 'MANAGER', branchId: user.preferredBranchId ?? null }];
     case 'ADMIN':
-      return [
-        { role: 'ADMIN', branchId: user.preferredBranchId ?? null },
-      ];
+      return [{ role: 'ADMIN', branchId: user.preferredBranchId ?? null }];
     case 'INSTRUCTOR':
-    case 'COACH':
-      return [
-        { role: 'INSTRUCTOR', branchId: user.preferredBranchId ?? null },
-        { role: 'COACH', branchId: user.preferredBranchId ?? null },
-      ];
+      return [{ role: 'INSTRUCTOR', branchId: user.preferredBranchId ?? null }];
     case 'CUSTOMER':
-    case 'MEMBER':
     default:
-      return [
-        { role: 'CUSTOMER', branchId: user.preferredBranchId ?? null },
-        { role: 'MEMBER', branchId: user.preferredBranchId ?? null },
-      ];
+      return [{ role: 'CUSTOMER', branchId: user.preferredBranchId ?? null }];
   }
 }
 
@@ -190,7 +173,7 @@ export class IdentityService {
       select: { id: true, code: true, name: true, timezone: true },
     });
 
-    const isCustomerOnly = projection.roles.every((r) => r === 'CUSTOMER' || r === 'MEMBER');
+    const isCustomerOnly = projection.roles.every((r) => r === 'CUSTOMER');
     let identityVerificationStatus = 'APPROVED';
     if (isCustomerOnly) {
       const profile = (this.db as any).profilPengguna?.findUnique
@@ -579,7 +562,7 @@ export class IdentityService {
           id: newId(),
           email: cleanEmail,
           displayName: cleanDisplayName,
-          role: 'MEMBER',
+          role: 'CUSTOMER',
           status: 'ACTIVE',
         },
       });
@@ -676,7 +659,7 @@ export class IdentityService {
             email,
             phone,
             passwordHash,
-            role: 'MEMBER',
+            role: 'CUSTOMER',
             status: 'ACTIVE',
           },
         });

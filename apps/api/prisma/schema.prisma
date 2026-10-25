@@ -277,7 +277,7 @@ model User {
   phone             String?    @unique @db.VarChar(32)
   displayName       String     @map("name") @db.VarChar(128)
   passwordHash      String?    @db.VarChar(255)
-  role              Role       @default(MEMBER)
+  role              Role       @default(CUSTOMER)
   status            UserStatus @default(ACTIVE)
   rememberToken     String?    @map("remember_token") @db.VarChar(100)
   preferredBranchId String?    @db.Char(36)

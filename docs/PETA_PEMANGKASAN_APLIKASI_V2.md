@@ -64,7 +64,8 @@ Semua yang **tidak** ada di daftar ini harus membuktikan kegunaannya.
 > - **Kunci versi:** tetap wajib hanya untuk terbit/batal/selesai kelas dan keputusan penyesuaian saldo. Opsional (diperiksa bila dikirim) untuk tetapkan instruktur, ubah draf kelas, promosi paket, dan kasus bantuan.
 > - **Idempotency:** tidak diubah (tidak terasa bagi staf; melindungi pesanan dan pembayaran).
 > - **Gelombang 2, butir pertama selesai (26 Okt):** 85 pembungkus alias Indonesia (`daftarX`, `buatX`, ...) di 21 layanan API dihapus; tidak ada pemanggilnya di api, web, tools, maupun tes.
-> - **Belum:** jumlah peran (alias `SUPERADMIN`/`COACH`/`MEMBER` masih dipakai data dan alat migrasi v1), klien API web, tampilan raksasa, dashboard, konten publik versi, template notifikasi versi.
+> - **Peran selesai (26 Okt):** hanya tujuh peran kanonik (`SUPER_OWNER`, `OWNER`, `MANAGER`, `ADMIN`, `FINANCE`, `INSTRUCTOR`, `CUSTOMER`); `OPS` (tidak pernah dipegang siapa pun) dihapus. Nilai lama `SUPERADMIN`/`COACH`/`MEMBER` tetap ada di enum database tetapi tidak pernah ditulis lagi: alat migrasi v1, seed, dan pembuatan akun memakai nama kanonik, dan `RoleAliasMigrationService` mengubah baris lama saat API menyala (di DB dev: 2 SUPERADMIN, 1 COACH, 38 MEMBER). Principal sekarang punya satu peran efektif, bukan dua (kanonik + alias).
+> - **Belum:** klien API web, tampilan raksasa, dashboard, konten publik versi, template notifikasi versi.
 
 | Area | Masalah | Usulan |
 |---|---|---|

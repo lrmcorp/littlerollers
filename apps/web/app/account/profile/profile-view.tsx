@@ -84,7 +84,7 @@ export function ProfileView() {
     if (session?.roles.includes('OWNER')) return { tone: 'success' as const, label: 'Owner Cabang', detail: 'Manajemen Cabang' };
     if (session?.roles.includes('HEAD_INSTRUCTOR') || session?.roles.includes('INSTRUCTOR')) return { tone: 'info' as const, label: 'Instruktur', detail: 'Jadwal & Presensi' };
     if (session?.roles.includes('FINANCE')) return { tone: 'info' as const, label: 'Finance', detail: 'Kasir & Pembayaran' };
-    if (session?.roles.includes('ADMIN') || session?.roles.includes('MANAGER') || session?.roles.includes('OPS')) return { tone: 'info' as const, label: 'Operasional', detail: 'Staf Studio' };
+    if (session?.roles.includes('ADMIN') || session?.roles.includes('MANAGER')) return { tone: 'info' as const, label: 'Operasional', detail: 'Staf Studio' };
     return {
       tone: isVerified ? ('success' as const) : ('neutral' as const),
       label: isVerified ? 'Member Terverifikasi' : 'Member Daily Dose',
