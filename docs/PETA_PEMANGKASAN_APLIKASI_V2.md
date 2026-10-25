@@ -63,7 +63,8 @@ Semua yang **tidak** ada di daftar ini harus membuktikan kegunaannya.
 > - **Alasan:** opsional (bila diisi tetap 3–500 karakter) untuk nonaktifkan/jeda/arsip cabang, studio, ruang, tipe kelas, paket, voucher, promosi, konten publik, template notifikasi, dan ubah draf kelas. **Tetap wajib:** hapus permanen, akun pengguna, rekening pembayaran, tarif, pembatalan/penolakan/koreksi uang dan saldo, akhiri penugasan.
 > - **Kunci versi:** tetap wajib hanya untuk terbit/batal/selesai kelas dan keputusan penyesuaian saldo. Opsional (diperiksa bila dikirim) untuk tetapkan instruktur, ubah draf kelas, promosi paket, dan kasus bantuan.
 > - **Idempotency:** tidak diubah (tidak terasa bagi staf; melindungi pesanan dan pembayaran).
-> - **Belum:** nama ganda EN/ID, jumlah peran, klien API web, tampilan raksasa, dashboard, konten publik versi, template notifikasi versi (gelombang 2).
+> - **Gelombang 2, butir pertama selesai (26 Okt):** 85 pembungkus alias Indonesia (`daftarX`, `buatX`, ...) di 21 layanan API dihapus; tidak ada pemanggilnya di api, web, tools, maupun tes.
+> - **Belum:** jumlah peran (alias `SUPERADMIN`/`COACH`/`MEMBER` masih dipakai data dan alat migrasi v1), klien API web, tampilan raksasa, dashboard, konten publik versi, template notifikasi versi.
 
 | Area | Masalah | Usulan |
 |---|---|---|
