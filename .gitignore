@@ -54,3 +54,7 @@ tree_*.txt
 env-keys-*.txt
 .DS_Store
 **/.DS_Store
+
+# Berkas sekali pakai dan cadangan lokal; jangan masuk git (dump DB memuat data pelanggan)
+scratch/
+backups/
