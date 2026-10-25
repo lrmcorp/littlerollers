@@ -38,7 +38,7 @@ Pola kerumitan yang berulang: `expectedVersion` 134 kali, `idempotency` 154 kali
 6. Booking, pembatalan, ubah jadwal
 7. Presensi pelanggan dan instruktur
 8. Saldo sesi pelanggan (riwayat penambahan/pemakaian)
-9. Honor instruktur dan laporan: omzet, honor, biaya lain, laba, tutup buku
+9. Honor instruktur dan laporan: omzet, honor, biaya lain, laba (rentang tanggal bebas)
 10. Pengguna dan peran staf
 11. Pengingat WhatsApp/email
 
@@ -80,7 +80,7 @@ Semua yang **tidak** ada di daftar ini harus membuktikan kegunaannya.
 | **Dashboard** | Lima variasi fokus peran (`EXECUTIVE`, `OWNER`, `FINANCE`, `OPERATIONS`, `BRANCH_OPERATIONS`) | Dua: ringkasan keuangan (Finance/Super Owner) dan ringkasan operasional (Admin/Owner) |
 | **Lifecycle (hapus/arsip)** | Layanan baru dari sesi lalu: dialog tunggal, pemindaian FK, `class-slot`, dll | Pertahankan sebagai satu-satunya jalur hapus (menggantikan 5 jalur lama), tetapi alasan hanya wajib sesuai aturan di atas |
 | **Laporan keuangan tambahan** | `reconciliation/overview`, `anomalies`, `legacy-cashflow`, `owner-branch-performance` di luar 4 laporan inti | Cabut yang tidak punya layar; `legacy-cashflow` adalah sisa v1 |
-| **Tutup buku** | Tutup buku + jurnal koreksi dengan persetujuan Super Owner | Pertahankan tutup buku sederhana; jurnal koreksi hanya bila Finance benar-benar memakainya (TANYA) |
+| **Tutup buku** | Tutup buku + jurnal koreksi dengan persetujuan Super Owner | **DICABUT 25 Okt** (v1 tidak punya). Laporan memakai rentang tanggal bebas; biaya lain bertanggal dan bisa diubah/dihapus. Tabel `monthly_close`/`correction_journal` jadi arsip |
 
 ### 4.3 PERTAHANKAN — inti pilates dan pelindung uang
 
@@ -109,7 +109,7 @@ Semua yang **tidak** ada di daftar ini harus membuktikan kegunaannya.
 | **Dua mekanisme diskon: voucher dan promosi paket.** Total ±3.900 baris web. | Pertahankan satu |
 | ~~**Owner Cabang.**~~ **Terjawab 25 Okt:** akun Owner melekat ke cabang dan peran lewat penugasan; Super Admin/Owner utama melihat semua cabang. Itu sudah persis cara kerja `owner_cabang` + halaman Penugasan, jadi tidak ada yang dicabut selain rute ganda. | — |
 | **Kasus bantuan pelanggan** (`/support-cases`, 684 web + API) | Cabut bila bantuan lewat WhatsApp |
-| **Jurnal koreksi pasca-tutup buku.** | Cabut bila Finance cukup koreksi di periode berjalan |
+| ~~**Jurnal koreksi pasca-tutup buku.**~~ **Dicabut 25 Okt** bersama tutup buku. | — |
 | **Panduan SOP di aplikasi** (`/workspace/guide`, 783 baris) | Pindah ke dokumen biasa |
 
 ### 4.5 Repositori (bukan aplikasi)

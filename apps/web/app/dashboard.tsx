@@ -365,7 +365,7 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
       {overview?.financial.completeness === 'INCOMPLETE' && (
         <Feedback kind="warning">
           Laporan keuangan belum lengkap ({overview.financial.anomalyCount} anomali). Angka ini
-          belum boleh digunakan untuk monthly close atau sign-off Finance.
+          belum boleh digunakan sebagai acuan laporan atau sign-off Finance.
         </Feedback>
       )}
 

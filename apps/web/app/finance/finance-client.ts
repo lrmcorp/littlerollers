@@ -5,26 +5,6 @@ export interface Money {
   currency: string;
 }
 
-export interface Correction {
-  id: string;
-  branchId: string;
-  currentPeriod: string;
-  referencePeriod: string;
-  amount: Money;
-  reason: string;
-  requestedBy: string;
-  decidedBy?: string | null;
-  status: 'PENDING' | 'APPROVED' | 'POSTED' | 'REJECTED' | string;
-  version: number;
-}
-
-export interface CorrectionDecisionResult {
-  id: string;
-  status: string;
-  decidedAt: Date;
-  decision: 'APPROVE' | 'REJECT' | string;
-}
-
 export interface FinanceAnomaly {
   purchaseId: string;
   branchId: string;
@@ -54,37 +34,6 @@ export interface LegacyFinancialEntryPage {
   page: { hasMore: boolean; nextCursor: string | null };
 }
 
-export interface BranchPeriodPage {
-  items: Array<{
-    id: string;
-    branchId: string;
-    period: string;
-    status: string;
-    closedAt?: Date | null;
-    controlHash?: string | null;
-    version: number;
-  }>;
-  page: { hasMore: boolean; nextCursor: string | null };
-}
-
-export interface CloseResult {
-  period: string;
-  branchId: string;
-  status: string;
-  closedAt: Date;
-  controlHash?: string;
-}
-
-export interface FinancialReportPage {
-  report: {
-    period: string;
-    controlHash: string;
-    netProfitRp?: number;
-    [key: string]: any;
-  };
-  [key: string]: any;
-}
-
 export interface FinanceExportResult {
   fileName: string;
   mimeType: any;
@@ -97,19 +46,25 @@ export interface FinanceExportResult {
   expiresAt?: Date;
 }
 
+/** Rentang tanggal laporan, inklusif, `YYYY-MM-DD`. */
+export interface FinanceRange {
+  from: string;
+  until: string;
+}
+
 export interface OtherCost {
   id: string;
   branchId: string;
   period: string;
-  costDate: string;
+  incurredOn: string;
   category: string;
   amountRp: number;
   description: string;
-  receiptKey?: string | null;
-  version: number;
 }
 
 export interface OtherCostUpdate {
+  /** Tanggal pengeluaran `YYYY-MM-DD`. */
+  incurredOn?: string;
   category?: string;
   description?: string;
   amountRp?: number;
@@ -117,15 +72,11 @@ export interface OtherCostUpdate {
 
 export interface OtherCostCommand {
   branchId: string;
-  period: string;
+  /** Tanggal pengeluaran `YYYY-MM-DD`. */
+  incurredOn: string;
   amountRp: number;
   description: string;
-  occurredOn?: Date;
   categoryCode?: string;
-  reason?: string;
-  costDate?: string;
-  category?: string;
-  receiptKey?: string | null;
 }
 
 export interface OtherCostPage {
@@ -147,7 +98,7 @@ export type FinanceData = {
 };
 
 // ============================================================================
-// 5 LAPORAN INTI KEUANGAN TYPED INTERFACES
+// LAPORAN KEUANGAN
 // ============================================================================
 
 export interface OmsetTransaction {
@@ -164,6 +115,8 @@ export interface OmsetTransaction {
 
 export interface OmsetReportData {
   period: string;
+  from?: string;
+  until?: string;
   branchId: string;
   totalOmsetRp: number;
   totalTransactionCount: number;
@@ -211,6 +164,8 @@ export interface InstructorSessionItem {
 
 export interface InstructorCostRealtimeData {
   period: string;
+  from?: string;
+  until?: string;
   branchId: string;
   totalInstructorCostRp: number;
   /** Honor kelas yang presensi instrukturnya sudah tercatat (QR atau verifikasi manual). */
@@ -229,6 +184,8 @@ export interface OtherCostItem {
   branchId: string;
   branchName: string;
   period: string;
+  /** Tanggal pengeluaran `YYYY-MM-DD`. */
+  incurredOn: string;
   category: string;
   description: string;
   amountRp: number;
@@ -238,28 +195,26 @@ export interface OtherCostItem {
 
 export interface OtherCostReportData {
   period: string;
+  from?: string;
+  until?: string;
   branchId: string;
   totalOtherCostRp: number;
   byCategory: Record<string, { count: number; amountRp: number }>;
   items: OtherCostItem[];
 }
 
-export interface MonthlyProfitData {
+export interface ProfitData {
   period: string;
+  from: string;
+  until: string;
   branchId: string;
-  isLocked: boolean;
-  status: string;
-  closedAt: string | null;
-  closedByName: string | null;
   omsetRp: number;
   costRealtimeRp: number;
-  grossProfitRp?: number;
-  grossMarginPercent?: number;
+  grossProfitRp: number;
+  grossMarginPercent: number;
   otherCostRp: number;
   netProfitRealtimeRp: number;
-  netMarginPercent?: number;
-  totalCorrectionAdjustmentRp: number;
-  adjustedNetProfitRealtimeRp: number;
+  netMarginPercent: number;
 }
 
 export interface FinanceClient {
@@ -276,48 +231,22 @@ export interface FinanceClient {
     input: { branchId?: string; from: string; until: string },
     cursor?: string,
   ): Promise<LegacyFinancialEntryPage>;
-  financialReport?(branchId: string, period: string): Promise<FinancialReportPage>;
   exportReport?(input: {
     branchId?: string;
     from: string;
     until: string;
   }): Promise<FinanceExportResult>;
-  otherCosts?(branchId: string, period: string, cursor?: string): Promise<OtherCostPage>;
   createOtherCost?(command: OtherCostCommand): Promise<OtherCost>;
-  periods?(branchId: string, cursor?: string): Promise<BranchPeriodPage>;
-  closeMonth?(command: {
-    branchId: string;
-    period: string;
-    controlHash: string;
-    reason: string;
-    expectedVersion: number;
-  }): Promise<CloseResult>;
-  requestCorrection?(command: {
-    branchId: string;
-    currentPeriod: string;
-    referencePeriod: string;
-    amountRp: number;
-    reason: string;
-  }): Promise<Correction>;
-  decideCorrection?(
-    id: string,
-    decision: 'approve' | 'reject',
-    reason: string,
-  ): Promise<CorrectionDecisionResult>;
-  corrections?(
-    branchId: string,
-    period?: string,
-    status?: string,
-  ): Promise<{ items: Correction[]; page: { hasMore: boolean; nextCursor: string | null } }>;
 
-  // 5 Laporan Finansial Methods
-  getOmsetReport?(branchId?: string, period?: string): Promise<OmsetReportData>;
-  getInstructorCostRealtime?(branchId?: string, period?: string): Promise<InstructorCostRealtimeData>;
-  getOtherCostReport?(branchId?: string, period?: string): Promise<OtherCostReportData>;
-  getMonthlyProfit?(branchId?: string, period?: string): Promise<MonthlyProfitData>;
+  // Laporan keuangan menurut rentang tanggal pilihan pengguna
+  getOmsetReport?(branchId: string | undefined, range: FinanceRange): Promise<OmsetReportData>;
+  getInstructorCostRealtime?(
+    branchId: string | undefined,
+    range: FinanceRange,
+  ): Promise<InstructorCostRealtimeData>;
+  getOtherCostReport?(branchId: string | undefined, range: FinanceRange): Promise<OtherCostReportData>;
+  getProfit?(branchId: string | undefined, range: FinanceRange): Promise<ProfitData>;
 
-  // Aksi Finansial
-  executeMonthlyClose?(branchId: string, period: string, reason?: string): Promise<any>;
   /** Alasan wajib (K4): biaya yang dihapus tidak dapat dipulihkan. */
   deleteOtherCost?(id: string, reason: string): Promise<{ id: string; deleted: boolean }>;
   updateOtherCost?(id: string, input: OtherCostUpdate): Promise<unknown>;
@@ -349,6 +278,12 @@ async function financeFetch<T>(path: string, init?: RequestInit): Promise<T> {
     return undefined as unknown as T;
   }
   return response.json() as Promise<T>;
+}
+
+function rangeParams(branchId: string | undefined, range: FinanceRange): string {
+  const params = new URLSearchParams({ from: range.from, until: range.until });
+  if (branchId) params.set('branchId', branchId);
+  return params.toString();
 }
 
 export const browserFinanceClient: FinanceClient = {
@@ -404,13 +339,6 @@ export const browserFinanceClient: FinanceClient = {
       { label: 'Memuat legacy cashflow…' },
     );
   },
-  financialReport(branchId, period) {
-    const params = new URLSearchParams({ reportType: 'profit', branchId, period });
-    return appLoading.track(
-      financeFetch<FinancialReportPage>(`/reports/financial?${params.toString()}`),
-      { label: 'Memuat kontrol periode…' },
-    );
-  },
   exportReport(input) {
     return appLoading.track(
       financeFetch<FinanceExportResult>('/finance-exports', {
@@ -424,14 +352,6 @@ export const browserFinanceClient: FinanceClient = {
       { label: 'Membuat export Finance…' },
     );
   },
-  otherCosts(branchId, period, cursor) {
-    const params = new URLSearchParams({ branchId, period });
-    if (cursor) params.set('cursor', cursor);
-    return appLoading.track(
-      financeFetch<OtherCostPage>(`/other-costs?${params.toString()}`),
-      { label: 'Memuat biaya lain…' },
-    );
-  },
   createOtherCost(command) {
     return appLoading.track(
       financeFetch<OtherCost>('/other-costs', {
@@ -442,107 +362,24 @@ export const browserFinanceClient: FinanceClient = {
       { label: 'Mencatat biaya lain…' },
     );
   },
-  periods(branchId, cursor) {
-    const params = new URLSearchParams({ branchId });
-    if (cursor) params.set('cursor', cursor);
-    return appLoading.track(
-      financeFetch<BranchPeriodPage>(`/periods?${params.toString()}`),
-      { label: 'Memuat periode Finance…' },
-    );
-  },
-  closeMonth(command) {
-    return appLoading.track(
-      financeFetch<CloseResult>('/monthly-closes', {
-        method: 'POST',
-        headers: { 'Idempotency-Key': crypto.randomUUID() },
-        body: JSON.stringify(command),
-      }),
-      { label: 'Menutup periode…' },
-    );
-  },
-  requestCorrection(command) {
-    return appLoading.track(
-      financeFetch<Correction>('/finance/correction-journals', {
-        method: 'POST',
-        body: JSON.stringify({
-          branchId: command.branchId,
-          currentPeriod: command.currentPeriod,
-          referencePeriod: command.referencePeriod,
-          amountRp: command.amountRp,
-          reason: command.reason,
-        }),
-      }),
-      { label: 'Membuat permintaan koreksi…' },
-    );
-  },
-  async decideCorrection(id, decision, reason) {
-    const result = await appLoading.track(
-      financeFetch<{ correction: Correction }>(
-        `/finance/correction-journals/${encodeURIComponent(id)}/${decision}`,
-        { method: 'POST', body: JSON.stringify({ reason }) },
-      ),
-      { label: 'Memutuskan koreksi…' },
-    );
-    return {
-      id: result.correction.id,
-      status: result.correction.status,
-      decision: decision.toUpperCase(),
-      decidedAt: new Date(),
-    };
-  },
-  async corrections(branchId, period, status = 'PENDING') {
-    const params = new URLSearchParams();
-    if (branchId) params.set('branchId', branchId);
-    if (status) params.set('status', status);
-    if (period) params.set('period', period);
-    return financeFetch<{
-      items: Correction[];
-      page: { hasMore: boolean; nextCursor: string | null };
-    }>(`/finance/correction-journals?${params.toString()}`);
+  // Laporan keuangan menurut rentang tanggal
+
+  async getOmsetReport(branchId, range) {
+    return financeFetch<OmsetReportData>(`/finance/reports/omset?${rangeParams(branchId, range)}`);
   },
 
-  // ============================================================================
-  // 5 LAPORAN INTI
-  // ============================================================================
-
-  async getOmsetReport(branchId?: string, period?: string): Promise<OmsetReportData> {
-    const params = new URLSearchParams();
-    if (branchId) params.set('branchId', branchId);
-    if (period) params.set('period', period);
-    return financeFetch<OmsetReportData>(`/finance/reports/omset?${params.toString()}`);
-  },
-
-  async getInstructorCostRealtime(
-    branchId?: string,
-    period?: string,
-  ): Promise<InstructorCostRealtimeData> {
-    const params = new URLSearchParams();
-    if (branchId) params.set('branchId', branchId);
-    if (period) params.set('period', period);
+  async getInstructorCostRealtime(branchId, range) {
     return financeFetch<InstructorCostRealtimeData>(
-      `/finance/reports/instructor-cost-realtime?${params.toString()}`,
+      `/finance/reports/instructor-cost-realtime?${rangeParams(branchId, range)}`,
     );
   },
 
-  async getOtherCostReport(branchId?: string, period?: string): Promise<OtherCostReportData> {
-    const params = new URLSearchParams();
-    if (branchId) params.set('branchId', branchId);
-    if (period) params.set('period', period);
-    return financeFetch<OtherCostReportData>(`/finance/reports/other-costs?${params.toString()}`);
+  async getOtherCostReport(branchId, range) {
+    return financeFetch<OtherCostReportData>(`/finance/reports/other-costs?${rangeParams(branchId, range)}`);
   },
 
-  async getMonthlyProfit(branchId?: string, period?: string): Promise<MonthlyProfitData> {
-    const params = new URLSearchParams();
-    if (branchId) params.set('branchId', branchId);
-    if (period) params.set('period', period);
-    return financeFetch<MonthlyProfitData>(`/finance/reports/profit-summary?${params.toString()}`);
-  },
-
-  async executeMonthlyClose(branchId: string, period: string, reason?: string) {
-    return financeFetch<any>('/finance/monthly-closes/execute', {
-      method: 'POST',
-      body: JSON.stringify({ branchId, period, reason }),
-    });
+  async getProfit(branchId, range) {
+    return financeFetch<ProfitData>(`/finance/reports/profit-summary?${rangeParams(branchId, range)}`);
   },
 
   async deleteOtherCost(id: string, reason: string) {
@@ -561,32 +398,21 @@ export const browserFinanceClient: FinanceClient = {
 };
 
 const financeMessages: Record<string, string> = {
-  PERIOD_ALREADY_LOCKED: 'Periode ini sudah ditutup, sehingga biaya tidak dapat diubah atau dihapus.',
   INVALID_AMOUNT: 'Nominal harus berupa rupiah bulat lebih dari nol.',
-  VALIDATION_ERROR: 'Data belum valid. Periksa kategori, keterangan, dan nominal.',
+  VALIDATION_ERROR: 'Data belum valid. Periksa tanggal, kategori, keterangan, dan nominal.',
+  RANGE_TOO_LARGE: 'Rentang tanggal terlalu lebar. Pilih paling lama 366 hari.',
   FORBIDDEN: 'Anda tidak memiliki izin mengelola biaya lain.',
   NOT_FOUND: 'Biaya tidak ditemukan. Muat ulang daftar.',
 };
 
-/** Pesan khusus alur koreksi periode; menggantikan pesan biaya lain untuk kode yang sama. */
-const correctionMessages: Record<string, string> = {
-  SEPARATION_OF_DUTIES: 'Pengaju koreksi tidak boleh memutus koreksinya sendiri. Minta Super Owner lain.',
-  CORRECTION_ALREADY_DECIDED: 'Koreksi ini sudah diputuskan. Muat ulang antrean.',
-  VALIDATION_ERROR:
-    'Data koreksi belum valid. Periode referensi harus sebelum periode berjalan, selisih tidak boleh nol, dan alasan 3–500 karakter.',
-  FORBIDDEN: 'Anda tidak memiliki izin untuk tindakan ini. Memutus koreksi hanya untuk Super Owner.',
-  NOT_FOUND: 'Koreksi tidak ditemukan. Muat ulang antrean.',
-};
-
 /** Pesan Indonesia untuk kegagalan permintaan Finance. */
-export function financeFailureMessage(error: unknown, context?: 'correction'): string {
+export function financeFailureMessage(error: unknown): string {
   const response = (error as { response?: { status?: number; data?: { code?: string; error?: { code?: string } } } })
     ?.response;
   const code = response?.data?.code ?? response?.data?.error?.code;
-  const messages = context === 'correction' ? { ...financeMessages, ...correctionMessages } : financeMessages;
-  if (code && messages[code]) return messages[code]!;
-  if (response?.status === 403) return messages.FORBIDDEN!;
-  if (response?.status === 404) return messages.NOT_FOUND!;
-  if (response?.status === 400 || response?.status === 422) return messages.VALIDATION_ERROR!;
+  if (code && financeMessages[code]) return financeMessages[code]!;
+  if (response?.status === 403) return financeMessages.FORBIDDEN!;
+  if (response?.status === 404) return financeMessages.NOT_FOUND!;
+  if (response?.status === 400 || response?.status === 422) return financeMessages.VALIDATION_ERROR!;
   return 'Permintaan belum berhasil. Periksa koneksi lalu coba lagi.';
 }

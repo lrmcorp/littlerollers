@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { OwnerBranchPerformanceView } from './owner-branch-performance-view';
 
@@ -121,5 +121,25 @@ describe('OwnerBranchPerformanceView - Poin 11: Peringatan Tarif Honor Instruktu
       screen.queryByText(/Perhatian Operasional: Sebagian atau seluruh tarif honor instruktur belum dikonfigurasi/i),
     ).toBeNull();
     expect(screen.queryByText(/kelas tarif belum diset/i)).toBeNull();
+  });
+
+  it('meminta data menurut rentang tanggal yang dipilih, bukan satu bulan', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => mockDataConfigured } as any);
+    global.fetch = fetchMock;
+
+    render(<OwnerBranchPerformanceView />);
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    const first = new URL(String(fetchMock.mock.calls[0]![0]), 'http://localhost');
+    expect(first.searchParams.get('from')).toMatch(/^\d{4}-\d{2}-01$/);
+    expect(first.searchParams.get('until')).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(first.searchParams.has('period')).toBe(false);
+
+    fireEvent.change(screen.getByLabelText(/Dari tanggal/), { target: { value: '2026-09-10' } });
+    fireEvent.change(screen.getByLabelText(/Sampai tanggal/), { target: { value: '2026-09-20' } });
+    await waitFor(() => {
+      const last = new URL(String(fetchMock.mock.calls.at(-1)![0]), 'http://localhost');
+      expect(last.searchParams.get('from')).toBe('2026-09-10');
+      expect(last.searchParams.get('until')).toBe('2026-09-20');
+    });
   });
 });

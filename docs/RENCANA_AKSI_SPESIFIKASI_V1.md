@@ -179,13 +179,13 @@ Membawa sistem Dailydose V2 yang saat ini sudah memiliki fondasi arsitektur bers
      @@map("instructor_availability")
    }
    ```
-6. **Model Finansial Ber-effective-date & Tutup Buku:**
+6. **Model Finansial Ber-effective-date (tutup buku dicabut 25 Okt 2026):**
    - `InstructorFee`: `(instructorId, branchId, classTypeId, feePerJamRp, effectiveDate)`
    - `ProjectionRate`: `(branchId, classTypeId, ratePerSesiRp, effectiveDate)` — **WARISAN, tidak dipakai lagi** (fitur proyeksi dihapus 25 Okt 2026; tabel dipertahankan tanpa pengelolaan, barisnya dibersihkan saat cabang/tipe kelas induk dihapus)
    - `MinQuotaSetting`: `(branchId, classTypeId, minQuota, cutoffHours=24)`
-   - `OtherCost`: `(branchId, period [YYYY-MM], category, description, amountRp, createdById)`
-   - `MonthlyClose`: `(period [YYYY-MM], branchId, omsetRp, costProjectionRp [riwayat; tutup buku baru menyimpan 0], costRealtimeRp, otherCostRp, profitRp, status [OPEN/LOCKED], closedById, closedAt)`
-   - `CorrectionJournal`: `(period [YYYY-MM], targetPeriod [YYYY-MM], branchId, amountRp, reason, approvedById, createdAt)`
+   - `OtherCost`: `(branchId, period [YYYY-MM], incurredOn [tanggal pengeluaran], category, description, amountRp, createdById)` — sejak 25 Okt 2026 bertanggal; baris lama tanpa `incurredOn` dianggap jatuh pada tanggal 1 `period`
+   - `MonthlyClose`: **WARISAN, tidak dipakai lagi (tutup buku dicabut 25 Okt 2026)** `(period [YYYY-MM], branchId, omsetRp, costProjectionRp [riwayat; tutup buku baru menyimpan 0], costRealtimeRp, otherCostRp, profitRp, status [OPEN/LOCKED], closedById, closedAt)`
+   - `CorrectionJournal`: **WARISAN, tidak dipakai lagi (jurnal koreksi dicabut 25 Okt 2026)** `(period [YYYY-MM], targetPeriod [YYYY-MM], branchId, amountRp, reason, approvedById, createdAt)`
    - `ReminderLog`: `(recipientPhone, recipientType, reminderType, payload, status, sentAt)`
 
 #### 2. Rencana Migrasi Database:
@@ -251,7 +251,7 @@ Membawa sistem Dailydose V2 yang saat ini sudah memiliki fondasi arsitektur bers
 
 ---
 
-### 💰 FASE 3: Modul Finansial, 4 Laporan & Monthly Close (Keputusan Bisnis #8 & #10) [SELESAI ✅; 5 → 4 laporan sejak 25 Okt 2026]
+### 💰 FASE 3: Modul Finansial & 4 Laporan (Keputusan Bisnis #8 & #10) [SELESAI ✅; 5 → 4 laporan dan tanpa tutup buku sejak 25 Okt 2026]
 * **Fokus:** Menegakkan Keputusan Bisnis #8, #10, dan 5 Laporan Inti Keuangan.
 * **Status Implementasi:**
   - **Master Data Tarif Ber-effective-date:**
@@ -265,14 +265,12 @@ Membawa sistem Dailydose V2 yang saat ini sudah memiliki fondasi arsitektur bers
     5. **Laporan 4 (sebelumnya no. 5): Laba Bersih Bulanan (Profit Summary):** Rekapitulasi deterministik: $\text{Laba} = \text{Omset} - \text{Cost Realtime} - \text{Other Cost}$ (Laba Projeksi dihapus) (`GET /api/v1/finance/profit-summary`).
   - **Isolasi Akses Owner Cabang (Rule #10):**
     - Owner Cabang hanya berhak melihat laporan performa dan rincian jam mengajar di cabang miliknya (`OwnerCabang`), dan dicekal dengan `403 Forbidden` saat mencoba mengakses cabang lain.
-  - **Tutup Buku Bulanan (Monthly Close) & Snapshot Beku:**
-    - Penutupan periode bulanan via `POST /api/v1/finance/monthly-close` membekukan status menjadi `LOCKED` dan mengunci snapshot 5 angka finansial serta hash kontrol integritas.
-  - **Period Lock Protection (Keputusan Bisnis #8):**
-    - Penambahan atau penghapusan `OtherCost` pada periode yang berstatus `LOCKED` otomatis dicekal dengan `409 Conflict`.
-  - **Jurnal Koreksi Pasca-Lock (Rule #8):**
-    - Koreksi transaksi masa lampau yang sudah `LOCKED` dibukukan melalui `CorrectionJournal` pada periode berjalan (`period`), wajib mendapatkan persetujuan dari `SUPER_OWNER` (`POST /api/v1/finance/corrections/:id/decision`), dan menjaga snapshot historis periode lampau tetap utuh tanpa terdistorsi.
+  - **Laporan menurut Rentang Tanggal (menggantikan Tutup Buku, 25 Okt 2026):**
+    - Semua laporan (`omset`, `instructor-cost-realtime`, `other-costs`, `profit-summary`, `owner-branch-performance`, ekspor) menerima `from` dan `until` (inklusif, paling lama 366 hari); `period` (`YYYY-MM`) tetap diterima sebagai singkatan satu bulan penuh. Tanpa input: bulan berjalan.
+    - `OtherCost` punya tanggal pengeluaran (`incurredOn`) dan dapat diubah atau dihapus (alasan wajib) kapan saja.
+    - **Dicabut:** `POST /finance/monthly-closes*`, `GET /periods`, `correction-journals`, kunci periode (`PERIOD_ALREADY_LOCKED`). Tabel `monthly_close` dan `correction_journal` dipertahankan sebagai arsip.
   - **Antarmuka Web Modern:**
-    - Halaman `/finance` dengan 5 tab laporan interaktif, kontrol Tutup Buku Bulanan, dan panel Jurnal Koreksi.
+    - Halaman `/finance` dengan 4 tab laporan, filter rentang tanggal (+ pintasan bulan ini/bulan lalu/30 hari/tahun ini), dan formulir biaya lain bertanggal.
     - Halaman `/master/rates` untuk konfigurasi tarif efektif.
   - **Verifikasi Terpadu:** Script otomatis `tools/verification/verify-spec-phase3-finance.ts` (`pnpm verify:spec3`) lulus 100% (10 skenario lolos). Seluruh test monorepo (`pnpm verify:all`) lulus 100%.
 

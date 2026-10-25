@@ -9,7 +9,7 @@ import { financeFailureMessage, type OtherCostItem, type OtherCostUpdate } from 
 
 const CATEGORY = /^[A-Z][A-Z0-9_]{1,63}$/u;
 
-/** Ubah kategori, keterangan, atau nominal biaya lain pada periode yang belum ditutup. */
+/** Ubah tanggal, kategori, keterangan, atau nominal biaya lain. */
 export function OtherCostEditDialog({
   cost,
   onSave,
@@ -21,6 +21,7 @@ export function OtherCostEditDialog({
   onClose(): void;
   onSaved(): void;
 }) {
+  const [incurredOn, setIncurredOn] = useState('');
   const [category, setCategory] = useState('');
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
@@ -29,6 +30,7 @@ export function OtherCostEditDialog({
 
   useEffect(() => {
     if (!cost) return;
+    setIncurredOn(cost.incurredOn);
     setCategory(cost.category);
     setDescription(cost.description);
     setAmount(String(cost.amountRp));
@@ -37,13 +39,15 @@ export function OtherCostEditDialog({
 
   const amountValue = Number(amount);
   const valid =
+    /^\d{4}-\d{2}-\d{2}$/.test(incurredOn) &&
     CATEGORY.test(category.trim().toUpperCase()) &&
     description.trim().length > 0 &&
     Number.isInteger(amountValue) &&
     amountValue > 0;
   const changed =
     cost !== null &&
-    (category.trim().toUpperCase() !== cost.category ||
+    (incurredOn !== cost.incurredOn ||
+      category.trim().toUpperCase() !== cost.category ||
       description.trim() !== cost.description ||
       amountValue !== cost.amountRp);
 
@@ -53,6 +57,7 @@ export function OtherCostEditDialog({
     setError('');
     try {
       await onSave(cost.id, {
+        incurredOn,
         category: category.trim().toUpperCase(),
         description: description.trim(),
         amountRp: amountValue,
@@ -70,7 +75,7 @@ export function OtherCostEditDialog({
     <Modal
       open={cost !== null}
       title="Ubah biaya operasional"
-      description={cost ? `Periode ${cost.period} · ${cost.branchName}` : undefined}
+      description={cost ? cost.branchName : undefined}
       busy={busy}
       onClose={onClose}
       footer={
@@ -91,6 +96,12 @@ export function OtherCostEditDialog({
     >
       <div className="grid gap-4">
         <TextInput
+          label="Tanggal pengeluaran"
+          type="date"
+          value={incurredOn}
+          onChange={(event) => setIncurredOn(event.target.value)}
+        />
+        <TextInput
           label="Kode kategori"
           value={category}
           maxLength={64}
@@ -110,10 +121,6 @@ export function OtherCostEditDialog({
           value={amount}
           onChange={(event) => setAmount(event.target.value)}
         />
-        <Feedback kind="info">
-          Perubahan tercatat pada periode yang sama. Biaya pada periode yang sudah ditutup tidak
-          dapat diubah.
-        </Feedback>
         {error && <Feedback kind="error">{error}</Feedback>}
       </div>
     </Modal>

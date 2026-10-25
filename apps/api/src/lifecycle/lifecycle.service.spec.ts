@@ -45,6 +45,9 @@ const fkRows = [
   { t: 'projection_rate', c: 'classTypeId', rt: 'jenis_kelas', d: 'RESTRICT' },
   { t: 'support_case', c: 'customerId', rt: 'user', d: 'RESTRICT' },
   { t: 'support_case', c: 'branchId', rt: 'cabang', d: 'SET NULL' },
+  { t: 'monthly_close', c: 'branchId', rt: 'cabang', d: 'RESTRICT' },
+  { t: 'correction_journal', c: 'branchId', rt: 'cabang', d: 'RESTRICT' },
+  { t: 'correction_journal', c: 'requestedById', rt: 'user', d: 'RESTRICT' },
 ];
 
 function build(opts: { counts?: Record<string, number>; row?: Record<string, unknown>; kind?: string } = {}) {
@@ -78,6 +81,8 @@ function build(opts: { counts?: Record<string, number>; row?: Record<string, unk
     rekeningPembayaran: delegate,
     publicContent: delegate,
     supportCase: { deleteMany: jest.fn().mockResolvedValue({ count: counts.legacySupportCases ?? 0 }) },
+    correctionJournal: { deleteMany: jest.fn().mockResolvedValue({ count: counts.legacyCorrections ?? 0 }) },
+    monthlyClose: { deleteMany: jest.fn().mockResolvedValue({ count: counts.legacyCloses ?? 0 }) },
     $transaction: jest.fn(async (fn: (tx: unknown) => unknown) => fn(db)),
   };
   const audit = { catat: jest.fn().mockResolvedValue(undefined) };
@@ -496,3 +501,27 @@ describe('legacy projection rates never block a delete and are cleaned with thei
     expect(blocked.db.projectionRate.deleteMany).not.toHaveBeenCalled();
   });
 });
+
+describe('legacy month closes and correction journals (features removed) never block either', () => {
+  it('a branch with closes and corrections is deletable, and they are removed with it', async () => {
+    const { service, db, audit } = build({
+      row: { id: branchA, code: 'GG', name: 'Green Garden', timezone: 'Asia/Jakarta' },
+      counts: { monthly_close: 3, correction_journal: 1, legacyCloses: 3, legacyCorrections: 1 },
+    });
+    await expect(service.inspect(superOwner as never, 'branch', branchA)).resolves.toMatchObject({ deletable: true, blockers: [] });
+    await service.remove(superOwner as never, 'branch', branchA, 'Cabang ditutup', 'c');
+    expect(db.monthlyClose.deleteMany).toHaveBeenCalledWith({ where: { branchId: branchA } });
+    expect(db.correctionJournal.deleteMany).toHaveBeenCalledWith({ where: { branchId: branchA } });
+    expect(audit.catat.mock.calls[0]![1].beforeMasked).toMatchObject({ legacyRowsRemoved: 4 });
+  });
+
+  it('a user who requested corrections is deletable and those requests go with the account', async () => {
+    const { service, db } = build({
+      row: { id: id(7), displayName: 'Finance', role: 'FINANCE', status: 'ACTIVE' },
+      counts: { correction_journal: 2, legacyCorrections: 2 },
+    });
+    await service.remove(superOwner as never, 'user', id(7), 'Akun uji', 'c');
+    expect(db.correctionJournal.deleteMany).toHaveBeenCalledWith({ where: { requestedById: id(7) } });
+  });
+});
+

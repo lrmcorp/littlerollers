@@ -5,7 +5,6 @@ import { FinanceService } from './finance.service';
 const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const branchA = id(1);
 const branchB = id(2);
-const journalId = id(30);
 
 const principal = (
   capabilities: string[],
@@ -31,43 +30,8 @@ const superOwner = principal(
   id(101),
 );
 
-const journal = (overrides: Record<string, unknown> = {}) => ({
-  id: journalId,
-  branchId: branchA,
-  period: '2026-09',
-  targetPeriod: '2026-08',
-  amountRp: 150_000,
-  reason: 'Salah input biaya',
-  status: 'PENDING' as const,
-  requestedById: finance.userId,
-  approvedById: null,
-  decisionReason: null,
-  version: 1,
-  ...overrides,
-});
-
 function setup() {
   const db = {
-    correctionJournal: {
-      create: jest.fn().mockImplementation(async ({ data }) =>
-        journal({
-          branchId: data.branchId,
-          period: data.period,
-          targetPeriod: data.targetPeriod,
-          amountRp: data.amountRp,
-          reason: data.reason,
-          requestedById: data.requestedById,
-        }),
-      ),
-      findUnique: jest.fn().mockResolvedValue(journal()),
-      findUniqueOrThrow: jest
-        .fn()
-        .mockResolvedValue(
-          journal({ status: 'APPROVED', approvedById: superOwner.userId, version: 2 }),
-        ),
-      updateMany: jest.fn().mockResolvedValue({ count: 1 }),
-      findMany: jest.fn().mockResolvedValue([journal()]),
-    },
     pembelian: { findMany: jest.fn().mockResolvedValue([]) },
     otherCost: { findMany: jest.fn().mockResolvedValue([]) },
     cabang: { findUnique: jest.fn().mockResolvedValue({ code: 'DD-GG' }) },
@@ -76,157 +40,6 @@ function setup() {
   const service = new FinanceService(db as never, new PolicyService(), audit as never);
   return { service, db, audit };
 }
-
-const request = {
-  branchId: branchA,
-  currentPeriod: '2026-09',
-  referencePeriod: '2026-08',
-  amountRp: 150_000,
-  reason: 'Salah input biaya',
-};
-
-describe('FinanceService corrections follow the generated-client contract', () => {
-  it('maps the contract field names onto the journal and returns the Correction view', async () => {
-    const { service, db } = setup();
-    const created = await service.createCorrection(finance, request);
-    expect(db.correctionJournal.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        period: '2026-09',
-        targetPeriod: '2026-08',
-        amountRp: 150_000,
-        requestedById: finance.userId,
-        status: 'PENDING',
-      }),
-    });
-    expect(created).toMatchObject({
-      currentPeriod: '2026-09',
-      referencePeriod: '2026-08',
-      amount: { amountMinor: 15_000_000, currency: 'IDR' },
-      requestedBy: finance.userId,
-      status: 'PENDING',
-      version: 1,
-    });
-  });
-
-  it('still accepts the legacy field names', async () => {
-    const { service, db } = setup();
-    await service.createCorrection(finance, {
-      branchId: branchA,
-      period: '2026-09',
-      targetPeriod: '2026-07',
-      amountRp: -5000,
-      reason: 'Koreksi lama',
-    });
-    expect(db.correctionJournal.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({ period: '2026-09', targetPeriod: '2026-07', amountRp: -5000 }),
-    });
-  });
-
-  it.each([
-    [{ currentPeriod: '2026-13' }],
-    [{ referencePeriod: '2026-09' }],
-    [{ referencePeriod: '2026-10' }],
-    [{ amountRp: 0 }],
-    [{ amountRp: 1.5 }],
-    [{ reason: 'ab' }],
-    [{ branchId: '' }],
-  ])('rejects invalid request %j before persistence', async (patch) => {
-    const { service, db } = setup();
-    await expect(service.createCorrection(finance, { ...request, ...patch })).rejects.toMatchObject({
-      code: 'VALIDATION_ERROR',
-    });
-    expect(db.correctionJournal.create).not.toHaveBeenCalled();
-  });
-
-  it('requires finance:manage to request and a branch the requester can access', async () => {
-    const { service } = setup();
-    await expect(
-      service.createCorrection(principal(['finance:read'], 'FINANCE', id(102)), request),
-    ).rejects.toMatchObject({ code: 'FORBIDDEN' });
-    const branchOwner = principal(['finance:read', 'finance:manage'], 'OWNER', id(103), [branchB]);
-    await expect(service.createCorrection(branchOwner, request)).rejects.toMatchObject({
-      code: 'FORBIDDEN',
-    });
-  });
-
-  it('lets only Super Owner decide, and allows Super Owner to approve their own requested correction', async () => {
-    const { service, db } = setup();
-    await expect(
-      service.decideCorrection(finance, journalId, 'approve', { reason: 'Setuju' }),
-    ).rejects.toMatchObject({ code: 'FORBIDDEN' });
-    db.correctionJournal.findUnique.mockResolvedValue(journal({ requestedById: superOwner.userId }));
-    const result = await service.decideCorrection(superOwner, journalId, 'approve', { reason: 'Setuju' });
-    expect(db.correctionJournal.updateMany).toHaveBeenCalledWith({
-      where: { id: journalId, status: 'PENDING', version: 1 },
-      data: expect.objectContaining({
-        status: 'APPROVED',
-        approvedById: superOwner.userId,
-      }),
-    });
-    expect(result).toMatchObject({
-      correction: { status: 'APPROVED', decidedBy: superOwner.userId },
-    });
-  });
-
-  it('approves a pending correction from another user with the contract result', async () => {
-    const { service, db, audit } = setup();
-    const result = await service.decideCorrection(superOwner, journalId, 'approve', {
-      reason: 'Bukti valid',
-    });
-    expect(db.correctionJournal.updateMany).toHaveBeenCalledWith({
-      where: { id: journalId, status: 'PENDING', version: 1 },
-      data: expect.objectContaining({
-        status: 'APPROVED',
-        approvedById: superOwner.userId,
-        decisionReason: 'Bukti valid',
-        version: { increment: 1 },
-      }),
-    });
-    expect(result).toMatchObject({
-      correction: { status: 'APPROVED', decidedBy: superOwner.userId, version: 2 },
-      auditLogId: null,
-      idempotentReplay: false,
-    });
-    expect(audit.catat).toHaveBeenCalledWith(
-      null,
-      expect.objectContaining({ action: 'FINANCE_CORRECTION_APPROVED' }),
-    );
-  });
-
-  it('rejects, validates the decision and reason, and refuses double decisions', async () => {
-    const { service, db } = setup();
-    await service.decideCorrection(superOwner, journalId, 'reject', { reason: 'Tidak cukup bukti' });
-    expect(db.correctionJournal.updateMany).toHaveBeenLastCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ status: 'REJECTED' }) }),
-    );
-    await expect(
-      service.decideCorrection(superOwner, journalId, 'maybe', { reason: 'Setuju' }),
-    ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
-    await expect(
-      service.decideCorrection(superOwner, journalId, 'approve', {}),
-    ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
-    db.correctionJournal.findUnique.mockResolvedValue(journal({ status: 'APPROVED' }));
-    await expect(
-      service.decideCorrection(superOwner, journalId, 'approve', { reason: 'Setuju' }),
-    ).rejects.toMatchObject({ code: 'CORRECTION_ALREADY_DECIDED' });
-    db.correctionJournal.findUnique.mockResolvedValue(journal());
-    db.correctionJournal.updateMany.mockResolvedValue({ count: 0 });
-    await expect(
-      service.decideCorrection(superOwner, journalId, 'approve', { reason: 'Setuju' }),
-    ).rejects.toMatchObject({ code: 'CORRECTION_ALREADY_DECIDED' });
-  });
-
-  it('lists corrections as contract views', async () => {
-    const { service } = setup();
-    const list = await service.listCorrections(finance, { status: 'PENDING' });
-    expect(list.items[0]).toMatchObject({
-      currentPeriod: '2026-09',
-      referencePeriod: '2026-08',
-      amount: { amountMinor: 15_000_000 },
-    });
-    expect(list.summary).toMatchObject({ total: 1, pending: 1 });
-  });
-});
 
 describe('FinanceService.exportReport', () => {
   const range = { from: '2026-08-01T00:00:00.000Z', until: '2026-08-31T00:00:00.000Z' };
@@ -275,6 +88,7 @@ describe('FinanceService.exportReport', () => {
       {
         id: id(300),
         period: '2026-08',
+        incurredOn: new Date('2026-08-12T00:00:00.000Z'),
         category: 'SEWA',
         description: 'Sewa studio',
         amountRp: 400_000,
@@ -303,9 +117,10 @@ describe('FinanceService.exportReport', () => {
     expect(rows[1]).toBe('2026-08-05,DD-GG,PENJUALAN_PAKET,INV-1,Paket 4 Sesi,1000000');
     expect(rows[2]).toContain(`'=HYPERLINK("http://x","a")`.replace(/"/g, '""'));
     expect(rows[3]).toContain('"Paket, dengan koma"');
+    expect(rows[4]).toBe('2026-08-12,DD-GG,BIAYA_LAIN,'+id(300)+',SEWA: Sewa studio,400000');
     expect(rows.slice(-3)).toEqual([
       ',,TOTAL_PENJUALAN,,Penjualan paket lunas,1750000',
-      ',,TOTAL_BIAYA_LAIN,,Biaya lain dihitung per bulan periode,400000',
+      ',,TOTAL_BIAYA_LAIN,,Biaya lain menurut tanggal pengeluaran,400000',
       ',,SELISIH,,Penjualan dikurangi biaya lain,1350000',
     ]);
     expect(result.content).not.toMatch(/@|displayName|email|phone/i);
@@ -499,6 +314,137 @@ describe('instructor honor is computed identically by every finance report', () 
     });
     expect(fullReport.instructorFeeMissing).toBe(false);
     expect(fullReport.unconfiguredClassCount).toBe(0);
+  });
+});
+
+describe('finance reports take a free date range (from/until)', () => {
+  const owner = principal(['finance:read', 'finance:manage'], 'OWNER', id(110), [branchA]);
+
+  function reportSetup() {
+    const { service, db } = setup();
+    db.pembelian.findMany.mockResolvedValue([
+      {
+        id: id(400),
+        invoiceNumber: 'INV-1',
+        totalAmountRp: 1_000_000,
+        paymentMethod: 'TRANSFER',
+        paidAt: new Date('2026-10-12T03:00:00Z'),
+        createdAt: new Date('2026-10-12T03:00:00Z'),
+        branch: { id: branchA, code: 'GG', name: 'Green Garden' },
+        user: { id: id(5), displayName: 'Maya', email: 'm@x.test' },
+        package: { id: id(6), name: 'Paket', sessionCount: 4 },
+      },
+    ]);
+    (db as Record<string, unknown>).slotKelas = { findMany: jest.fn().mockResolvedValue([]) };
+    (db as Record<string, unknown>).instructorFee = { findMany: jest.fn().mockResolvedValue([]) };
+    db.otherCost.findMany.mockResolvedValue([
+      {
+        id: id(401),
+        branchId: branchA,
+        period: '2026-10',
+        incurredOn: new Date('2026-10-15T00:00:00Z'),
+        category: 'LISTRIK',
+        description: 'Listrik',
+        amountRp: 300_000,
+        createdAt: new Date('2026-10-15T08:00:00Z'),
+        branch: { id: branchA, code: 'GG', name: 'Green Garden' },
+        createdBy: { id: id(1), displayName: 'Admin' },
+      },
+      {
+        id: id(402),
+        branchId: branchA,
+        period: '2026-10',
+        incurredOn: null,
+        category: 'SEWA',
+        description: 'Sewa (catatan lama tanpa tanggal)',
+        amountRp: 200_000,
+        createdAt: new Date('2026-10-01T08:00:00Z'),
+        branch: { id: branchA, code: 'GG', name: 'Green Garden' },
+        createdBy: null,
+      },
+    ]);
+    return { service, db };
+  }
+
+  it('queries sales by paid date inside [from, until] inclusive', async () => {
+    const { service, db } = reportSetup();
+    const result = await service.omsetReport(owner, { branchId: branchA, from: '2026-10-10', until: '2026-10-20' });
+    expect(db.pembelian.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          status: 'PAID',
+          paidAt: { gte: new Date('2026-10-10T00:00:00.000Z'), lt: new Date('2026-10-21T00:00:00.000Z') },
+        }),
+      }),
+    );
+    expect(result).toMatchObject({ from: '2026-10-10', until: '2026-10-20', period: '2026-10-10/2026-10-20', totalOmsetRp: 1_000_000 });
+  });
+
+  it('a whole month keeps the short label, and the old period shortcut still means that month', async () => {
+    const { service } = reportSetup();
+    expect(await service.omsetReport(owner, { branchId: branchA, period: '2026-10' })).toMatchObject({
+      from: '2026-10-01',
+      until: '2026-10-31',
+      period: '2026-10',
+    });
+    expect(
+      await service.omsetReport(owner, { branchId: branchA, from: '2026-02-01', until: '2026-02-28' }),
+    ).toMatchObject({ period: '2026-02' });
+  });
+
+  it('refuses an inverted, malformed, half-given or oversized range', async () => {
+    const { service } = reportSetup();
+    for (const bad of [
+      { from: '2026-10-20', until: '2026-10-10' },
+      { from: '20-10-2026', until: '2026-10-31' },
+      { from: '2026-02-30', until: '2026-03-05' },
+      { from: '2026-10-01' },
+      { until: '2026-10-01' },
+      { from: '2024-01-01', until: '2026-12-31' },
+    ])
+      await expect(service.omsetReport(owner, { branchId: branchA, ...bad })).rejects.toMatchObject({
+        status: 422,
+      });
+  });
+
+  it('sums other costs by their own date, and counts an old undated cost on the 1st of its month', async () => {
+    const { service, db } = reportSetup();
+    const report = await service.otherCostReport(owner, { branchId: branchA, from: '2026-10-10', until: '2026-10-20' });
+    const where = (db.otherCost.findMany.mock.calls[0]![0] as { where: { OR: unknown[] } }).where;
+    expect(where.OR[0]).toEqual({
+      incurredOn: { gte: new Date('2026-10-10T00:00:00.000Z'), lt: new Date('2026-10-21T00:00:00.000Z') },
+    });
+    // 1 Okt tidak jatuh di 10–20 Okt, jadi biaya lama tanpa tanggal tidak ikut dicari lewat bulan.
+    expect(where.OR).toHaveLength(1);
+    expect(report.items.map((item) => item.incurredOn)).toEqual(['2026-10-15', '2026-10-01']);
+
+    await service.otherCostReport(owner, { branchId: branchA, from: '2026-09-25', until: '2026-10-05' });
+    const wide = (db.otherCost.findMany.mock.calls[1]![0] as { where: { OR: unknown[] } }).where;
+    expect(wide.OR[1]).toEqual({ incurredOn: null, period: { in: ['2026-10'] } });
+  });
+
+  it('profit = sales - instructor honor - other costs, with margins, for the chosen range', async () => {
+    const { service } = reportSetup();
+    const profit = await service.profitReport(owner, { branchId: branchA, from: '2026-10-01', until: '2026-10-31' });
+    expect(profit).toMatchObject({
+      period: '2026-10',
+      omsetRp: 1_000_000,
+      costRealtimeRp: 0,
+      grossProfitRp: 1_000_000,
+      otherCostRp: 500_000,
+      netProfitRealtimeRp: 500_000,
+      grossMarginPercent: 100,
+      netMarginPercent: 50,
+    });
+    expect(profit).not.toHaveProperty('isLocked');
+    expect(profit).not.toHaveProperty('totalCorrectionAdjustmentRp');
+  });
+
+  it('keeps the branch scope: an owner cannot read another branch', async () => {
+    const { service } = reportSetup();
+    await expect(
+      service.profitReport(owner, { branchId: branchB, from: '2026-10-01', until: '2026-10-31' }),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' });
   });
 });
 

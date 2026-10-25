@@ -32,53 +32,63 @@ export class FinanceController {
   ownerBranchPerformance(
     @Req() req: AuthenticatedRequest,
     @Query('branchId') branchId?: string,
+    @Query('from') from?: string,
+    @Query('until') until?: string,
     @Query('period') period?: string,
   ) {
-    return this.finance.ownerBranchPerformance(req.principal, { branchId, period });
+    return this.finance.ownerBranchPerformance(req.principal, { branchId, from, until, period });
   }
 
   // ============================================================================
-  // 5 LAPORAN INTI KEUANGAN
+  // LAPORAN KEUANGAN PER RENTANG TANGGAL (from/until; period=YYYY-MM sebagai singkatan satu bulan)
   // ============================================================================
 
   @Get('finance/reports/omset')
   omsetReport(
     @Req() req: AuthenticatedRequest,
     @Query('branchId') branchId?: string,
+    @Query('from') from?: string,
+    @Query('until') until?: string,
     @Query('period') period?: string,
   ) {
-    return this.finance.omsetReport(req.principal, { branchId, period });
+    return this.finance.omsetReport(req.principal, { branchId, from, until, period });
   }
 
   @Get('finance/reports/instructor-cost-realtime')
   instructorCostRealtime(
     @Req() req: AuthenticatedRequest,
     @Query('branchId') branchId?: string,
+    @Query('from') from?: string,
+    @Query('until') until?: string,
     @Query('period') period?: string,
   ) {
-    return this.finance.realtimeInstructorCostReport(req.principal, { branchId, period });
+    return this.finance.realtimeInstructorCostReport(req.principal, { branchId, from, until, period });
   }
 
   @Get('finance/reports/other-costs')
   otherCostReport(
     @Req() req: AuthenticatedRequest,
     @Query('branchId') branchId?: string,
+    @Query('from') from?: string,
+    @Query('until') until?: string,
     @Query('period') period?: string,
   ) {
-    return this.finance.otherCostReport(req.principal, { branchId, period });
+    return this.finance.otherCostReport(req.principal, { branchId, from, until, period });
   }
 
   @Get('finance/reports/profit-summary')
   profitSummary(
     @Req() req: AuthenticatedRequest,
     @Query('branchId') branchId?: string,
+    @Query('from') from?: string,
+    @Query('until') until?: string,
     @Query('period') period?: string,
   ) {
-    return this.finance.monthlyProfitReport(req.principal, { branchId, period });
+    return this.finance.profitReport(req.principal, { branchId, from, until, period });
   }
 
   // ============================================================================
-  // OTHER COST (DENGAN LOCK GUARD)
+  // BIAYA OPERASIONAL LAIN (BERTANGGAL)
   // ============================================================================
 
   @Post(['other-costs', 'finance/other-costs'])
@@ -87,7 +97,8 @@ export class FinanceController {
     @Body()
     body: {
       branchId: string;
-      period: string;
+      incurredOn?: string;
+      period?: string;
       category: string;
       description: string;
       amountRp: number;
@@ -101,7 +112,13 @@ export class FinanceController {
     @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body()
-    body: { category?: string; categoryCode?: string; description?: string; amountRp?: number },
+    body: {
+      incurredOn?: string;
+      category?: string;
+      categoryCode?: string;
+      description?: string;
+      amountRp?: number;
+    },
   ) {
     return this.finance.updateOtherCost(req.principal, id, body);
   }
@@ -118,32 +135,13 @@ export class FinanceController {
   @Get(['other-costs', 'finance/other-costs'])
   otherCosts(
     @Req() req: AuthenticatedRequest,
+    @Query('from') from?: string,
+    @Query('until') until?: string,
     @Query('period') period?: string,
     @Query('branchId') branchId?: string,
     @Query('cursor') cursor?: string,
   ) {
-    return this.finance.otherCosts(req.principal, { period, branchId, cursor });
-  }
-
-  // ============================================================================
-  // TUTUP BUKU BULANAN (MONTHLY CLOSE)
-  // ============================================================================
-
-  @Post(['monthly-closes', 'monthly-closes/execute', 'finance/monthly-closes/execute'])
-  executeMonthlyClose(
-    @Req() req: AuthenticatedRequest,
-    @Body() body: { branchId: string; period: string; controlHash?: string; reason?: string },
-  ) {
-    return this.finance.executeMonthlyClose(req.principal, body);
-  }
-
-  @Get('periods')
-  periods(
-    @Req() req: AuthenticatedRequest,
-    @Query('branchId') branchId?: string,
-    @Query('cursor') cursor?: string,
-  ) {
-    return this.finance.periods(req.principal, { branchId, cursor });
+    return this.finance.otherCosts(req.principal, { from, until, period, branchId, cursor });
   }
 
   @Post('finance-exports')
@@ -152,52 +150,6 @@ export class FinanceController {
     @Body() body: { branchId?: string; from?: string; until?: string },
   ) {
     return this.finance.exportReport(req.principal, body);
-  }
-
-  // ============================================================================
-  // JURNAL KOREKSI PASCA-LOCK (RULE #8)
-  // ============================================================================
-
-  @Post(['correction-journals', 'finance/correction-journals'])
-  createCorrection(
-    @Req() req: AuthenticatedRequest,
-    @Body()
-    body: {
-      branchId: string;
-      currentPeriod?: string;
-      referencePeriod?: string;
-      period?: string;
-      targetPeriod?: string;
-      amountRp: number;
-      reason: string;
-    },
-  ) {
-    return this.finance.createCorrection(req.principal, body);
-  }
-
-  // Kontrak generated client (`decideCorrection`): POST /correction-journals/{id}/{approve|reject} + { reason }.
-  @Post(['correction-journals/:id/:decision', 'finance/correction-journals/:id/:decision'])
-  decideCorrection(
-    @Req() req: AuthenticatedRequest,
-    @Param('id') id: string,
-    @Param('decision') decision: string,
-    @Body() body: { reason?: string },
-  ) {
-    return this.finance.decideCorrection(req.principal, id, decision, body);
-  }
-
-  @Get(['correction-journals', 'finance/correction-journals'])
-  correctionJournals(
-    @Req() req: AuthenticatedRequest,
-    @Query('period') period?: string,
-    @Query('branchId') branchId?: string,
-    @Query('status') status?: string,
-  ) {
-    return this.finance.correctionJournals(req.principal, {
-      period,
-      branchId,
-      status,
-    });
   }
 
   // ============================================================================
@@ -244,10 +196,12 @@ export class FinanceController {
   reports(
     @Req() req: AuthenticatedRequest,
     @Param('reportType') reportType: string,
+    @Query('from') from?: string,
+    @Query('until') until?: string,
     @Query('period') period?: string,
     @Query('branchId') branchId?: string,
     @Query('cursor') cursor?: string,
   ) {
-    return this.finance.reports(req.principal, reportType, { period, branchId, cursor });
+    return this.finance.reports(req.principal, reportType, { from, until, period, branchId, cursor });
   }
 }

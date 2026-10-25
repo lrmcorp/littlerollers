@@ -208,10 +208,6 @@ export function messageForApiError(error: unknown): {
       'Waktu Presensi Susulan Habis',
       'Kelas telah selesai lebih dari 2 jam lalu. Presensi ditutup dan wajib diajukan melalui Tiket Penyesuaian Medis ke Manager.',
     ],
-    PERIOD_ALREADY_LOCKED: [
-      'Periode Telah Ditutup',
-      'Periode bulan ini telah ditutup. Biaya operasional baru tidak dapat ditambahkan atau diubah tanpa persetujuan Super Owner.',
-    ],
     VERIFICATION_LOCKED_APPROVED: [
       'Dokumen Terverifikasi Resmi',
       'Dokumen identitas Anda telah disetujui sah oleh Super Owner dan terkunci demi keamanan akun.',

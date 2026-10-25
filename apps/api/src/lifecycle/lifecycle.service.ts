@@ -93,10 +93,17 @@ const SAFE_IDENT = /^[A-Za-z0-9_]+$/u;
 
 /**
  * Tabel warisan yang tidak lagi dikelola dari UI sehingga barisnya tidak boleh menghalangi hapus.
- * `projection_rate` (proyeksi biaya) dan `support_case`/`support_case_note` (kasus bantuan): fitur dihapus; barisnya
- * dibersihkan lewat `cleanup` entitas induk atau dilepas oleh FK SET NULL.
+ * `projection_rate` (proyeksi biaya), `support_case`/`support_case_note` (kasus bantuan), dan `monthly_close`/
+ * `correction_journal` (tutup buku dan jurnal koreksi): fitur dihapus; barisnya dibersihkan lewat `cleanup` entitas
+ * induk atau dilepas oleh FK SET NULL.
  */
-const LEGACY_TABLES: ReadonlySet<string> = new Set(['projection_rate', 'support_case', 'support_case_note']);
+const LEGACY_TABLES: ReadonlySet<string> = new Set([
+  'projection_rate',
+  'support_case',
+  'support_case_note',
+  'monthly_close',
+  'correction_journal',
+]);
 
 interface Edge {
   table: string;
@@ -126,7 +133,9 @@ const SPECS: Record<LifecycleKind, Spec> = {
     capability: 'master:manage',
     branchOf: async (_db, row) => row.id,
     cleanup: async (db, row) =>
-      (await (db as any).projectionRate.deleteMany({ where: { branchId: row.id } })).count,
+      (await (db as any).projectionRate.deleteMany({ where: { branchId: row.id } })).count +
+      (await (db as any).correctionJournal.deleteMany({ where: { branchId: row.id } })).count +
+      (await (db as any).monthlyClose.deleteMany({ where: { branchId: row.id } })).count,
     extra: async (db, row) => {
       const count = await (db as any).user.count({ where: { preferredBranchId: row.id } });
       return count ? [{ kind: 'user_preferred_branch', label: 'member/user yang memilih cabang ini', count }] : [];
@@ -271,9 +280,10 @@ const SPECS: Record<LifecycleKind, Spec> = {
     label: 'Akun pengguna',
     capability: 'user:admin',
     globalOnly: true,
-    // Kasus bantuan lama milik pelanggan ini (fitur dihapus) ikut dibersihkan; catatannya terhapus berantai.
+    // Kasus bantuan dan jurnal koreksi lama milik akun ini (fitur dihapus) ikut dibersihkan; catatan kasus terhapus berantai.
     cleanup: async (db, row) =>
-      (await (db as any).supportCase.deleteMany({ where: { customerId: row.id } })).count,
+      (await (db as any).supportCase.deleteMany({ where: { customerId: row.id } })).count +
+      (await (db as any).correctionJournal.deleteMany({ where: { requestedById: row.id } })).count,
     extra: async (_db, row) =>
       ['SUPER_OWNER', 'SUPERADMIN'].includes(row.role)
         ? [{ kind: 'protected_account', label: 'akun Super Owner (dilindungi)', count: 1 }]

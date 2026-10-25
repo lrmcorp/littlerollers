@@ -260,7 +260,7 @@ export const frontendPages: FrontendPageDefinition[] = [
   },
   {
     href: '/finance',
-    label: 'Keuangan & Tutup Buku',
+    label: 'Keuangan',
     shortLabel: 'Keuangan',
     description: 'Rekonsiliasi transaksi, perbandingan cabang, selisih sesi, dan laporan keuangan.',
     group: 'Penjualan & Keuangan',

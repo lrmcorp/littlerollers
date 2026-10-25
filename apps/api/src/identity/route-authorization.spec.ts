@@ -71,13 +71,12 @@ describe('lookups only serve staff pages that need them', () => {
 
 describe('FinanceService capability gates', () => {
   const db = {
-    monthlyClose: { findMany: jest.fn().mockResolvedValue([]) },
     cabang: { findUnique: jest.fn().mockResolvedValue({ id: branchA }) },
   };
   const service = new FinanceService(db as never, new PolicyService(), { catat: jest.fn() } as never);
   const branchManager = principal(['booking:read'], [{ role: 'MANAGER', branchId: branchA }]);
 
-  it('denies reports, stubs and periods without finance:read even to a branch member', async () => {
+  it('denies reports and stubs without finance:read even to a branch member', async () => {
     await expect(service.overview(branchManager, { branchId: branchA })).rejects.toMatchObject({
       code: 'FORBIDDEN',
     });
@@ -86,7 +85,6 @@ describe('FinanceService capability gates', () => {
     });
     await expect(service.anomalies(customer, {})).rejects.toMatchObject({ code: 'FORBIDDEN' });
     await expect(service.legacyCashflow(customer, {})).rejects.toMatchObject({ code: 'FORBIDDEN' });
-    await expect(service.periods(customer, {})).rejects.toMatchObject({ code: 'FORBIDDEN' });
   });
 
   it('denies finance writes without finance:manage', async () => {
@@ -101,29 +99,6 @@ describe('FinanceService capability gates', () => {
       }),
     ).rejects.toMatchObject({ code: 'FORBIDDEN' });
     await expect(service.deleteOtherCost(reader, 'id')).rejects.toMatchObject({ code: 'FORBIDDEN' });
-    await expect(
-      service.executeMonthlyClose(reader, { branchId: branchA, period: '2026-01' }),
-    ).rejects.toMatchObject({ code: 'FORBIDDEN' });
-  });
-
-  it('lists periods only for the principal branches instead of the first branch', async () => {
-    const reader = principal(['finance:read'], [{ role: 'OWNER', branchId: branchA }]);
-    await service.periods(reader, {});
-    expect(db.monthlyClose.findMany).toHaveBeenLastCalledWith(
-      expect.objectContaining({ where: { branchId: { in: [branchA] } } }),
-    );
-    await expect(service.periods(reader, { branchId: branchB })).rejects.toMatchObject({
-      code: 'FORBIDDEN',
-    });
-    const global = principal(
-      ['finance:read', 'branch:all'],
-      [{ role: 'FINANCE', branchId: null }],
-      [],
-    );
-    await service.periods(global, {});
-    expect(db.monthlyClose.findMany).toHaveBeenLastCalledWith(
-      expect.objectContaining({ where: {} }),
-    );
   });
 });
 

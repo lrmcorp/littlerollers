@@ -14,11 +14,12 @@ const principalFor = (capabilities: string[], branchIds = [branchA]) => ({
 });
 const manager = principalFor(['finance:manage']);
 
-function setup(closeStatus?: 'LOCKED' | 'OPEN') {
+function setup() {
   const row = {
     id: costId,
     branchId: branchA,
     period: '2026-09',
+    incurredOn: new Date('2026-09-10T00:00:00.000Z'),
     category: 'SEWA',
     description: 'Sewa studio',
     amountRp: 5_000_000,
@@ -29,9 +30,6 @@ function setup(closeStatus?: 'LOCKED' | 'OPEN') {
       update: jest.fn().mockImplementation(async ({ data }) => ({ ...row, ...data })),
       create: jest.fn().mockImplementation(async ({ data }) => ({ id: costId, ...data })),
       delete: jest.fn().mockResolvedValue({}),
-    },
-    monthlyClose: {
-      findUnique: jest.fn().mockResolvedValue(closeStatus ? { status: closeStatus } : null),
     },
   };
   const audit = { catat: jest.fn().mockResolvedValue(undefined) };
@@ -91,15 +89,22 @@ describe('FinanceService.updateOtherCost', () => {
     expect(db.otherCost.update).not.toHaveBeenCalled();
   });
 
-  it('is refused once the period is locked but allowed while open', async () => {
-    const locked = setup('LOCKED');
+  it('moves a cost to another date and keeps the month in step', async () => {
+    const { service, db } = setup();
+    await service.updateOtherCost(manager, costId, { incurredOn: '2026-10-03' });
+    expect(db.otherCost.update).toHaveBeenCalledWith({
+      where: { id: costId },
+      data: { incurredOn: new Date('2026-10-03T00:00:00.000Z'), period: '2026-10' },
+    });
     await expect(
-      locked.service.updateOtherCost(manager, costId, { amountRp: 1_000 }),
-    ).rejects.toMatchObject({ code: 'PERIOD_ALREADY_LOCKED' });
-    expect(locked.db.otherCost.update).not.toHaveBeenCalled();
-    const open = setup('OPEN');
-    await open.service.updateOtherCost(manager, costId, { amountRp: 1_000 });
-    expect(open.db.otherCost.update).toHaveBeenCalled();
+      service.updateOtherCost(manager, costId, { incurredOn: '2026-02-30' }),
+    ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
+  });
+
+  it('is never blocked by a month close: there are no closed periods any more', async () => {
+    const { service, db } = setup();
+    await service.updateOtherCost(manager, costId, { amountRp: 1_000 });
+    expect(db.otherCost.update).toHaveBeenCalled();
   });
 
   it('returns not found for a missing cost', async () => {
@@ -112,7 +117,7 @@ describe('FinanceService.updateOtherCost', () => {
 });
 
 describe('FinanceService.createOtherCost', () => {
-  const base = { branchId: branchA, period: '2026-09', description: 'Sewa', amountRp: 100_000 };
+  const base = { branchId: branchA, incurredOn: '2026-09-12', description: 'Sewa', amountRp: 100_000 };
 
   it('uses the category code sent by the finance panel instead of dropping it', async () => {
     const { service, db } = setup();
@@ -124,6 +129,28 @@ describe('FinanceService.createOtherCost', () => {
     expect(db.otherCost.create).toHaveBeenLastCalledWith({
       data: expect.objectContaining({ category: 'OTHER' }),
     });
+  });
+
+  it('stores the spending date and derives the month from it', async () => {
+    const { service, db } = setup();
+    await service.createOtherCost(manager, base);
+    expect(db.otherCost.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ incurredOn: new Date('2026-09-12T00:00:00.000Z'), period: '2026-09' }),
+    });
+  });
+
+  it('still accepts the old month-only input (dated on the 1st) and refuses a missing or invalid date', async () => {
+    const { service, db } = setup();
+    await service.createOtherCost(manager, { branchId: branchA, period: '2026-09', description: 'Sewa', amountRp: 100 });
+    expect(db.otherCost.create).toHaveBeenLastCalledWith({
+      data: expect.objectContaining({ incurredOn: new Date('2026-09-01T00:00:00.000Z'), period: '2026-09' }),
+    });
+    await expect(
+      service.createOtherCost(manager, { branchId: branchA, description: 'x', amountRp: 100 }),
+    ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
+    await expect(
+      service.createOtherCost(manager, { ...base, incurredOn: '12/09/2026' }),
+    ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
   });
 
   it('rejects fractional amounts that the integer column cannot hold', async () => {
@@ -138,7 +165,7 @@ describe('FinanceService.createOtherCost', () => {
 describe('other costs are audited permanently', () => {
   it('records creation and updates (amounts and category, never the free-text description)', async () => {
     const { service, audit } = setup();
-    await service.createOtherCost(manager, { branchId: branchA, period: '2026-09', category: 'sewa', description: 'Sewa', amountRp: 100 });
+    await service.createOtherCost(manager, { branchId: branchA, incurredOn: '2026-09-12', category: 'sewa', description: 'Sewa', amountRp: 100 });
     expect(audit.catat).toHaveBeenLastCalledWith(
       null,
       expect.objectContaining({ action: 'finance.other_cost_created', objectType: 'OtherCost', branchId: branchA }),
@@ -148,7 +175,7 @@ describe('other costs are audited permanently', () => {
       null,
       expect.objectContaining({
         action: 'finance.other_cost_updated',
-        beforeMasked: { category: 'SEWA', amountRp: 5_000_000 },
+        beforeMasked: { incurredOn: '2026-09-10', category: 'SEWA', amountRp: 5_000_000 },
         afterMasked: expect.objectContaining({ amountRp: 7_000_000 }),
       }),
     );
@@ -166,7 +193,7 @@ describe('other costs are audited permanently', () => {
       expect.objectContaining({
         action: 'finance.other_cost_deleted',
         reason: 'Salah input',
-        beforeMasked: expect.objectContaining({ category: 'SEWA', amountRp: 5_000_000, period: '2026-09' }),
+        beforeMasked: expect.objectContaining({ category: 'SEWA', amountRp: 5_000_000, incurredOn: '2026-09-10' }),
       }),
     );
   });

@@ -191,26 +191,23 @@ module.exports = {
 
 ### Rule #7 & #10: Struktur 7 Role & Hak Akses Multi-Cabang
 * **Hierarki Role:**
-  1. `SUPER_OWNER`: Akses penuh ke seluruh cabang, master data, tutup buku, dan menyetujui jurnal koreksi.
+  1. `SUPER_OWNER`: Akses penuh ke seluruh cabang dan master data.
   2. `OWNER`: Akses data performa, jadwal, dan finansial **HANYA** untuk cabang yang terdaftar di `OwnerBranch`. Akses cabang lain dicekal 403 Forbidden.
   3. `MANAGER`: Menyetujui pembelian paket, menyetujui *Session Adjust Request*, mengelola operasional cabang, dan menandai pelanggan berhenti (`stoppedAt`).
-  4. `FINANCE`: Mencatat biaya operasional (`OtherCost`), mengakses 5 laporan keuangan, dan mengeksekusi tutup buku bulanan (`MonthlyClose`).
+  4. `FINANCE`: Mencatat biaya operasional (`OtherCost`), dan mengakses 4 laporan keuangan menurut rentang tanggal.
   5. `ADMIN`: Mengelola slot jadwal kelas, presensi pelanggan, dan backfill manual (H+2).
   6. `INSTRUCTOR`: Mengisi ketersediaan mengajar (*availability*), melihat jadwal, dan check-in QR.
   7. `CUSTOMER`: Membeli paket, memesan kelas, reschedule ($\ge$ H-24), dan konfirmasi kehadiran via link.
 
-### Rule #8: Finansial, 4 Laporan & Tutup Buku Bulanan
+### Rule #8: Keuangan, 4 Laporan & Rentang Tanggal Bebas
+* **Tidak ada tutup buku.** Laporan keuangan dilihat menurut rentang tanggal yang dipilih sendiri (dari tanggal sampai tanggal, paling lama 366 hari), dengan pintasan Bulan ini, Bulan lalu, 30 hari terakhir, dan Tahun ini. Angka selalu dihitung langsung dari data; tidak ada periode yang dikunci dan tidak ada jurnal koreksi (dicabut 25 Okt 2026; v1 juga tidak punya).
 * **4 Laporan Inti** (sebelumnya 5; laporan proyeksi dihapus 25 Okt 2026 karena biaya instruktur hanya dihitung dari sesi yang benar-benar terlaksana):
-  1. *Laporan Omset Penjualan Paket:* Berdasarkan transaksi pembelian `PAID` pada periode berjalan.
+  1. *Laporan Omset Penjualan Paket:* Transaksi pembelian `PAID` pada rentang tanggal.
   2. *Laporan Beban Instruktur Realtime:* Jam mengajar aktual dari slot `COMPLETED` dikalikan tarif `InstructorFee` sesuai tanggal efektif.
-  3. *Laporan Biaya Operasional (Other Cost):* Sewa gedung, utilitas, pemeliharaan, marketing, dan operasional lainnya.
-  4. *Laporan Laba Bersih Bulanan:* Omset dikurangi Beban Instruktur Realtime dan Biaya Operasional.
-* **Tutup Buku Bulanan (Monthly Close):**
-  1. Pada akhir bulan, Finance memverifikasi seluruh laporan di `/finance`.
-  2. Eksekusi **Tutup Buku Bulanan** untuk cabang dan periode terkait.
-  3. Status periode berubah menjadi `LOCKED`, snapshot finansial dibekukan, dan `controlHash` dicatat.
-  4. **Period Lock Protection:** Segala mutasi biaya (`OtherCost`) pada periode `LOCKED` dicekal otomatis (409 Conflict).
-  5. **Jurnal Koreksi Pasca-Lock:** Jika ditemukan selisih biaya masa lalu yang telah terkunci, Finance mengajukan `CorrectionJournal` yang wajib disetujui oleh **Super Owner**. Penyesuaian dibukukan pada periode berjalan tanpa mengubah snapshot masa lalu.
+  3. *Laporan Biaya Operasional (Other Cost):* Sewa gedung, utilitas, pemeliharaan, marketing, dan lainnya.
+  4. *Laporan Laba Bersih:* Omset dikurangi Beban Instruktur Realtime dan Biaya Operasional.
+* **Biaya lain bertanggal:** setiap biaya dicatat dengan **tanggal pengeluaran**; biaya masuk ke laporan sesuai tanggal itu. Biaya boleh diubah (tanggal, kategori, keterangan, nominal) atau dihapus (alasan wajib) kapan saja. Biaya lama yang hanya punya bulan dianggap jatuh pada tanggal 1 bulan tersebut.
+* **Owner Cabang** memakai rentang tanggal yang sama pada halaman Performa Cabang, terbatas pada cabang yang melekat pada akunnya.
 
 ### Rule #9: Batas Toleransi Backfill Admin (H+2)
 * **Ketentuan:** Admin hanya diizinkan melakukan presensi manual (*backfill*) dalam batas waktu maksimal **2 jam setelah kelas selesai (H+2)**.
@@ -263,6 +260,6 @@ gunzip < /var/backups/dailydose/dailydose_v2_20260918.sql.gz | mysql -u dailydos
 | Gejala Masalah | Kemungkinan Penyebab | Langkah Penanganan |
 | :--- | :--- | :--- |
 | **Pesan WhatsApp Gagal Terkirim** | Access token Meta kedaluwarsa atau saldo akun habis | 1. Buka Meta Business Manager.<br>2. Generate token sistem permanen baru.<br>3. Update `WHATSAPP_ACCESS_TOKEN` pada file `.env`.<br>4. Restart service: `pm2 restart dailydose-api`. |
-| **Auto-Cancel Tidak Berjalan di Jam H-24** | Background worker berhenti | 1. Cek status worker: `pm2 status dailydose-worker`.<br>2. Cek log error: `pm2 logs dailydose-worker`.<br>3. Buka dashboard `/workspace/reminders` dan klik **Trigger Evaluasi Auto-Cancel H-24** secara manual. |
+| **Auto-Cancel Tidak Berjalan di Jam H-24** | Penjadwal bawaan API mati atau dinonaktifkan | 1. Pastikan `SCHEDULER_ENABLED` dan `ENABLE_AUTO_CANCEL=true` di `.env`.<br>2. Cek log: `pm2 logs dailydose-api`.<br>3. Buka dashboard `/workspace/reminders` dan klik **Trigger Evaluasi Auto-Cancel H-24** secara manual. |
 | **Selisih Saldo Sesi Pelanggan** | Ketidaksesuaian input manual | 1. Buka `/ledger/[customerPackageId]`.<br>2. Periksa audit trail mutasi: `PURCHASE`, `ATTEND`, `REFUND_AUTOCANCEL`, `ADJUST_MANUAL`.<br>3. Jika diperlukan penyesuaian, ajukan *Session Adjust Request* untuk di-approve Manager. |
-| **Error 409 Saat Input Biaya Bulanan** | Periode keuangan telah berstatus `LOCKED` | Periode telah ditutup buku resmi. Ajukan **Jurnal Koreksi Pasca-Lock** melalui `/finance` untuk disetujui oleh Super Owner. |
+| **Salah Catat Biaya Lain** | Nominal, tanggal, atau kategori keliru | Buka `/finance`, tab *Biaya Operasional Lain*, lalu **Ubah** (tanggal, kategori, keterangan, nominal) atau **Hapus** (alasan wajib). Tidak ada periode terkunci. |

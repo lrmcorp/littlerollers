@@ -19,9 +19,9 @@ Dokumen ini berisi panduan ringkas (*Staff Cheat Sheets*) yang dirancang khusus 
    * **Target:** Instruktur / Coach Pilates & Staf Meja Depan (Front Desk)
    * **Topik:** Scan QR mandiri geofence 150m (H-30m s/d H+10m), fallback verifikasi manual saat HP instruktur mati/lowbat dengan catatan audit CCTV, dan penanganan blocker penahanan payroll (*SEC-10 Payroll Lock Guard*).
 
-4. **[SOP 04: Tutup Buku Kas Bulanan & Prosedur Jurnal Koreksi Resmi](file:///Users/lrmcorporation/Documents/Website/dailydose_v2/docs/sop/SOP_04_TUTUP_BUKU_KAS_DAN_JURNAL_KOREKSI.md)**
-   * **Target:** Finance Lead (Daniel) & Super Owner / Super Admin
-   * **Topik:** Penguncian buku kas bulanan (*Monthly Period Close Lock*), penolakan mutasi backdate (*Period Lock Guard*), dan pengajuan serta persetujuan Jurnal Koreksi resmi pasca-lock.
+4. **[SOP 04: Laporan Keuangan menurut Rentang Tanggal & Pencatatan Biaya Lain](file:///Users/lrmcorporation/Documents/Website/dailydose_v2/docs/sop/SOP_04_LAPORAN_KEUANGAN_DAN_BIAYA_LAIN.md)**
+   * **Target:** Finance, Super Owner / Super Admin, dan Owner Cabang
+   * **Topik:** Memilih rentang tanggal laporan, mencatat biaya lain bertanggal, serta mengubah atau menghapus biaya yang salah (tanpa tutup buku dan tanpa jurnal koreksi).
 
 ---
 *Dokumen ini diperbarui secara berkala mengikuti rilis versi sistem v2.0.*

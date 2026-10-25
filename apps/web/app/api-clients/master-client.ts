@@ -426,7 +426,6 @@ const masterMessages: Record<string, string> = {
     'Masih ada kelas terjadwal yang memakai area atau ruangan ini. Batalkan atau pindahkan kelasnya terlebih dahulu.',
   RATE_IN_EFFECT:
     'Tarif yang sedang berlaku tidak dapat dihapus. Koreksi dengan menambahkan tarif baru.',
-  PERIOD_ALREADY_LOCKED: 'Periode keuangan ini sudah dikunci, sehingga biaya tidak dapat diubah.',
   FORBIDDEN: 'Anda tidak memiliki izin untuk tindakan ini.',
   RESOURCE_NOT_FOUND: 'Data tidak ditemukan atau berada di luar cakupan Anda.',
   EFFECTIVE_PERIOD_OVERLAP_OR_STALE_VERSION:

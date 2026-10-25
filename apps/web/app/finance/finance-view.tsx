@@ -5,17 +5,14 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import {
   AlertTriangle,
-  Calendar,
   DollarSign,
   Download,
   FileSpreadsheet,
-  Lock,
   PieChart,
   RefreshCw,
   Scale,
   Trash2,
   TrendingUp,
-  Unlock,
   Users,
 } from 'lucide-react';
 import { useSessionContext } from '../session-context';
@@ -46,10 +43,11 @@ import {
   type InstructorSessionItem,
   type OtherCostReportData,
   type OtherCostItem,
-  type MonthlyProfitData,
+  type ProfitData,
 } from './finance-client';
-import { FinanceCommandsPanel } from './finance-commands-panel';
 import { OtherCostEditDialog } from './other-cost-edit-dialog';
+import { OtherCostForm } from './other-cost-form';
+import { formatDay, presetRange, RANGE_PRESETS, rangeProblem } from './report-range';
 import { formatRupiah } from '../lib/formatters';
 import { pageOffset } from '../lib/pagination';
 
@@ -57,7 +55,7 @@ const date = (value: Date) => value.toISOString().slice(0, 10);
 
 type MainTab = 'FINANCIAL_REPORTS' | 'RECONCILIATION';
 type ReportSubTab =
-  | 'PROFIT_CLOSE'
+  | 'PROFIT'
   | 'OMSET'
   | 'INSTRUCTOR_REALTIME'
   | 'OTHER_COST';
@@ -81,13 +79,11 @@ export function FinanceView({
       ? 'RECONCILIATION'
       : (initialTab || 'FINANCIAL_REPORTS');
   const [mainTab, setMainTab] = useState<MainTab>(defaultTab);
-  const [reportTab, setReportTab] = useState<ReportSubTab>('PROFIT_CLOSE');
+  const [reportTab, setReportTab] = useState<ReportSubTab>('PROFIT');
   const [instructorViewMode, setInstructorViewMode] = useState<'SUMMARY' | 'SESSIONS'>('SUMMARY');
 
   // Filter states
-  const [selectedPeriod, setSelectedPeriod] = useState<string>(() =>
-    new Date().toISOString().slice(0, 7),
-  );
+  const [reportRange, setReportRange] = useState(() => presetRange('THIS_MONTH'));
   const [selectedBranchId, setSelectedBranchId] = useState<string>('');
 
   // Reconciliation / Legacy states
@@ -103,7 +99,7 @@ export function FinanceView({
   const [legacyCursorHistory, setLegacyCursorHistory] = useState<string[]>([]);
 
   // 5 Laporan Finansial states
-  const [profitData, setProfitData] = useState<MonthlyProfitData | null>(null);
+  const [profitData, setProfitData] = useState<ProfitData | null>(null);
   const [omsetData, setOmsetData] = useState<OmsetReportData | null>(null);
   const [instructorRealtimeData, setInstructorRealtimeData] =
     useState<InstructorCostRealtimeData | null>(null);
@@ -152,31 +148,36 @@ export function FinanceView({
   const loadReports = useCallback(async () => {
     if (
       !selectedBranchId ||
-      !client.getMonthlyProfit ||
+      !client.getProfit ||
       !client.getOmsetReport ||
       !client.getInstructorCostRealtime ||
       !client.getOtherCostReport
     )
       return;
+    const problem = rangeProblem(reportRange);
+    if (problem) {
+      setReportError(problem);
+      return;
+    }
     setReportLoading(true);
     setReportError(null);
     try {
       const [profit, omset, realtime, other] = await Promise.all([
-        client.getMonthlyProfit(selectedBranchId, selectedPeriod),
-        client.getOmsetReport(selectedBranchId, selectedPeriod),
-        client.getInstructorCostRealtime(selectedBranchId, selectedPeriod),
-        client.getOtherCostReport(selectedBranchId, selectedPeriod),
+        client.getProfit(selectedBranchId, reportRange),
+        client.getOmsetReport(selectedBranchId, reportRange),
+        client.getInstructorCostRealtime(selectedBranchId, reportRange),
+        client.getOtherCostReport(selectedBranchId, reportRange),
       ]);
       setProfitData(profit);
       setOmsetData(omset);
       setInstructorRealtimeData(realtime);
       setOtherCostData(other);
     } catch (err: any) {
-      setReportError(err.message || 'Gagal memuat laporan finansial.');
+      setReportError(financeFailureMessage(err));
     } finally {
       setReportLoading(false);
     }
-  }, [client, selectedBranchId, selectedPeriod]);
+  }, [client, selectedBranchId, reportRange]);
 
   useEffect(() => {
     void loadReconciliation();
@@ -186,7 +187,7 @@ export function FinanceView({
     if (selectedBranchId) {
       void loadReports();
     }
-  }, [selectedBranchId, selectedPeriod, loadReports]);
+  }, [selectedBranchId, loadReports]);
 
   const loadAnomalyPage = async (cursor?: string) => {
     if (!allowed || !reconData) return false;
@@ -260,13 +261,12 @@ export function FinanceView({
     );
 
   const metrics = reconData?.overview.metrics;
-  const isLocked = profitData?.isLocked || profitData?.status === 'LOCKED';
 
   return (
     <div className="space-y-6">
       <AdminPageHeader
-        title="Keuangan & Tutup Buku"
-        description="Laporan inti (omzet, beban instruktur aktual, beban operasional lain, dan laba bersih), tutup buku bulanan, dan rekonsiliasi transaksi."
+        title="Keuangan"
+        description="Omzet, honor instruktur aktual, biaya lain, dan laba bersih untuk rentang tanggal yang Anda pilih, serta rekonsiliasi transaksi."
         actions={
           <div className="flex gap-2">
             {context?.hasCapability('finance:export') && (
@@ -335,51 +335,53 @@ export function FinanceView({
       </div>
 
       {/* ========================================================================= */}
-      {/* SECTION: 5 LAPORAN FINANSIAL & TUTUP BUKU                                */}
+      {/* SECTION: LAPORAN KEUANGAN MENURUT RENTANG TANGGAL                        */}
       {/* ========================================================================= */}
       {mainTab === 'FINANCIAL_REPORTS' && (
         <div className="space-y-6">
-          {/* FILTER BAR: CABANG & PERIODE */}
-          <Panel className="flex flex-wrap items-center justify-between gap-4 p-4">
-            <div className="flex flex-wrap items-center gap-4">
-              <div className="w-64">
-                <SearchSelect
-                  label="Cabang Studio"
-                  value={selectedBranchId}
-                  onChange={(val) => setSelectedBranchId(val)}
-                  options={branches.map((b) => ({ id: b.id, label: `${b.code} - ${b.name}` }))}
-                  placeholder="Pilih Cabang..."
-                />
-              </div>
-
-              <label className="grid gap-1 text-xs font-bold uppercase tracking-wider text-dd-muted">
-                Periode Bulan
-                <input
-                  type="month"
-                  value={selectedPeriod}
-                  onChange={(e) => setSelectedPeriod(e.target.value)}
-                  className="rounded-dd-sm border border-dd-line bg-dd-surface px-3 py-2 text-sm text-dd-ink outline-none transition focus:border-dd-forest focus:ring-2 focus:ring-dd-forest/15"
-                />
-              </label>
+          {/* FILTER: CABANG & RENTANG TANGGAL */}
+          <Panel className="flex flex-wrap items-end gap-4 p-4">
+            <div className="w-64">
+              <SearchSelect
+                label="Cabang Studio"
+                value={selectedBranchId}
+                onChange={(val) => setSelectedBranchId(val)}
+                options={branches.map((b) => ({ id: b.id, label: `${b.code} - ${b.name}` }))}
+                placeholder="Pilih Cabang..."
+              />
             </div>
 
-            <div className="flex items-center gap-3">
-              <span className="text-xs font-semibold uppercase text-dd-muted">Status Periode:</span>
-              {isLocked ? (
-                <Badge tone="neutral">
-                  <span className="inline-flex items-center gap-1">
-                    <Lock className="h-3 w-3" />
-                    LOCKED (TERKUNCI)
-                  </span>
-                </Badge>
-              ) : (
-                <Badge tone="success">
-                  <span className="inline-flex items-center gap-1">
-                    <Unlock className="h-3 w-3" />
-                    OPEN (TERBUKA)
-                  </span>
-                </Badge>
-              )}
+            <label className="grid gap-1 text-xs font-bold uppercase tracking-wider text-dd-muted">
+              Dari tanggal
+              <input
+                type="date"
+                value={reportRange.from}
+                max={reportRange.until || undefined}
+                onChange={(e) => setReportRange((range) => ({ ...range, from: e.target.value }))}
+                className="rounded-dd-sm border border-dd-line bg-dd-surface px-3 py-2 text-sm text-dd-ink outline-none transition focus:border-dd-forest focus:ring-2 focus:ring-dd-forest/15"
+              />
+            </label>
+            <label className="grid gap-1 text-xs font-bold uppercase tracking-wider text-dd-muted">
+              Sampai tanggal
+              <input
+                type="date"
+                value={reportRange.until}
+                min={reportRange.from || undefined}
+                onChange={(e) => setReportRange((range) => ({ ...range, until: e.target.value }))}
+                className="rounded-dd-sm border border-dd-line bg-dd-surface px-3 py-2 text-sm text-dd-ink outline-none transition focus:border-dd-forest focus:ring-2 focus:ring-dd-forest/15"
+              />
+            </label>
+
+            <div className="flex flex-wrap gap-2" role="group" aria-label="Rentang cepat">
+              {RANGE_PRESETS.map((preset) => (
+                <Button
+                  key={preset.id}
+                  variant="secondary"
+                  onClick={() => setReportRange(presetRange(preset.id))}
+                >
+                  {preset.label}
+                </Button>
+              ))}
             </div>
           </Panel>
 
@@ -387,15 +389,15 @@ export function FinanceView({
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
-              onClick={() => setReportTab('PROFIT_CLOSE')}
+              onClick={() => setReportTab('PROFIT')}
               className={`flex items-center gap-2 rounded-dd-sm px-4 py-2 text-sm font-semibold transition-colors ${
-                reportTab === 'PROFIT_CLOSE'
+                reportTab === 'PROFIT'
                   ? 'bg-dd-forest text-white shadow-dd-soft'
                   : 'text-dd-muted hover:bg-dd-surface-muted hover:text-dd-ink'
               }`}
             >
               <PieChart className="h-4 w-4" />
-              1. Laba Bersih & Tutup Buku
+              1. Laba Bersih
             </button>
 
             <button
@@ -438,8 +440,8 @@ export function FinanceView({
             </button>
           </div>
 
-          {/* TAB 1: LABA BERSIH & TUTUP BUKU */}
-          {reportTab === 'PROFIT_CLOSE' && profitData && (
+          {/* TAB 1: LABA BERSIH */}
+          {reportTab === 'PROFIT' && profitData && (
             <div className="space-y-6">
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <StatCard
@@ -466,7 +468,7 @@ export function FinanceView({
                 />
               </div>
 
-              <div className="grid gap-6 lg:grid-cols-2">
+              <div className="grid gap-6">
                 <Panel className="space-y-4 p-5">
                   <div className="flex items-center justify-between border-b border-dd-line/60 pb-3">
                     <h3 className="text-base font-semibold">Laporan Laba Rugi Berjenjang (P&L)</h3>
@@ -476,7 +478,7 @@ export function FinanceView({
                   </div>
                   <div className="space-y-3 divide-y divide-dd-line text-sm">
                     <div className="flex justify-between pt-2">
-                      <span className="text-dd-muted">Omzet Penjualan Bersih (Bulan {selectedPeriod}):</span>
+                      <span className="text-dd-muted">Omzet Penjualan Bersih ({formatDay(profitData.from)} – {formatDay(profitData.until)}):</span>
                       <span className="font-semibold">{formatRupiah(profitData.omsetRp)}</span>
                     </div>
                     <div className="flex justify-between pt-2 text-dd-warning">
@@ -505,53 +507,9 @@ export function FinanceView({
                         <span className="ml-1.5 text-xs text-dd-muted">({profitData.netMarginPercent ?? 0}%)</span>
                       </span>
                     </div>
-                    {profitData.totalCorrectionAdjustmentRp !== 0 && (
-                      <div className="flex justify-between pt-2">
-                        <span className="text-dd-muted">(+/-) Penyesuaian Jurnal Koreksi:</span>
-                        <span className="font-semibold">
-                          {formatRupiah(profitData.totalCorrectionAdjustmentRp)}
-                        </span>
-                      </div>
-                    )}
-                    {profitData.totalCorrectionAdjustmentRp !== 0 && (
-                      <div className="flex justify-between pt-2 font-bold text-dd-forest">
-                        <span>Laba Bersih Setelah Koreksi:</span>
-                        <span>{formatRupiah(profitData.adjustedNetProfitRealtimeRp)}</span>
-                      </div>
-                    )}
-                  </div>
-                </Panel>
-
-                <Panel className="space-y-4 p-5">
-                  <h3 className="text-base font-semibold">Status Tutup Buku & Audit</h3>
-                  <p className="text-xs text-dd-muted">
-                    Tutup Buku membekukan angka finansial ke dalam snapshot permanen. Setelah periode
-                    berstatus LOCKED, penambahan atau perubahan biaya lama diblokir.
-                  </p>
-                  <div className="rounded-dd-md border border-dd-line bg-dd-surface p-4 text-sm space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-dd-muted">Status Periode:</span>
-                      <span className="font-bold">{profitData.status}</span>
-                    </div>
-                    {profitData.closedAt && (
-                      <div className="flex justify-between">
-                        <span className="text-dd-muted">Waktu Tutup Buku:</span>
-                        <span>{new Date(profitData.closedAt).toLocaleString('id-ID')}</span>
-                      </div>
-                    )}
-                    {profitData.closedByName && (
-                      <div className="flex justify-between">
-                        <span className="text-dd-muted">Petugas Tutup Buku:</span>
-                        <span className="font-semibold">{profitData.closedByName}</span>
-                      </div>
-                    )}
                   </div>
                 </Panel>
               </div>
-
-              {selectedBranchId && (
-                <FinanceCommandsPanel client={client} branchId={selectedBranchId} />
-              )}
             </div>
           )}
 
@@ -602,7 +560,7 @@ export function FinanceView({
                 {omsetData.transactions.length === 0 ? (
                   <AdminEmptyState
                     title="Tidak Ada Transaksi"
-                    description="Belum ada transaksi paket terbayar (PAID) pada periode ini."
+                    description="Belum ada transaksi paket terbayar (PAID) pada rentang tanggal ini."
                   />
                 ) : (
                   <DataTable<OmsetTransaction>
@@ -724,7 +682,7 @@ export function FinanceView({
                   instructorRealtimeData.instructors.length === 0 ? (
                     <AdminEmptyState
                       title="Belum Ada Aktivitas Kelas"
-                      description="Tidak ada slot kelas berstatus COMPLETED pada periode bulan ini."
+                      description="Tidak ada slot kelas berstatus COMPLETED pada rentang tanggal ini."
                     />
                   ) : (
                     <DataTable<InstructorCostBreakdown>
@@ -817,7 +775,7 @@ export function FinanceView({
                   (instructorRealtimeData.sessions?.length ?? 0) === 0 ? (
                     <AdminEmptyState
                       title="Belum Ada Sesi Kelas"
-                      description="Tidak ada slot kelas berstatus COMPLETED pada periode bulan ini."
+                      description="Tidak ada slot kelas berstatus COMPLETED pada rentang tanggal ini."
                     />
                   ) : (
                     <DataTable<InstructorSessionItem>
@@ -968,11 +926,19 @@ export function FinanceView({
                   tone="neutral"
                 />
                 <StatCard
-                  label="Status Mutasi"
-                  value={isLocked ? 'TERKUNCI (LOCKED)' : 'DAPAT DIINPUT (OPEN)'}
-                  tone={isLocked ? 'neutral' : 'success'}
+                  label="Rentang Tanggal"
+                  value={`${formatDay(otherCostData.from ?? reportRange.from)} – ${formatDay(otherCostData.until ?? reportRange.until)}`}
+                  tone="neutral"
                 />
               </div>
+
+              {canManageCosts && selectedBranchId && (
+                <OtherCostForm
+                  client={client}
+                  branchId={selectedBranchId}
+                  onCreated={() => void loadReports()}
+                />
+              )}
 
               <Panel className="p-5 space-y-3">
                 <h3 className="text-sm font-semibold uppercase tracking-wider text-dd-muted">
@@ -994,7 +960,7 @@ export function FinanceView({
                 {otherCostData.items.length === 0 ? (
                   <AdminEmptyState
                     title="Belum Ada Biaya Operasional"
-                    description="Belum ada pencatatan biaya operasional untuk periode ini."
+                    description="Belum ada biaya operasional pada rentang tanggal ini."
                   />
                 ) : (
                   <DataTable<OtherCostItem>
@@ -1008,33 +974,30 @@ export function FinanceView({
                         </div>
                         <div className="font-medium text-dd-ink">{c.description}</div>
                         <div className="flex items-center justify-between text-[11px] text-dd-muted pt-1 border-t border-dd-line/40">
-                          <span>Dicatat: {c.createdByName} · {new Date(c.createdAt).toLocaleDateString('id-ID')}</span>
-                          {!isLocked ? (
-                            <div className="flex gap-2">
-                              {canManageCosts && client.updateOtherCost && (
-                                <button
-                                  type="button"
-                                  className="text-dd-forest font-semibold hover:underline"
-                                  onClick={() => setEditingCost(c)}
-                                >
-                                  Ubah
-                                </button>
-                              )}
+                          <span>{formatDay(c.incurredOn)} · {c.createdByName}</span>
+                          <div className="flex gap-2">
+                            {canManageCosts && client.updateOtherCost && (
                               <button
                                 type="button"
-                                className="text-dd-danger font-semibold hover:underline flex items-center gap-0.5"
-                                onClick={() => setCostToDelete(c)}
+                                className="text-dd-forest font-semibold hover:underline"
+                                onClick={() => setEditingCost(c)}
                               >
-                                Hapus
+                                Ubah
                               </button>
-                            </div>
-                          ) : (
-                            <span className="text-xs text-dd-muted">Terkunci</span>
-                          )}
+                            )}
+                            <button
+                              type="button"
+                              className="text-dd-danger font-semibold hover:underline flex items-center gap-0.5"
+                              onClick={() => setCostToDelete(c)}
+                            >
+                              Hapus
+                            </button>
+                          </div>
                         </div>
                       </div>
                     )}
                     columns={[
+                      { id: 'incurredOn', header: 'Tanggal', cell: (c) => formatDay(c.incurredOn) },
                       { id: 'category', header: 'Kategori', cell: (c) => c.category },
                       { id: 'description', header: 'Deskripsi', cell: (c) => c.description },
                       {
@@ -1048,16 +1011,10 @@ export function FinanceView({
                       },
                       { id: 'createdByName', header: 'Dicatat Oleh', cell: (c) => c.createdByName },
                       {
-                        id: 'createdAt',
-                        header: 'Tanggal Input',
-                        cell: (c) => new Date(c.createdAt).toLocaleDateString('id-ID'),
-                      },
-                      {
                         id: 'id',
                         header: 'Aksi',
-                        cell: (c) =>
-                          !isLocked ? (
-                            <div className="flex flex-wrap gap-1">
+                        cell: (c) => (
+                          <div className="flex flex-wrap gap-1">
                             {canManageCosts && client.updateOtherCost && (
                               <Button variant="ghost" onClick={() => setEditingCost(c)}>
                                 Ubah
@@ -1070,10 +1027,8 @@ export function FinanceView({
                             >
                               Hapus
                             </Button>
-                            </div>
-                          ) : (
-                            <span className="text-xs text-dd-muted">Terkunci</span>
-                          ),
+                          </div>
+                        ),
                       },
                     ]}
                   />

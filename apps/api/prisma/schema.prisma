@@ -820,7 +820,10 @@ model ProjectionRate {
 model OtherCost {
   id          String   @id @default(uuid()) @db.Char(36)
   branchId    String   @db.Char(36)
+  // Bulan pengeluaran (YYYY-MM), diturunkan dari `incurredOn`; baris lama hanya punya ini.
   period      String   @db.VarChar(7)
+  // Tanggal pengeluaran; kosong pada baris lama (dihitung pada tanggal 1 bulannya).
+  incurredOn  DateTime? @db.Date
   category    String   @default("OTHER") @db.VarChar(64)
   description String   @db.Text
   amountRp    Int
@@ -832,6 +835,7 @@ model OtherCost {
   createdBy User?  @relation("OtherCostCreator", fields: [createdById], references: [id], onDelete: SetNull)
 
   @@index([branchId, period])
+  @@index([branchId, incurredOn])
   @@map("other_cost")
 }
 

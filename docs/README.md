@@ -11,7 +11,7 @@ Direktori ini berisi seluruh dokumen acuan arsitektur, spesifikasi bisnis, pandu
 | Dokumen | Format | Deskripsi & Kegunaan |
 | :--- | :---: | :--- |
 | [**AKUN_TESTING_RESMI.md**](./AKUN_TESTING_RESMI.md) | Markdown | **Single Source of Truth** untuk seluruh akun testing resmi (7 Role + Customer), kredensial argon2, scope cabang, dan pemetaan rute. |
-| [**PANDUAN_DAN_SKENARIO_UAT_LENGKAP_V2.md**](./PANDUAN_DAN_SKENARIO_UAT_LENGKAP_V2.md) | Markdown | Panduan lengkap 10 skenario UAT kronologis alami (Customer Journey, KYC, Booking, Presensi, hingga Tutup Buku). |
+| [**PANDUAN_DAN_SKENARIO_UAT_LENGKAP_V2.md**](./PANDUAN_DAN_SKENARIO_UAT_LENGKAP_V2.md) | Markdown | Panduan lengkap 10 skenario UAT kronologis alami (Customer Journey, KYC, Booking, Presensi, hingga Laporan Keuangan). |
 | [**DOKUMEN_HASIL_AUDIT_DAN_REVIEW_OPERASIONAL_V2.md**](./DOKUMEN_HASIL_AUDIT_DAN_REVIEW_OPERASIONAL_V2.md) | Markdown | Laporan komprehensif hasil audit teknis, temuan cacat/bug, celah operasional, dan rencana remediasi sistem. |
 
 ---
@@ -49,7 +49,7 @@ Setiap pengembangan fitur, audit, dan pengujian wajib tunduk pada 13 Keputusan B
 5. **Min Quota per Kelas per Cabang**: Kuota minimum peserta ditentukan spesifik per jenis kelas dan per cabang studio.
 6. **Birokrasi Reschedule**: Reschedule $\ge$ H-24 jam mengembalikan sesi secara instan; reschedule $<$ H-24 jam memerlukan permohonan darurat medis via Admin dan persetujuan resmi Studio Manager (`SessionAdjustRequest`).
 7. **Struktur Multi-Cabang**: Peran *Owner* terikat pada cabang tertentu; *Super Owner* yang berwenang menugaskan kepemilikan multi-cabang.
-8. **Tutup Buku Bulanan & Jurnal Koreksi**: Tutup buku membekukan angka finansial (*Period Lock*). Koreksi pasca-lock dicatat sebagai jurnal koreksi di bulan berjalan dengan persetujuan Super Owner.
+8. **Laporan Keuangan menurut Rentang Tanggal**: Tidak ada tutup buku atau jurnal koreksi. Omzet, honor aktual, biaya lain, dan laba dihitung langsung untuk rentang tanggal pilihan pengguna; biaya lain bertanggal dan dapat diubah/dihapus.
 9. **Batas Toleransi Backfill H+2**: Admin dapat melakukan backfill presensi susulan maksimal hingga H+2 jam setelah kelas selesai.
 10. **Isolasi Finansial Cabang**: Owner cabang hanya diizinkan melihat data dan rincian beban instruktur pada cabangnya sendiri (*Zero Cross-Branch Leakage*).
 11. **Reminder WhatsApp Internal**: Notifikasi ringkasan paket kedaluwarsa dikirimkan ke WhatsApp Admin setiap 3 jam, serta ke Owner dan Super Owner setiap 3 hari.

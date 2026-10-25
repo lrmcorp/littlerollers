@@ -2,13 +2,14 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Calendar, CircleDollarSign, RefreshCw, Users } from 'lucide-react';
+import { Calendar, RefreshCw } from 'lucide-react';
 import { AdminPageHeader } from '../../components/admin/admin-page-header';
 import { Badge, DataTable, Panel, StatCard } from '../../components/admin/admin-ui';
 import { Button } from '../../components/actions';
 import { SearchSelect } from '../../components/forms';
 import { useSessionContext } from '../../session-context';
 import { formatRupiah } from '../../lib/formatters';
+import { presetRange, RANGE_PRESETS, rangeProblem } from '../../finance/report-range';
 
 interface InstructorBreakdown {
   instructorId: string;
@@ -32,6 +33,8 @@ interface PerformanceData {
     name: string;
   };
   period: string;
+  from?: string;
+  until?: string;
   omsetRp: number;
   otherCostRp: number;
   totalInstructorFeeRp: number;
@@ -64,21 +67,25 @@ export function OwnerBranchPerformanceView() {
     }
   }, [urlBranch, activeBranchId, branches, selectedBranchId]);
 
-  const [selectedPeriod, setSelectedPeriod] = useState<string>(() =>
-    new Date().toISOString().slice(0, 7),
-  );
+  const [range, setRange] = useState(() => presetRange('THIS_MONTH'));
   const [data, setData] = useState<PerformanceData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     if (!selectedBranchId) return;
+    const problem = rangeProblem(range);
+    if (problem) {
+      setError(problem);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
       const query = new URLSearchParams({
         branchId: selectedBranchId,
-        period: selectedPeriod,
+        from: range.from,
+        until: range.until,
       });
       const res = await fetch(`/api/v1/finance/owner-branch-performance?${query.toString()}`, {
         headers: { 'Content-Type': 'application/json' },
@@ -96,13 +103,13 @@ export function OwnerBranchPerformanceView() {
     } finally {
       setLoading(false);
     }
-  }, [selectedBranchId, selectedPeriod]);
+  }, [selectedBranchId, range]);
 
   useEffect(() => {
     if (selectedBranchId) {
       void loadData();
     }
-  }, [selectedBranchId, selectedPeriod, loadData]);
+  }, [selectedBranchId, loadData]);
 
   return (
     <div className="space-y-6">
@@ -143,16 +150,37 @@ export function OwnerBranchPerformanceView() {
         )}
 
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="period-select" className="text-xs font-semibold text-dd-muted flex items-center gap-1.5">
-            <Calendar className="size-3.5 text-dd-muted" /> Periode Bulan:
+          <label htmlFor="range-from" className="text-xs font-semibold text-dd-muted flex items-center gap-1.5">
+            <Calendar className="size-3.5 text-dd-muted" /> Dari tanggal:
           </label>
           <input
-            id="period-select"
-            type="month"
-            value={selectedPeriod}
-            onChange={(e) => setSelectedPeriod(e.target.value)}
+            id="range-from"
+            type="date"
+            value={range.from}
+            max={range.until || undefined}
+            onChange={(e) => setRange((current) => ({ ...current, from: e.target.value }))}
             className="rounded-dd-sm border border-dd-line bg-dd-surface px-3 py-1.5 text-sm font-medium text-dd-ink focus:outline-none focus:ring-2 focus:ring-dd-forest"
           />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="range-until" className="text-xs font-semibold text-dd-muted">
+            Sampai tanggal:
+          </label>
+          <input
+            id="range-until"
+            type="date"
+            value={range.until}
+            min={range.from || undefined}
+            onChange={(e) => setRange((current) => ({ ...current, until: e.target.value }))}
+            className="rounded-dd-sm border border-dd-line bg-dd-surface px-3 py-1.5 text-sm font-medium text-dd-ink focus:outline-none focus:ring-2 focus:ring-dd-forest"
+          />
+        </div>
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Rentang cepat">
+          {RANGE_PRESETS.map((preset) => (
+            <Button key={preset.id} variant="secondary" onClick={() => setRange(presetRange(preset.id))}>
+              {preset.label}
+            </Button>
+          ))}
         </div>
       </div>
 
@@ -293,7 +321,7 @@ export function OwnerBranchPerformanceView() {
           items={data?.instructors ?? []}
           rowKey={(item) => item.instructorId}
           emptyTitle="Belum ada catatan mengajar"
-          emptyDescription="Belum ada catatan kelas mengajar instruktur pada periode ini."
+          emptyDescription="Belum ada catatan kelas mengajar instruktur pada rentang tanggal ini."
           mobileCard={(item: InstructorBreakdown) => (
             <div className="space-y-1.5 text-xs">
               <div className="flex items-center justify-between">

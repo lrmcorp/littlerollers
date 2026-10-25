@@ -6,9 +6,23 @@ import { requireReason } from '../foundation/reason';
 import type { SessionPrincipal } from '../identity/identity.service';
 import { PolicyService } from '../identity/policy.service';
 import { ApiProblem } from '../identity/security';
-import { calculateSlotFee, periodRange, summarizeInstructorFees } from './instructor-fee-calculator';
+import { calculateSlotFee, summarizeInstructorFees } from './instructor-fee-calculator';
+import {
+  financeRange,
+  otherCostDay,
+  otherCostInRange,
+  parseIncurredOn,
+} from './finance-range';
 
-const PERIOD = /^\d{4}-(0[1-9]|1[0-2])$/;
+/** Rentang laporan: `from`/`until` (inklusif, `YYYY-MM-DD`); `period` (`YYYY-MM`) adalah singkatan satu bulan penuh. */
+export interface FinanceQuery {
+  branchId?: string;
+  from?: string;
+  until?: string;
+  period?: string;
+}
+
+const MONTH = /^\d{4}-(0[1-9]|1[0-2])$/;
 const EXPORT_MAX_DAYS = 366;
 const EXPORT_MAX_ROWS = 50_000;
 
@@ -45,10 +59,6 @@ export class FinanceService {
     }
   }
 
-  private parsePeriod(periodStr?: string) {
-    return periodRange(periodStr);
-  }
-
   // ============================================================================
   // 5 LAPORAN INTI KEUANGAN
   // ============================================================================
@@ -56,13 +66,10 @@ export class FinanceService {
   /**
    * 1. Laporan Omset Penjualan Paket
    */
-  async omsetReport(
-    principal: SessionPrincipal,
-    input: { branchId?: string; period?: string },
-  ) {
+  async omsetReport(principal: SessionPrincipal, input: FinanceQuery) {
     this.policy.requireCapability(principal.capabilities, 'finance:read');
     this.ensureBranchAccess(principal, input.branchId);
-    const { period, fromDate, nextMonth } = this.parsePeriod(input.period);
+    const range = financeRange(input);
 
     const isGlobal =
       principal.capabilities.includes('branch:all') ||
@@ -80,7 +87,7 @@ export class FinanceService {
       where: {
         ...branchFilter,
         status: 'PAID',
-        paidAt: { gte: fromDate, lt: nextMonth },
+        paidAt: { gte: range.fromDate, lt: range.untilExclusive },
       },
       include: {
         branch: { select: { id: true, code: true, name: true } },
@@ -103,7 +110,9 @@ export class FinanceService {
     }
 
     return {
-      period,
+      period: range.label,
+      from: range.from,
+      until: range.until,
       branchId: input.branchId ?? 'ALL',
       totalOmsetRp,
       totalTransactionCount: purchases.length,
@@ -126,13 +135,10 @@ export class FinanceService {
    * 2. Laporan Cost Instruktur Realtime (Jam Mengajar Aktual via QR x Fee/Jam Effective Date)
    * Menyediakan rekapitulasi per instruktur dan rincian per sesi kelas (termasuk status presensi & geofence).
    */
-  async realtimeInstructorCostReport(
-    principal: SessionPrincipal,
-    input: { branchId?: string; period?: string },
-  ) {
+  async realtimeInstructorCostReport(principal: SessionPrincipal, input: FinanceQuery) {
     this.policy.requireCapability(principal.capabilities, 'finance:read');
     this.ensureBranchAccess(principal, input.branchId);
-    const { period, fromDate, nextMonth } = this.parsePeriod(input.period);
+    const range = financeRange(input);
 
     const isGlobal =
       principal.capabilities.includes('branch:all') ||
@@ -149,7 +155,7 @@ export class FinanceService {
     const slots = await this.db.slotKelas.findMany({
       where: {
         ...branchFilter,
-        startAt: { gte: fromDate, lt: nextMonth },
+        startAt: { gte: range.fromDate, lt: range.untilExclusive },
         status: 'COMPLETED',
       },
       include: {
@@ -234,7 +240,9 @@ export class FinanceService {
     });
 
     return {
-      period,
+      period: range.label,
+      from: range.from,
+      until: range.until,
       branchId: input.branchId ?? 'ALL',
       totalInstructorCostRp,
       totalVerifiedFeeRp: totalInstructorCostRp - totalUnverifiedFeeRp,
@@ -252,13 +260,10 @@ export class FinanceService {
   /**
    * 3. Laporan Cost Lain-lain (OtherCost)
    */
-  async otherCostReport(
-    principal: SessionPrincipal,
-    input: { branchId?: string; period?: string },
-  ) {
+  async otherCostReport(principal: SessionPrincipal, input: FinanceQuery) {
     this.policy.requireCapability(principal.capabilities, 'finance:read');
     this.ensureBranchAccess(principal, input.branchId);
-    const period = input.period ?? new Date().toISOString().slice(0, 7);
+    const range = financeRange(input);
 
     const isGlobal =
       principal.capabilities.includes('branch:all') ||
@@ -275,7 +280,7 @@ export class FinanceService {
     const costs = await this.db.otherCost.findMany({
       where: {
         ...branchFilter,
-        period,
+        ...otherCostInRange(range),
       },
       include: {
         branch: { select: { id: true, code: true, name: true } },
@@ -297,15 +302,21 @@ export class FinanceService {
     }
 
     return {
-      period,
+      period: range.label,
+      from: range.from,
+      until: range.until,
       branchId: input.branchId ?? 'ALL',
       totalOtherCostRp,
       byCategory,
-      items: costs.map((c) => ({
+      items: costs
+        .map((c) => ({ cost: c, day: otherCostDay(c) }))
+        .sort((x, y) => (x.day === y.day ? y.cost.createdAt.getTime() - x.cost.createdAt.getTime() : x.day < y.day ? 1 : -1))
+        .map(({ cost: c, day }) => ({
         id: c.id,
         branchId: c.branchId,
         branchName: c.branch.name,
         period: c.period,
+        incurredOn: day,
         category: c.category,
         description: c.description,
         amountRp: c.amountRp,
@@ -316,83 +327,54 @@ export class FinanceService {
   }
 
   /**
-   * 5. Laporan Laba Bersih Bulanan
+   * 4. Laporan Laba Bersih untuk rentang tanggal: omzet dikurangi honor instruktur aktual dan biaya lain.
    */
-  async monthlyProfitReport(
-    principal: SessionPrincipal,
-    input: { branchId?: string; period?: string },
-  ) {
+  async profitReport(principal: SessionPrincipal, input: FinanceQuery) {
     this.policy.requireCapability(principal.capabilities, 'finance:read');
     this.ensureBranchAccess(principal, input.branchId);
-    const period = input.period ?? new Date().toISOString().slice(0, 7);
+    const range = financeRange(input);
+    const scope = { branchId: input.branchId, from: range.from, until: range.until };
 
     const [omsetRes, realtimeRes, otherCostRes] = await Promise.all([
-      this.omsetReport(principal, { branchId: input.branchId, period }),
-      this.realtimeInstructorCostReport(principal, { branchId: input.branchId, period }),
-      this.otherCostReport(principal, { branchId: input.branchId, period }),
+      this.omsetReport(principal, scope),
+      this.realtimeInstructorCostReport(principal, scope),
+      this.otherCostReport(principal, scope),
     ]);
 
     const omsetRp = omsetRes.totalOmsetRp;
     const costRealtimeRp = realtimeRes.totalInstructorCostRp;
     const otherCostRp = otherCostRes.totalOtherCostRp;
-
-    const netProfitRealtimeRp = omsetRp - costRealtimeRp - otherCostRp;
-
-    let monthlyCloseRecord: any = null;
-    if (input.branchId) {
-      monthlyCloseRecord = await this.db.monthlyClose.findUnique({
-        where: { branchId_period: { branchId: input.branchId, period } },
-        include: { closedBy: { select: { displayName: true } } },
-      });
-    }
-
-    const branchFilter = input.branchId ? { branchId: input.branchId } : {};
-    const approvedCorrections = await this.db.correctionJournal.findMany({
-      where: {
-        ...branchFilter,
-        period,
-        status: 'APPROVED',
-      },
-    });
-    const totalCorrectionRp = approvedCorrections.reduce((sum, c) => sum + c.amountRp, 0);
-
-    const isLocked = monthlyCloseRecord?.status === 'LOCKED';
-    const effectiveOmset = isLocked ? monthlyCloseRecord.omsetRp : omsetRp;
-    const effectiveCostRealtime = isLocked ? monthlyCloseRecord.costRealtimeRp : costRealtimeRp;
-    const effectiveOtherCost = isLocked ? monthlyCloseRecord.otherCostRp : otherCostRp;
-    const grossProfitRp = effectiveOmset - effectiveCostRealtime;
-    const grossMarginPercent = effectiveOmset > 0 ? Math.round((grossProfitRp / effectiveOmset) * 1000) / 10 : 0;
-    const effectiveProfit = isLocked ? monthlyCloseRecord.profitRp : netProfitRealtimeRp;
-    const netMarginPercent = effectiveOmset > 0 ? Math.round((effectiveProfit / effectiveOmset) * 1000) / 10 : 0;
+    const grossProfitRp = omsetRp - costRealtimeRp;
+    const netProfitRealtimeRp = grossProfitRp - otherCostRp;
+    const margin = (value: number) => (omsetRp > 0 ? Math.round((value / omsetRp) * 1000) / 10 : 0);
 
     return {
-      period,
+      period: range.label,
+      from: range.from,
+      until: range.until,
       branchId: input.branchId ?? 'ALL',
-      isLocked,
-      status: monthlyCloseRecord?.status ?? 'OPEN',
-      closedAt: monthlyCloseRecord?.closedAt?.toISOString() ?? null,
-      closedByName: monthlyCloseRecord?.closedBy?.displayName ?? null,
-      omsetRp: effectiveOmset,
-      costRealtimeRp: effectiveCostRealtime,
+      omsetRp,
+      costRealtimeRp,
       grossProfitRp,
-      grossMarginPercent,
-      otherCostRp: effectiveOtherCost,
-      netProfitRealtimeRp: effectiveProfit,
-      netMarginPercent,
-      totalCorrectionAdjustmentRp: totalCorrectionRp,
-      adjustedNetProfitRealtimeRp: effectiveProfit + totalCorrectionRp,
+      grossMarginPercent: margin(grossProfitRp),
+      otherCostRp,
+      netProfitRealtimeRp,
+      netMarginPercent: margin(netProfitRealtimeRp),
     };
   }
 
   // ============================================================================
-  // OTHER COST CRUD (DENGAN LOCK GUARD)
+  // BIAYA OPERASIONAL LAIN (BERTANGGAL)
   // ============================================================================
 
   async createOtherCost(
     principal: SessionPrincipal,
     input: {
       branchId: string;
-      period: string;
+      /** Tanggal pengeluaran `YYYY-MM-DD`. */
+      incurredOn?: string;
+      /** Singkatan lama: bulan `YYYY-MM`, dicatat pada tanggal 1. */
+      period?: string;
       category?: string;
       categoryCode?: string;
       description: string;
@@ -405,19 +387,13 @@ export class FinanceService {
     if (!Number.isInteger(input.amountRp) || input.amountRp <= 0) {
       throw new ApiProblem('INVALID_AMOUNT', HttpStatus.BAD_REQUEST);
     }
-
-    // PERIOD LOCK CHECK (Keputusan Bisnis #8)
-    const close = await this.db.monthlyClose.findUnique({
-      where: { branchId_period: { branchId: input.branchId, period: input.period } },
-    });
-    if (close?.status === 'LOCKED') {
-      throw new ApiProblem('PERIOD_ALREADY_LOCKED', HttpStatus.CONFLICT);
-    }
+    const incurredOn = this.costDay(input);
 
     const created = await this.db.otherCost.create({
       data: {
         branchId: input.branchId,
-        period: input.period,
+        period: incurredOn.toISOString().slice(0, 7),
+        incurredOn,
         category: (input.categoryCode ?? input.category)?.trim().toUpperCase() || 'OTHER',
         description: input.description,
         amountRp: input.amountRp,
@@ -430,14 +406,27 @@ export class FinanceService {
       action: 'finance.other_cost_created',
       objectType: 'OtherCost',
       objectId: created.id,
-      afterMasked: { period: created.period, category: created.category, amountRp: created.amountRp },
+      afterMasked: {
+        incurredOn: incurredOn.toISOString().slice(0, 10),
+        category: created.category,
+        amountRp: created.amountRp,
+      },
     });
     return created;
   }
 
+  /** Tanggal pengeluaran dari `incurredOn`, atau dari `period` (tanggal 1) untuk pemanggil lama. */
+  private costDay(input: { incurredOn?: string; period?: string }): Date {
+    if (input.incurredOn !== undefined) return parseIncurredOn(input.incurredOn);
+    if (input.period && MONTH.test(input.period)) return parseIncurredOn(`${input.period}-01`, 'period');
+    throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, false, [
+      { field: 'incurredOn', issue: 'REQUIRED' },
+    ]);
+  }
+
   async listOtherCosts(
     principal: SessionPrincipal,
-    query: { branchId?: string; period?: string; cursor?: string },
+    query: FinanceQuery & { cursor?: string },
   ) {
     const report = await this.otherCostReport(principal, query);
     return {
@@ -447,11 +436,17 @@ export class FinanceService {
     };
   }
 
-  /** Ubah kategori, keterangan, atau nominal biaya lain. Periode tidak dapat dipindah (hapus lalu catat ulang). */
+  /** Ubah tanggal, kategori, keterangan, atau nominal biaya lain. */
   async updateOtherCost(
     principal: SessionPrincipal,
     id: string,
-    input: { category?: string; categoryCode?: string; description?: string; amountRp?: number },
+    input: {
+      incurredOn?: string;
+      category?: string;
+      categoryCode?: string;
+      description?: string;
+      amountRp?: number;
+    },
   ) {
     this.policy.requireCapability(principal.capabilities, 'finance:manage');
     const existing = await this.db.otherCost.findUnique({ where: { id } });
@@ -460,7 +455,18 @@ export class FinanceService {
     }
     this.ensureBranchAccess(principal, existing.branchId);
 
-    const data: { category?: string; description?: string; amountRp?: number } = {};
+    const data: {
+      incurredOn?: Date;
+      period?: string;
+      category?: string;
+      description?: string;
+      amountRp?: number;
+    } = {};
+    if (input.incurredOn !== undefined) {
+      const incurredOn = parseIncurredOn(input.incurredOn);
+      data.incurredOn = incurredOn;
+      data.period = incurredOn.toISOString().slice(0, 7);
+    }
     const rawCategory = input.categoryCode ?? input.category;
     if (rawCategory !== undefined) {
       const category = String(rawCategory).trim().toUpperCase();
@@ -486,14 +492,6 @@ export class FinanceService {
     if (Object.keys(data).length === 0)
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
 
-    // PERIOD LOCK CHECK
-    const close = await this.db.monthlyClose.findUnique({
-      where: { branchId_period: { branchId: existing.branchId, period: existing.period } },
-    });
-    if (close?.status === 'LOCKED') {
-      throw new ApiProblem('PERIOD_ALREADY_LOCKED', HttpStatus.CONFLICT);
-    }
-
     const updated = await this.db.otherCost.update({ where: { id }, data });
     await this.audit.catat(null, {
       actorId: principal.userId,
@@ -501,8 +499,12 @@ export class FinanceService {
       action: 'finance.other_cost_updated',
       objectType: 'OtherCost',
       objectId: id,
-      beforeMasked: { category: existing.category, amountRp: existing.amountRp },
-      afterMasked: { category: updated.category, amountRp: updated.amountRp, period: updated.period },
+      beforeMasked: { incurredOn: otherCostDay(existing), category: existing.category, amountRp: existing.amountRp },
+      afterMasked: {
+        incurredOn: otherCostDay(updated),
+        category: updated.category,
+        amountRp: updated.amountRp,
+      },
     });
     return updated;
   }
@@ -517,14 +519,6 @@ export class FinanceService {
     }
     this.ensureBranchAccess(principal, existing.branchId);
 
-    // PERIOD LOCK CHECK
-    const close = await this.db.monthlyClose.findUnique({
-      where: { branchId_period: { branchId: existing.branchId, period: existing.period } },
-    });
-    if (close?.status === 'LOCKED') {
-      throw new ApiProblem('PERIOD_ALREADY_LOCKED', HttpStatus.CONFLICT);
-    }
-
     await this.db.otherCost.delete({ where: { id } });
     await this.audit.catat(null, {
       actorId: principal.userId,
@@ -534,270 +528,13 @@ export class FinanceService {
       objectId: id,
       reason,
       beforeMasked: {
-        period: existing.period,
+        incurredOn: otherCostDay(existing),
         category: existing.category,
         description: existing.description,
         amountRp: existing.amountRp,
       },
     });
     return { id, deleted: true };
-  }
-
-  // ============================================================================
-  // TUTUP BUKU BULANAN (MONTHLY CLOSE)
-  // ============================================================================
-
-  async executeMonthlyClose(
-    principal: SessionPrincipal,
-    input: { branchId: string; period: string; reason?: string },
-  ) {
-    this.policy.requireCapability(principal.capabilities, 'finance:manage');
-    const canClose = principal.roles.some((r) =>
-      ['SUPER_OWNER', 'SUPERADMIN', 'FINANCE'].includes(r.role as string),
-    );
-    if (!canClose) {
-      throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);
-    }
-
-    this.ensureBranchAccess(principal, input.branchId);
-
-    const existing = await this.db.monthlyClose.findUnique({
-      where: { branchId_period: { branchId: input.branchId, period: input.period } },
-    });
-    if (existing?.status === 'LOCKED') {
-      return existing;
-    }
-
-    const [omsetRes, realtimeRes, otherCostRes] = await Promise.all([
-      this.omsetReport(principal, { branchId: input.branchId, period: input.period }),
-      this.realtimeInstructorCostReport(principal, { branchId: input.branchId, period: input.period }),
-      this.otherCostReport(principal, { branchId: input.branchId, period: input.period }),
-    ]);
-
-    const omsetRp = omsetRes.totalOmsetRp;
-    const costRealtimeRp = realtimeRes.totalInstructorCostRp;
-    const otherCostRp = otherCostRes.totalOtherCostRp;
-    const profitRp = omsetRp - costRealtimeRp - otherCostRp;
-
-    const controlHash = `hash-${input.branchId}-${input.period}-${Date.now()}`;
-
-    const closed = await this.db.monthlyClose.upsert({
-      where: { branchId_period: { branchId: input.branchId, period: input.period } },
-      create: {
-        branchId: input.branchId,
-        period: input.period,
-        omsetRp,
-        costRealtimeRp,
-        otherCostRp,
-        profitRp,
-        status: 'LOCKED',
-        controlHash,
-        closedById: principal.userId,
-        closedAt: new Date(),
-      },
-      update: {
-        omsetRp,
-        costRealtimeRp,
-        otherCostRp,
-        profitRp,
-        status: 'LOCKED',
-        controlHash,
-        closedById: principal.userId,
-        closedAt: new Date(),
-      },
-    });
-
-    await this.audit.catat(null, {
-      actorId: principal.userId,
-      branchId: input.branchId,
-      action: 'finance.month_closed',
-      objectType: 'MonthlyClose',
-      objectId: closed.id,
-      reason: input.reason?.trim() || null,
-      afterMasked: { period: input.period, omsetRp, costRealtimeRp, otherCostRp, profitRp, controlHash },
-    });
-
-    return closed;
-  }
-
-  // ============================================================================
-  // JURNAL KOREKSI PASCA-LOCK (RULE #8)
-  // ============================================================================
-
-  private correctionView(row: {
-    id: string;
-    branchId: string;
-    period: string;
-    targetPeriod: string;
-    amountRp: number;
-    reason: string;
-    status: 'PENDING' | 'APPROVED' | 'REJECTED';
-    requestedById: string;
-    approvedById: string | null;
-    decisionReason?: string | null;
-    version?: number;
-  }) {
-    return {
-      id: row.id,
-      branchId: row.branchId,
-      currentPeriod: row.period,
-      referencePeriod: row.targetPeriod,
-      amount: toMoney(row.amountRp),
-      reason: row.reason,
-      requestedBy: row.requestedById,
-      decidedBy: row.approvedById,
-      decisionReason: row.decisionReason ?? null,
-      status: row.status,
-      version: row.version ?? 1,
-    };
-  }
-
-  async createCorrection(
-    principal: SessionPrincipal,
-    input: {
-      branchId: string;
-      currentPeriod?: string;
-      referencePeriod?: string;
-      /** Nama lama (`period`/`targetPeriod`) tetap diterima. */
-      period?: string;
-      targetPeriod?: string;
-      amountRp: number;
-      reason: string;
-    },
-  ) {
-    this.policy.requireCapability(principal.capabilities, 'finance:manage');
-    const currentPeriod = input?.currentPeriod ?? input?.period ?? '';
-    const referencePeriod = input?.referencePeriod ?? input?.targetPeriod ?? '';
-    const reason = typeof input?.reason === 'string' ? input.reason.trim() : '';
-    if (!input?.branchId) throw problem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, 'branchId');
-    if (!PERIOD.test(currentPeriod))
-      throw problem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, 'currentPeriod');
-    // Koreksi dicatat pada bulan berjalan dan mengacu ke bulan sebelumnya (Aturan Bisnis #8).
-    if (!PERIOD.test(referencePeriod) || referencePeriod >= currentPeriod)
-      throw problem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, 'referencePeriod');
-    if (
-      !Number.isInteger(input.amountRp) ||
-      input.amountRp === 0 ||
-      Math.abs(input.amountRp) > 1_000_000_000
-    )
-      throw problem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, 'amountRp');
-    if (reason.length < 3 || reason.length > 500)
-      throw problem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, 'reason');
-    this.ensureBranchAccess(principal, input.branchId);
-
-    const created = await this.db.correctionJournal.create({
-      data: {
-        branchId: input.branchId,
-        period: currentPeriod,
-        targetPeriod: referencePeriod,
-        amountRp: input.amountRp,
-        reason,
-        status: 'PENDING',
-        requestedById: principal.userId,
-      },
-    });
-    await this.audit.catat(null, {
-      actorId: principal.userId,
-      branchId: created.branchId,
-      action: 'FINANCE_CORRECTION_REQUESTED',
-      objectType: 'CorrectionJournal',
-      objectId: created.id,
-      afterMasked: { currentPeriod, referencePeriod, amountRp: created.amountRp },
-    });
-    return this.correctionView(created);
-  }
-
-  async decideCorrection(
-    principal: SessionPrincipal,
-    id: string,
-    decision: string | undefined,
-    body: { reason?: string },
-  ) {
-    this.policy.requireCapability(principal.capabilities, 'finance:manage');
-    const isSuperOwner = principal.roles.some((r) =>
-      ['SUPER_OWNER', 'SUPERADMIN'].includes(r.role as string),
-    );
-    if (!isSuperOwner) {
-      throw new ApiProblem('FORBIDDEN', HttpStatus.FORBIDDEN);
-    }
-    const normalized = decision?.toLowerCase();
-    if (normalized !== 'approve' && normalized !== 'reject')
-      throw problem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST, 'decision');
-    const reason = typeof body?.reason === 'string' ? body.reason.trim() : '';
-    if (reason.length < 3 || reason.length > 500)
-      throw problem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, 'reason');
-
-    const correction = await this.db.correctionJournal.findUnique({ where: { id } });
-    if (!correction) {
-      throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
-    }
-    // Super Owner dan Superadmin berhak menyetujui koreksi yang diajukan sendiri maupun diajukan staf keuangan.
-    // Pemisahan tugas (Maker-Checker) hanya berlaku jika aktor bukan Super Owner/Superadmin.
-    if (!isSuperOwner && correction.requestedById === principal.userId)
-      throw problem('SEPARATION_OF_DUTIES', HttpStatus.FORBIDDEN);
-    if (correction.status !== 'PENDING')
-      throw problem('CORRECTION_ALREADY_DECIDED', HttpStatus.CONFLICT);
-
-    const claimed = await this.db.correctionJournal.updateMany({
-      where: { id, status: 'PENDING', version: correction.version },
-      data: {
-        status: normalized === 'approve' ? 'APPROVED' : 'REJECTED',
-        approvedById: principal.userId,
-        approvedAt: new Date(),
-        decisionReason: reason,
-        version: { increment: 1 },
-      },
-    });
-    if (claimed.count !== 1) throw problem('CORRECTION_ALREADY_DECIDED', HttpStatus.CONFLICT);
-
-    const updated = await this.db.correctionJournal.findUniqueOrThrow({ where: { id } });
-    await this.audit.catat(null, {
-      actorId: principal.userId,
-      branchId: updated.branchId,
-      action: normalized === 'approve' ? 'FINANCE_CORRECTION_APPROVED' : 'FINANCE_CORRECTION_REJECTED',
-      objectType: 'CorrectionJournal',
-      objectId: id,
-    });
-    return {
-      correction: this.correctionView(updated),
-      journalReferenceId: null,
-      // Audit belum disimpan permanen (AuditService hanya mencatat ke log), jadi tidak ada id audit.
-      auditLogId: null,
-      idempotentReplay: false,
-    };
-  }
-
-  async listCorrections(
-    principal: SessionPrincipal,
-    filters: { branchId?: string; period?: string; status?: string },
-  ) {
-    this.policy.requireCapability(principal.capabilities, 'finance:read');
-    const where: any = {};
-    if (filters.branchId) {
-      this.ensureBranchAccess(principal, filters.branchId);
-      where.branchId = filters.branchId;
-    } else if (!principal.capabilities.includes('branch:all')) {
-      where.branchId = { in: principal.branchIds };
-    }
-    if (filters.period) where.period = filters.period;
-    if (filters.status) where.status = filters.status;
-
-    const rows = await this.db.correctionJournal.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-    });
-    const items = rows.map((row) => this.correctionView(row));
-
-    return {
-      items,
-      summary: {
-        total: items.length,
-        pending: items.filter((i) => i.status === 'PENDING').length,
-        approved: items.filter((i) => i.status === 'APPROVED').length,
-        rejected: items.filter((i) => i.status === 'REJECTED').length,
-      },
-      page: { hasMore: false, nextCursor: null },
-    };
   }
 
   // ============================================================================
@@ -831,13 +568,7 @@ export class FinanceService {
 
     // `until` adalah tanggal (inklusif), sehingga batas atas query = hari berikutnya.
     const endExclusive = new Date(until.getTime() + 86_400_000);
-    const months = new Set<string>();
-    for (
-      const cursor = new Date(Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), 1));
-      cursor <= until;
-      cursor.setUTCMonth(cursor.getUTCMonth() + 1)
-    )
-      months.add(cursor.toISOString().slice(0, 7));
+    const range = financeRange({ from: from.toISOString().slice(0, 10), until: until.toISOString().slice(0, 10) });
 
     const [purchases, costs, branch] = await Promise.all([
       this.db.pembelian.findMany({
@@ -850,9 +581,9 @@ export class FinanceService {
         take: EXPORT_MAX_ROWS + 1,
       }),
       this.db.otherCost.findMany({
-        where: { ...branchFilter, period: { in: [...months] } },
+        where: { ...branchFilter, ...otherCostInRange(range) },
         include: { branch: { select: { code: true } } },
-        orderBy: [{ period: 'asc' }, { id: 'asc' }],
+        orderBy: [{ incurredOn: 'asc' }, { period: 'asc' }, { id: 'asc' }],
         take: EXPORT_MAX_ROWS + 1,
       }),
       input.branchId
@@ -884,7 +615,7 @@ export class FinanceService {
       costTotal += c.amountRp;
       lines.push(
         [
-          `${c.period}-01`,
+          otherCostDay(c),
           csvText(c.branch.code),
           'BIAYA_LAIN',
           csvText(c.id),
@@ -894,7 +625,7 @@ export class FinanceService {
       );
     }
     lines.push(`,,TOTAL_PENJUALAN,,Penjualan paket lunas,${salesTotal}`);
-    lines.push(`,,TOTAL_BIAYA_LAIN,,Biaya lain dihitung per bulan periode,${costTotal}`);
+    lines.push(`,,TOTAL_BIAYA_LAIN,,Biaya lain menurut tanggal pengeluaran,${costTotal}`);
     lines.push(`,,SELISIH,,Penjualan dikurangi biaya lain,${salesTotal - costTotal}`);
 
     const content = `\uFEFF${lines.join('\r\n')}\r\n`;
@@ -1036,17 +767,10 @@ export class FinanceService {
     };
   }
 
-  async correctionJournals(
-    principal: SessionPrincipal,
-    filters: { period?: string; branchId?: string; status?: string; q?: string; cursor?: string },
-  ) {
-    return this.listCorrections(principal, filters);
-  }
-
   async reports(
     principal: SessionPrincipal,
     reportType: string,
-    filters: { period?: string; branchId?: string; cursor?: string },
+    filters: FinanceQuery & { cursor?: string },
   ) {
     const type = reportType.toLowerCase();
     if (type === 'omset') {
@@ -1059,7 +783,7 @@ export class FinanceService {
       return this.otherCostReport(principal, filters);
     }
     if (type === 'profit' || type === 'profit-summary') {
-      const summary = await this.monthlyProfitReport(principal, filters);
+      const summary = await this.profitReport(principal, filters);
       const moneyZero = { amountMinor: 0, currency: 'IDR' };
       const money = (val: number) => ({ amountMinor: val * 100, currency: 'IDR' });
       return {
@@ -1079,8 +803,7 @@ export class FinanceService {
             revenue: money(summary.omsetRp),
             instructorRealtime: money(summary.costRealtimeRp),
             otherCost: money(summary.otherCostRp),
-            correction: money(summary.totalCorrectionAdjustmentRp),
-            profit: money(summary.netProfitRealtimeRp),
+              profit: money(summary.netProfitRealtimeRp),
           },
           sourceVersion: 'v2',
         },
@@ -1089,7 +812,7 @@ export class FinanceService {
       };
     }
 
-    const summary = await this.monthlyProfitReport(principal, filters);
+    const summary = await this.profitReport(principal, filters);
     const moneyZero = { amountMinor: 0, currency: 'IDR' };
     const money = (val: number) => ({ amountMinor: val * 100, currency: 'IDR' });
     return {
@@ -1097,6 +820,8 @@ export class FinanceService {
         reportType: 'REVENUE',
         branchId: summary.branchId,
         period: summary.period,
+        from: summary.from,
+        until: summary.until,
         generatedAt: new Date().toISOString(),
         sourceCutoffAt: new Date().toISOString(),
         completeness: 'COMPLETE',
@@ -1109,7 +834,6 @@ export class FinanceService {
           revenue: money(summary.omsetRp),
           instructorRealtime: money(summary.costRealtimeRp),
           otherCost: money(summary.otherCostRp),
-          correction: money(summary.totalCorrectionAdjustmentRp),
           profit: money(summary.netProfitRealtimeRp),
         },
         sourceVersion: 'v2',
@@ -1119,81 +843,9 @@ export class FinanceService {
     };
   }
 
-  async periods(
-    principal: SessionPrincipal,
-    filters: { branchId?: string; cursor?: string },
-  ) {
-    this.policy.requireCapability(principal.capabilities, 'finance:read');
-    // Tanpa cabang dipilih: pemegang akses global melihat semua cabang, selain itu cabangnya sendiri.
-    if (filters.branchId) this.ensureBranchAccess(principal, filters.branchId);
-    const isGlobal =
-      principal.capabilities.includes('branch:all') ||
-      principal.roles.some((r) =>
-        ['SUPER_OWNER', 'SUPERADMIN', 'FINANCE'].includes(r.role as string),
-      );
-    const branch = filters.branchId
-      ? await this.db.cabang.findUnique({ where: { id: filters.branchId } })
-      : null;
-
-    const currentYearMonth = new Date().toISOString().slice(0, 7);
-
-    const closes = await this.db.monthlyClose.findMany({
-      where: filters.branchId
-        ? { branchId: filters.branchId }
-        : isGlobal
-          ? {}
-          : { branchId: { in: principal.branchIds } },
-      orderBy: { period: 'desc' },
-    });
-
-    const hasCurrent = closes.some((c) => c.period === currentYearMonth);
-    const items = closes.map((c) => ({
-      id: c.id,
-      branchId: c.branchId,
-      period: c.period,
-      status: c.status,
-      controlHash: c.controlHash ?? 'hash-ctrl-baseline-001',
-      version: 1,
-      closedAt: c.closedAt?.toISOString() ?? null,
-    }));
-
-    if (!hasCurrent && branch?.id) {
-      items.unshift({
-        id: `period-${currentYearMonth}`,
-        branchId: branch.id,
-        period: currentYearMonth,
-        status: 'OPEN',
-        controlHash: 'hash-ctrl-baseline-001',
-        version: 1,
-        closedAt: null,
-      });
-    }
-
-    return {
-      items,
-      page: {
-        hasMore: false,
-        nextCursor: null,
-      },
-    };
-  }
-
-  async closeMonth(
-    principal: SessionPrincipal,
-    body: { branchId: string; period: string; controlHash?: string; reason?: string },
-  ) {
-    const closed = await this.executeMonthlyClose(principal, body);
-    return {
-      branchId: closed.branchId,
-      period: closed.period,
-      status: closed.status,
-      closedAt: closed.closedAt ? closed.closedAt.toISOString() : new Date().toISOString(),
-    };
-  }
-
   async otherCosts(
     principal: SessionPrincipal,
-    filters: { period?: string; branchId?: string; cursor?: string },
+    filters: FinanceQuery & { cursor?: string },
   ) {
     return this.listOtherCosts(principal, filters);
   }
@@ -1204,7 +856,7 @@ export class FinanceService {
 
   async ownerBranchPerformance(
     principal: SessionPrincipal,
-    input: { branchId?: string; period?: string },
+    input: FinanceQuery,
   ) {
     this.policy.requireCapability(principal.capabilities, 'finance:read');
     const isOwnerOrSuper = principal.roles.some((r) =>
@@ -1239,13 +891,13 @@ export class FinanceService {
     });
     if (!branch) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
 
-    const { period, fromDate, nextMonth } = periodRange(input.period);
+    const range = financeRange(input);
 
     const purchases = await this.db.pembelian.findMany({
       where: {
         branchId: targetBranchId,
         status: 'PAID',
-        createdAt: { gte: fromDate, lt: nextMonth },
+        paidAt: { gte: range.fromDate, lt: range.untilExclusive },
       },
     });
     const omsetRp = purchases.reduce((sum, p) => sum + p.totalAmountRp, 0);
@@ -1253,7 +905,7 @@ export class FinanceService {
     const otherCosts = await this.db.otherCost.findMany({
       where: {
         branchId: targetBranchId,
-        period,
+        ...otherCostInRange(range),
       },
     });
     const otherCostRp = otherCosts.reduce((sum, c) => sum + c.amountRp, 0);
@@ -1261,7 +913,7 @@ export class FinanceService {
     const slots = await this.db.slotKelas.findMany({
       where: {
         branchId: targetBranchId,
-        startAt: { gte: fromDate, lt: nextMonth },
+        startAt: { gte: range.fromDate, lt: range.untilExclusive },
         status: 'COMPLETED',
       },
       include: {
@@ -1299,7 +951,9 @@ export class FinanceService {
         code: branch.code,
         name: branch.name,
       },
-      period,
+      period: range.label,
+      from: range.from,
+      until: range.until,
       omsetRp,
       otherCostRp,
       totalInstructorFeeRp,
