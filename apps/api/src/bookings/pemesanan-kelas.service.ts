@@ -978,43 +978,4 @@ export class BookingsService {
       },
     );
   }
-
-  // --- Indonesian Domain Aliases ---
-  async opsiPembatalan(principal: SessionPrincipal, bookingId: string) {
-    return this.cancellationOptions(principal, bookingId);
-  }
-
-  async opsiPaketPelanggan(principal: SessionPrincipal, classSlotId: string) {
-    return this.customerOptions(principal, classSlotId);
-  }
-
-  async batalkanPemesanan(
-    principal: SessionPrincipal,
-    bookingId: string,
-    input: CancelBookingCommand,
-    key: string,
-    correlationId: string,
-  ) {
-    return this.cancel(principal, bookingId, input, key, correlationId);
-  }
-
-  async daftarPemesanan(
-    principal: SessionPrincipal,
-    query: Parameters<BookingsService['list']>[1],
-  ) {
-    return this.list(principal, query);
-  }
-
-  async ambilDetail(principal: SessionPrincipal, id: string) {
-    return this.detail(principal, id);
-  }
-
-  async buatPemesanan(
-    principal: SessionPrincipal,
-    input: BookingCommand,
-    key: string,
-    correlationId: string,
-  ) {
-    return this.create(principal, input, key, correlationId);
-  }
 }

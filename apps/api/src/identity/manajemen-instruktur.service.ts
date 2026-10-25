@@ -259,16 +259,4 @@ export class InstructorManagementService {
       },
     };
   }
-
-  // --- Indonesian Domain Aliases ---
-  async daftarInstruktur(
-    principal: SessionPrincipal,
-    filters: Parameters<InstructorManagementService['list']>[1],
-  ) {
-    return this.list(principal, filters);
-  }
-
-  async detailInstruktur(principal: SessionPrincipal, id: string) {
-    return this.detail(principal, id);
-  }
 }

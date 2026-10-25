@@ -968,16 +968,4 @@ export class DashboardService {
       jobs: [],
     };
   }
-
-  // --- Indonesian Domain Aliases ---
-  async ringkasanPelanggan(principal: SessionPrincipal) {
-    return this.customerOverview(principal);
-  }
-
-  async ringkasanDashboard(
-    principal: SessionPrincipal,
-    query: Parameters<DashboardService['overview']>[1],
-  ) {
-    return this.overview(principal, query);
-  }
 }

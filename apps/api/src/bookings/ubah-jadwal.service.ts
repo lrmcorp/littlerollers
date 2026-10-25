@@ -530,36 +530,4 @@ export class ReschedulesService {
       },
     );
   }
-
-  // --- Indonesian Domain Aliases ---
-  async opsiUbahJadwal(principal: SessionPrincipal, bookingId: string) {
-    return this.options(principal, bookingId);
-  }
-
-  async ajukanUbahJadwal(
-    principal: SessionPrincipal,
-    input: RescheduleRequestCommand,
-    key: string,
-    correlationId: string,
-  ) {
-    return this.request(principal, input, key, correlationId);
-  }
-
-  async putuskanUbahJadwal(
-    principal: SessionPrincipal,
-    id: string,
-    decision: 'approve' | 'reject',
-    input: RescheduleDecisionCommand,
-    key: string,
-    correlationId: string,
-  ) {
-    return this.decide(principal, id, decision, input, key, correlationId);
-  }
-
-  async daftarUbahJadwal(
-    principal: SessionPrincipal,
-    query: Parameters<ReschedulesService['list']>[1],
-  ) {
-    return this.list(principal, query);
-  }
 }

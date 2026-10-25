@@ -115,9 +115,4 @@ export class PackagePricingService {
   calculate(priceRp: number, promotion?: PromotionPricingSource | null, now = new Date()) {
     return calculatePackagePromotion({ priceRp, promotion, now });
   }
-
-  // --- Indonesian Domain Aliases ---
-  async promosiAktif(client: PricingClient, packageId: string, now = new Date()) {
-    return this.activePromotion(client, packageId, now);
-  }
 }

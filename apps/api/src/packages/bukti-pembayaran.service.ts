@@ -208,35 +208,4 @@ export class PaymentProofService {
 
     return current;
   }
-
-  // --- Indonesian Domain Aliases ---
-  async inisiasiUploadBukti(principal: SessionPrincipal, input: any, correlationId: string) {
-    return this.issue(principal, input, correlationId);
-  }
-
-  async unggahKontenBukti(principal: SessionPrincipal, id: string, bytes: Buffer) {
-    return this.uploadContent(principal, id, bytes);
-  }
-
-  async finalisasiBukti(
-    principal: SessionPrincipal,
-    id: string,
-    input: any,
-    correlationId: string,
-  ) {
-    return this.finalize(principal, id, input, correlationId);
-  }
-
-  async statusBukti(principal: SessionPrincipal, id: string) {
-    return this.status(principal, id);
-  }
-
-  async gantiBukti(
-    principal: SessionPrincipal,
-    purchaseId: string,
-    input: any,
-    correlationId: string,
-  ) {
-    return this.replace(principal, purchaseId, input, correlationId);
-  }
 }

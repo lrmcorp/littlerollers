@@ -779,32 +779,4 @@ export class IdentityService {
     // Belum ada pengiriman tautan setup password; jangan melaporkan "SENT" untuk sesuatu yang tidak terkirim.
     throw new ApiProblem('NOT_IMPLEMENTED', HttpStatus.NOT_IMPLEMENTED);
   }
-
-  // --- Indonesian Domain Aliases ---
-  async otentikasiKataSandi(
-    input: Parameters<IdentityService['authenticatePassword']>[0],
-    correlationId: string,
-    requestFingerprint?: string,
-  ) {
-    return this.authenticatePassword(input, correlationId, requestFingerprint);
-  }
-
-  async otentikasiGoogle(
-    input: Parameters<IdentityService['authenticateGoogle']>[0],
-    correlationId: string,
-  ) {
-    return this.authenticateGoogle(input, correlationId);
-  }
-
-  async segarkanSesi(rawRefreshToken: string, correlationId?: string) {
-    return this.refresh(rawRefreshToken, correlationId);
-  }
-
-  async keluar(sessionId: string, correlationId?: string) {
-    return this.logout(sessionId, correlationId);
-  }
-
-  async profilSesi(principal: SessionPrincipal, at?: Date) {
-    return this.meForSession(principal, at);
-  }
 }

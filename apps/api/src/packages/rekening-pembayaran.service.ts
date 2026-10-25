@@ -259,43 +259,6 @@ export class PaymentAccountService {
       },
     );
   }
-
-  // --- Indonesian Domain Aliases ---
-  async daftarRekening(principal: SessionPrincipal, branchId?: string) {
-    return this.list(principal, branchId);
-  }
-
-  async detailRekening(principal: SessionPrincipal, id: string) {
-    return this.detail(principal, id);
-  }
-
-  async buatRekening(
-    principal: SessionPrincipal,
-    input: Parameters<PaymentAccountService['create']>[1],
-    correlationId: string,
-  ) {
-    return this.create(principal, input, correlationId);
-  }
-
-  async nonaktifkanRekening(
-    principal: SessionPrincipal,
-    id: string,
-    input: Parameters<PaymentAccountService['deactivate']>[2],
-    key: string | undefined,
-    correlationId: string,
-  ) {
-    return this.deactivateIdempotent(principal, id, input, key, correlationId);
-  }
-
-  async aktifkanKembaliRekening(
-    principal: SessionPrincipal,
-    id: string,
-    input: Parameters<PaymentAccountService['reactivate']>[2],
-    key: string | undefined,
-    correlationId: string,
-  ) {
-    return this.reactivate(principal, id, input, key, correlationId);
-  }
 }
 
 function paymentAccountView(account: {

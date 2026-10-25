@@ -766,43 +766,4 @@ export class PaymentReviewService {
       // ignore email error
     }
   }
-
-  // --- Indonesian Domain Aliases ---
-  async daftarVerifikasi(
-    principal: SessionPrincipal,
-    query: Parameters<PaymentReviewService['list']>[1],
-  ) {
-    return this.list(principal, query);
-  }
-
-  async detailVerifikasi(principal: SessionPrincipal, id: string) {
-    return this.get(principal, id);
-  }
-
-  async putuskanPembayaran(
-    principal: SessionPrincipal,
-    id: string,
-    decision: Parameters<PaymentReviewService['decide']>[2],
-    input: Parameters<PaymentReviewService['decide']>[3],
-    key: string,
-    correlationId: string,
-  ) {
-    return this.decide(principal, id, decision, input, key, correlationId);
-  }
-
-  async otorisasiUnduhBukti(principal: SessionPrincipal, proofId: string, correlationId: string) {
-    return this.authorizeProofDownload(principal, proofId, correlationId);
-  }
-
-  async otorisasiLihatBuktiSendiri(
-    principal: SessionPrincipal,
-    orderId: string,
-    correlationId: string,
-  ) {
-    return this.authorizeOwnOrderProof(principal, orderId, correlationId);
-  }
-
-  async lihatKontenBukti(principal: SessionPrincipal, id: string, correlationId: string) {
-    return this.viewProofContent(principal, id, correlationId);
-  }
 }

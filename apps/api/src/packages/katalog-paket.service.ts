@@ -437,32 +437,6 @@ export class PackageCatalogService {
   }
 
   // --- Indonesian Domain Aliases ---
-  async daftarPaket(
-    principal: SessionPrincipal,
-    query: Parameters<PackageCatalogService['list']>[1],
-  ) {
-    return this.list(principal, query);
-  }
-
-  async buatPaket(
-    principal: SessionPrincipal,
-    input: Parameters<PackageCatalogService['create']>[1],
-    key: string,
-    correlationId: string,
-  ) {
-    return this.create(principal, input, key, correlationId);
-  }
-
-  async perbaruiPaket(
-    principal: SessionPrincipal,
-    id: string,
-    body: Parameters<PackageCatalogService['update']>[2],
-    key: string,
-    correlationId: string,
-  ) {
-    return this.update(principal, id, body, key, correlationId);
-  }
-
   async revisiPaket(
     principal: SessionPrincipal,
     id: string,
@@ -473,24 +447,4 @@ export class PackageCatalogService {
     return this.revise(principal, id, body, key, correlationId);
   }
 
-  async perbaruiCakupanPaket(
-    principal: SessionPrincipal,
-    id: string,
-    body: Parameters<PackageCatalogService['replaceScopes']>[2],
-    key: string,
-    correlationId: string,
-  ) {
-    return this.replaceScopes(principal, id, body, key, correlationId);
-  }
-
-  async ubahStatusPaket(
-    principal: SessionPrincipal,
-    id: string,
-    action: Parameters<PackageCatalogService['transition']>[2],
-    body: Parameters<PackageCatalogService['transition']>[3],
-    key: string,
-    correlationId: string,
-  ) {
-    return this.transition(principal, id, action, body, key, correlationId);
-  }
 }

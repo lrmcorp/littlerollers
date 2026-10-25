@@ -135,9 +135,4 @@ export class PublicSiteConfigService {
       },
     };
   }
-
-  // --- Indonesian Domain Aliases ---
-  async ambilKonfigurasiSitus() {
-    return this.get();
-  }
 }

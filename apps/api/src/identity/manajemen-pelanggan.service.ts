@@ -836,27 +836,6 @@ export class CustomerManagementService {
   }
 
   // --- Indonesian Domain Aliases ---
-  async daftarPelanggan(
-    principal: SessionPrincipal,
-    filters: Parameters<CustomerManagementService['list']>[1],
-  ) {
-    return this.list(principal, filters);
-  }
-
-  async detailPelanggan(principal: SessionPrincipal, id: string) {
-    return this.detail(principal, id);
-  }
-
-  async perbaruiStatusPelanggan(
-    principal: SessionPrincipal,
-    id: string,
-    input: Parameters<CustomerManagementService['setStatus']>[2],
-    key: string,
-    correlationId: string,
-  ) {
-    return this.setStatus(principal, id, input, key, correlationId);
-  }
-
   async markStopped(
     principal: SessionPrincipal,
     id: string,

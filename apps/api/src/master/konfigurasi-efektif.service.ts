@@ -286,29 +286,4 @@ export class EffectiveSettingsService {
     this.access.authorize(principal, true);
     return { id, deactivated: true };
   }
-
-  // --- Indonesian Domain Aliases ---
-  async ambilPengaturanEfektif(
-    principal: SessionPrincipal,
-    kind: Parameters<EffectiveSettingsService['list']>[1],
-    branchId?: string,
-  ) {
-    return this.list(principal, kind, branchId);
-  }
-
-  async buatPengaturanEfektif(
-    principal: SessionPrincipal,
-    input: Parameters<EffectiveSettingsService['create']>[1],
-    correlationId: string,
-  ) {
-    return this.create(principal, input, correlationId);
-  }
-
-  async nonaktifkanPengaturanEfektif(
-    principal: SessionPrincipal,
-    id: string,
-    correlationId: string,
-  ) {
-    return this.deactivate(principal, id, correlationId);
-  }
 }

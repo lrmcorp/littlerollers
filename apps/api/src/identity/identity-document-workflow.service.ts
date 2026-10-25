@@ -240,34 +240,4 @@ export class IdentityDocumentWorkflowService {
       auditReference: 'lean-audit',
     };
   }
-
-  // --- Indonesian Domain Aliases ---
-  async gantiDokumenIdentitas(
-    principal: SessionPrincipal,
-    kind: IdentityDocumentKind,
-    upload: unknown,
-    expectedVersion: number,
-    correlationId: string,
-  ) {
-    return this.replaceIdentityDocument(principal, kind, upload, expectedVersion, correlationId);
-  }
-
-  async putuskanVerifikasiDokumen(
-    principal: SessionPrincipal,
-    id: string,
-    decision: 'APPROVED' | 'REJECTED',
-    input: { expectedVersion: number; reasonCode?: string; note?: string },
-    correlationId: string,
-  ) {
-    return this.decideIdentityDocument(principal, id, decision, input, correlationId);
-  }
-
-  async hapusDokumenIdentitas(
-    principal: SessionPrincipal,
-    id: string,
-    input: Parameters<IdentityDocumentWorkflowService['deleteIdentityDocument']>[2],
-    correlationId: string,
-  ) {
-    return this.deleteIdentityDocument(principal, id, input, correlationId);
-  }
 }

@@ -731,31 +731,6 @@ export class CustomerOrderService {
   }
 
   // --- Indonesian Domain Aliases ---
-  async opsiCheckout(p: SessionPrincipal, packageId: string, branchId?: string) {
-    return this.checkoutOptions(p, packageId, branchId);
-  }
-
-  async buatPesanan(p: SessionPrincipal, input: any, key: string, correlationId: string) {
-    return this.createOrder(p, input, key, correlationId);
-  }
-
-  async daftarPesanan(p: SessionPrincipal, query: Parameters<CustomerOrderService['listOrders']>[1]) {
-    return this.listOrders(p, query);
-  }
-
-  async detailPesanan(p: SessionPrincipal, id: string) {
-    return this.orderDetail(p, id);
-  }
-
-  async lampirkanBuktiPembayaran(
-    p: SessionPrincipal,
-    orderId: string,
-    input: any,
-    correlationId: string,
-  ) {
-    return this.attachOrderProof(p, orderId, input, correlationId);
-  }
-
   async expireStaleOrders(principal: SessionPrincipal, olderThanHours = 24) {
     this.access.review(principal, true);
     const cutoff = new Date(Date.now() - olderThanHours * 3600 * 1000);

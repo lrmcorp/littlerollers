@@ -543,45 +543,6 @@ export class AttendanceService {
   }
 
   // --- Indonesian Domain Aliases ---
-  async terbitkanTokenCheckIn(
-    principal: SessionPrincipal,
-    bookingId: string,
-    input: Parameters<AttendanceService['issue']>[2],
-    key: string,
-    correlationId: string,
-  ) {
-    return this.issue(principal, bookingId, input, key, correlationId);
-  }
-
-  async terbitkanTokenInstruktur(
-    principal: SessionPrincipal,
-    classSlotId: string,
-    idempotencyKey: string,
-    correlationId: string,
-    now = new Date(),
-  ) {
-    return this.issueInstructor(principal, classSlotId, idempotencyKey, correlationId, now);
-  }
-
-  async catatKehadiran(
-    principal: SessionPrincipal,
-    input: Parameters<AttendanceService['consume']>[1],
-    key: string,
-    correlationId: string,
-  ) {
-    return this.consume(principal, input, key, correlationId);
-  }
-
-  async koreksiKehadiranPelanggan(
-    principal: SessionPrincipal,
-    input: Parameters<AttendanceService['backfillCustomer']>[1],
-    idempotencyKey: string,
-    correlationId: string,
-    now = new Date(),
-  ) {
-    return this.backfillCustomer(principal, input, idempotencyKey, correlationId, now);
-  }
-
   async status(principal: SessionPrincipal, id: string) {
     this.policy.requireCapability(principal.capabilities, 'attendance:manage');
     const token = await this.db.checkInToken.findUnique({

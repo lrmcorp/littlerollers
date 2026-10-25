@@ -99,19 +99,6 @@ export class CustomerProfileService {
       version: (updated as any)?.version ?? (existing as any)?.version ?? 1,
     };
   }
-
-  // --- Indonesian Domain Aliases ---
-  async ambilProfil(principal: SessionPrincipal) {
-    return this.get(principal);
-  }
-
-  async perbaruiProfil(
-    principal: SessionPrincipal,
-    input: Parameters<CustomerProfileService['update']>[1],
-    correlationId: string,
-  ) {
-    return this.update(principal, input, correlationId);
-  }
 }
 
 function maskEmail(value: string | null | undefined) {

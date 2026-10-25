@@ -247,24 +247,4 @@ export class AvailabilityService {
       return { id: record.id, deleted: true };
     });
   }
-
-  // --- Indonesian Domain Aliases ---
-  async daftarKetersediaan(
-    principal: SessionPrincipal,
-    branchId?: string,
-    fromValue?: string,
-    untilValue?: string,
-    cursorValue?: string,
-  ) {
-    return this.list(principal, branchId, fromValue, untilValue, cursorValue);
-  }
-
-  async catatKetersediaan(
-    principal: SessionPrincipal,
-    input: Parameters<AvailabilityService['create']>[1],
-    key: string,
-    correlationId: string,
-  ) {
-    return this.create(principal, input, key, correlationId);
-  }
 }
