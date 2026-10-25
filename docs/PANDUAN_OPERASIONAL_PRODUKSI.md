@@ -102,8 +102,10 @@ pnpm install --frozen-lockfile
 # 2. Sinkronisasi Prisma Schema (Tanpa reset)
 pnpm db:generate
 
-# 3. Jalankan suite verifikasi lengkap (Phase 1-5)
-pnpm verify:all
+# 3. Jalankan pengecekan tipe dan tes (API: jest, web: vitest)
+pnpm typecheck
+pnpm --filter @dailydose/api test
+pnpm --filter @dailydose/web test
 
 # 4. Bangun seluruh bundle produksi
 pnpm --filter @dailydose/api build

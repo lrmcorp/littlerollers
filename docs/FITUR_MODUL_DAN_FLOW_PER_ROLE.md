@@ -589,13 +589,11 @@ Untuk memvalidasi bahwa seluruh fitur, modul, hak akses, dan alur kerja di atas 
 2. **Skenario UAT Kronologis Lengkap**: Ikuti langkah-langkah terperinci di [`PANDUAN_DAN_SKENARIO_UAT_LENGKAP_V2.md`](./PANDUAN_DAN_SKENARIO_UAT_LENGKAP_V2.md).
 3. **Eksekusi Pengujian Otomatis**:
    ```bash
-   # 1. Jalankan stress test konkurensi (Zero overbooking, presensi idempoten, pemotongan sesi ganda nol):
-   pnpm test:concurrency
+   # 1. Tes unit dan integrasi API (jest) dan tes web (vitest):
+   pnpm --filter @dailydose/api test
+   pnpm --filter @dailydose/web test
 
-   # 2. Jalankan rangkaian verifikasi spesifikasi 13 Keputusan Bisnis:
-   pnpm verify:spec5
-
-   # 3. Jalankan rangkaian simulasi browser UAT otomatis (Paket A, B, C):
+   # 2. Simulasi browser UAT otomatis (Paket A, B, C):
    pnpm test:uat:suites
    ```
 
