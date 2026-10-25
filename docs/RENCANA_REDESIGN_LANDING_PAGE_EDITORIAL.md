@@ -92,7 +92,7 @@ Judul pendek dua baris dengan satu kata serif ("Find your / kind of strong.", "M
 
 ### Fase 0 — Persiapan
 - Buat branch `feat/landing-editorial`.
-- Ambil screenshot baseline landing sekarang (375 / 768 / 1440) ke `docs/uat/` atau `scratch/` sebagai pembanding.
+- Ambil screenshot baseline landing sekarang (375 / 768 / 1440) ke `docs/arsip/uat/` atau `scratch/` sebagai pembanding.
 - Putuskan 4 poin terbuka di §6.
 
 ### Fase 1 — Fondasi (token, font, utility) — ✅ SELESAI 2026-10-23

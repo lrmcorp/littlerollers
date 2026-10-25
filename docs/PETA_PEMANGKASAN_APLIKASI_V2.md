@@ -1,6 +1,6 @@
 # Peta Pemangkasan — Daily Dose Pilates V2
 
-> **Status (25 Okt 2026):** **Gelombang 0, 1, dan 2 selesai**; **gelombang 3 sebagian** (lihat 4.4). Gelombang 4 masih usulan.
+> **Status (25 Okt 2026):** **Gelombang 0, 1, 2, dan 4 selesai**; **gelombang 3 sebagian** (lihat 4.4). Sisa terbuka: riwayat git masih memuat dump database (lihat 5).
 >
 > **Konteks dari pemilik produk:** v1 (Laravel, `dailydosepilates.com`) **masih berjalan di produksi** dengan struktur data berbeda; v2 (ini) **belum produksi** dan akan menggantikannya. Akibatnya: skrip migrasi v1→v2 di `tools/migrations` **dipertahankan** sampai peluncuran, dan data di database dev kemungkinan berasal dari v1 (data pelanggan nyata).
 > **Dasar:** pembacaan kode, hitungan baris/endpoint/tabel, dan data database dev. Saya **tidak punya data pemakaian produksi**, jadi bagian bertanda **TANYA** menunggu keputusan pemilik produk.
@@ -127,7 +127,7 @@ Semua yang **tidak** ada di daftar ini harus membuktikan kegunaannya.
 
 ## 5. Temuan sampingan yang perlu keputusan Anda
 
-1. **Dump database ikut terlacak git.** `backups/dailydose_v2_export.sql.gz` (12 MB) dikomit pada 3 Okt (komit "Update"). Isinya memuat tabel `user`, `profil_pengguna`, `pembelian`, `bukti_pembayaran`. Repositori GitHub-nya **private**, tetapi data pribadi sebaiknya tidak ada di riwayat git. Usulan: periksa apakah isinya data pelanggan nyata; jika ya, hapus dari riwayat dan putar ulang kredensial yang ada di dump.
+1. **Dump database ikut terlacak git (26 Okt: berkas dilepas, riwayat belum dibersihkan).** `backups/dailydose_v2_export.sql.gz` (12 MB) dikomit pada 3 Okt (komit `068f3cb5`, "Update"). Isinya tabel `user` (ribuan alamat email gmail/yahoo/hotmail, jadi hampir pasti data pelanggan v1 asli), `profil_pengguna`, `pembelian`, `bukti_pembayaran`, dan lainnya. Sudah dilakukan: berkas dilepas dari git (`git rm --cached`), folder `backups/` dan `scratch/` masuk `.gitignore`, salinan lokal dibiarkan. **Belum:** berkas masih ada di riwayat git. Membersihkannya berarti menulis ulang riwayat (`git filter-repo`) dan push paksa, yang mengubah semua hash komit dan memutus clone/sesi lain; ini perlu keputusan dan jadwal dari pemilik repositori. Kredensial yang ada di dump (hash kata sandi) sebaiknya dianggap bocor bila repositori pernah dibagikan.
 2. **Kata sandi basis data dev ditulis di `package.json`** (skrip `db:console`). Ini kredensial lokal Docker, tetapi lebih baik membaca dari `.env`.
 
 ## 6. Urutan eksekusi yang disarankan (satu gelombang = satu sesi pembahasan)

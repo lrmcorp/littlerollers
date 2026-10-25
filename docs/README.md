@@ -7,35 +7,31 @@ Direktori ini berisi seluruh dokumen acuan arsitektur, spesifikasi bisnis, pandu
 
 ## 📑 Indeks Dokumen Resmi (Authoritative Index)
 
-### 1. Kredensial & Pengujian Sistem (Testing & QA)
-| Dokumen | Format | Deskripsi & Kegunaan |
-| :--- | :---: | :--- |
-| [**AKUN_TESTING_RESMI.md**](./AKUN_TESTING_RESMI.md) | Markdown | **Single Source of Truth** untuk seluruh akun testing resmi (7 Role + Customer), kredensial argon2, scope cabang, dan pemetaan rute. |
-| [**PANDUAN_DAN_SKENARIO_UAT_LENGKAP_V2.md**](./PANDUAN_DAN_SKENARIO_UAT_LENGKAP_V2.md) | Markdown | Panduan lengkap 10 skenario UAT kronologis alami (Customer Journey, KYC, Booking, Presensi, hingga Laporan Keuangan). |
-| [**DOKUMEN_HASIL_AUDIT_DAN_REVIEW_OPERASIONAL_V2.md**](./DOKUMEN_HASIL_AUDIT_DAN_REVIEW_OPERASIONAL_V2.md) | Markdown | Laporan komprehensif hasil audit teknis, temuan cacat/bug, celah operasional, dan rencana remediasi sistem. |
+### 1. Kredensial & Pengujian
+| Dokumen | Deskripsi & Kegunaan |
+| :--- | :--- |
+| [**AKUN_TESTING_RESMI.md**](./AKUN_TESTING_RESMI.md) | Akun testing resmi (7 peran + pelanggan), cakupan cabang, dan pemetaan rute. |
+| [**sop/**](./sop/README.md) | SOP harian per peran (pembayaran, presensi, laporan keuangan, dan lain-lain). |
 
----
+### 2. Panduan Operasional & Spesifikasi Bisnis
+| Dokumen | Deskripsi & Kegunaan |
+| :--- | :--- |
+| [**FITUR_MODUL_DAN_FLOW_PER_ROLE.md**](./FITUR_MODUL_DAN_FLOW_PER_ROLE.md) | Modul, fitur, alur per peran, serta matriks hak akses. |
+| [**Spesifikasi Sistem Daily Dose Pilates v1.0.pdf**](./Spesifikasi%20Sistem%20Daily%20Dose%20Pilates%20v1.0.pdf) | Spesifikasi bisnis resmi dari manajemen yang memuat 13 keputusan bisnis. |
+| [**PANDUAN_OPERASIONAL_PRODUKSI.md**](./PANDUAN_OPERASIONAL_PRODUKSI.md) | Prosedur produksi, konfigurasi runtime, dan penanganan insiden. |
+| [**RENCANA_AKSI_SPESIFIKASI_V1.md**](./RENCANA_AKSI_SPESIFIKASI_V1.md) | Roadmap implementasi teknis terhadap 13 keputusan bisnis. |
+| [**PETA_PEMANGKASAN_APLIKASI_V2.md**](./PETA_PEMANGKASAN_APLIKASI_V2.md) | Peta penyederhanaan aplikasi (gelombang 0 sampai 4) dan keputusan yang diambil. |
 
-### 2. Panduan Operasional & Kepatuhan Bisnis (Operations & Governance)
-| Dokumen | Format | Deskripsi & Kegunaan |
-| :--- | :---: | :--- |
-| [**FITUR_MODUL_DAN_FLOW_PER_ROLE.md**](./FITUR_MODUL_DAN_FLOW_PER_ROLE.md) | Markdown | **Spesifikasi Lengkap Modul, Fitur, Alur End-to-End per Role (7 Peran), dan Matriks Hak Akses & Pembatasan.** |
-| [**Spesifikasi Sistem Daily Dose Pilates v1.0.pdf**](./Spesifikasi%20Sistem%20Daily%20Dose%20Pilates%20v1.0.pdf) | PDF | Dokumen sumber hukum & spesifikasi bisnis resmi dari manajemen (Reyner - HR Group) yang memuat **13 Keputusan Bisnis Mutlak**. |
-| [**PANDUAN_OPERASIONAL_PRODUKSI.md**](./PANDUAN_OPERASIONAL_PRODUKSI.md) | Markdown | Standar Prosedur Operasional (SOP) produksi, konfigurasi runtime (Next.js 15, NestJS, Background Worker), manajemen port, dan penanganan insiden. |
-| [**RENCANA_AKSI_SPESIFIKASI_V1.md**](./RENCANA_AKSI_SPESIFIKASI_V1.md) | Markdown | Roadmap implementasi teknis untuk memastikan 100% kepatuhan terhadap 13 Keputusan Bisnis yang sudah dikunci. |
+### 3. Arsitektur & Basis Data
+| Dokumen | Deskripsi & Kegunaan |
+| :--- | :--- |
+| [**PANDUAN_14_TABEL_INTI_DAILYDOSE.md**](./PANDUAN_14_TABEL_INTI_DAILYDOSE.md) | Cheat-sheet 14 tabel inti database. |
+| [**DailyDose_V2_Kamus_Data_dan_Desain_Database.html**](./DailyDose_V2_Kamus_Data_dan_Desain_Database.html) | Kamus data interaktif (versi PDF tersedia di folder yang sama). |
+| [**DailyDose_V2_Arsitektur_Sistem_dan_Database.pdf**](./DailyDose_V2_Arsitektur_Sistem_dan_Database.pdf) | Arsitektur modular monolith dan topologi database. |
+| [**DailyDose_V2_Database_Design_Document.pdf**](./DailyDose_V2_Database_Design_Document.pdf) | Perancangan skema relasional lengkap. |
 
----
-
-### 3. Arsitektur, Basis Data & API (Architecture & Data)
-| Dokumen | Format | Deskripsi & Kegunaan |
-| :--- | :---: | :--- |
-| [**PANDUAN_14_TABEL_INTI_DAILYDOSE.md**](./PANDUAN_14_TABEL_INTI_DAILYDOSE.md) | Markdown | *Cheat-sheet* navigasi 14 tabel inti database MySQL untuk mempermudah pengerjaan harian tanpa beban kognitif 97 tabel lama. |
-| [**RENCANA_PENYEDERHANAAN_ARSITEKTUR_V2.md**](./RENCANA_PENYEDERHANAAN_ARSITEKTUR_V2.md) | Markdown | Dokumentasi arsitektur perampingan kode, penghapusan birokrasi form, dan pelepasan ketergantungan build SDK generator. |
-| [**MOBILE_CUSTOMER_API_CONTRACT.md**](./MOBILE_CUSTOMER_API_CONTRACT.md) | Markdown | Kontrak spesifikasi teknis REST API untuk integrasi aplikasi mobile (iOS & Android). |
-| [**DailyDose_V2_Arsitektur_Sistem_dan_Database.pdf**](./DailyDose_V2_Arsitektur_Sistem_dan_Database.pdf) | PDF | Diagram arsitektur modular monolith dan topologi database sistem v2. |
-| [**DailyDose_V2_Database_Design_Document.pdf**](./DailyDose_V2_Database_Design_Document.pdf) | PDF | Dokumen perancangan skema relasional database lengkap. |
-| [**DailyDose_V2_Kamus_Data_dan_Desain_Database.html**](./DailyDose_V2_Kamus_Data_dan_Desain_Database.html) | HTML | Kamus data interaktif seluruh tabel dan kolom database (dapat dibuka langsung di browser). |
-| [**DailyDose_V2_Kamus_Data_dan_Desain_Database.pdf**](./DailyDose_V2_Kamus_Data_dan_Desain_Database.pdf) | PDF | Kamus data format PDF untuk arsip dokumentasi offline. |
+### 4. Arsip
+[**arsip/**](./arsip) berisi dokumen yang sudah selesai atau digantikan: laporan dan skenario UAT, audit dan rencana lama, serta kontrak API mobile (rute mobile dicabut). Isinya hanya untuk riwayat; jangan dijadikan acuan.
 
 ---
 

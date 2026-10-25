@@ -117,7 +117,7 @@ async function main() {
     console.log(` - ${cancelledSlotsCount} slot kelas kosong tanpa peserta dibatalkan`);
   }
 
-  // Simpan bukti audit ke docs/uat/bukti/dummy_users_audit.json
+  // Simpan bukti audit ke docs/arsip/uat/bukti/dummy_users_audit.json
   const auditReport = {
     executedAt: new Date().toISOString(),
     mode: isApply ? 'APPLY' : 'DRY_RUN',
@@ -128,7 +128,7 @@ async function main() {
     items: reportItems,
   };
 
-  const outputDir = resolve(process.cwd(), 'docs/uat/bukti');
+  const outputDir = resolve(process.cwd(), 'docs/arsip/uat/bukti');
   mkdirSync(outputDir, { recursive: true });
   const outputPath = resolve(outputDir, 'dummy_users_audit.json');
   writeFileSync(outputPath, JSON.stringify(auditReport, null, 2), 'utf-8');

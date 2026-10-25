@@ -102,8 +102,8 @@ async function main() {
     console.log('');
   }
 
-  // Simpan log audit ke docs/uat/bukti
-  const buktiDir = path.resolve(__dirname, '../../docs/uat/bukti');
+  // Simpan log audit ke docs/arsip/uat/bukti
+  const buktiDir = path.resolve(__dirname, '../../docs/arsip/uat/bukti');
   if (!fs.existsSync(buktiDir)) {
     fs.mkdirSync(buktiDir, { recursive: true });
   }
