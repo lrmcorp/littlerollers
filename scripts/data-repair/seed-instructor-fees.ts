@@ -92,7 +92,7 @@ export async function runSeedInstructorFees(apply: boolean) {
     sampleRates: rateRowsToCreate.slice(0, 5),
   };
 
-  const outputDir = path.resolve(__dirname, '../../docs/uat/bukti');
+  const outputDir = path.resolve(__dirname, '../../docs/arsip/uat/bukti');
   if (!fs.existsSync(outputDir)) {
     fs.mkdirSync(outputDir, { recursive: true });
   }

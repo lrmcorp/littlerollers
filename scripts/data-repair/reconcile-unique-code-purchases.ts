@@ -58,7 +58,7 @@ async function main() {
     })),
   };
 
-  const outputDir = resolve(process.cwd(), 'docs/uat/bukti');
+  const outputDir = resolve(process.cwd(), 'docs/arsip/uat/bukti');
   mkdirSync(outputDir, { recursive: true });
   const outputPath = resolve(outputDir, 'bank_reconciliation_audit.json');
   writeFileSync(outputPath, JSON.stringify(auditData, null, 2), 'utf-8');

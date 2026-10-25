@@ -90,8 +90,8 @@ async function main() {
     console.log('');
   }
 
-  // Simpan laporan ke docs/uat/bukti
-  const buktiDir = path.resolve(__dirname, '../../docs/uat/bukti');
+  // Simpan laporan ke docs/arsip/uat/bukti
+  const buktiDir = path.resolve(__dirname, '../../docs/arsip/uat/bukti');
   if (!fs.existsSync(buktiDir)) {
     fs.mkdirSync(buktiDir, { recursive: true });
   }

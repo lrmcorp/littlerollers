@@ -115,7 +115,7 @@ async function main() {
   }
 
   // Tulis laporan audit ke file
-  const buktiDir = path.resolve(__dirname, '../../docs/uat/bukti');
+  const buktiDir = path.resolve(__dirname, '../../docs/arsip/uat/bukti');
   if (!fs.existsSync(buktiDir)) {
     fs.mkdirSync(buktiDir, { recursive: true });
   }

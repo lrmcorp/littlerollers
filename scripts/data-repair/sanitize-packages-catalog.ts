@@ -100,7 +100,7 @@ export async function runPackagesSanitization(apply: boolean) {
     packages: auditedItems,
   };
 
-  const outputDir = path.resolve(__dirname, '../../docs/uat/bukti');
+  const outputDir = path.resolve(__dirname, '../../docs/arsip/uat/bukti');
   if (!fs.existsSync(outputDir)) {
     fs.mkdirSync(outputDir, { recursive: true });
   }
