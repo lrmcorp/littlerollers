@@ -115,10 +115,9 @@ describe('DashboardService', () => {
       },
     );
 
-    expect(result.roleFocus).toBe('BRANCH_OPERATIONS');
+    expect(result.views).toEqual({ finance: false, operations: true });
     expect(result.metrics.every((metric) => metric.value === 0)).toBe(true);
     expect(result.queues.map((queue) => queue.key)).toEqual(['payments', 'reschedules']);
-    expect(result.jobs).toEqual([]);
     expect(db.cabang.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: { active: true, id: 'branch-1' } }),
     );
@@ -159,21 +158,30 @@ describe('DashboardService', () => {
     );
   });
 
-  it('uses deterministic role precedence and removes irrelevant sections', async () => {
+  it.each([
+    [['SUPER_OWNER'], { finance: true, operations: true }, true],
+    [['OWNER'], { finance: true, operations: true }, false],
+    [['FINANCE'], { finance: true, operations: false }, true],
+    [['ADMIN'], { finance: false, operations: true }, false],
+    [['MANAGER'], { finance: false, operations: true }, false],
+    [['FINANCE', 'ADMIN'], { finance: true, operations: true }, true],
+  ] as const)('shows the finance and operations summaries by role %j', async (roles, views, paymentFlow) => {
     const result = await new DashboardService(database() as never).overview(
       principal({
-        roles: [
-          { role: 'FINANCE', branchId: null },
-          { role: 'SUPER_OWNER', branchId: null },
-        ],
+        roles: roles.map((role) => ({ role, branchId: null })) as never,
         capabilities: ['branch:all', 'finance:read', 'operations:read'],
         branchIds: [],
       }),
       {},
     );
-    expect(result.roleFocus).toBe('EXECUTIVE');
-    expect(result.sections.executive).toBe(true);
-    expect(result.sections.branchOperations).toBe(false);
+    expect(result.views).toEqual(views);
+    const keys = result.metrics.map((metric) => metric.key);
+    expect(keys.includes('profit')).toBe(views.finance);
+    expect(keys.includes('occupancy')).toBe(views.operations);
+    expect(keys.includes('pending-payments')).toBe(views.finance && paymentFlow);
+    expect(keys).not.toContain('correction');
+    expect(result.sections.branchComparison).toBe(views.finance);
+    expect(result.sections.risk).toBe(views.operations);
   });
 
   it('menghitung booking dari kelas yang sudah dihadiri, bukan hanya yang masih BOOKED', async () => {

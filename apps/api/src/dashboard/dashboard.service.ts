@@ -58,7 +58,6 @@ interface FinancialResult {
     grossMarginPercent: number;
     profitRp: number;
     netMarginPercent: number;
-    correctionRp: number;
   };
   completeness: number;
   instructorFeeMissing: boolean;
@@ -436,7 +435,6 @@ export class DashboardService {
         grossMarginPercent,
         profitRp: totalProfit,
         netMarginPercent,
-        correctionRp: 0,
       },
       completeness: 100,
       instructorFeeMissing,
@@ -717,13 +715,10 @@ export class DashboardService {
 
 
     const roles = principal.roles.map((item) => item.role);
-    const roleFocus = roles.includes('SUPER_OWNER')
-      ? 'EXECUTIVE'
-      : roles.includes('OWNER')
-        ? 'OWNER'
-        : roles.includes('FINANCE')
-          ? 'FINANCE'
-          : 'BRANCH_OPERATIONS';
+    // Dua ringkasan: keuangan (Super Owner, Owner, Finance) dan operasional (Super Owner, Owner, Admin, Manager).
+    const showFinance = roles.some((role) => ['SUPER_OWNER', 'OWNER', 'FINANCE'].includes(role));
+    const showOperations =
+      roles.some((role) => ['SUPER_OWNER', 'OWNER', 'ADMIN', 'MANAGER'].includes(role)) || !showFinance;
     const allMetrics = [
       {
         key: 'gross-sales',
@@ -780,13 +775,6 @@ export class DashboardService {
         changePercent: percentChange(financial.totals.profitRp, previousFinancial.totals.profitRp),
       },
       {
-        key: 'correction',
-        label: 'Koreksi (terpisah)',
-        value: financial.totals.correctionRp,
-        unit: 'IDR',
-        changePercent: null,
-      },
-      {
         key: 'pending-payments',
         label: 'Pembayaran pending',
         value: pendingPurchases,
@@ -829,57 +817,20 @@ export class DashboardService {
         changePercent: null,
       },
     ];
-    const metricKeys: Record<typeof roleFocus, string[]> = {
-      EXECUTIVE: [
-        'gross-sales',
-        'revenue',
-        'instructor-realtime',
-        'gross-profit',
-        'other-cost',
-        'profit',
-        'correction',
-        'pending-payments',
-        'finance-anomalies',
-        'bookings',
-        'occupancy',
-        'customers',
-        'classes',
-      ],
-      OWNER: [
-        'gross-sales',
-        'revenue',
-        'instructor-realtime',
-        'gross-profit',
-        'other-cost',
-        'profit',
-        'bookings',
-      ],
-      BRANCH_OPERATIONS: ['bookings', 'occupancy', 'customers', 'classes'],
-      FINANCE: [
-        'gross-sales',
-        'revenue',
-        'instructor-realtime',
-        'gross-profit',
-        'other-cost',
-        'profit',
-        'correction',
-        'pending-payments',
-        'finance-anomalies',
-      ],
-    };
+    const showPaymentFlow = roles.some((role) => ['SUPER_OWNER', 'FINANCE'].includes(role));
+    const metricKeys = [
+      ...(showFinance
+        ? ['gross-sales', 'revenue', 'instructor-realtime', 'gross-profit', 'other-cost', 'profit']
+        : []),
+      ...(showFinance && showPaymentFlow ? ['pending-payments', 'finance-anomalies'] : []),
+      ...(showOperations ? ['bookings', 'occupancy', 'customers', 'classes'] : []),
+    ];
 
     const allowedSections = {
-      executive: roleFocus === 'EXECUTIVE',
-      owner: roleFocus === 'OWNER',
-      branchOperations: roleFocus === 'BRANCH_OPERATIONS',
-      finance: roleFocus === 'FINANCE',
-      operations: false,
       trend: true,
       queue: true,
-      risk: ['EXECUTIVE', 'OWNER', 'BRANCH_OPERATIONS'].includes(roleFocus),
-      branchComparison: ['EXECUTIVE', 'OWNER', 'FINANCE'].includes(roleFocus),
-      auditActivity: ['EXECUTIVE', 'OWNER'].includes(roleFocus),
-      jobHealth: ['EXECUTIVE', 'OPERATIONS'].includes(roleFocus),
+      risk: showOperations,
+      branchComparison: showFinance,
     };
 
     return {
@@ -900,10 +851,10 @@ export class DashboardService {
         omsetBreakdown: financial.omsetBreakdown,
         profitBreakdown: financial.profitBreakdown,
       },
-      roleFocus,
+      views: { finance: showFinance, operations: showOperations },
       sections: allowedSections,
       metrics: [
-        ...allMetrics.filter((metric) => metricKeys[roleFocus].includes(metric.key)),
+        ...allMetrics.filter((metric) => metricKeys.includes(metric.key)),
       ],
       queues: [
         {
@@ -942,8 +893,8 @@ export class DashboardService {
       trend: allowedSections.trend
         ? [...trend.entries()].map(([date, values]) => ({
             date,
-            revenue: roleFocus === 'BRANCH_OPERATIONS' ? 0 : values.revenue,
-            profit: roleFocus === 'BRANCH_OPERATIONS' ? 0 : values.profit,
+            revenue: showFinance ? values.revenue : 0,
+            profit: showFinance ? values.profit : 0,
             bookings: values.bookings,
           }))
         : [],
@@ -961,8 +912,6 @@ export class DashboardService {
           capacity: item.capacity,
           href: `/workspace/classes?slot=${item.id}`,
         })),
-      activities: [],
-      jobs: [],
     };
   }
 }

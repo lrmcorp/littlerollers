@@ -1,24 +1,10 @@
 import { appLoading } from '../components/app-loading';
 
-export type OperationalJobStatus = 'QUEUED' | 'RUNNING' | 'RETRYING' | 'SUCCEEDED' | 'FAILED' | 'DEAD_LETTER';
-
-export interface OperationalJob {
-  id: string;
-  type: string;
-  status: OperationalJobStatus;
-  attemptCount: number;
-  maxAttempts: number;
-  progress: number;
-  dueAt: Date;
-  nextAttemptAt: Date;
-  leaseExpiresAt?: Date | null;
-  lastErrorCode?: string | null;
-  createdAt: Date;
-  version: number;
+/** Dua ringkasan dashboard: keuangan dan operasional; satu peran bisa melihat keduanya. */
+export interface DashboardViews {
+  finance: boolean;
+  operations: boolean;
 }
-
-
-export type DashboardFocus = 'EXECUTIVE' | 'OWNER' | 'BRANCH_OPERATIONS' | 'FINANCE' | 'OPERATIONS';
 
 export interface DashboardMetric {
   key: string;
@@ -79,7 +65,6 @@ export interface DashboardFinancialSummary {
   otherCostRp: number;
   grossProfitRp?: number;
   grossMarginPercent?: number;
-  correctionRp: number;
   profitRp: number;
   netMarginPercent?: number;
   completeness: 'COMPLETE' | 'INCOMPLETE' | 'ESTIMATED' | string;
@@ -131,42 +116,24 @@ export interface DashboardRiskItem {
   href: string;
 }
 
-export interface DashboardActivityItem {
-  id: string;
-  occurredAt: Date;
-  action: string;
-  objectType: string;
-  branchId?: string | null;
-  actorId?: string | null;
-}
-
 export type DashboardSections = {
-  executive: boolean;
-  owner: boolean;
-  branchOperations: boolean;
-  finance: boolean;
-  operations: boolean;
   trend: boolean;
   queue: boolean;
   risk: boolean;
   branchComparison: boolean;
-  auditActivity: boolean;
-  jobHealth: boolean;
 };
 
 export interface DashboardOverview {
   generatedAt: Date | string;
   period: DashboardOverviewPeriod;
   financial: DashboardFinancialSummary;
-  roleFocus: DashboardFocus;
+  views: DashboardViews;
   sections: DashboardSections;
   metrics: DashboardMetric[];
   queues: DashboardQueueSummary[];
   trend: DashboardTrendPoint[];
   branches: DashboardBranchPerformance[];
   risks: DashboardRiskItem[];
-  activities: DashboardActivityItem[];
-  jobs: OperationalJob[];
 }
 
 export interface DashboardClient {
@@ -213,17 +180,6 @@ export const browserDashboardClient: DashboardClient = {
       risks: (data.risks || []).map((r: any) => ({
         ...r,
         startAt: new Date(r.startAt),
-      })),
-      activities: (data.activities || []).map((a: any) => ({
-        ...a,
-        occurredAt: new Date(a.occurredAt),
-      })),
-      jobs: (data.jobs || []).map((j: any) => ({
-        ...j,
-        dueAt: new Date(j.dueAt),
-        nextAttemptAt: new Date(j.nextAttemptAt),
-        leaseExpiresAt: j.leaseExpiresAt ? new Date(j.leaseExpiresAt) : null,
-        createdAt: new Date(j.createdAt),
       })),
     };
   },

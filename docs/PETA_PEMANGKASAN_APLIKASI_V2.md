@@ -65,7 +65,8 @@ Semua yang **tidak** ada di daftar ini harus membuktikan kegunaannya.
 > - **Idempotency:** tidak diubah (tidak terasa bagi staf; melindungi pesanan dan pembayaran).
 > - **Gelombang 2, butir pertama selesai (26 Okt):** 85 pembungkus alias Indonesia (`daftarX`, `buatX`, ...) di 21 layanan API dihapus; tidak ada pemanggilnya di api, web, tools, maupun tes.
 > - **Peran selesai (26 Okt):** hanya tujuh peran kanonik (`SUPER_OWNER`, `OWNER`, `MANAGER`, `ADMIN`, `FINANCE`, `INSTRUCTOR`, `CUSTOMER`); `OPS` (tidak pernah dipegang siapa pun) dihapus. Nilai lama `SUPERADMIN`/`COACH`/`MEMBER` tetap ada di enum database tetapi tidak pernah ditulis lagi: alat migrasi v1, seed, dan pembuatan akun memakai nama kanonik, dan `RoleAliasMigrationService` mengubah baris lama saat API menyala (di DB dev: 2 SUPERADMIN, 1 COACH, 38 MEMBER). Principal sekarang punya satu peran efektif, bukan dua (kanonik + alias).
-> - **Belum:** klien API web, tampilan raksasa, dashboard, konten publik versi, template notifikasi versi.
+> - **Dashboard selesai (26 Okt):** lima fokus peran diganti dua ringkasan, keuangan (Super Owner, Owner, Finance) dan operasional (Super Owner, Owner, Admin, Manager); Super Owner dan Owner melihat keduanya. Dibuang: metrik "Koreksi", panel "Kesehatan job" dan bagian aktivitas audit (datanya selalu kosong), dan fokus `OPERATIONS` yang hanya dipicu peran `OPS`.
+> - **Belum:** klien API web, tampilan raksasa, konten publik versi, template notifikasi versi.
 
 | Area | Masalah | Usulan |
 |---|---|---|

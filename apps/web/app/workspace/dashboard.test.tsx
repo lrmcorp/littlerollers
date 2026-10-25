@@ -47,27 +47,14 @@ const response = (): DashboardOverview =>
       revenueRp: 1_000_000,
       instructorRealtimeRp: 200_000,
       otherCostRp: 150_000,
-      correctionRp: 25_000,
       profitRp: 450_000,
       completeness: 'COMPLETE',
       anomalyCount: 0,
       sourceCutoffAt: new Date('2026-08-08T00:00:00.000Z'),
       controlHash: 'a'.repeat(64),
     },
-    roleFocus: 'EXECUTIVE',
-    sections: {
-      executive: true,
-      owner: false,
-      branchOperations: false,
-      finance: false,
-      operations: false,
-      trend: true,
-      queue: true,
-      risk: true,
-      branchComparison: true,
-      auditActivity: true,
-      jobHealth: true,
-    },
+    views: { finance: true, operations: true },
+    sections: { trend: true, queue: true, risk: true, branchComparison: true },
     metrics: [
       { key: 'revenue', label: 'Omzet bersih', value: 1_000_000, unit: 'IDR', changePercent: 0 },
       { key: 'profit', label: 'Profit operasional', value: 450_000, unit: 'IDR', changePercent: 0 },
@@ -84,8 +71,6 @@ const response = (): DashboardOverview =>
     ],
     branches: [],
     risks: [],
-    activities: [],
-    jobs: [],
   }) as DashboardOverview;
 
 describe('Dashboard', () => {
@@ -149,7 +134,7 @@ describe('Dashboard', () => {
   it('shows the queue to roles without the risk section (Finance) and hides the class-risk panel', async () => {
     sessionState.roles = ['FINANCE'];
     const data = response();
-    data.roleFocus = 'FINANCE';
+    data.views = { finance: true, operations: false };
     data.sections = { ...data.sections, risk: false, queue: true };
     data.queues = [
       { key: 'payments', label: 'Pembayaran menunggu', count: 2, href: '/workspace/payments' },
@@ -158,6 +143,25 @@ describe('Dashboard', () => {
 
     expect(await screen.findByRole('heading', { name: 'Perlu perhatian Anda' })).toBeVisible();
     expect(screen.queryByRole('heading', { name: 'Kelas berisiko' })).not.toBeInTheDocument();
+  });
+
+  it('shows one header per summary: both, finance only, operations only', async () => {
+    const cases: Array<[string[], { finance: boolean; operations: boolean }, RegExp]> = [
+      [['SUPER_OWNER'], { finance: true, operations: true }, /Keuangan dan operasional dalam satu pandangan/],
+      [['FINANCE'], { finance: true, operations: false }, /Arus transaksi dan pekerjaan keuangan/],
+      [['ADMIN'], { finance: false, operations: true }, /Operasional cabang hari ini/],
+    ];
+    for (const [roles, views, heading] of cases) {
+      sessionState.roles = roles;
+      const data = response();
+      data.views = views;
+      const { unmount } = render(
+        <Dashboard client={{ overview: vi.fn().mockResolvedValue(data) } as never} />,
+      );
+      expect(await screen.findByText(heading)).toBeVisible();
+      expect(screen.queryByText('Kesehatan job')).not.toBeInTheDocument();
+      unmount();
+    }
   });
 
   it('builds shortcuts from the role and permissions instead of a fixed list', async () => {

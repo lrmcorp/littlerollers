@@ -48,54 +48,37 @@ const financialMetricKeys = new Set([
   'gross-profit',
   'other-cost',
   'profit',
-  'correction',
   'pending-payments',
   'finance-anomalies',
 ]);
 
-const jobStatusLabel: Record<string, string> = {
-  QUEUED: 'Menunggu',
-  RUNNING: 'Berjalan',
-  RETRYING: 'Mencoba kembali',
-  SUCCEEDED: 'Berhasil',
-  FAILED: 'Gagal',
-};
-
-const jobTypeLabel: Record<string, string> = {
-  H24_QUOTA_EVALUATION: 'Evaluasi kuota H-24',
-};
-
-const roleCopy = {
-  EXECUTIVE: {
-    eyebrow: 'Ikhtisar Eksekutif',
-    title: 'Kinerja lintas cabang dalam satu pandangan',
+const dashboardCopy = {
+  both: {
+    eyebrow: 'Ikhtisar Studio',
+    title: 'Keuangan dan operasional dalam satu pandangan',
     description:
-      'Pantau pertumbuhan, ranking cabang, risiko, anomali, dan keputusan penting tingkat perusahaan.',
+      'Pantau omzet, laba, booking, okupansi, risiko kelas, dan pekerjaan yang membutuhkan keputusan Anda.',
   },
-  OWNER: {
-    eyebrow: 'Pengawasan Owner',
-    title: 'Kinerja cabang dalam satu pandangan',
-    description:
-      'Pantau performa cabang, pendapatan, okupansi, dan pekerjaan yang membutuhkan keputusan Anda.',
+  finance: {
+    eyebrow: 'Ikhtisar Keuangan',
+    title: 'Arus transaksi dan pekerjaan keuangan',
+    description: 'Pantau pembayaran, saldo sesi, dan antrean finansial dari satu ruang kerja.',
   },
-  BRANCH_OPERATIONS: {
+  operations: {
     eyebrow: 'Pusat Operasional Cabang',
     title: 'Operasional cabang hari ini',
     description:
       'Prioritaskan kelas, booking, pelanggan, dan antrean keputusan untuk cabang aktif.',
   },
-  FINANCE: {
-    eyebrow: 'Ikhtisar Keuangan',
-    title: 'Arus transaksi dan pekerjaan keuangan',
-    description: 'Pantau pembayaran, saldo sesi, dan antrean finansial dari satu ruang kerja.',
-  },
-  OPERATIONS: {
-    eyebrow: 'Kontrol Operasional',
-    title: 'Kesehatan operasional dan pemulihan',
-    description:
-      'Identifikasi job bermasalah, retry, dan kondisi sistem yang membutuhkan perhatian.',
-  },
 } as const;
+
+/** Ringkasan yang tampil bila server belum menjawab: keuangan untuk Finance/Owner/Super Owner, operasional untuk lainnya. */
+function fallbackViews(roles: readonly string[]) {
+  const finance = roles.some((role) => ['SUPER_OWNER', 'OWNER', 'FINANCE'].includes(role));
+  const operations =
+    roles.some((role) => ['SUPER_OWNER', 'OWNER', 'ADMIN', 'MANAGER'].includes(role)) || !finance;
+  return { finance, operations };
+}
 
 function TrendChart({ points, finance }: { points: DashboardOverview['trend']; finance: boolean }) {
   if (points.length < 2)
@@ -256,16 +239,8 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
       </div>
     );
   }
-  const focus =
-    overview?.roleFocus ??
-    (session.roles.includes('SUPER_OWNER') || session.roles.includes('OWNER')
-      ? session.roles.includes('SUPER_OWNER')
-        ? 'EXECUTIVE'
-        : 'OWNER'
-      : session.roles.includes('FINANCE')
-        ? 'FINANCE'
-        : 'BRANCH_OPERATIONS');
-  const copy = roleCopy[focus];
+  const views = overview?.views ?? fallbackViews(session.roles);
+  const copy = dashboardCopy[views.finance && views.operations ? 'both' : views.finance ? 'finance' : 'operations'];
   const queueTotal = overview?.queues.reduce((sum, item) => sum + item.count, 0) ?? 0;
   const queueCounts = Object.fromEntries(
     (overview?.queues ?? []).map((item) => [item.key, item.count]),
@@ -614,7 +589,7 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
             <div className="flex items-center justify-between border-b border-dd-line/60 pb-4">
               <div>
                 <h3 className="font-sans text-lg font-bold text-dd-ink">
-                  {focus === 'FINANCE' || focus === 'EXECUTIVE' || focus === 'OWNER'
+                  {views.finance
                     ? 'Omzet dan profit operasional'
                     : 'Pergerakan booking'}
                 </h3>
@@ -624,13 +599,13 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
             </div>
             <TrendChart
               points={overview.trend}
-              finance={focus === 'FINANCE' || focus === 'EXECUTIVE' || focus === 'OWNER'}
+              finance={views.finance}
             />
           </Panel>
         )}
 
         {/* Rincian Profit & Sumber Omset (Hanya untuk Owner, Super Admin / Executive, & Finance) */}
-        {(focus === 'FINANCE' || focus === 'EXECUTIVE' || focus === 'OWNER') && overview?.financial.profitBreakdown && (
+        {(views.finance) && overview?.financial.profitBreakdown && (
           <div className="grid gap-6 lg:grid-cols-2">
             {/* Kartu 1: Dekomposisi Laba Rugi Berjenjang (Waterfall P&L) */}
             <Panel className="p-6">
@@ -917,50 +892,6 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
             })}
           </div>
         </section>
-      )}
-
-      {overview?.sections.jobHealth && (
-        <Panel className="overflow-hidden">
-          <div className="border-b border-dd-line/60 p-6 sm:px-8">
-            <span className="text-xs font-bold uppercase tracking-wider text-dd-forest">
-              Kesehatan job
-            </span>
-            <h2 className="mt-1 font-sans text-xl font-bold text-dd-ink sm:text-2xl">
-              Aktivitas pemulihan terbaru
-            </h2>
-          </div>
-          {overview.jobs.length ? (
-            <div className="divide-y divide-dd-line/60">
-              {overview.jobs.map((job) => (
-                <Link
-                  key={job.id}
-                  href={`/operations?job=${job.id}`}
-                  className="flex items-center gap-4 px-6 py-4 text-dd-ink no-underline transition hover:bg-dd-surface-muted/30"
-                >
-                  <Badge
-                    tone={
-                      job.status === 'FAILED'
-                        ? 'danger'
-                        : job.status === 'SUCCEEDED'
-                          ? 'success'
-                          : 'warning'
-                    }
-                  >
-                    {jobStatusLabel[job.status] ?? 'Status operasional'}
-                  </Badge>
-                  <span className="min-w-0 flex-1 truncate text-sm font-semibold">
-                    {jobTypeLabel[job.type] ?? 'Proses operasional'}
-                  </span>
-                  <span className="text-xs text-dd-muted">
-                    Percobaan {job.attemptCount}/{job.maxAttempts}
-                  </span>
-                </Link>
-              ))}
-            </div>
-          ) : (
-            <p className="p-8 text-center text-sm text-dd-muted">Belum ada job pada cakupan ini.</p>
-          )}
-        </Panel>
       )}
     </div>
   );
