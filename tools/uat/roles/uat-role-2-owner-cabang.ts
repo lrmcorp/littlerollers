@@ -1,6 +1,6 @@
 /**
  * UAT Script: PERAN 2 - OWNER CABANG / MITRA STUDIO LOKAL
- * Skenario Berdasarkan: docs/uat/roles/UAT_ROLE_2_OWNER_CABANG.md
+ * Skenario Berdasarkan: docs/arsip/uat/roles/UAT_ROLE_2_OWNER_CABANG.md
  * 
  * Penguji: Budi Santoso (Owner Cabang Green Garden - Orang Awam QA)
  * Target: 4 Pilar Finansial Cabang, Warning Unverified Fee,
@@ -71,7 +71,7 @@ async function runOwnerCabangUat() {
   console.log('🎬 MEMULAI EKSEKUSI UAT: PERAN 2 - OWNER CABANG (MITRA STUDIO LOKAL)');
   console.log('Platform: Daily Dose Pilates Studio Management System V2');
   console.log('Target Akun: owner.gg@dailydose.test (Budi Santoso - Owner Green Garden)');
-  console.log('Dokumen Panduan: docs/uat/roles/UAT_ROLE_2_OWNER_CABANG.md');
+  console.log('Dokumen Panduan: docs/arsip/uat/roles/UAT_ROLE_2_OWNER_CABANG.md');
   console.log('========================================================================\n');
 
   // 1. Authenticate Owner

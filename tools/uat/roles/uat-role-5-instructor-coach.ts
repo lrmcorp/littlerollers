@@ -60,7 +60,7 @@ async function runCoachUat() {
   console.log('🎬 MEMULAI EKSEKUSI UAT: PERAN 5 - INSTRUKTUR / COACH');
   console.log('Platform: Daily Dose Pilates Studio Management System V2');
   console.log('Target Akun: coach.sarah@dailydose.test (Coach Sarah)');
-  console.log('Dokumen Panduan: docs/uat/roles/UAT_ROLE_5_INSTRUCTOR_COACH.md');
+  console.log('Dokumen Panduan: docs/arsip/uat/roles/UAT_ROLE_5_INSTRUCTOR_COACH.md');
   console.log('========================================================================\n');
 
   // Login Coach Sarah and Admin Front Desk (for issuing QR tokens and checking fees)

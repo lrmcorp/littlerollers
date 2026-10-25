@@ -60,7 +60,7 @@ async function runStudioManagerUat() {
   console.log('🎬 MEMULAI EKSEKUSI UAT: PERAN 3 - STUDIO MANAGER');
   console.log('Platform: Daily Dose Pilates Studio Management System V2');
   console.log('Target Akun: manager.gg@dailydose.test (Jessica Tan - Manager GG)');
-  console.log('Dokumen Panduan: docs/uat/roles/UAT_ROLE_3_STUDIO_MANAGER.md');
+  console.log('Dokumen Panduan: docs/arsip/uat/roles/UAT_ROLE_3_STUDIO_MANAGER.md');
   console.log('========================================================================\n');
 
   // Login tokens

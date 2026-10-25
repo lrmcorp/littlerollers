@@ -60,7 +60,7 @@ async function runFrontDeskUat() {
   console.log('🎬 MEMULAI EKSEKUSI UAT: PERAN 4 - ADMIN FRONT DESK / RESEPSIONIS');
   console.log('Platform: Daily Dose Pilates Studio Management System V2');
   console.log('Target Akun: admin.gg@dailydose.test (Green Garden)');
-  console.log('Dokumen Panduan: docs/uat/roles/UAT_ROLE_4_ADMIN_FRONT_DESK.md');
+  console.log('Dokumen Panduan: docs/arsip/uat/roles/UAT_ROLE_4_ADMIN_FRONT_DESK.md');
   console.log('========================================================================\n');
 
   // Login tokens

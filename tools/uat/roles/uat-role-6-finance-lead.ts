@@ -1,6 +1,6 @@
 /**
  * UAT Script: PERAN 6 - FINANCE LEAD
- * Skenario Berdasarkan: docs/uat/roles/UAT_ROLE_6_FINANCE_LEAD.md
+ * Skenario Berdasarkan: docs/arsip/uat/roles/UAT_ROLE_6_FINANCE_LEAD.md
  * 
  * Penguji: Daniel (Finance Lead - Orang Awam QA)
  * Target: Rekonsiliasi Bank, Proteksi Voucher, Tutup Buku Bulanan (Period Lock Guard),
@@ -71,7 +71,7 @@ async function runFinanceLeadUat() {
   console.log('🎬 MEMULAI EKSEKUSI UAT: PERAN 6 - FINANCE LEAD');
   console.log('Platform: Daily Dose Pilates Studio Management System V2');
   console.log('Target Akun: finance@dailydose.test (Daniel - Finance Lead)');
-  console.log('Dokumen Panduan: docs/uat/roles/UAT_ROLE_6_FINANCE_LEAD.md');
+  console.log('Dokumen Panduan: docs/arsip/uat/roles/UAT_ROLE_6_FINANCE_LEAD.md');
   console.log('========================================================================\n');
 
   // 1. Authenticate Actors
