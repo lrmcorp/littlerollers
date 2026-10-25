@@ -101,7 +101,7 @@ describe('NotificationManagementView', () => {
           };
         return { ok: true, status: 200, json: async () => ({ text: 'Halo Maya, Paket 8 segera berakhir.' }) };
       }
-      if (init?.method === 'POST' || init?.method === 'PATCH')
+      if (init?.method === 'POST' || init?.method === 'PUT')
         return { ok: true, status: 201, json: async () => ({ id: 'new-1' }) };
       return { ok: true, status: 200, json: async () => overview() };
     });
@@ -115,15 +115,16 @@ describe('NotificationManagementView', () => {
     templates = [version({})];
     render(<NotificationManagementView />);
     expect(await screen.findByText('Pengingat masa berlaku H-7')).toBeVisible();
-    expect(screen.getByText('Memakai versi 1')).toBeVisible();
+    expect(screen.getByText('Memakai teks tersimpan')).toBeVisible();
     expect(screen.getByText('Memakai teks bawaan')).toBeVisible();
     expect(screen.getByText(/Terkirim 3 · Gagal 1/)).toBeVisible();
     expect(screen.getByText(/\+628\*\*\*890 · Terkirim/)).toBeVisible();
     expect(screen.queryByText('SENT')).toBeNull();
     expect(screen.queryByText('PUBLISHED')).toBeNull();
+    expect(screen.queryByText(/Riwayat versi|draf/i)).toBeNull();
   });
 
-  it('prefills the default text, previews it, then saves and publishes a draft', async () => {
+  it('prefills the default text, previews it, then saves it for use with one request', async () => {
     const user = userEvent.setup();
     render(<NotificationManagementView />);
     const card = (await screen.findByText('Pengingat masa berlaku H-7')).closest('li')!;
@@ -131,45 +132,33 @@ describe('NotificationManagementView', () => {
     expect(within(card).getByLabelText('Isi pesan')).toHaveValue(catalog[0]!.defaultBody);
     await user.click(within(card).getByRole('button', { name: 'Pratinjau' }));
     expect(await within(card).findByText('Halo Maya, Paket 8 segera berakhir.')).toBeVisible();
-    await user.click(within(card).getByRole('button', { name: 'Simpan & terbitkan' }));
-    await waitFor(() => expect(writes()).toHaveLength(3));
+    await user.click(within(card).getByRole('button', { name: 'Simpan & pakai' }));
+    await waitFor(() => expect(writes()).toHaveLength(2));
     expect(writes().map(([url, init]) => `${init.method} ${url}`)).toEqual([
       'POST /api/v1/notification-management/templates/preview',
-      'POST /api/v1/notification-management/templates',
-      'POST /api/v1/notification-management/templates/new-1/PUBLISHED',
+      'PUT /api/v1/notification-management/templates/WA_REMINDER_EXPIRY_H7',
     ]);
-    expect(JSON.parse(writes()[1]![1].body)).toEqual({
-      templateKey: 'WA_REMINDER_EXPIRY_H7',
-      body: catalog[0]!.defaultBody,
-    });
+    expect(JSON.parse(writes()[1]![1].body)).toEqual({ body: catalog[0]!.defaultBody });
     expect(
-      await screen.findByText('Template diterbitkan dan dipakai pada pengiriman berikutnya.'),
+      await screen.findByText('Template tersimpan dan dipakai pada pengiriman berikutnya.'),
     ).toBeVisible();
   });
 
-  it('continues an existing draft with PATCH and can go back to the default text', async () => {
-    templates = [
-      version({ id: 't2', version: 2, status: 'DRAFT', body: 'Draf saya {{nama}}' }),
-      version({}),
-    ];
+  it('edits the saved text in place and can go back to the default text', async () => {
+    templates = [version({ body: 'Teks saya {{nama}}' })];
     const user = userEvent.setup();
     render(<NotificationManagementView />);
     const card = (await screen.findByText('Pengingat masa berlaku H-7')).closest('li')!;
-    expect(within(card).getByText('Ada draf versi 2 yang belum diterbitkan.')).toBeVisible();
-    await user.click(within(card).getByRole('button', { name: 'Lanjutkan draf' }));
-    expect(within(card).getByLabelText('Isi pesan')).toHaveValue('Draf saya {{nama}}');
-    await user.click(within(card).getByRole('button', { name: 'Simpan draf' }));
+    await user.click(within(card).getByRole('button', { name: 'Ubah teks pesan' }));
+    expect(within(card).getByLabelText('Isi pesan')).toHaveValue('Teks saya {{nama}}');
+    await user.click(within(card).getByRole('button', { name: 'Simpan & pakai' }));
     await waitFor(() => expect(writes()).toHaveLength(1));
-    expect(writes()[0]![0]).toBe('/api/v1/notification-management/templates/t2');
-    expect(writes()[0]![1].method).toBe('PATCH');
+    expect(writes()[0]![0]).toBe('/api/v1/notification-management/templates/WA_REMINDER_EXPIRY_H7');
+    expect(writes()[0]![1].method).toBe('PUT');
     await user.click(within(card).getByRole('button', { name: 'Kembali ke teks bawaan' }));
-    const dialog = await screen.findByRole('dialog', { name: 'Arsipkan template notifikasi?' });
-    expect(within(dialog).getByRole('button', { name: 'Arsipkan' })).toBeEnabled();
-    await user.type(within(dialog).getByLabelText(/^Alasan/), 'Teks lama kurang jelas');
-    await user.click(within(dialog).getByRole('button', { name: 'Arsipkan' }));
     await waitFor(() => expect(writes()).toHaveLength(2));
-    expect(writes()[1]![0]).toBe('/api/v1/notification-management/templates/t1/ARCHIVED');
-    expect(JSON.parse(String(writes()[1]![1].body))).toEqual({ reason: 'Teks lama kurang jelas' });
+    expect(writes()[1]![0]).toBe('/api/v1/notification-management/templates/WA_REMINDER_EXPIRY_H7/reset');
+    expect(writes()[1]![1].method).toBe('POST');
   });
 
   it('explains an unknown variable instead of a generic failure', async () => {
@@ -181,21 +170,19 @@ describe('NotificationManagementView', () => {
     render(<NotificationManagementView />);
     const card = (await screen.findByText('Pengingat masa berlaku H-7')).closest('li')!;
     await user.click(within(card).getByRole('button', { name: 'Ubah teks pesan' }));
-    await user.click(within(card).getByRole('button', { name: 'Simpan draf' }));
+    await user.click(within(card).getByRole('button', { name: 'Simpan & pakai' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Variabel {{email}} tidak dikenal');
   });
 
-  it('shows an empty state for deliveries and lists history in Indonesian', async () => {
-    templates = [version({}), version({ id: 't0', version: 0, status: 'ARCHIVED', body: 'Lama' })];
+  it('shows an empty state for deliveries', async () => {
+    templates = [version({})];
     fetchMock.mockImplementation(async () => ({
       ok: true,
       status: 200,
       json: async () => ({ ...overview(), deliveries: [] }),
     }));
-    const { container } = render(<NotificationManagementView />);
+    render(<NotificationManagementView />);
     expect(await screen.findByText('Belum ada pengiriman')).toBeVisible();
-    expect(container).toHaveTextContent('Diarsipkan');
-    expect(container).not.toHaveTextContent('ARCHIVED');
   });
 });
 
@@ -225,7 +212,7 @@ describe('NotificationManagementView email templates', () => {
           json: async () => ({ channel: 'EMAIL', subject: sent.body.subject, text: sent.body.intro }),
         };
       }
-      if (init?.method === 'POST' || init?.method === 'PATCH')
+      if (init?.method === 'POST' || init?.method === 'PUT')
         return { ok: true, status: 201, json: async () => ({ id: 'new-1' }) };
       return { ok: true, status: 200, json: async () => overview() };
     });
@@ -235,15 +222,15 @@ describe('NotificationManagementView email templates', () => {
 
   const writes = () => fetchMock.mock.calls.filter(([, init]) => init?.method && init.method !== 'GET');
 
-  it('labels the entry as Email and shows whether a version is published', async () => {
+  it('labels the entry as Email and shows whether saved text is used', async () => {
     emailTemplates = [emailVersion({})];
     render(<NotificationManagementView />);
     expect(await screen.findByText('Reset password')).toBeVisible();
     expect(screen.getByText('Email')).toBeVisible();
-    expect(screen.getByText('Memakai versi 1')).toBeVisible();
+    expect(screen.getByText('Memakai teks tersimpan')).toBeVisible();
   });
 
-  it('prefills the default subject and intro, previews, then saves and publishes a draft', async () => {
+  it('prefills the default subject and intro, previews, then saves it for use', async () => {
     const user = userEvent.setup();
     render(<NotificationManagementView />);
     const card = (await screen.findByText('Reset password')).closest('li')!;
@@ -253,13 +240,13 @@ describe('NotificationManagementView email templates', () => {
     await user.click(within(card).getByRole('button', { name: 'Pratinjau' }));
     expect(await within(card).findByText(emailCatalog.subject)).toBeVisible();
 
-    await user.click(within(card).getByRole('button', { name: 'Simpan & terbitkan' }));
-    await waitFor(() => expect(writes()).toHaveLength(3));
+    await user.click(within(card).getByRole('button', { name: 'Simpan & pakai' }));
+    await waitFor(() => expect(writes()).toHaveLength(2));
+    expect(writes()[1]![0]).toBe('/api/v1/notification-management/templates/AUTH_PASSWORD_RESET_V1');
+    expect(writes()[1]![1].method).toBe('PUT');
     expect(JSON.parse(writes()[1]![1].body)).toEqual({
-      templateKey: 'AUTH_PASSWORD_RESET_V1',
       body: { subject: emailCatalog.subject, intro: emailCatalog.intro },
     });
-    expect(writes()[2]![0]).toBe('/api/v1/notification-management/templates/new-1/PUBLISHED');
   });
 
   it('keeps saving disabled until both subject and intro are filled', async () => {
@@ -268,8 +255,7 @@ describe('NotificationManagementView email templates', () => {
     const card = (await screen.findByText('Reset password')).closest('li')!;
     await user.click(within(card).getByRole('button', { name: 'Ubah subjek & isi' }));
     await user.clear(within(card).getByLabelText('Subjek email'));
-    expect(within(card).getByRole('button', { name: 'Simpan & terbitkan' })).toBeDisabled();
-    expect(within(card).getByRole('button', { name: 'Simpan draf' })).toBeDisabled();
+    expect(within(card).getByRole('button', { name: 'Simpan & pakai' })).toBeDisabled();
   });
 
   it('explains a subject that is too long instead of a generic failure', async () => {
@@ -281,7 +267,7 @@ describe('NotificationManagementView email templates', () => {
     render(<NotificationManagementView />);
     const card = (await screen.findByText('Reset password')).closest('li')!;
     await user.click(within(card).getByRole('button', { name: 'Ubah subjek & isi' }));
-    await user.click(within(card).getByRole('button', { name: 'Simpan draf' }));
+    await user.click(within(card).getByRole('button', { name: 'Simpan & pakai' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Subjek email terlalu panjang');
   });
 

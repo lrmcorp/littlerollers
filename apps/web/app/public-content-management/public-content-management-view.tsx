@@ -11,7 +11,6 @@ import {
   FileImage,
   HelpCircle,
   ImageIcon,
-  Layers,
   LayoutTemplate,
   Plus,
   Radio,
@@ -22,9 +21,8 @@ import {
   X,
 } from 'lucide-react';
 import { Button, ButtonLink } from '../components/actions';
-import { LifecycleDialog, type LifecycleAction } from '../components/admin/lifecycle-dialog';
 import { SearchSelect } from '../components/forms';
-import { Feedback, Skeleton, StatusBadge } from '../ui';
+import { Feedback, Skeleton } from '../ui';
 import { AdminPageHeader } from '../components/admin/admin-page-header';
 import { useAppFeedback } from '../components/app-feedback';
 import { useSessionContext } from '../session-context';
@@ -49,7 +47,7 @@ export { contentFailure };
 export function PublicContentManagementView() {
   const session = useSessionContext()?.session;
   const feedback = useAppFeedback();
-  const [activeTab, setActiveTab] = useState<'slider' | 'faq' | 'all'>('slider');
+  const [activeTab, setActiveTab] = useState<'slider' | 'faq'>('slider');
   const [items, setItems] = useState<any[]>();
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
@@ -66,12 +64,7 @@ export function PublicContentManagementView() {
 
   // Image Upload State
   const [uploadingImage, setUploadingImage] = useState(false);
-  const [draftId, setDraftId] = useState<string | null>(null);
-  const [lifecycle, setLifecycle] = useState<{
-    id: string;
-    name: string;
-    action: LifecycleAction;
-  } | null>(null);
+  const [liveHero, setLiveHero] = useState<boolean>(false);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string>('');
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -80,12 +73,9 @@ export function PublicContentManagementView() {
     return request('/public-content-management')
       .then((data: any[]) => {
         setItems(data);
-        // Editor memuat draf terbaru bila ada, kalau tidak versi yang sedang terbit.
-        const heroItems = data.filter((item) => item.contentKey === 'HOME_HERO_CAROUSEL');
-        const draftHero = heroItems.find((item) => item.status === 'DRAFT');
-        const latestHero =
-          draftHero || heroItems.find((item) => item.status === 'PUBLISHED') || heroItems[0];
-        setDraftId(draftHero?.id ?? null);
+        // Editor memuat isi yang sedang tampil di situs; tanpa isi, situs memakai slide bawaan.
+        const latestHero = data.find((item) => item.contentKey === 'HOME_HERO_CAROUSEL');
+        setLiveHero(Boolean(latestHero));
 
         if (latestHero && latestHero.payload?.slides) {
           setSliderConfig({
@@ -160,39 +150,44 @@ export function PublicContentManagementView() {
     }
   }
 
-  // Save / Publish Slider
-  async function saveSlider(shouldPublish = true) {
+  // Simpan slider dan langsung tampilkan di situs
+  async function saveSlider() {
     setBusy(true);
     setError('');
     setSuccessMessage('');
     try {
-      // Draf yang sudah ada diperbarui; bila belum ada (atau sudah terbit) dibuat draf versi baru.
-      const saved = draftId
-        ? await request(`/public-content-management/${draftId}`, {
-            method: 'PATCH',
-            body: JSON.stringify({ payload: sliderConfig }),
-          })
-        : await request('/public-content-management', {
-            method: 'POST',
-            body: JSON.stringify({
-              contentKey: 'HOME_HERO_CAROUSEL',
-              kind: 'HERO_CAROUSEL',
-              payload: sliderConfig,
-            }),
-          });
-
-      if (shouldPublish && saved?.id) {
-        await request(`/public-content-management/${saved.id}/PUBLISHED`, { method: 'POST' });
-        setSuccessMessage(
-          'Slider beranda berhasil dipublikasikan. Halaman utama memperbarui tampilannya dalam beberapa menit (cache situs).',
-        );
-      } else {
-        setSuccessMessage('Draft slider berhasil disimpan.');
-      }
-
+      await request('/public-content-management/HERO_CAROUSEL', {
+        method: 'PUT',
+        body: JSON.stringify({ payload: sliderConfig }),
+      });
+      setSuccessMessage(
+        'Slider beranda tersimpan. Halaman utama memperbarui tampilannya dalam beberapa menit (cache situs).',
+      );
       await load();
     } catch (cause) {
       setError(contentFailure(cause, 'Gagal menyimpan konfigurasi slider.'));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // Kembalikan situs ke slide bawaan
+  async function resetSlider() {
+    const accepted = await feedback.confirm({
+      tone: 'warning',
+      title: 'Kembalikan ke slide bawaan?',
+      message: 'Isi slider yang tersimpan tidak lagi dipakai situs; beranda memakai slide bawaan.',
+      confirmLabel: 'Kembalikan',
+    });
+    if (!accepted) return;
+    setBusy(true);
+    setError('');
+    try {
+      await request('/public-content-management/HERO_CAROUSEL/reset', { method: 'POST', body: JSON.stringify({}) });
+      setSuccessMessage('Beranda kembali memakai slide bawaan.');
+      await load();
+    } catch (cause) {
+      setError(contentFailure(cause, 'Slider belum dapat dikembalikan ke bawaan.'));
     } finally {
       setBusy(false);
     }
@@ -223,8 +218,8 @@ export function PublicContentManagementView() {
   async function deleteSlide(index: number) {
     const accepted = await feedback.confirm({
       tone: 'warning',
-      title: 'Hapus slide dari draf?',
-      message: 'Slide dihapus dari draf ini. Simpan draf untuk menerapkannya; versi yang sedang terbit tidak berubah.',
+      title: 'Hapus slide?',
+      message: 'Slide dihapus dari daftar ini. Simpan slider untuk menerapkannya di situs.',
       confirmLabel: 'Hapus slide',
     });
     if (!accepted) return;
@@ -289,38 +284,6 @@ export function PublicContentManagementView() {
     setShowSlideForm(false);
   }
 
-  // Salin versi mana pun menjadi draf baru, lalu muat ke editor.
-  async function duplicate(id: string, contentKey?: string) {
-    setBusy(true);
-    setError('');
-    try {
-      await request(`/public-content-management/${id}/duplicate`, { method: 'POST' });
-      await load();
-      setActiveTab(contentKey === 'CLASS_DETAIL_FAQ' ? 'faq' : 'slider');
-      setSuccessMessage('Draf baru dibuat dari versi tersebut dan dimuat ke editor.');
-    } catch (cause) {
-      setError(contentFailure(cause, 'Draf belum dapat dibuat.'));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function transition(id: string, status: 'PUBLISHED') {
-    setBusy(true);
-    setError('');
-    try {
-      await request(`/public-content-management/${id}/${status}`, { method: 'POST' });
-      await load();
-      setSuccessMessage(
-        status === 'PUBLISHED' ? 'Versi konten dipublikasikan.' : 'Versi konten diarsipkan.',
-      );
-    } catch (cause) {
-      setError(contentFailure(cause, 'Status konten belum dapat diubah.'));
-    } finally {
-      setBusy(false);
-    }
-  }
-
   if (!items) {
     return error ? (
       <Feedback kind="error">{error}</Feedback>
@@ -334,7 +297,7 @@ export function PublicContentManagementView() {
       <div className="space-y-4">
         <AdminPageHeader
           title="Manajemen Konten Publik"
-          description="Kelola banner carousel beranda dan gambar promosi Daily Dose Pilates. Setiap perubahan disimpan sebagai versi dan tampil di situs setelah dipublikasikan."
+          description="Kelola banner carousel beranda dan FAQ halaman kelas Daily Dose Pilates. Perubahan langsung tampil di situs setelah disimpan."
           titleId="content-mgmt-title"
           actions={
             <ButtonLink href="/" target="_blank" variant="secondary" className="inline-flex items-center gap-1.5">
@@ -370,18 +333,6 @@ export function PublicContentManagementView() {
             <HelpCircle className="size-4" />
             FAQ Halaman Kelas
           </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('all')}
-            className={`flex items-center gap-2 rounded-dd-md px-4 py-2 text-xs font-bold transition ${
-              activeTab === 'all'
-                ? 'bg-dd-forest text-white shadow-sm'
-                : 'bg-dd-surface-muted text-dd-ink hover:bg-dd-line/50'
-            }`}
-          >
-            <Layers className="size-4" />
-            Riwayat Versi Konten ({items.length})
-          </button>
         </div>
       </div>
 
@@ -401,15 +352,13 @@ export function PublicContentManagementView() {
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
-                <Button
-                  variant="secondary"
-                  disabled={busy}
-                  onClick={() => void saveSlider(false)}
-                >
-                  Simpan Draft
-                </Button>
-                <Button disabled={busy} loading={busy} onClick={() => void saveSlider(true)}>
-                  Publikasikan ke Website
+                {liveHero && (
+                  <Button variant="secondary" disabled={busy} onClick={() => void resetSlider()}>
+                    Kembalikan ke Bawaan
+                  </Button>
+                )}
+                <Button disabled={busy} loading={busy} onClick={() => void saveSlider()}>
+                  Simpan & Tampilkan di Website
                 </Button>
               </div>
             </div>
@@ -875,116 +824,6 @@ export function PublicContentManagementView() {
         />
       )}
 
-      {/* TAB 2: RAW / ADVANCED ALL CONTENT ENTRIES */}
-      {activeTab === 'all' && (
-        <section className="space-y-6">
-          <div className="rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card">
-            <h3 className="text-sm font-bold text-dd-ink mb-1">Riwayat & Status Versi</h3>
-            <p className="mb-3 text-xs text-dd-muted">
-              Hanya versi berstatus Terbit yang tampil di situs. Versi lama dapat disalin menjadi
-              draf baru untuk diedit; versi terbit tidak diubah langsung.
-            </p>
-            {items.length === 0 && (
-              <p className="text-sm text-dd-muted">Belum ada versi konten tersimpan.</p>
-            )}
-            <ul className="divide-y divide-dd-line">
-              {items.map((item) => (
-                <li key={item.id} className="flex flex-wrap justify-between gap-3 py-3.5 text-sm">
-                  <div>
-                    <strong className="text-dd-ink">
-                      {item.contentKey === 'CLASS_DETAIL_FAQ' ? 'FAQ halaman kelas' : 'Slider beranda'} ·
-                      versi {item.version}
-                    </strong>
-                    <div className="text-xs text-dd-muted mt-0.5">
-                      {item.contentKey === 'CLASS_DETAIL_FAQ'
-                        ? `${item.payload?.items?.length ?? 0} pertanyaan`
-                        : `${item.payload?.slides?.length ?? 0} slide`}{' '}
-                      · diperbarui{' '}
-                      {new Date(item.updatedAt).toLocaleString('id-ID')}
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <StatusBadge
-                      tone={
-                        item.status === 'PUBLISHED'
-                          ? 'success'
-                          : item.status === 'DRAFT'
-                            ? 'warning'
-                            : 'neutral'
-                      }
-                    >
-                      {item.status === 'PUBLISHED'
-                        ? 'Terbit'
-                        : item.status === 'DRAFT'
-                          ? 'Draf'
-                          : 'Diarsipkan'}
-                    </StatusBadge>
-                    {item.status === 'DRAFT' && (
-                      <Button
-                        size="sm"
-                        disabled={busy}
-                        onClick={() => void transition(item.id, 'PUBLISHED')}
-                      >
-                        Terbitkan
-                      </Button>
-                    )}
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      disabled={busy}
-                      onClick={() => void duplicate(item.id, item.contentKey)}
-                    >
-                      Salin jadi draf
-                    </Button>
-                    {item.status !== 'ARCHIVED' && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        disabled={busy}
-                        onClick={() =>
-                          setLifecycle({ id: item.id, name: `${item.contentKey} v${item.version}`, action: 'archive' })
-                        }
-                      >
-                        Arsipkan
-                      </Button>
-                    )}
-                    {item.status === 'DRAFT' && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="text-dd-danger hover:text-dd-danger"
-                        disabled={busy}
-                        aria-label={`Hapus draf ${item.contentKey} v${item.version}`}
-                        onClick={() =>
-                          setLifecycle({ id: item.id, name: `${item.contentKey} v${item.version}`, action: 'delete' })
-                        }
-                      >
-                        Hapus
-                      </Button>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </section>
-      )}
-      <LifecycleDialog
-        request={lifecycle ? { kind: 'public-content', ...lifecycle } : null}
-        archive={(reason) =>
-          request(`/public-content-management/${lifecycle!.id}/ARCHIVED`, {
-            method: 'POST',
-            body: JSON.stringify({ reason }),
-          })
-        }
-        onClose={() => setLifecycle(null)}
-        onDone={async (message) => {
-          setLifecycle(null);
-          setError('');
-          await load();
-          setSuccessMessage(message);
-        }}
-      />
     </main>
   );
 }

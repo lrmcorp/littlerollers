@@ -32,8 +32,6 @@ const NOUN: Record<LifecycleKind, string> = {
   voucher: 'voucher',
   'payment-account': 'rekening pembayaran',
   'min-quota': 'pengaturan kuota',
-  'public-content': 'konten',
-  'notification-template': 'template notifikasi',
   'class-slot': 'jadwal kelas',
   user: 'akun',
 };
@@ -44,8 +42,6 @@ const ARCHIVABLE: ReadonlySet<LifecycleKind> = new Set([
   'class-type',
   'voucher',
   'promotion',
-  'public-content',
-  'notification-template',
 ]);
 
 /** Kata kerja "jeda" untuk jenis yang memakainya (voucher, promosi), selain itu "nonaktifkan". */

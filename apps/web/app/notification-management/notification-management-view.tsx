@@ -6,7 +6,6 @@ import { Textarea, TextInput } from '../components/forms';
 import { EmptyState, Feedback, Skeleton, StatusBadge } from '../ui';
 import { AdminPageHeader } from '../components/admin/admin-page-header';
 import { statusLabel } from '../lib/status-labels';
-import { LifecycleDialog, type LifecycleAction } from '../components/admin/lifecycle-dialog';
 
 const MAX_BODY = 1000;
 const MAX_EMAIL_SUBJECT = 200;
@@ -58,33 +57,8 @@ export function templateFailure(error: unknown, fallback: string) {
     if (issue === 'REQUIRED') return 'Isi pesan tidak boleh kosong.';
     return 'Isi template belum valid.';
   }
-  if (failure?.code === 'INVALID_STATE')
-    return 'Versi ini sudah tidak berstatus draf. Muat ulang halaman lalu coba lagi.';
   if (failure?.status === 403) return 'Anda tidak memiliki izin mengelola template notifikasi.';
   return fallback;
-}
-
-/** Arsipkan (wajib beralasan) dan Hapus draf untuk satu versi template; dipakai kedua kartu. */
-function useTemplateLifecycle(run: (action: () => Promise<unknown>, success: string) => Promise<boolean>) {
-  const [target, setTarget] = useState<{ id: string; name: string; action: LifecycleAction } | null>(null);
-  const dialog = (
-    <LifecycleDialog
-      request={target ? { kind: 'notification-template', ...target } : null}
-      archive={(reason) =>
-        api(`/notification-management/templates/${target!.id}/ARCHIVED`, {
-          method: 'POST',
-          body: JSON.stringify({ reason }),
-        })
-      }
-      onClose={() => setTarget(null)}
-      onDone={async (message) => {
-        setTarget(null);
-        // Aksi sudah dijalankan dialog; `run` hanya memuat ulang daftar dan menampilkan pesan.
-        await run(async () => undefined, message);
-      }}
-    />
-  );
-  return { open: (id: string, name: string, action: LifecycleAction) => setTarget({ id, name, action }), dialog };
 }
 
 type CatalogItem = {
@@ -101,7 +75,6 @@ type TemplateItem = {
   id: string;
   templateKey: string;
   version: number;
-  status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
   body: string;
   subject?: string | null;
   updatedAt: string;
@@ -109,45 +82,42 @@ type TemplateItem = {
 
 function TemplateCard({
   entry,
-  versions,
+  live,
   busy,
   run,
 }: {
   entry: CatalogItem;
-  versions: TemplateItem[];
+  live?: TemplateItem;
   busy: boolean;
   run(action: () => Promise<unknown>, success: string): Promise<boolean>;
 }) {
-  const sorted = [...versions].sort((a, b) => b.version - a.version);
-  const draft = sorted.find((item) => item.status === 'DRAFT');
-  const lifecycle = useTemplateLifecycle(run);
-  const published = sorted.find((item) => item.status === 'PUBLISHED');
   const [open, setOpen] = useState(false);
   const [body, setBody] = useState('');
   const [preview, setPreview] = useState('');
   const [previewError, setPreviewError] = useState('');
 
   const startEditing = () => {
-    setBody(draft?.body ?? published?.body ?? entry.defaultBody ?? '');
+    setBody(live?.body ?? entry.defaultBody ?? '');
     setPreview('');
     setPreviewError('');
     setOpen(true);
   };
 
-  const saveDraft = async () => {
-    if (draft) {
-      const result = await api(`/notification-management/templates/${draft.id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ body }),
-      });
-      return result.id as string;
-    }
-    const created = await api('/notification-management/templates', {
-      method: 'POST',
-      body: JSON.stringify({ templateKey: entry.templateKey, body }),
+  const save = () =>
+    api(`/notification-management/templates/${entry.templateKey}`, {
+      method: 'PUT',
+      body: JSON.stringify({ body }),
     });
-    return created.id as string;
-  };
+
+  const reset = () =>
+    run(
+      () =>
+        api(`/notification-management/templates/${entry.templateKey}/reset`, {
+          method: 'POST',
+          body: JSON.stringify({}),
+        }),
+      'Template kembali memakai teks bawaan.',
+    );
 
   const showPreview = async () => {
     setPreviewError('');
@@ -170,30 +140,18 @@ function TemplateCard({
           <h3 className="font-semibold text-dd-ink">{entry.label}</h3>
           <p className="mt-0.5 text-sm text-dd-muted">{entry.description}</p>
         </div>
-        <StatusBadge tone={published ? 'success' : 'neutral'}>
-          {published ? `Memakai versi ${published.version}` : 'Memakai teks bawaan'}
+        <StatusBadge tone={live ? 'success' : 'neutral'}>
+          {live ? 'Memakai teks tersimpan' : 'Memakai teks bawaan'}
         </StatusBadge>
       </div>
-      {draft && (
-        <p className="mt-2 text-xs font-semibold text-dd-warning">
-          Ada draf versi {draft.version} yang belum diterbitkan.
-        </p>
-      )}
       <div className="mt-3 flex flex-wrap gap-2">
         {!open && (
           <Button size="sm" variant="secondary" disabled={busy} onClick={startEditing}>
-            {draft ? 'Lanjutkan draf' : 'Ubah teks pesan'}
+            Ubah teks pesan
           </Button>
         )}
-        {published && (
-          <Button
-            size="sm"
-            variant="ghost"
-            disabled={busy}
-            onClick={() =>
-              lifecycle.open(published.id, `${entry.label} (terbit)`, 'archive')
-            }
-          >
+        {live && (
+          <Button size="sm" variant="ghost" disabled={busy} onClick={() => void reset()}>
             Kembali ke teks bawaan
           </Button>
         )}
@@ -243,27 +201,14 @@ function TemplateCard({
             </Button>
             <Button
               size="sm"
-              variant="secondary"
               disabled={busy || body.trim().length === 0}
               onClick={() =>
-                void run(saveDraft, 'Draf template disimpan.').then((ok) => ok && setOpen(false))
-              }
-            >
-              Simpan draf
-            </Button>
-            <Button
-              size="sm"
-              disabled={busy || body.trim().length === 0}
-              onClick={() =>
-                void run(async () => {
-                  const id = await saveDraft();
-                  await api(`/notification-management/templates/${id}/PUBLISHED`, { method: 'POST' });
-                }, 'Template diterbitkan dan dipakai pada pengiriman berikutnya.').then(
+                void run(save, 'Template tersimpan dan dipakai pada pengiriman berikutnya.').then(
                   (ok) => ok && setOpen(false),
                 )
               }
             >
-              Simpan &amp; terbitkan
+              Simpan &amp; pakai
             </Button>
             <Button size="sm" variant="ghost" disabled={busy} onClick={() => setOpen(false)}>
               Tutup
@@ -272,107 +217,21 @@ function TemplateCard({
         </div>
       )}
 
-      {sorted.length > 0 && (
-        <details className="mt-3">
-          <summary className="cursor-pointer text-xs font-semibold text-dd-forest">
-            Riwayat versi ({sorted.length})
-          </summary>
-          <ul className="mt-2 divide-y divide-dd-line">
-            {sorted.map((item) => (
-              <li key={item.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
-                <span>
-                  Versi {item.version}{' '}
-                  <span className="text-xs text-dd-muted">
-                    · {new Date(item.updatedAt).toLocaleString('id-ID')}
-                  </span>
-                </span>
-                <span className="flex flex-wrap items-center gap-2">
-                  <StatusBadge
-                    tone={
-                      item.status === 'PUBLISHED'
-                        ? 'success'
-                        : item.status === 'DRAFT'
-                          ? 'warning'
-                          : 'neutral'
-                    }
-                  >
-                    {statusLabel(item.status)}
-                  </StatusBadge>
-                  {item.status === 'DRAFT' && (
-                    <Button
-                      size="sm"
-                      disabled={busy}
-                      onClick={() =>
-                        void run(
-                          () => api(`/notification-management/templates/${item.id}/PUBLISHED`, { method: 'POST' }),
-                          'Template diterbitkan dan dipakai pada pengiriman berikutnya.',
-                        )
-                      }
-                    >
-                      Terbitkan
-                    </Button>
-                  )}
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    disabled={busy}
-                    onClick={() =>
-                      void run(
-                        () => api(`/notification-management/templates/${item.id}/duplicate`, { method: 'POST' }),
-                        'Draf baru dibuat dari versi tersebut.',
-                      )
-                    }
-                  >
-                    Salin jadi draf
-                  </Button>
-                  {item.status !== 'ARCHIVED' && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      disabled={busy}
-                      onClick={() => lifecycle.open(item.id, `${entry.label} v${item.version}`, 'archive')}
-                    >
-                      Arsipkan
-                    </Button>
-                  )}
-                  {item.status === 'DRAFT' && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="text-dd-danger hover:text-dd-danger"
-                      disabled={busy}
-                      aria-label={`Hapus draf ${entry.label} v${item.version}`}
-                      onClick={() => lifecycle.open(item.id, `${entry.label} v${item.version}`, 'delete')}
-                    >
-                      Hapus
-                    </Button>
-                  )}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </details>
-      )}
-      {lifecycle.dialog}
     </li>
   );
 }
 
 function EmailTemplateCard({
   entry,
-  versions,
+  live,
   busy,
   run,
 }: {
   entry: CatalogItem;
-  versions: TemplateItem[];
+  live?: TemplateItem;
   busy: boolean;
   run(action: () => Promise<unknown>, success: string): Promise<boolean>;
 }) {
-  const sorted = [...versions].sort((a, b) => b.version - a.version);
-  const draft = sorted.find((item) => item.status === 'DRAFT');
-  const lifecycle = useTemplateLifecycle(run);
-  const published = sorted.find((item) => item.status === 'PUBLISHED');
   const [open, setOpen] = useState(false);
   const [subject, setSubject] = useState('');
   const [intro, setIntro] = useState('');
@@ -380,28 +239,28 @@ function EmailTemplateCard({
   const [previewError, setPreviewError] = useState('');
 
   const startEditing = () => {
-    setSubject(draft?.subject ?? published?.subject ?? entry.subject ?? '');
-    setIntro(draft?.body ?? published?.body ?? entry.intro ?? '');
+    setSubject(live?.subject ?? entry.subject ?? '');
+    setIntro(live?.body ?? entry.intro ?? '');
     setPreview(null);
     setPreviewError('');
     setOpen(true);
   };
 
-  const saveDraft = async () => {
-    const body = { subject, intro };
-    if (draft) {
-      const result = await api(`/notification-management/templates/${draft.id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ body }),
-      });
-      return result.id as string;
-    }
-    const created = await api('/notification-management/templates', {
-      method: 'POST',
-      body: JSON.stringify({ templateKey: entry.templateKey, body }),
+  const save = () =>
+    api(`/notification-management/templates/${entry.templateKey}`, {
+      method: 'PUT',
+      body: JSON.stringify({ body: { subject, intro } }),
     });
-    return created.id as string;
-  };
+
+  const reset = () =>
+    run(
+      () =>
+        api(`/notification-management/templates/${entry.templateKey}/reset`, {
+          method: 'POST',
+          body: JSON.stringify({}),
+        }),
+      'Template kembali memakai teks bawaan.',
+    );
 
   const showPreview = async () => {
     setPreviewError('');
@@ -428,31 +287,19 @@ function EmailTemplateCard({
         </div>
         <div className="flex items-center gap-2">
           <StatusBadge tone="neutral">Email</StatusBadge>
-          <StatusBadge tone={published ? 'success' : 'neutral'}>
-            {published ? `Memakai versi ${published.version}` : 'Memakai teks bawaan'}
+          <StatusBadge tone={live ? 'success' : 'neutral'}>
+            {live ? 'Memakai teks tersimpan' : 'Memakai teks bawaan'}
           </StatusBadge>
         </div>
       </div>
-      {draft && (
-        <p className="mt-2 text-xs font-semibold text-dd-warning">
-          Ada draf versi {draft.version} yang belum diterbitkan.
-        </p>
-      )}
       <div className="mt-3 flex flex-wrap gap-2">
         {!open && (
           <Button size="sm" variant="secondary" disabled={busy} onClick={startEditing}>
-            {draft ? 'Lanjutkan draf' : 'Ubah subjek & isi'}
+            Ubah subjek & isi
           </Button>
         )}
-        {published && (
-          <Button
-            size="sm"
-            variant="ghost"
-            disabled={busy}
-            onClick={() =>
-              lifecycle.open(published.id, `${entry.label} (terbit)`, 'archive')
-            }
-          >
+        {live && (
+          <Button size="sm" variant="ghost" disabled={busy} onClick={() => void reset()}>
             Kembali ke teks bawaan
           </Button>
         )}
@@ -503,27 +350,14 @@ function EmailTemplateCard({
             </Button>
             <Button
               size="sm"
-              variant="secondary"
               disabled={busy || !complete}
               onClick={() =>
-                void run(saveDraft, 'Draf template disimpan.').then((ok) => ok && setOpen(false))
-              }
-            >
-              Simpan draf
-            </Button>
-            <Button
-              size="sm"
-              disabled={busy || !complete}
-              onClick={() =>
-                void run(async () => {
-                  const id = await saveDraft();
-                  await api(`/notification-management/templates/${id}/PUBLISHED`, { method: 'POST' });
-                }, 'Template diterbitkan dan dipakai pada pengiriman berikutnya.').then(
+                void run(save, 'Template tersimpan dan dipakai pada pengiriman berikutnya.').then(
                   (ok) => ok && setOpen(false),
                 )
               }
             >
-              Simpan &amp; terbitkan
+              Simpan &amp; pakai
             </Button>
             <Button size="sm" variant="ghost" disabled={busy} onClick={() => setOpen(false)}>
               Tutup
@@ -532,88 +366,6 @@ function EmailTemplateCard({
         </div>
       )}
 
-      {sorted.length > 0 && (
-        <details className="mt-3">
-          <summary className="cursor-pointer text-xs font-semibold text-dd-forest">
-            Riwayat versi ({sorted.length})
-          </summary>
-          <ul className="mt-2 divide-y divide-dd-line">
-            {sorted.map((item) => (
-              <li key={item.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
-                <span>
-                  Versi {item.version}{' '}
-                  <span className="text-xs text-dd-muted">
-                    · {new Date(item.updatedAt).toLocaleString('id-ID')}
-                  </span>
-                </span>
-                <span className="flex flex-wrap items-center gap-2">
-                  <StatusBadge
-                    tone={
-                      item.status === 'PUBLISHED'
-                        ? 'success'
-                        : item.status === 'DRAFT'
-                          ? 'warning'
-                          : 'neutral'
-                    }
-                  >
-                    {statusLabel(item.status)}
-                  </StatusBadge>
-                  {item.status === 'DRAFT' && (
-                    <Button
-                      size="sm"
-                      disabled={busy}
-                      onClick={() =>
-                        void run(
-                          () => api(`/notification-management/templates/${item.id}/PUBLISHED`, { method: 'POST' }),
-                          'Template diterbitkan dan dipakai pada pengiriman berikutnya.',
-                        )
-                      }
-                    >
-                      Terbitkan
-                    </Button>
-                  )}
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    disabled={busy}
-                    onClick={() =>
-                      void run(
-                        () => api(`/notification-management/templates/${item.id}/duplicate`, { method: 'POST' }),
-                        'Draf baru dibuat dari versi tersebut.',
-                      )
-                    }
-                  >
-                    Salin jadi draf
-                  </Button>
-                  {item.status !== 'ARCHIVED' && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      disabled={busy}
-                      onClick={() => lifecycle.open(item.id, `${entry.label} v${item.version}`, 'archive')}
-                    >
-                      Arsipkan
-                    </Button>
-                  )}
-                  {item.status === 'DRAFT' && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="text-dd-danger hover:text-dd-danger"
-                      disabled={busy}
-                      aria-label={`Hapus draf ${entry.label} v${item.version}`}
-                      onClick={() => lifecycle.open(item.id, `${entry.label} v${item.version}`, 'delete')}
-                    >
-                      Hapus
-                    </Button>
-                  )}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </details>
-      )}
-      {lifecycle.dialog}
     </li>
   );
 }
@@ -663,7 +415,7 @@ export function NotificationManagementView() {
     <section className="space-y-6">
       <AdminPageHeader
         title="Manajemen Notifikasi"
-        description="Atur teks pesan pengingat WhatsApp yang dikirim ke pelanggan. Versi yang diterbitkan langsung dipakai pada pengiriman berikutnya; tanpa versi terbit, sistem memakai teks bawaan."
+        description="Atur teks pesan pengingat WhatsApp yang dikirim ke pelanggan. Teks yang disimpan langsung dipakai pada pengiriman berikutnya; tanpa teks tersimpan, sistem memakai teks bawaan."
       />
       {error && <Feedback kind="error">{error}</Feedback>}
       {message && <Feedback kind="status">{message}</Feedback>}
@@ -687,11 +439,11 @@ export function NotificationManagementView() {
       )}
       <ul className="grid list-none gap-4 p-0 lg:grid-cols-2">
         {catalog.map((entry) => {
-          const versions = templates.filter((item) => item.templateKey === entry.templateKey);
+          const live = templates.find((item) => item.templateKey === entry.templateKey);
           return entry.channel === 'EMAIL' ? (
-            <EmailTemplateCard key={entry.templateKey} entry={entry} versions={versions} busy={busy} run={run} />
+            <EmailTemplateCard key={entry.templateKey} entry={entry} live={live} busy={busy} run={run} />
           ) : (
-            <TemplateCard key={entry.templateKey} entry={entry} versions={versions} busy={busy} run={run} />
+            <TemplateCard key={entry.templateKey} entry={entry} live={live} busy={busy} run={run} />
           );
         })}
       </ul>

@@ -18,8 +18,6 @@ export type LifecycleKind =
   | 'voucher'
   | 'payment-account'
   | 'min-quota'
-  | 'public-content'
-  | 'notification-template'
   | 'class-slot'
   | 'user';
 
@@ -118,11 +116,6 @@ const maskEmail = (email?: string | null) => {
   const [local, domain] = email.split('@');
   return local && domain ? `${local.slice(0, 2)}***@${domain}` : '***';
 };
-
-const draftOnly = (noun: string) => async (_db: Db, row: { status: string }): Promise<Blocker[]> =>
-  row.status === 'DRAFT'
-    ? []
-    : [{ kind: 'status', label: `${noun} yang sudah pernah terbit atau diarsipkan`, count: 1 }];
 
 const SPECS: Record<LifecycleKind, Spec> = {
   branch: {
@@ -231,26 +224,6 @@ const SPECS: Record<LifecycleKind, Spec> = {
       cutoffHours: row.cutoffHours,
     }),
   },
-  'public-content': {
-    objectType: 'PublicContent',
-    table: 'public_content',
-    delegate: 'publicContent',
-    label: 'Konten publik',
-    capability: 'public-content:manage',
-    globalOnly: true,
-    extra: draftOnly('konten'),
-    snapshot: (row) => ({ contentKey: row.contentKey, kind: row.kind, version: row.version, status: row.status }),
-  },
-  'notification-template': {
-    objectType: 'NotificationTemplate',
-    table: 'notification_template',
-    delegate: 'notificationTemplate',
-    label: 'Template notifikasi',
-    capability: 'notification:manage',
-    globalOnly: true,
-    extra: draftOnly('template'),
-    snapshot: (row) => ({ templateKey: row.templateKey, channel: row.channel, version: row.version, status: row.status }),
-  },
   'class-slot': {
     objectType: 'ClassSlot',
     table: 'slot_kelas',
@@ -308,8 +281,6 @@ export const GENERIC_REMOVABLE: readonly LifecycleKind[] = [
   'promotion',
   'payment-account',
   'min-quota',
-  'public-content',
-  'notification-template',
   'class-slot',
   'user',
 ];

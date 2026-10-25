@@ -156,7 +156,7 @@ function managementSetup(row: Record<string, unknown> | null = null) {
     subject: null,
     title: 'Pengingat masa berlaku H-7',
     body: 'Halo {{nama}}',
-    status: 'DRAFT',
+    status: 'PUBLISHED',
     createdById: id(100),
     publishedAt: null,
     archivedAt: null,
@@ -164,13 +164,13 @@ function managementSetup(row: Record<string, unknown> | null = null) {
     updatedAt: new Date('2026-09-01T00:00:00Z'),
     ...row,
   };
-  const tx = { notificationTemplate: { updateMany: jest.fn().mockResolvedValue({ count: 1 }) } };
   const db = {
     notificationTemplate: {
       findMany: jest.fn().mockResolvedValue([stored]),
-      findUnique: jest.fn().mockResolvedValue(stored),
+      findFirst: jest.fn().mockResolvedValue(stored),
       aggregate: jest.fn().mockResolvedValue({ _max: { version: 2 } }),
       create: jest.fn().mockImplementation(async ({ data }) => ({ ...stored, ...data, id: id(11) })),
+      update: jest.fn().mockImplementation(async ({ data }) => ({ ...stored, ...data })),
       updateMany: jest.fn().mockResolvedValue({ count: 1 }),
     },
     reminderLog: {
@@ -182,10 +182,9 @@ function managementSetup(row: Record<string, unknown> | null = null) {
         { status: 'FAILED', _count: { _all: 1 } },
       ]),
     },
-    $transaction: jest.fn(async (fn: (t: typeof tx) => unknown) => fn(tx)),
   };
   const service = new NotificationManagementService(db as never, new PolicyService());
-  return { service, db, tx };
+  return { service, db };
 }
 
 const admin = (capabilities: string[]) => ({
@@ -202,7 +201,8 @@ describe('NotificationManagementService', () => {
     const { service } = managementSetup();
     const nobody = admin([]);
     await expect(service.overview(nobody)).rejects.toMatchObject({ code: 'FORBIDDEN' });
-    await expect(service.create(nobody, { templateKey: 'WA_REMINDER_EXPIRY_H7', body: 'x' }, 'c')).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    await expect(service.save(nobody, 'WA_REMINDER_EXPIRY_H7', { body: 'x' }, 'c')).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    await expect(service.reset(nobody, 'WA_REMINDER_EXPIRY_H7', 'c')).rejects.toMatchObject({ code: 'FORBIDDEN' });
     await expect(service.preview(nobody, { templateKey: 'WA_REMINDER_EXPIRY_H7', body: 'x' })).rejects.toMatchObject({ code: 'FORBIDDEN' });
   });
 
@@ -236,46 +236,55 @@ describe('NotificationManagementService', () => {
     ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
   });
 
-  it('creates the next draft version of a supported template only', async () => {
+  it('only lists the live texts in the overview, never leftover drafts or archives', async () => {
     const { service, db } = managementSetup();
-    await expect(service.create(owner, { templateKey: 'ORDER_CREATED_V1', body: 'x' }, 'c')).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
-    const created = await service.create(owner, { templateKey: 'wa_reminder_expiry_h7', body: 'Halo {{nama}}!' }, 'c');
+    await service.overview(owner);
+    expect(db.notificationTemplate.findMany.mock.calls[0]![0].where).toEqual({ status: 'PUBLISHED' });
+  });
+
+  it('refuses a template the system does not send', async () => {
+    const { service, db } = managementSetup();
+    await expect(service.save(owner, 'ORDER_CREATED_V1', { body: 'x' }, 'c')).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
+    await expect(service.reset(owner, 'ORDER_CREATED_V1', 'c')).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
+    expect(db.notificationTemplate.create).not.toHaveBeenCalled();
+    expect(db.notificationTemplate.update).not.toHaveBeenCalled();
+  });
+
+  it('replaces the live text in place, validating it first', async () => {
+    const { service, db } = managementSetup();
+    await expect(service.save(owner, 'WA_REMINDER_EXPIRY_H7', { body: 'Halo {{email}}' }, 'c')).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
+    expect(db.notificationTemplate.update).not.toHaveBeenCalled();
+    const saved = await service.save(owner, 'wa_reminder_expiry_h7', { body: 'Baru {{nama}}' }, 'c');
+    expect(db.notificationTemplate.create).not.toHaveBeenCalled();
+    expect(db.notificationTemplate.update).toHaveBeenCalledWith({ where: { id: templateId }, data: { body: 'Baru {{nama}}' } });
+    expect(saved).toMatchObject({ id: templateId, status: 'PUBLISHED', body: 'Baru {{nama}}' });
+  });
+
+  it('publishes the first text straight away, numbered after any legacy versions', async () => {
+    const { service, db } = managementSetup();
+    db.notificationTemplate.findFirst.mockResolvedValue(null);
+    const created = await service.save(owner, 'WA_REMINDER_EXPIRY_H7', { body: 'Halo {{nama}}!' }, 'c');
     expect(db.notificationTemplate.create.mock.calls[0]![0].data).toMatchObject({
       templateKey: 'WA_REMINDER_EXPIRY_H7',
       channel: 'WHATSAPP',
       version: 3,
-      status: 'DRAFT',
+      status: 'PUBLISHED',
       body: 'Halo {{nama}}!',
     });
-    expect(created).toMatchObject({ version: 3, status: 'DRAFT' });
+    expect(created).toMatchObject({ version: 3, status: 'PUBLISHED' });
   });
 
-  it('edits drafts only, duplicates any version, and publishing archives the previous published one atomically', async () => {
-    const { service, db, tx } = managementSetup();
-    await service.updateDraft(owner, templateId, { body: 'Baru {{nama}}' }, 'c');
-    expect(db.notificationTemplate.updateMany.mock.calls[0]![0].where).toEqual({ id: templateId, status: 'DRAFT' });
-    db.notificationTemplate.updateMany.mockResolvedValueOnce({ count: 0 });
-    await expect(service.updateDraft(owner, templateId, { body: 'Baru' }, 'c')).rejects.toMatchObject({ code: 'INVALID_STATE' });
-    await service.duplicate(owner, templateId, 'c');
-    expect(db.notificationTemplate.create.mock.calls[0]![0].data).toMatchObject({ body: 'Halo {{nama}}', status: 'DRAFT' });
-    await service.transition(owner, templateId, 'PUBLISHED', 'c');
-    expect(tx.notificationTemplate.updateMany).toHaveBeenNthCalledWith(2, {
-      where: { templateKey: 'WA_REMINDER_EXPIRY_H7', channel: 'WHATSAPP', status: 'PUBLISHED', id: { not: templateId } },
+  it('resetting archives the live text so the built-in one is used; the reason is optional', async () => {
+    const { service, db } = managementSetup();
+    await expect(service.reset(owner, 'WA_REMINDER_EXPIRY_H7', 'c', 'ab')).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
+    expect(db.notificationTemplate.updateMany).not.toHaveBeenCalled();
+    await expect(service.reset(owner, 'WA_REMINDER_EXPIRY_H7', 'c')).resolves.toEqual({ reset: true });
+    expect(db.notificationTemplate.updateMany).toHaveBeenCalledWith({
+      where: { templateKey: 'WA_REMINDER_EXPIRY_H7', channel: 'WHATSAPP', status: 'PUBLISHED' },
       data: { status: 'ARCHIVED', archivedAt: expect.any(Date) },
     });
-    tx.notificationTemplate.updateMany.mockReset().mockResolvedValueOnce({ count: 0 });
-    await expect(service.transition(owner, templateId, 'PUBLISHED', 'c')).rejects.toMatchObject({ code: 'INVALID_STATE' });
-    await expect(service.transition(owner, templateId, 'DELETED' as never, 'c')).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
-  });
-
-  it('archiving a version takes an optional reason: too short is rejected, empty is fine', async () => {
-    const { service, db } = managementSetup({ status: 'PUBLISHED' });
-    await expect(service.transition(owner, templateId, 'ARCHIVED', 'c', 'ab')).rejects.toMatchObject({
-      code: 'VALIDATION_ERROR',
-    });
-    expect(db.notificationTemplate.updateMany).not.toHaveBeenCalled();
-    await service.transition(owner, templateId, 'ARCHIVED', 'c', undefined);
-    expect(db.notificationTemplate.updateMany).toHaveBeenCalledTimes(1);
+    db.notificationTemplate.findMany.mockResolvedValue([]);
+    await expect(service.reset(owner, 'WA_REMINDER_EXPIRY_H7', 'c')).resolves.toEqual({ reset: false });
   });
 
   describe('email templates (subject + intro; the action button always keeps its default label and link)', () => {
@@ -312,55 +321,37 @@ describe('NotificationManagementService', () => {
       ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
     });
 
-    it('creates the next draft version, storing subject and intro in their own columns', async () => {
+    it('stores subject and intro in their own columns, in place or as the first text', async () => {
       const { service, db } = managementSetup(emailRow());
       await expect(
-        service.create(owner, { templateKey: 'AUTH_PASSWORD_RESET_V1', body: { subject: '', intro: 'x' } }, 'c'),
+        service.save(owner, 'AUTH_PASSWORD_RESET_V1', { body: { subject: '', intro: 'x' } }, 'c'),
       ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
-      const created = await service.create(
+      await service.save(owner, 'auth_password_reset_v1', { body: { subject: 'S', intro: 'I' } }, 'c');
+      expect(db.notificationTemplate.update).toHaveBeenCalledWith({
+        where: { id: templateId },
+        data: { subject: 'S', body: 'I' },
+      });
+
+      db.notificationTemplate.findFirst.mockResolvedValue(null);
+      const created = await service.save(
         owner,
-        { templateKey: 'auth_password_reset_v1', body: { subject: 'Judul baru', intro: 'Paragraf baru.' } },
+        'AUTH_PASSWORD_RESET_V1',
+        { body: { subject: 'Judul baru', intro: 'Paragraf baru.' } },
         'c',
       );
-      expect(db.notificationTemplate.create.mock.calls[0]![0].data).toMatchObject({
-        templateKey: 'AUTH_PASSWORD_RESET_V1',
-        channel: 'EMAIL',
-        version: 3,
-        status: 'DRAFT',
-        subject: 'Judul baru',
-        body: 'Paragraf baru.',
-      });
-      expect(created).toMatchObject({ channel: 'EMAIL', version: 3 });
-    });
-
-    it('edits an email draft, duplicates it under the email channel (not WhatsApp), and publishing re-validates', async () => {
-      const { service, db, tx } = managementSetup(emailRow());
-      await service.updateDraft(owner, templateId, { body: { subject: 'S', intro: 'I' } }, 'c');
-      expect(db.notificationTemplate.updateMany.mock.calls[0]![0].data).toEqual({ subject: 'S', body: 'I' });
-
-      await service.duplicate(owner, templateId, 'c');
       expect(db.notificationTemplate.aggregate.mock.calls[0]![0].where).toEqual({
         templateKey: 'AUTH_PASSWORD_RESET_V1',
         channel: 'EMAIL',
       });
       expect(db.notificationTemplate.create.mock.calls[0]![0].data).toMatchObject({
+        templateKey: 'AUTH_PASSWORD_RESET_V1',
         channel: 'EMAIL',
-        subject: 'Reset password Daily Dose Pilates',
-        body: 'Kami menerima permintaan reset password untuk akun Anda.',
+        version: 3,
+        status: 'PUBLISHED',
+        subject: 'Judul baru',
+        body: 'Paragraf baru.',
       });
-
-      await service.transition(owner, templateId, 'PUBLISHED', 'c');
-      expect(tx.notificationTemplate.updateMany).toHaveBeenNthCalledWith(2, {
-        where: { templateKey: 'AUTH_PASSWORD_RESET_V1', channel: 'EMAIL', status: 'PUBLISHED', id: { not: templateId } },
-        data: { status: 'ARCHIVED', archivedAt: expect.any(Date) },
-      });
-    });
-
-    it('refuses to publish an email draft whose subject was cleared out from under it', async () => {
-      const { service } = managementSetup(emailRow({ subject: '' }));
-      await expect(service.transition(owner, templateId, 'PUBLISHED', 'c')).rejects.toMatchObject({
-        code: 'VALIDATION_ERROR',
-      });
+      expect(created).toMatchObject({ channel: 'EMAIL', version: 3 });
     });
   });
 });

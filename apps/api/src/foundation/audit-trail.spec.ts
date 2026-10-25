@@ -177,7 +177,7 @@ describe('modules that had no audit now record their mutations', () => {
     );
   });
 
-  it('records publishing public content without copying its payload', async () => {
+  it('records saving public content without copying its payload', async () => {
     const audit = { catat: jest.fn().mockResolvedValue(undefined) };
     const row = {
       id: id(10),
@@ -187,27 +187,33 @@ describe('modules that had no audit now record their mutations', () => {
       kind: 'HERO_CAROUSEL',
       locale: 'id-ID',
       version: 4,
-      status: 'DRAFT',
+      status: 'PUBLISHED',
       payload: { slides: [{ title: 'sangat panjang' }] },
       createdById: id(1),
       createdAt: new Date(),
       updatedAt: new Date(),
-      publishedAt: null,
+      publishedAt: new Date(),
       archivedAt: null,
     };
-    const tx = { publicContent: { updateMany: jest.fn().mockResolvedValue({ count: 1 }) } };
     const db = {
-      publicContent: { findUnique: jest.fn().mockResolvedValue(row) },
-      $transaction: jest.fn(async (fn: (t: typeof tx) => unknown) => fn(tx)),
+      publicContent: {
+        findFirst: jest.fn().mockResolvedValue(row),
+        update: jest.fn().mockResolvedValue(row),
+      },
     };
     const service = new PublicContentManagementService(db as never, new PolicyService(), audit as never);
-    await service.transition(superOwner as never, id(10), 'PUBLISHED', 'corr-1');
+    await service.save(
+      superOwner as never,
+      'HERO_CAROUSEL',
+      { payload: { autoplay: true, intervalMs: 6000, slides: [] } },
+      'corr-1',
+    );
     const entry = audit.catat.mock.calls[0]![1];
     expect(entry).toMatchObject({
-      action: 'public_content.published',
+      action: 'public_content.updated',
       objectType: 'PublicContent',
       objectId: id(10),
-      beforeMasked: { status: 'DRAFT' },
+      beforeMasked: { status: 'PUBLISHED' },
     });
     expect(JSON.stringify(entry)).not.toContain('sangat panjang');
   });

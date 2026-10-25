@@ -57,6 +57,7 @@ describe('PublicContentManagementService with FAQ content', () => {
   const setup = () => {
     const db = {
       publicContent: {
+        findFirst: jest.fn().mockResolvedValue(null),
         aggregate: jest.fn().mockResolvedValue({ _max: { version: null } }),
         create: jest.fn().mockImplementation(async ({ data }) => ({
           id: '00000000-0000-4000-8000-000000000011',
@@ -72,34 +73,29 @@ describe('PublicContentManagementService with FAQ content', () => {
     return { db, service: new PublicContentManagementService(db as never, new PolicyService()) };
   };
 
-  it('stores a normalized FAQ draft under the class-detail FAQ key', async () => {
+  it('stores a normalized FAQ under the class-detail FAQ key and publishes it', async () => {
     const { service, db } = setup();
-    const created = await service.create(
+    const saved = await service.save(
       owner,
-      { kind: 'faq', payload: { items: [item({ question: '  Apa yang harus dibawa?  ' })] } },
+      'faq',
+      { payload: { items: [item({ question: '  Apa yang harus dibawa?  ' })] } },
       'c',
     );
     expect(db.publicContent.create.mock.calls[0]![0].data).toMatchObject({
       contentKey: 'CLASS_DETAIL_FAQ',
       kind: 'FAQ',
       scopeKey: 'GLOBAL',
-      status: 'DRAFT',
+      status: 'PUBLISHED',
       version: 1,
     });
-    expect(created).toMatchObject({ kind: 'FAQ', payload: { items: [{ question: 'Apa yang harus dibawa?' }] } });
+    expect(saved).toMatchObject({ kind: 'FAQ', payload: { items: [{ question: 'Apa yang harus dibawa?' }] } });
   });
 
-  it('refuses invalid FAQ content, a foreign content key and branch-scoped FAQ before saving', async () => {
+  it('refuses invalid FAQ content before saving', async () => {
     const { service, db } = setup();
-    await expect(service.create(owner, { kind: 'FAQ', payload: { items: [] } }, 'c')).rejects.toMatchObject({
+    await expect(service.save(owner, 'FAQ', { payload: { items: [] } }, 'c')).rejects.toMatchObject({
       code: 'VALIDATION_ERROR',
     });
-    await expect(
-      service.create(owner, { kind: 'FAQ', contentKey: 'HOME_HERO_CAROUSEL', payload: { items: [item()] } }, 'c'),
-    ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
-    await expect(
-      service.create(owner, { kind: 'FAQ', branchId: '00000000-0000-4000-8000-000000000001', payload: { items: [item()] } }, 'c'),
-    ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
     expect(db.publicContent.create).not.toHaveBeenCalled();
   });
 });

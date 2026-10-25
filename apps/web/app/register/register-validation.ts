@@ -72,6 +72,8 @@ export function validateRegisterField(
       if (!values.ktp) return undefined;
       return validateIdentityFile(values.ktp, 'Foto KTP');
     case 'consent':
+      if (!values.consent)
+        return 'Anda wajib menyetujui Syarat & Ketentuan serta Kebijakan Privasi Daily Dose.';
       return undefined;
   }
 }
@@ -85,6 +87,7 @@ export function validateRegistration(values: RegisterValues): RegisterErrors {
     'confirmation',
     'selfie',
     'ktp',
+    'consent',
   ];
   return Object.fromEntries(
     fields.flatMap((field) => {

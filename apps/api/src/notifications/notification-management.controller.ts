@@ -1,50 +1,38 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Put, Req, UseGuards } from '@nestjs/common';
 import { AuthGuard, type AuthenticatedRequest } from '../identity/auth.guard';
 import { NotificationManagementService } from './notification-management.service';
-
-export type ManagedContentStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
 
 @Controller('notification-management')
 @UseGuards(AuthGuard)
 export class NotificationManagementController {
   constructor(private readonly management: NotificationManagementService) {}
-  @Get() overview(
-    @Req() req: AuthenticatedRequest,
-    @Query('status') status?: ManagedContentStatus,
-  ) {
-    return this.management.overview(req.principal, status);
+
+  @Get() overview(@Req() req: AuthenticatedRequest) {
+    return this.management.overview(req.principal);
   }
+
   @Post('templates/preview') preview(
     @Req() req: AuthenticatedRequest,
     @Body() body: { templateKey?: string; body?: unknown },
   ) {
     return this.management.preview(req.principal, body);
   }
-  @Post('templates') create(
+
+  /** Simpan dan langsung pakai teks template. */
+  @Put('templates/:templateKey') save(
     @Req() req: AuthenticatedRequest,
-    @Body() body: { templateKey?: string; body?: unknown },
-  ) {
-    return this.management.create(req.principal, body, req.correlationId ?? 'unknown');
-  }
-  @Patch('templates/:id') updateDraft(
-    @Req() req: AuthenticatedRequest,
-    @Param('id') id: string,
+    @Param('templateKey') templateKey: string,
     @Body() body: { body?: unknown },
   ) {
-    return this.management.updateDraft(req.principal, id, body, req.correlationId ?? 'unknown');
+    return this.management.save(req.principal, templateKey, body, req.correlationId ?? 'unknown');
   }
-  @Post('templates/:id/duplicate') duplicate(
+
+  /** Kembalikan template ke teks bawaan. */
+  @Post('templates/:templateKey/reset') reset(
     @Req() req: AuthenticatedRequest,
-    @Param('id') id: string,
+    @Param('templateKey') templateKey: string,
+    @Body() reasonBody?: { reason?: string },
   ) {
-    return this.management.duplicate(req.principal, id, req.correlationId ?? 'unknown');
-  }
-  @Post('templates/:id/:status') transition(
-    @Req() req: AuthenticatedRequest,
-    @Param('id') id: string,
-    @Param('status') status: 'PUBLISHED' | 'ARCHIVED',
-    @Body() body?: { reason?: string },
-  ) {
-    return this.management.transition(req.principal, id, status, req.correlationId ?? 'unknown', body?.reason);
+    return this.management.reset(req.principal, templateKey, req.correlationId ?? 'unknown', reasonBody?.reason);
   }
 }

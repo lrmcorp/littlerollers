@@ -78,16 +78,6 @@ export class LifecycleController {
     return this.lifecycle.remove(req.principal, 'min-quota', id, body?.reason, req.correlationId ?? 'unknown');
   }
 
-  @Delete('public-content-management/:id')
-  removePublicContent(@Req() req: AuthenticatedRequest, @Param('id') id: string, @Body() body: { reason?: string }) {
-    return this.lifecycle.remove(req.principal, 'public-content', id, body?.reason, req.correlationId ?? 'unknown');
-  }
-
-  @Delete('notification-management/templates/:id')
-  removeTemplate(@Req() req: AuthenticatedRequest, @Param('id') id: string, @Body() body: { reason?: string }) {
-    return this.lifecycle.remove(req.principal, 'notification-template', id, body?.reason, req.correlationId ?? 'unknown');
-  }
-
   @Delete('class-slots/:id')
   removeClassSlot(@Req() req: AuthenticatedRequest, @Param('id') id: string, @Body() body: { reason?: string }) {
     return this.lifecycle.remove(req.principal, 'class-slot', id, body?.reason, req.correlationId ?? 'unknown');

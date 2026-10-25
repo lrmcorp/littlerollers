@@ -41,8 +41,6 @@ export function contentFailure(error: unknown, fallback: string, context: 'slide
     if (issues.includes('TOO_LONG')) return 'Ada teks slide yang terlalu panjang. Persingkat lalu coba lagi.';
     return 'Isi slider belum valid. Periksa jumlah slide (maks. 10), durasi, dan isian setiap slide.';
   }
-  if (failure?.code === 'INVALID_STATE')
-    return 'Konten ini sudah tidak berstatus draf. Muat ulang halaman lalu coba lagi.';
   if (failure?.status === 403 || failure?.status === 404)
     return context === 'faq'
       ? 'Anda tidak memiliki izin mengelola FAQ.'

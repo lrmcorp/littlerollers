@@ -12,8 +12,6 @@ export type LifecycleKind =
   | 'voucher'
   | 'payment-account'
   | 'min-quota'
-  | 'public-content'
-  | 'notification-template'
   | 'class-slot'
   | 'user';
 
@@ -42,8 +40,6 @@ const DELETE_PATH: Record<LifecycleKind, string> = {
   voucher: 'vouchers',
   'payment-account': 'payment-accounts',
   'min-quota': 'min-quota-settings',
-  'public-content': 'public-content-management',
-  'notification-template': 'notification-management/templates',
   'class-slot': 'class-slots',
   user: 'users',
 };

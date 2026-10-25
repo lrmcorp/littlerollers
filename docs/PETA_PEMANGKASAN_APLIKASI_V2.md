@@ -1,6 +1,6 @@
 # Peta Pemangkasan — Daily Dose Pilates V2
 
-> **Status (25 Okt 2026):** **Gelombang 0 dan 1 selesai**; **gelombang 3 sebagian** (lihat 4.4). Gelombang 2 dan 4 masih usulan.
+> **Status (25 Okt 2026):** **Gelombang 0, 1, dan 2 selesai**; **gelombang 3 sebagian** (lihat 4.4). Gelombang 4 masih usulan.
 >
 > **Konteks dari pemilik produk:** v1 (Laravel, `dailydosepilates.com`) **masih berjalan di produksi** dengan struktur data berbeda; v2 (ini) **belum produksi** dan akan menggantikannya. Akibatnya: skrip migrasi v1→v2 di `tools/migrations` **dipertahankan** sampai peluncuran, dan data di database dev kemungkinan berasal dari v1 (data pelanggan nyata).
 > **Dasar:** pembacaan kode, hitungan baris/endpoint/tabel, dan data database dev. Saya **tidak punya data pemakaian produksi**, jadi bagian bertanda **TANYA** menunggu keputusan pemilik produk.
@@ -66,7 +66,8 @@ Semua yang **tidak** ada di daftar ini harus membuktikan kegunaannya.
 > - **Gelombang 2, butir pertama selesai (26 Okt):** 85 pembungkus alias Indonesia (`daftarX`, `buatX`, ...) di 21 layanan API dihapus; tidak ada pemanggilnya di api, web, tools, maupun tes.
 > - **Peran selesai (26 Okt):** hanya tujuh peran kanonik (`SUPER_OWNER`, `OWNER`, `MANAGER`, `ADMIN`, `FINANCE`, `INSTRUCTOR`, `CUSTOMER`); `OPS` (tidak pernah dipegang siapa pun) dihapus. Nilai lama `SUPERADMIN`/`COACH`/`MEMBER` tetap ada di enum database tetapi tidak pernah ditulis lagi: alat migrasi v1, seed, dan pembuatan akun memakai nama kanonik, dan `RoleAliasMigrationService` mengubah baris lama saat API menyala (di DB dev: 2 SUPERADMIN, 1 COACH, 38 MEMBER). Principal sekarang punya satu peran efektif, bukan dua (kanonik + alias).
 > - **Dashboard selesai (26 Okt):** lima fokus peran diganti dua ringkasan, keuangan (Super Owner, Owner, Finance) dan operasional (Super Owner, Owner, Admin, Manager); Super Owner dan Owner melihat keduanya. Dibuang: metrik "Koreksi", panel "Kesehatan job" dan bagian aktivitas audit (datanya selalu kosong), dan fokus `OPERATIONS` yang hanya dipicu peran `OPS`.
-> - **Belum:** klien API web, tampilan raksasa, konten publik versi, template notifikasi versi.
+> - **Konten publik dan template notifikasi selesai (26 Okt):** tanpa draf, versi, dan arsip. Satu isi aktif per jenis konten dan per kunci template: `PUT /public-content-management/:kind` dan `PUT /notification-management/templates/:key` menyimpan dan langsung memakainya; `POST .../reset` mengembalikan ke tampilan/teks bawaan (alasan opsional). Dicabut: buat draf, ubah draf, salin, terbit/arsip per baris, tab "Riwayat Versi", dan jalur hapus lifecycle untuk dua jenis ini. Baris draf/arsip lama tetap di tabel, tidak ditampilkan dan tidak dipakai.
+> - **Sengaja tidak dikerjakan:** klien API web (7.861 baris; risiko tinggi, manfaat kecil) dan tampilan raksasa (dipecah hanya saat berkas itu memang diubah).
 
 | Area | Masalah | Usulan |
 |---|---|---|

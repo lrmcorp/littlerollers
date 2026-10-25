@@ -47,6 +47,7 @@ describe('registration validation', () => {
       email: 'Masukkan alamat email yang valid.',
       password: 'Password minimal 8 karakter.',
       confirmation: 'Konfirmasi password tidak sama.',
+      consent: 'Anda wajib menyetujui Syarat & Ketentuan serta Kebijakan Privasi Daily Dose.',
     });
   });
 

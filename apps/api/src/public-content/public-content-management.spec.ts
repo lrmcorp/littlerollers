@@ -80,7 +80,7 @@ describe('validateHeroCarousel', () => {
   });
 });
 
-function setup(row: Record<string, unknown> | null = null) {
+function setup(row: Record<string, unknown> | null = null, active: boolean = true) {
   const stored = {
     id: contentId,
     contentKey: 'HOME_HERO_CAROUSEL',
@@ -89,28 +89,27 @@ function setup(row: Record<string, unknown> | null = null) {
     kind: 'HERO_CAROUSEL',
     locale: 'id-ID',
     version: 3,
-    status: 'DRAFT',
+    status: 'PUBLISHED',
     payload: hero(),
     createdById: id(100),
-    publishedAt: null,
+    publishedAt: new Date('2026-09-01T00:00:00Z'),
     archivedAt: null,
     createdAt: new Date('2026-09-01T00:00:00Z'),
     updatedAt: new Date('2026-09-01T00:00:00Z'),
     ...row,
   };
-  const tx = { publicContent: { updateMany: jest.fn().mockResolvedValue({ count: 1 }) } };
   const db = {
     publicContent: {
       findMany: jest.fn().mockResolvedValue([stored]),
-      findUnique: jest.fn().mockResolvedValue(stored),
+      findFirst: jest.fn().mockResolvedValue(active ? stored : null),
       aggregate: jest.fn().mockResolvedValue({ _max: { version: 3 } }),
       create: jest.fn().mockImplementation(async ({ data }) => ({ ...stored, ...data, id: id(11) })),
+      update: jest.fn().mockImplementation(async ({ data }) => ({ ...stored, ...data })),
       updateMany: jest.fn().mockResolvedValue({ count: 1 }),
     },
-    $transaction: jest.fn(async (fn: (t: typeof tx) => unknown) => fn(tx)),
   };
   const service = new PublicContentManagementService(db as never, new PolicyService());
-  return { service, db, tx };
+  return { service, db };
 }
 
 describe('PublicContentManagementService', () => {
@@ -118,110 +117,81 @@ describe('PublicContentManagementService', () => {
     const { service } = setup();
     const nobody = principalFor([]);
     await expect(service.list(nobody, {})).rejects.toMatchObject({ code: 'FORBIDDEN' });
-    await expect(
-      service.create(nobody, { kind: 'HERO_CAROUSEL', payload: hero() }, 'c'),
-    ).rejects.toMatchObject({ code: 'FORBIDDEN' });
-    await expect(service.transition(nobody, contentId, 'PUBLISHED', 'c')).rejects.toMatchObject({
+    await expect(service.save(nobody, 'HERO_CAROUSEL', { payload: hero() }, 'c')).rejects.toMatchObject({
       code: 'FORBIDDEN',
     });
+    await expect(service.reset(nobody, 'HERO_CAROUSEL', 'c')).rejects.toMatchObject({ code: 'FORBIDDEN' });
   });
 
   it('only lets branch:all holders change global content, and hides everything else from branch staff', async () => {
     const { service, db } = setup();
     await expect(
-      service.create(branchStaff, { kind: 'HERO_CAROUSEL', payload: hero() }, 'c'),
+      service.save(branchStaff, 'HERO_CAROUSEL', { payload: hero() }, 'c'),
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });
-    await expect(service.transition(branchStaff, contentId, 'PUBLISHED', 'c')).rejects.toMatchObject({
-      code: 'NOT_FOUND',
-    });
+    await expect(service.reset(branchStaff, 'HERO_CAROUSEL', 'c')).rejects.toMatchObject({ code: 'NOT_FOUND' });
     expect(db.publicContent.create).not.toHaveBeenCalled();
+    expect(db.publicContent.update).not.toHaveBeenCalled();
     await service.list(branchStaff, {});
     expect(JSON.stringify(db.publicContent.findMany.mock.calls[0]![0].where)).toContain('"in":["' + id(1) + '"]');
   });
 
-  it('refuses kinds the public site does not read and branch-scoped hero content', async () => {
+  it('lists only what is live on the site, never leftover drafts or archives', async () => {
     const { service, db } = setup();
-    await expect(
-      service.create(owner, { kind: 'BANNER', payload: { items: [] } }, 'c'),
-    ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
-    await expect(
-      service.create(owner, { kind: 'HERO_CAROUSEL', contentKey: 'FOOTER_NOTICE', payload: hero() }, 'c'),
-    ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
-    await expect(
-      service.create(owner, { kind: 'HERO_CAROUSEL', branchId: id(1), payload: hero() }, 'c'),
-    ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
-    await expect(
-      service.create(owner, { kind: 'HERO_CAROUSEL', payload: hero({ slides: [slide({ imageSrc: 'javascript:x' })] }) }, 'c'),
-    ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
-    expect(db.publicContent.create).not.toHaveBeenCalled();
+    await service.list(owner, { kind: 'faq' });
+    expect(JSON.stringify(db.publicContent.findMany.mock.calls[0]![0].where)).toContain('"status":"PUBLISHED"');
+    expect(JSON.stringify(db.publicContent.findMany.mock.calls[0]![0].where)).toContain('"kind":"FAQ"');
   });
 
-  it('creates the next draft version with the normalized payload', async () => {
+  it('refuses kinds the public site does not read and invalid payloads', async () => {
     const { service, db } = setup();
-    const created = await service.create(owner, { kind: 'hero_carousel', payload: hero() }, 'c');
+    await expect(service.save(owner, 'BANNER', { payload: { items: [] } }, 'c')).rejects.toMatchObject({
+      code: 'VALIDATION_ERROR',
+    });
+    await expect(
+      service.save(owner, 'HERO_CAROUSEL', { payload: hero({ slides: [slide({ imageSrc: 'javascript:x' })] }) }, 'c'),
+    ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
+    expect(db.publicContent.create).not.toHaveBeenCalled();
+    expect(db.publicContent.update).not.toHaveBeenCalled();
+  });
+
+  it('replaces the live content in place when there is one', async () => {
+    const { service, db } = setup();
+    const saved = await service.save(owner, 'hero_carousel', { payload: hero({ intervalMs: 8000 }) }, 'c');
+    expect(db.publicContent.create).not.toHaveBeenCalled();
+    expect(db.publicContent.update).toHaveBeenCalledWith({
+      where: { id: contentId },
+      data: { payload: expect.objectContaining({ intervalMs: 8000 }) },
+    });
+    expect(saved).toMatchObject({ id: contentId, status: 'PUBLISHED', version: 3 });
+  });
+
+  it('publishes the first content straight away, numbered after any legacy versions', async () => {
+    const { service, db } = setup(null, false);
+    const saved = await service.save(owner, 'HERO_CAROUSEL', { payload: hero() }, 'c');
+    expect(db.publicContent.update).not.toHaveBeenCalled();
     expect(db.publicContent.create.mock.calls[0]![0].data).toMatchObject({
       contentKey: 'HOME_HERO_CAROUSEL',
       scopeKey: 'GLOBAL',
       version: 4,
-      status: 'DRAFT',
+      status: 'PUBLISHED',
       createdById: owner.userId,
     });
-    expect(created).toMatchObject({ status: 'DRAFT', version: 4 });
+    expect(saved).toMatchObject({ status: 'PUBLISHED', version: 4 });
   });
 
-  it('edits only drafts and duplicates any version into a new draft', async () => {
+  it('resetting archives the live content so the site shows its defaults; optional reason', async () => {
     const { service, db } = setup();
-    await service.updateDraft(owner, contentId, { payload: hero({ intervalMs: 8000 }) }, 'c');
-    expect(db.publicContent.updateMany.mock.calls[0]![0].where).toEqual({ id: contentId, status: 'DRAFT' });
-    db.publicContent.updateMany.mockResolvedValue({ count: 0 });
-    await expect(
-      service.updateDraft(owner, contentId, { payload: hero() }, 'c'),
-    ).rejects.toMatchObject({ code: 'INVALID_STATE' });
-    await service.duplicate(owner, contentId, 'c');
-    expect(db.publicContent.create.mock.calls[0]![0].data).toMatchObject({ version: 4, status: 'DRAFT' });
-  });
-
-  it('publishing archives the previously published version of the same key in one transaction', async () => {
-    const { service, tx } = setup();
-    await service.transition(owner, contentId, 'PUBLISHED', 'c');
-    expect(tx.publicContent.updateMany).toHaveBeenNthCalledWith(1, {
-      where: { id: contentId, status: 'DRAFT' },
-      data: { status: 'PUBLISHED', publishedAt: expect.any(Date) },
-    });
-    expect(tx.publicContent.updateMany).toHaveBeenNthCalledWith(2, {
-      where: expect.objectContaining({
-        contentKey: 'HOME_HERO_CAROUSEL',
-        scopeKey: 'GLOBAL',
-        status: 'PUBLISHED',
-        id: { not: contentId },
-      }),
-      data: { status: 'ARCHIVED', archivedAt: expect.any(Date) },
-    });
-  });
-
-  it('only publishes drafts and archives non-archived content', async () => {
-    const { service, tx, db } = setup();
-    tx.publicContent.updateMany.mockResolvedValueOnce({ count: 0 });
-    await expect(service.transition(owner, contentId, 'PUBLISHED', 'c')).rejects.toMatchObject({
-      code: 'INVALID_STATE',
-    });
-    expect(tx.publicContent.updateMany).toHaveBeenCalledTimes(1);
-    db.publicContent.updateMany.mockResolvedValue({ count: 0 });
-    await expect(service.transition(owner, contentId, 'ARCHIVED', 'c', 'Konten usang')).rejects.toMatchObject({
-      code: 'INVALID_STATE',
-    });
-    await expect(
-      service.transition(owner, contentId, 'DELETED' as never, 'c'),
-    ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
-  });
-
-  it('archiving takes an optional reason: too short changes nothing, empty is fine', async () => {
-    const { service, db } = setup();
-    await expect(service.transition(owner, contentId, 'ARCHIVED', 'c', 'ab')).rejects.toMatchObject({
+    await expect(service.reset(owner, 'HERO_CAROUSEL', 'c', 'ab')).rejects.toMatchObject({
       code: 'VALIDATION_ERROR',
     });
     expect(db.publicContent.updateMany).not.toHaveBeenCalled();
-    await service.transition(owner, contentId, 'ARCHIVED', 'c', undefined);
-    expect(db.publicContent.updateMany).toHaveBeenCalled();
+    await expect(service.reset(owner, 'HERO_CAROUSEL', 'c')).resolves.toEqual({ reset: true });
+    expect(db.publicContent.updateMany).toHaveBeenCalledWith({
+      where: expect.objectContaining({ contentKey: 'HOME_HERO_CAROUSEL', status: 'PUBLISHED' }),
+      data: { status: 'ARCHIVED', archivedAt: expect.any(Date) },
+    });
+    const empty = setup(null, false);
+    empty.db.publicContent.findMany.mockResolvedValue([]);
+    await expect(empty.service.reset(owner, 'HERO_CAROUSEL', 'c')).resolves.toEqual({ reset: false });
   });
 });

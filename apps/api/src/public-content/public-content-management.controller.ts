@@ -1,53 +1,36 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
 import { AuthGuard, type AuthenticatedRequest } from '../identity/auth.guard';
-import {
-  PublicContentManagementService,
-  type ManagedContentStatus,
-} from './public-content-management.service';
-
-export type { ManagedContentStatus };
+import { PublicContentManagementService } from './public-content-management.service';
 
 @Controller('public-content-management')
 @UseGuards(AuthGuard)
 export class PublicContentManagementController {
   constructor(private readonly content: PublicContentManagementService) {}
+
+  /** Isi yang sedang tampil di situs, satu per jenis konten. */
   @Get() list(
     @Req() req: AuthenticatedRequest,
     @Query('branchId') branchId?: string,
     @Query('kind') kind?: string,
-    @Query('status') status?: ManagedContentStatus,
   ) {
-    return this.content.list(req.principal, { branchId, kind, status });
+    return this.content.list(req.principal, { branchId, kind });
   }
-  @Post() create(
+
+  /** Simpan dan langsung tampilkan (HERO_CAROUSEL atau FAQ). */
+  @Put(':kind') save(
     @Req() req: AuthenticatedRequest,
-    @Body()
-    body: {
-      contentKey?: string;
-      branchId?: string | null;
-      kind: string;
-      locale?: string;
-      payload: unknown;
-    },
-  ) {
-    return this.content.create(req.principal, body, req.correlationId ?? 'unknown');
-  }
-  @Patch(':id') updateDraft(
-    @Req() req: AuthenticatedRequest,
-    @Param('id') id: string,
+    @Param('kind') kind: string,
     @Body() body: { payload: unknown },
   ) {
-    return this.content.updateDraft(req.principal, id, body, req.correlationId ?? 'unknown');
+    return this.content.save(req.principal, kind, body, req.correlationId ?? 'unknown');
   }
-  @Post(':id/duplicate') duplicate(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
-    return this.content.duplicate(req.principal, id, req.correlationId ?? 'unknown');
-  }
-  @Post(':id/:status') transition(
+
+  /** Kembalikan situs ke tampilan bawaan. */
+  @Post(':kind/reset') reset(
     @Req() req: AuthenticatedRequest,
-    @Param('id') id: string,
-    @Param('status') status: 'PUBLISHED' | 'ARCHIVED',
+    @Param('kind') kind: string,
     @Body() body?: { reason?: string },
   ) {
-    return this.content.transition(req.principal, id, status, req.correlationId ?? 'unknown', body?.reason);
+    return this.content.reset(req.principal, kind, req.correlationId ?? 'unknown', body?.reason);
   }
 }

@@ -116,7 +116,7 @@ describe('LifecycleService.inspect', () => {
     });
   });
 
-  it('adds non-FK blockers: a used voucher, a protected Super Owner account, a published draft-only item', async () => {
+  it('adds non-FK blockers: a used voucher, a protected Super Owner account', async () => {
     const voucher = build({ row: { id: id(5), code: 'HEMAT', name: 'Hemat', usedCount: 4 }, counts: { pembelian: 4 } });
     const v = await voucher.service.inspect(superOwner as never, 'voucher', id(5));
     expect(v.blockers.map((item) => item.kind)).toEqual(['pembelian', 'voucher_used']);
@@ -125,11 +125,6 @@ describe('LifecycleService.inspect', () => {
     const o = await owner.service.inspect(superOwner as never, 'user', id(6));
     expect(o.blockers).toEqual([{ kind: 'protected_account', label: 'akun Super Owner (dilindungi)', count: 1 }]);
 
-    const content = build({ row: { id: id(7), status: 'PUBLISHED', contentKey: 'K', kind: 'FAQ', version: 1 } });
-    const c = await content.service.inspect(superOwner as never, 'public-content', id(7));
-    expect(c.deletable).toBe(false);
-    const draft = build({ row: { id: id(7), status: 'DRAFT', contentKey: 'K', kind: 'FAQ', version: 1 } });
-    expect((await draft.service.inspect(superOwner as never, 'public-content', id(7))).deletable).toBe(true);
   });
 
   it('a promotion is blocked by the purchases that used it even though no FK points at it', async () => {

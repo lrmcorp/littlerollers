@@ -53,7 +53,7 @@ describe('PublicContentManagementView', () => {
       return {
         ok: true,
         status: 200,
-        json: async () => (init?.method === 'POST' ? { id: 'new-1' } : init?.method === 'PATCH' ? { id: 'd1' } : items),
+        json: async () => (init?.method && init.method !== 'GET' ? { id: 'c1' } : items),
       };
     });
     vi.stubGlobal('fetch', fetchMock);
@@ -61,35 +61,37 @@ describe('PublicContentManagementView', () => {
 
   const writes = () => fetchMock.mock.calls.filter(([, init]) => init?.method && init.method !== 'GET');
 
-  it('creates a new draft version when only a published version exists', async () => {
+  it('saves the slider in place and shows it on the site right away', async () => {
     render(<PublicContentManagementView />);
     await screen.findByText(/Hero Carousel Beranda \(1 Slide\)/);
-    await userEvent.click(screen.getByRole('button', { name: 'Simpan Draft' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Simpan & Tampilkan di Website' }));
     await waitFor(() => expect(writes()).toHaveLength(1));
     const [url, init] = writes()[0]!;
-    expect(url).toBe('/api/v1/public-content-management');
-    expect(init.method).toBe('POST');
+    expect(url).toBe('/api/v1/public-content-management/HERO_CAROUSEL');
+    expect(init.method).toBe('PUT');
     expect(JSON.parse(init.body)).toMatchObject({
-      contentKey: 'HOME_HERO_CAROUSEL',
-      kind: 'HERO_CAROUSEL',
       payload: { slides: [expect.objectContaining({ title: 'Slide Terbit' })] },
     });
-    expect(await screen.findByText('Draft slider berhasil disimpan.')).toBeVisible();
+    expect(await screen.findByText(/Slider beranda tersimpan/)).toBeVisible();
+    expect(screen.queryByText(/Draft|Draf|versi/i)).toBeNull();
   });
 
-  it('updates the existing draft in place, and publishes that same draft', async () => {
-    items = [
-      item({ id: 'd1', status: 'DRAFT', version: 2, payload: { autoplay: true, intervalMs: 6000, slides: [slide('s9', 'Slide Draf'), slide('s10', 'Slide Dua')] } }),
-      item({}),
-    ];
+  it('can return the home page to the built-in slides after confirming', async () => {
     render(<PublicContentManagementView />);
-    await screen.findByText(/Hero Carousel Beranda \(2 Slide\)/);
-    await userEvent.click(screen.getByRole('button', { name: 'Publikasikan ke Website' }));
-    await waitFor(() => expect(writes()).toHaveLength(2));
-    expect(writes()[0]![0]).toBe('/api/v1/public-content-management/d1');
-    expect(writes()[0]![1].method).toBe('PATCH');
-    expect(writes()[1]![0]).toBe('/api/v1/public-content-management/d1/PUBLISHED');
-    expect(await screen.findByText(/berhasil dipublikasikan/)).toBeVisible();
+    await screen.findByText(/Hero Carousel Beranda/);
+    await userEvent.click(screen.getByRole('button', { name: 'Kembalikan ke Bawaan' }));
+    const dialog = await screen.findByRole('dialog');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Kembalikan' }));
+    await waitFor(() => expect(writes()).toHaveLength(1));
+    expect(writes()[0]![0]).toBe('/api/v1/public-content-management/HERO_CAROUSEL/reset');
+    expect(writes()[0]![1].method).toBe('POST');
+  });
+
+  it('offers no reset while the site still uses the built-in slides', async () => {
+    items = [];
+    render(<PublicContentManagementView />);
+    await screen.findByText(/Hero Carousel Beranda/);
+    expect(screen.queryByRole('button', { name: 'Kembalikan ke Bawaan' })).toBeNull();
   });
 
   it('removes a slide only after the in-app confirmation, without the native browser dialog', async () => {
@@ -116,20 +118,7 @@ describe('PublicContentManagementView', () => {
     };
     render(<PublicContentManagementView />);
     await screen.findByText(/Hero Carousel Beranda/);
-    await userEvent.click(screen.getByRole('button', { name: 'Simpan Draft' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Simpan & Tampilkan di Website' }));
     expect(await screen.findByText(/tidak aman/)).toBeVisible();
-  });
-
-  it('lists versions in Indonesian and can duplicate one into a new draft', async () => {
-    items = [item({ id: 'd1', status: 'DRAFT', version: 2 }), item({ id: 'c1', version: 1 })];
-    render(<PublicContentManagementView />);
-    await screen.findByText(/Riwayat Versi Konten \(2\)/);
-    await userEvent.click(screen.getByRole('button', { name: /Riwayat Versi Konten/ }));
-    expect(screen.getByText('Terbit')).toBeVisible();
-    expect(screen.getByText('Draf')).toBeVisible();
-    expect(screen.queryByText('PUBLISHED')).toBeNull();
-    await userEvent.click(screen.getAllByRole('button', { name: 'Salin jadi draf' })[1]!);
-    await waitFor(() => expect(writes()).toHaveLength(1));
-    expect(writes()[0]![0]).toBe('/api/v1/public-content-management/c1/duplicate');
   });
 });

@@ -5,7 +5,7 @@ import { AuditService } from '../foundation/audit.service';
 import { optionalReason } from '../foundation/reason';
 import type { SessionPrincipal } from '../identity/identity.service';
 import { PolicyService } from '../identity/policy.service';
-import { ApiProblem, ENTITY_ID_REGEX } from '../identity/security';
+import { ApiProblem } from '../identity/security';
 import { renderEmail, type EmailTemplateKey } from '@dailydose/notification-core';
 import {
   EMAIL_CHANNEL,
@@ -19,8 +19,6 @@ import {
   validateEmailTemplateCopy,
   validateTemplateBody,
 } from './notification-template.registry';
-
-type Status = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
 
 const notFound = () => new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
 const invalid = (field: string, issue = 'INVALID') =>
@@ -95,19 +93,12 @@ export class NotificationManagementService {
     };
   }
 
-  private async load(id: string) {
-    if (!ENTITY_ID_REGEX.test(id)) throw notFound();
-    const row = await this.db.notificationTemplate.findUnique({ where: { id } });
-    if (!row) throw notFound();
-    return row;
-  }
-
-  async overview(principal: SessionPrincipal, status?: Status) {
+  /** Template yang sedang dipakai (satu per kunci) beserta katalog bawaan dan log pengiriman. */
+  async overview(principal: SessionPrincipal) {
     this.require(principal);
-    if (status && !['DRAFT', 'PUBLISHED', 'ARCHIVED'].includes(status)) throw invalid('status');
     const [templates, logs, grouped] = await Promise.all([
       this.db.notificationTemplate.findMany({
-        where: status ? { status } : {},
+        where: { status: 'PUBLISHED' },
         orderBy: [{ templateKey: 'asc' }, { version: 'desc' }],
         take: 200,
       }),
@@ -167,51 +158,53 @@ export class NotificationManagementService {
     return { channel, text: renderTemplate(body, SAMPLE_VALUES), length: body.length };
   }
 
-  async create(
+  /**
+   * Simpan isi template dan langsung pakai. Satu isi aktif per kunci template: bila sudah ada isinya diganti,
+   * bila belum dibuat. Tidak ada draf, versi, atau arsip.
+   */
+  async save(
     principal: SessionPrincipal,
-    input: { templateKey?: string; body?: unknown },
-    _correlationId: string,
+    templateKeyParam: string,
+    input: { body?: unknown },
+    correlationId: string,
   ) {
     this.require(principal);
-    const templateKey = input?.templateKey?.trim().toUpperCase() ?? '';
+    const templateKey = templateKeyParam?.trim().toUpperCase() ?? '';
     const { channel } = this.definitionFor(templateKey);
-    const draft =
+    const fields =
       channel === EMAIL_CHANNEL
-        ? await this.nextEmailDraft(
-            principal.userId,
-            templateKey,
-            validateEmailTemplateCopy(templateKey, input.body),
-          )
-        : await this.nextDraft(principal.userId, templateKey, validateTemplateBody(templateKey, input.body));
-    await this.record(principal, _correlationId, 'notification_template.draft_created', draft);
-    return draft;
-  }
+        ? (({ subject, intro }) => ({ subject, body: intro }))(validateEmailTemplateCopy(templateKey, input?.body))
+        : { body: validateTemplateBody(templateKey, input?.body) };
 
-  private async nextDraft(createdById: string, templateKey: string, body: string) {
-    const definition = TEMPLATE_REGISTRY[templateKey]!;
-    return this.createVersion(createdById, templateKey, WHATSAPP_CHANNEL, {
+    const active = await this.db.notificationTemplate.findFirst({
+      where: { templateKey, channel, status: 'PUBLISHED' },
+      orderBy: { version: 'desc' },
+    });
+    if (active) {
+      const updated = this.view(
+        await this.db.notificationTemplate.update({ where: { id: active.id }, data: fields }),
+      );
+      await this.record(principal, correlationId, 'notification_template.updated', updated, {
+        status: active.status,
+      });
+      return updated;
+    }
+
+    const definition =
+      channel === EMAIL_CHANNEL
+        ? EMAIL_TEMPLATE_REGISTRY[templateKey as EmailTemplateKey]!
+        : TEMPLATE_REGISTRY[templateKey]!;
+    const created = await this.createFirst(principal.userId, templateKey, channel, {
       eventType: definition.eventType,
       title: definition.label,
-      body,
+      ...fields,
     });
+    await this.record(principal, correlationId, 'notification_template.published', created);
+    return created;
   }
 
-  private async nextEmailDraft(
-    createdById: string,
-    templateKey: string,
-    copy: { subject: string; intro: string },
-  ) {
-    const definition = EMAIL_TEMPLATE_REGISTRY[templateKey as EmailTemplateKey]!;
-    return this.createVersion(createdById, templateKey, EMAIL_CHANNEL, {
-      eventType: definition.eventType,
-      title: definition.label,
-      subject: copy.subject,
-      body: copy.intro,
-    });
-  }
-
-  /** Nomor versi berikutnya untuk `templateKey`+`channel`; diulang bila dua draf dibuat bersamaan. */
-  private async createVersion(
+  /** Buat isi aktif pertama, bernomor setelah versi lama bila ada; diulang bila dua penyimpanan bersamaan. */
+  private async createFirst(
     createdById: string,
     templateKey: string,
     channel: string,
@@ -228,7 +221,8 @@ export class NotificationManagementService {
             templateKey,
             channel,
             version: (latest._max.version ?? 0) + 1,
-            status: 'DRAFT',
+            status: 'PUBLISHED',
+            publishedAt: new Date(),
             createdById,
             ...fields,
           },
@@ -242,97 +236,25 @@ export class NotificationManagementService {
     throw new ApiProblem('CONFLICT', HttpStatus.CONFLICT);
   }
 
-  async updateDraft(
-    principal: SessionPrincipal,
-    id: string,
-    input: { body?: unknown },
-    _correlationId: string,
-  ) {
+  /** Kembalikan template ke teks bawaan: isi aktif diarsipkan. Alasan opsional (3–500 karakter bila diisi). */
+  async reset(principal: SessionPrincipal, templateKeyParam: string, correlationId: string, reasonInput?: string) {
     this.require(principal);
-    const current = await this.load(id);
-    const data =
-      current.channel === EMAIL_CHANNEL
-        ? (({ subject, intro }) => ({ subject, body: intro }))(
-            validateEmailTemplateCopy(current.templateKey, input?.body),
-          )
-        : { body: validateTemplateBody(current.templateKey, input?.body) };
-    const claimed = await this.db.notificationTemplate.updateMany({
-      where: { id, status: 'DRAFT' },
-      data,
-    });
-    if (claimed.count !== 1) throw new ApiProblem('INVALID_STATE', HttpStatus.CONFLICT);
-    const updated = this.view(await this.load(id));
-    await this.record(principal, _correlationId, 'notification_template.draft_updated', updated);
-    return updated;
-  }
-
-  async duplicate(principal: SessionPrincipal, id: string, _correlationId: string) {
-    this.require(principal);
-    const current = await this.load(id);
-    const draft =
-      current.channel === EMAIL_CHANNEL
-        ? await this.nextEmailDraft(principal.userId, current.templateKey, {
-            subject: current.subject ?? '',
-            intro: current.body,
-          })
-        : await this.nextDraft(principal.userId, current.templateKey, current.body);
-    await this.record(principal, _correlationId, 'notification_template.duplicated', draft, {
-      status: current.status,
-    });
-    return draft;
-  }
-
-  async transition(
-    principal: SessionPrincipal,
-    id: string,
-    status: 'PUBLISHED' | 'ARCHIVED',
-    _correlationId: string,
-    reasonInput?: string,
-  ) {
-    this.require(principal);
-    if (status !== 'PUBLISHED' && status !== 'ARCHIVED') throw invalid('status');
-    // Alasan opsional; bila diisi harus 3–500 karakter.
+    const templateKey = templateKeyParam?.trim().toUpperCase() ?? '';
+    const { channel } = this.definitionFor(templateKey);
     const reason = optionalReason(reasonInput) ?? '';
-    const current = await this.load(id);
-    const now = new Date();
-
-    if (status === 'PUBLISHED') {
-      // Isi divalidasi ulang: registry bisa berubah sejak draf dibuat.
-      if (current.channel === EMAIL_CHANNEL)
-        validateEmailTemplateCopy(current.templateKey, { subject: current.subject, intro: current.body });
-      else validateTemplateBody(current.templateKey, current.body);
-      await this.db.$transaction(async (tx) => {
-        const claimed = await tx.notificationTemplate.updateMany({
-          where: { id, status: 'DRAFT' },
-          data: { status: 'PUBLISHED', publishedAt: now },
-        });
-        if (claimed.count !== 1) throw new ApiProblem('INVALID_STATE', HttpStatus.CONFLICT);
-        await tx.notificationTemplate.updateMany({
-          where: {
-            templateKey: current.templateKey,
-            channel: current.channel,
-            status: 'PUBLISHED',
-            id: { not: id },
-          },
-          data: { status: 'ARCHIVED', archivedAt: now },
-        });
-      });
-    } else {
-      const claimed = await this.db.notificationTemplate.updateMany({
-        where: { id, status: { not: 'ARCHIVED' } },
-        data: { status: 'ARCHIVED', archivedAt: now },
-      });
-      if (claimed.count !== 1) throw new ApiProblem('INVALID_STATE', HttpStatus.CONFLICT);
-    }
-    const result = this.view(await this.load(id));
-    await this.record(
-      principal,
-      _correlationId,
-      status === 'PUBLISHED' ? 'notification_template.published' : 'notification_template.archived',
-      result,
-      { status: current.status },
-      reason || null,
-    );
-    return result;
+    const where = { templateKey, channel, status: 'PUBLISHED' as const };
+    const active = await this.db.notificationTemplate.findMany({ where });
+    if (active.length === 0) return { reset: false };
+    await this.db.notificationTemplate.updateMany({ where, data: { status: 'ARCHIVED', archivedAt: new Date() } });
+    for (const row of active)
+      await this.record(
+        principal,
+        correlationId,
+        'notification_template.archived',
+        { ...row, status: 'ARCHIVED' },
+        { status: row.status },
+        reason || null,
+      );
+    return { reset: true };
   }
 }

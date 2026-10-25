@@ -5,11 +5,9 @@ import { AuditService } from '../foundation/audit.service';
 import { optionalReason } from '../foundation/reason';
 import type { SessionPrincipal } from '../identity/identity.service';
 import { PolicyService } from '../identity/policy.service';
-import { ApiProblem, ENTITY_ID_REGEX } from '../identity/security';
+import { ApiProblem } from '../identity/security';
 import { FAQ_CONTENT_KEY, FAQ_KIND, validateFaq } from './faq.validation';
 import { HERO_CONTENT_KEY, HERO_KIND, validateHeroCarousel } from './hero-carousel.validation';
-
-export type ManagedContentStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
 
 const GLOBAL_SCOPE = 'GLOBAL';
 const DEFAULT_LOCALE = 'id-ID';
@@ -85,26 +83,15 @@ export class PublicContentManagementService {
     if (!allowed) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
   }
 
-  private async load(id: string) {
-    if (!ENTITY_ID_REGEX.test(id)) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
-    const row = await this.db.publicContent.findUnique({ where: { id } });
-    if (!row) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
-    return row;
-  }
-
-  async list(
-    principal: SessionPrincipal,
-    input: { branchId?: string; kind?: string; status?: ManagedContentStatus },
-  ) {
+  /** Isi yang sedang tampil di situs (satu per jenis konten). Baris draf/arsip lama tidak ditampilkan lagi. */
+  async list(principal: SessionPrincipal, input: { branchId?: string; kind?: string }) {
     this.policy.requireCapability(principal.capabilities, 'public-content:read');
-    if (input.status && !['DRAFT', 'PUBLISHED', 'ARCHIVED'].includes(input.status))
-      throw invalid('status');
     const scope = this.policy.capabilityBranchScope(principal, 'public-content:read');
     const rows = await this.db.publicContent.findMany({
       where: {
         AND: [
+          { status: 'PUBLISHED' },
           input.kind ? { kind: input.kind.toUpperCase() } : {},
-          input.status ? { status: input.status } : {},
           input.branchId ? { branchId: input.branchId } : {},
           // Konten global hanya terlihat pemegang cakupan semua cabang; konten cabang mengikuti cakupan.
           scope.all ? {} : { branchId: { in: scope.included } },
@@ -116,150 +103,78 @@ export class PublicContentManagementService {
     return rows.map((row) => this.view(row));
   }
 
-  async create(
-    principal: SessionPrincipal,
-    input: {
-      contentKey?: string;
-      branchId?: string | null;
-      kind: string;
-      locale?: string;
-      payload: unknown;
-    },
-    _correlationId: string,
-  ) {
-    const kind = input.kind?.trim().toUpperCase();
+  private supportedKind(kindParam: string) {
+    const kind = kindParam?.trim().toUpperCase();
     const supported = SUPPORTED_KINDS[kind];
     if (!supported) throw invalid('kind', 'UNSUPPORTED');
-    const contentKey = (input.contentKey?.trim() || supported.contentKey).toUpperCase();
-    if (contentKey !== supported.contentKey) throw invalid('contentKey', 'UNSUPPORTED');
-    if (input.branchId) throw invalid('branchId', 'GLOBAL_ONLY');
-    this.assertManage(principal, null);
-    const locale = input.locale?.trim() || DEFAULT_LOCALE;
-    if (locale.length > 10) throw invalid('locale');
-    const payload = supported.validate(input.payload) as Prisma.InputJsonValue;
-
-    const draft = await this.nextDraft(principal.userId, { contentKey, kind, locale, payload });
-    await this.record(principal, _correlationId, 'public_content.draft_created', draft);
-    return draft;
+    return { kind, ...supported };
   }
 
-  private async nextDraft(
-    createdById: string,
-    data: { contentKey: string; kind: string; locale: string; payload: Prisma.InputJsonValue },
-  ) {
+  /**
+   * Simpan isi konten dan langsung tampilkan di situs. Satu isi aktif per jenis konten: bila sudah ada, isinya
+   * diganti; bila belum, dibuat. Tidak ada draf, versi, atau arsip.
+   */
+  async save(principal: SessionPrincipal, kindParam: string, input: { payload: unknown }, correlationId: string) {
+    const { kind, contentKey, validate } = this.supportedKind(kindParam);
+    this.assertManage(principal, null);
+    const payload = validate(input?.payload) as Prisma.InputJsonValue;
+    const where = { contentKey, scopeKey: GLOBAL_SCOPE, locale: DEFAULT_LOCALE };
+
+    const active = await this.db.publicContent.findFirst({
+      where: { ...where, status: 'PUBLISHED' },
+      orderBy: { version: 'desc' },
+    });
+    if (active) {
+      const updated = await this.db.publicContent.update({ where: { id: active.id }, data: { payload } });
+      const result = this.view(updated);
+      await this.record(principal, correlationId, 'public_content.updated', result, { status: active.status });
+      return result;
+    }
+
     for (let attempt = 0; attempt < 3; attempt += 1) {
-      const latest = await this.db.publicContent.aggregate({
-        where: { contentKey: data.contentKey, scopeKey: GLOBAL_SCOPE, locale: data.locale },
-        _max: { version: true },
-      });
+      const latest = await this.db.publicContent.aggregate({ where, _max: { version: true } });
       try {
         const created = await this.db.publicContent.create({
           data: {
-            ...data,
-            scopeKey: GLOBAL_SCOPE,
+            ...where,
+            kind,
+            payload,
             branchId: null,
             version: (latest._max.version ?? 0) + 1,
-            status: 'DRAFT',
-            createdById,
+            status: 'PUBLISHED',
+            publishedAt: new Date(),
+            createdById: principal.userId,
           },
         });
-        return this.view(created);
+        const result = this.view(created);
+        await this.record(principal, correlationId, 'public_content.published', result);
+        return result;
       } catch (error) {
-        // Dua draf dibuat bersamaan mendapat nomor versi yang sama; ulangi dengan nomor berikutnya.
-        if (!(error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002'))
-          throw error;
+        // Dua penyimpanan pertama bersamaan mendapat nomor versi yang sama; ulangi dengan nomor berikutnya.
+        if (!(error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002')) throw error;
       }
     }
     throw new ApiProblem('CONFLICT', HttpStatus.CONFLICT);
   }
 
-  /** Ubah isi draf. Konten yang sudah terbit atau diarsipkan tidak diubah; buat draf baru dari salinannya. */
-  async updateDraft(
-    principal: SessionPrincipal,
-    id: string,
-    input: { payload: unknown },
-    _correlationId: string,
-  ) {
-    const current = await this.load(id);
-    this.assertManage(principal, current.branchId);
-    const supported = SUPPORTED_KINDS[current.kind];
-    if (!supported) throw invalid('kind', 'UNSUPPORTED');
-    const payload = supported.validate(input?.payload) as Prisma.InputJsonValue;
-
-    const claimed = await this.db.publicContent.updateMany({
-      where: { id, status: 'DRAFT' },
-      data: { payload },
-    });
-    if (claimed.count !== 1) throw new ApiProblem('INVALID_STATE', HttpStatus.CONFLICT);
-    const updated = this.view(await this.load(id));
-    await this.record(principal, _correlationId, 'public_content.draft_updated', updated);
-    return updated;
-  }
-
-  /** Salin konten (status apa pun) menjadi draf versi berikutnya. */
-  async duplicate(principal: SessionPrincipal, id: string, _correlationId: string) {
-    const current = await this.load(id);
-    this.assertManage(principal, current.branchId);
-    const draft = await this.nextDraft(principal.userId, {
-      contentKey: current.contentKey,
-      kind: current.kind,
-      locale: current.locale,
-      payload: current.payload as Prisma.InputJsonValue,
-    });
-    await this.record(principal, _correlationId, 'public_content.duplicated', draft, {
-      status: current.status,
-    });
-    return draft;
-  }
-
-  async transition(
-    principal: SessionPrincipal,
-    id: string,
-    status: 'PUBLISHED' | 'ARCHIVED',
-    _correlationId: string,
-    reasonInput?: string,
-  ) {
-    if (status !== 'PUBLISHED' && status !== 'ARCHIVED') throw invalid('status');
-    // Alasan opsional; bila diisi harus 3–500 karakter.
+  /** Kembalikan situs ke tampilan bawaan: isi aktif diarsipkan. Alasan opsional (3–500 karakter bila diisi). */
+  async reset(principal: SessionPrincipal, kindParam: string, correlationId: string, reasonInput?: string) {
+    const { contentKey } = this.supportedKind(kindParam);
     const reason = optionalReason(reasonInput) ?? '';
-    const current = await this.load(id);
-    this.assertManage(principal, current.branchId);
-    const now = new Date();
-
-    if (status === 'PUBLISHED') {
-      await this.db.$transaction(async (tx) => {
-        const claimed = await tx.publicContent.updateMany({
-          where: { id, status: 'DRAFT' },
-          data: { status: 'PUBLISHED', publishedAt: now },
-        });
-        if (claimed.count !== 1) throw new ApiProblem('INVALID_STATE', HttpStatus.CONFLICT);
-        await tx.publicContent.updateMany({
-          where: {
-            contentKey: current.contentKey,
-            scopeKey: current.scopeKey,
-            locale: current.locale,
-            status: 'PUBLISHED',
-            id: { not: id },
-          },
-          data: { status: 'ARCHIVED', archivedAt: now },
-        });
-      });
-    } else {
-      const claimed = await this.db.publicContent.updateMany({
-        where: { id, status: { not: 'ARCHIVED' } },
-        data: { status: 'ARCHIVED', archivedAt: now },
-      });
-      if (claimed.count !== 1) throw new ApiProblem('INVALID_STATE', HttpStatus.CONFLICT);
-    }
-    const result = this.view(await this.load(id));
-    await this.record(
-      principal,
-      _correlationId,
-      status === 'PUBLISHED' ? 'public_content.published' : 'public_content.archived',
-      result,
-      { status: current.status },
-      reason || null,
-    );
-    return result;
+    this.assertManage(principal, null);
+    const where = { contentKey, scopeKey: GLOBAL_SCOPE, locale: DEFAULT_LOCALE, status: 'PUBLISHED' as const };
+    const active = await this.db.publicContent.findMany({ where });
+    if (active.length === 0) return { reset: false };
+    await this.db.publicContent.updateMany({ where, data: { status: 'ARCHIVED', archivedAt: new Date() } });
+    for (const row of active)
+      await this.record(
+        principal,
+        correlationId,
+        'public_content.archived',
+        { ...row, status: 'ARCHIVED' },
+        { status: row.status },
+        reason || null,
+      );
+    return { reset: true };
   }
 }

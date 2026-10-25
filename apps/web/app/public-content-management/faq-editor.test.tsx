@@ -52,68 +52,63 @@ describe('FaqEditor', () => {
     vi.stubGlobal('fetch', fetchMock);
   });
 
-  it('says the site uses the built-in questions when nothing is published, and keeps saving disabled until filled', async () => {
+  it('says the site uses the built-in questions when nothing is saved, and keeps saving disabled until filled', async () => {
     render(<FaqEditor items={[]} {...props()} />);
     const user = userEvent.setup();
     expect(screen.getByText(/memakai 3 pertanyaan bawaan/)).toBeVisible();
-    expect(screen.getByRole('button', { name: 'Publikasikan FAQ' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Simpan Draf FAQ' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Simpan & Tampilkan FAQ' })).toBeDisabled();
+    expect(screen.queryByRole('button', { name: 'Kembalikan ke Bawaan' })).toBeNull();
 
     await user.click(screen.getByRole('button', { name: /Tambah pertanyaan/ }));
     await user.type(screen.getByRole('textbox', { name: 'Pertanyaan 1' }), 'Apa?');
     await user.type(screen.getByRole('textbox', { name: 'Jawaban 1' }), 'Jawaban panjang cukup.');
-    expect(screen.getByRole('button', { name: 'Publikasikan FAQ' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Simpan & Tampilkan FAQ' })).toBeDisabled();
     expect(screen.getByRole('note')).toHaveTextContent(/minimal 5 karakter/);
     await user.type(screen.getByRole('textbox', { name: 'Pertanyaan 1' }), 'k');
-    expect(screen.getByRole('button', { name: 'Publikasikan FAQ' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Simpan & Tampilkan FAQ' })).toBeEnabled();
     expect(screen.queryByRole('note')).toBeNull();
   });
 
-  it('creates a draft and publishes it, sending normalized text in the entered order', async () => {
+  it('saves with one request, sending normalized text in the entered order', async () => {
     const handlers = props();
     render(<FaqEditor items={[]} {...handlers} />);
     const user = userEvent.setup();
     await user.click(screen.getByRole('button', { name: /Tambah pertanyaan/ }));
     await user.type(screen.getByRole('textbox', { name: 'Pertanyaan 1' }), '  Apakah ada parkir?  ');
     await user.type(screen.getByRole('textbox', { name: 'Jawaban 1' }), 'Ya, parkir tersedia.');
-    await user.click(screen.getByRole('button', { name: 'Publikasikan FAQ' }));
+    await user.click(screen.getByRole('button', { name: 'Simpan & Tampilkan FAQ' }));
 
-    await waitFor(() => expect(writes()).toHaveLength(2));
-    const [createUrl, createInit] = writes()[0]!;
-    expect(createUrl).toBe('/api/v1/public-content-management');
-    expect(createInit.method).toBe('POST');
-    expect(JSON.parse(createInit.body)).toEqual({
-      contentKey: 'CLASS_DETAIL_FAQ',
-      kind: 'FAQ',
+    await waitFor(() => expect(writes()).toHaveLength(1));
+    const [url, init] = writes()[0]!;
+    expect(url).toBe('/api/v1/public-content-management/FAQ');
+    expect(init.method).toBe('PUT');
+    expect(JSON.parse(init.body)).toEqual({
       payload: { items: [{ question: 'Apakah ada parkir?', answer: 'Ya, parkir tersedia.' }] },
     });
-    expect(writes()[1]![0]).toBe('/api/v1/public-content-management/new-1/PUBLISHED');
-    expect(handlers.onMessage).toHaveBeenCalledWith(expect.stringMatching(/FAQ berhasil dipublikasikan/));
+    expect(handlers.onMessage).toHaveBeenCalledWith(expect.stringMatching(/FAQ tersimpan/));
     expect(handlers.onChanged).toHaveBeenCalled();
   });
 
-  it('edits a published FAQ into a new draft, and updates an existing draft in place', async () => {
-    const first = render(<FaqEditor items={[faqRow()]} {...props()} />);
+  it('edits the saved FAQ in place and can return to the built-in questions', async () => {
+    const handlers = props();
+    render(<FaqEditor items={[faqRow()]} {...handlers} />);
     const user = userEvent.setup();
     expect(screen.getByDisplayValue('Apakah cocok untuk pemula?')).toBeVisible();
-    await user.click(screen.getByRole('button', { name: 'Simpan Draf FAQ' }));
+    expect(screen.getByText('Tampil di situs')).toBeVisible();
+    await user.click(screen.getByRole('button', { name: 'Simpan & Tampilkan FAQ' }));
     await waitFor(() => expect(writes()).toHaveLength(1));
-    expect(writes()[0]![0]).toBe('/api/v1/public-content-management');
-    expect(writes()[0]![1].method).toBe('POST');
+    expect(writes()[0]![0]).toBe('/api/v1/public-content-management/FAQ');
     expect(JSON.parse(writes()[0]![1].body).payload.items[0]).toMatchObject({ id: 'faq-1' });
-    first.unmount();
 
     fetchMock.mockClear();
-    render(
-      <FaqEditor
-        items={[faqRow({ id: 'd1', status: 'DRAFT', version: 2 }), faqRow()]}
-        {...props()}
-      />,
+    await user.click(screen.getByRole('button', { name: 'Kembalikan ke Bawaan' }));
+    await user.click(
+      within(screen.getByRole('dialog', { name: 'Kembalikan ke pertanyaan bawaan?' })).getByRole('button', {
+        name: 'Kembalikan',
+      }),
     );
-    await user.click(screen.getByRole('button', { name: 'Simpan Draf FAQ' }));
     await waitFor(() => expect(writes()).toHaveLength(1));
-    expect(writes()[0]![0]).toBe('/api/v1/public-content-management/d1');
-    expect(writes()[0]![1].method).toBe('PATCH');
+    expect(writes()[0]![0]).toBe('/api/v1/public-content-management/FAQ/reset');
   });
 
   it('reorders and removes questions before saving', async () => {
@@ -128,7 +123,7 @@ describe('FaqEditor', () => {
       }),
     );
     expect(screen.getAllByRole('textbox', { name: /Pertanyaan \d/ })).toHaveLength(1);
-    await user.click(screen.getByRole('button', { name: 'Simpan Draf FAQ' }));
+    await user.click(screen.getByRole('button', { name: 'Simpan & Tampilkan FAQ' }));
     await waitFor(() => expect(writes()).toHaveLength(1));
     expect(JSON.parse(writes()[0]![1].body).payload.items).toEqual([
       { id: 'faq-1', question: 'Apakah cocok untuk pemula?', answer: 'Ya, cocok untuk pemula.' },
@@ -142,7 +137,7 @@ describe('FaqEditor', () => {
     };
     const handlers = props();
     render(<FaqEditor items={[faqRow()]} {...handlers} />);
-    await userEvent.click(screen.getByRole('button', { name: 'Simpan Draf FAQ' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Simpan & Tampilkan FAQ' }));
     await waitFor(() =>
       expect(handlers.onError).toHaveBeenCalledWith(expect.stringMatching(/jawaban \(maks\. 1500 karakter\)/)),
     );
@@ -150,7 +145,7 @@ describe('FaqEditor', () => {
 });
 
 describe('PublicContentManagementView FAQ tab', () => {
-  it('opens the FAQ editor from its tab and labels FAQ versions in the history', async () => {
+  it('opens the FAQ editor from its tab and has no version history tab', async () => {
     const rows = [
       faqRow(),
       {
@@ -172,9 +167,6 @@ describe('PublicContentManagementView FAQ tab', () => {
     await user.click(await screen.findByRole('button', { name: /FAQ Halaman Kelas/ }));
     expect(screen.getByRole('heading', { name: 'FAQ Halaman Detail Kelas' })).toBeVisible();
     expect(screen.getByDisplayValue('Apa yang perlu dibawa?')).toBeVisible();
-    await user.click(screen.getByRole('button', { name: /Riwayat Versi Konten/ }));
-    expect(screen.getByText(/FAQ halaman kelas/)).toBeVisible();
-    expect(screen.getByText(/2 pertanyaan/)).toBeVisible();
-    expect(screen.getByText(/Slider beranda/)).toBeVisible();
+    expect(screen.queryByRole('button', { name: /Riwayat Versi/ })).toBeNull();
   });
 });

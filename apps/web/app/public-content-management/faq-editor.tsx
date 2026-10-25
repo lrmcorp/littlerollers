@@ -36,8 +36,8 @@ const fromRow = (row?: ContentRow): Entry[] =>
   }));
 
 /**
- * FAQ yang tampil di halaman detail kelas publik. Alurnya sama dengan slider: simpan draf, lalu
- * terbitkan; yang belum terbit tidak tampil. Bila tidak ada FAQ terbit, situs memakai pertanyaan bawaan.
+ * FAQ yang tampil di halaman detail kelas publik. Menyimpan langsung menampilkannya di situs; tanpa FAQ
+ * tersimpan, situs memakai pertanyaan bawaan.
  */
 export function FaqEditor({
   items,
@@ -52,17 +52,14 @@ export function FaqEditor({
 }) {
   const feedback = useAppFeedback();
   const rows = items.filter((item) => item.contentKey === FAQ_KEY);
-  const draftRow = rows.find((row) => row.status === 'DRAFT');
-  const publishedRow = rows.find((row) => row.status === 'PUBLISHED');
-  // Editor memuat draf terbaru bila ada, kalau tidak versi yang sedang terbit.
-  const source = draftRow ?? publishedRow;
+  const source = rows[0];
   const [entries, setEntries] = useState<Entry[]>(() => fromRow(source));
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     setEntries(fromRow(source));
     // eslint-disable-next-line react-hooks/exhaustive-deps -- muat ulang hanya bila baris sumbernya berganti
-  }, [source?.id, source?.version, source?.updatedAt]);
+  }, [source?.id, source?.updatedAt]);
 
   const trimmed = (value: string) => value.trim().length;
   const complete =
@@ -87,7 +84,7 @@ export function FaqEditor({
       const accepted = await feedback.confirm({
         tone: 'warning',
         title: `Hapus pertanyaan ${number}?`,
-        message: 'Pertanyaan dan jawabannya dihapus dari draf ini. Simpan draf untuk menerapkannya.',
+        message: 'Pertanyaan dan jawabannya dihapus dari daftar ini. Simpan FAQ untuk menerapkannya di situs.',
         confirmLabel: 'Hapus',
       });
       if (!accepted) return;
@@ -95,7 +92,7 @@ export function FaqEditor({
     setEntries((current) => current.filter((item) => item.uid !== entry.uid));
   };
 
-  const save = async (publish: boolean) => {
+  const save = async () => {
     setBusy(true);
     try {
       const payload = {
@@ -105,27 +102,33 @@ export function FaqEditor({
           answer: entry.answer.trim(),
         })),
       };
-      // Draf yang ada diperbarui; bila belum ada (atau sudah terbit) dibuat draf versi baru.
-      const saved = draftRow
-        ? await request(`/public-content-management/${draftRow.id}`, {
-            method: 'PATCH',
-            body: JSON.stringify({ payload }),
-          })
-        : await request('/public-content-management', {
-            method: 'POST',
-            body: JSON.stringify({ contentKey: FAQ_KEY, kind: 'FAQ', payload }),
-          });
-      if (publish && saved?.id) {
-        await request(`/public-content-management/${saved.id}/PUBLISHED`, { method: 'POST' });
-        onMessage(
-          'FAQ berhasil dipublikasikan. Halaman kelas memperbarui tampilannya dalam beberapa menit (cache situs).',
-        );
-      } else {
-        onMessage('Draf FAQ berhasil disimpan.');
-      }
+      await request('/public-content-management/FAQ', { method: 'PUT', body: JSON.stringify({ payload }) });
+      onMessage(
+        'FAQ tersimpan. Halaman kelas memperbarui tampilannya dalam beberapa menit (cache situs).',
+      );
       await onChanged();
     } catch (cause) {
       onError(contentFailure(cause, 'Gagal menyimpan FAQ.', 'faq'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const reset = async () => {
+    const accepted = await feedback.confirm({
+      tone: 'warning',
+      title: 'Kembalikan ke pertanyaan bawaan?',
+      message: 'FAQ yang tersimpan tidak lagi dipakai; halaman kelas memakai 3 pertanyaan bawaan.',
+      confirmLabel: 'Kembalikan',
+    });
+    if (!accepted) return;
+    setBusy(true);
+    try {
+      await request('/public-content-management/FAQ/reset', { method: 'POST', body: JSON.stringify({}) });
+      onMessage('Halaman kelas kembali memakai pertanyaan bawaan.');
+      await onChanged();
+    } catch (cause) {
+      onError(contentFailure(cause, 'FAQ belum dapat dikembalikan ke bawaan.', 'faq'));
     } finally {
       setBusy(false);
     }
@@ -144,27 +147,23 @@ export function FaqEditor({
               pertanyaan).
             </p>
             <div className="mt-2">
-              {draftRow ? (
-                <StatusBadge tone="warning">Ada draf belum terbit (versi {draftRow.version})</StatusBadge>
-              ) : publishedRow ? (
-                <StatusBadge tone="success">Terbit (versi {publishedRow.version})</StatusBadge>
+              {source ? (
+                <StatusBadge tone="success">Tampil di situs</StatusBadge>
               ) : (
                 <StatusBadge tone="neutral">
-                  Belum ada FAQ terbit — halaman kelas memakai 3 pertanyaan bawaan
+                  Belum ada FAQ tersimpan — halaman kelas memakai 3 pertanyaan bawaan
                 </StatusBadge>
               )}
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button
-              variant="secondary"
-              disabled={busy || !complete}
-              onClick={() => void save(false)}
-            >
-              Simpan Draf FAQ
-            </Button>
-            <Button disabled={busy || !complete} loading={busy} onClick={() => void save(true)}>
-              Publikasikan FAQ
+            {source && (
+              <Button variant="secondary" disabled={busy} onClick={() => void reset()}>
+                Kembalikan ke Bawaan
+              </Button>
+            )}
+            <Button disabled={busy || !complete} loading={busy} onClick={() => void save()}>
+              Simpan & Tampilkan FAQ
             </Button>
           </div>
         </div>
