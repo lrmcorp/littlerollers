@@ -235,7 +235,7 @@ export function InstructorsView() {
         rowKey={(item) => item.id}
         loading={loading && !items.length}
         emptyTitle="Belum ada instruktur"
-        emptyDescription="Tidak ada data instruktur yang cocok dengan filter pencarian."
+        emptyDescription="Belum ada instruktur yang cocok dengan filter pencarian. Coba ubah kata kunci atau cabang."
         mobileCard={(item) => (
           <div className="space-y-3 p-4">
             <div className="flex items-start justify-between gap-2">

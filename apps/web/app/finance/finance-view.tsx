@@ -50,6 +50,7 @@ import { OtherCostForm } from './other-cost-form';
 import { formatDay, presetRange, RANGE_PRESETS, rangeProblem } from './report-range';
 import { formatRupiah } from '../lib/formatters';
 import { pageOffset } from '../lib/pagination';
+import { formatAnomalyType, formatSeverity, formatStudioName } from '../lib/system-dictionary';
 
 const date = (value: Date) => value.toISOString().slice(0, 10);
 
@@ -1108,19 +1109,15 @@ export function FinanceView({
                 <div className="space-y-1 text-xs">
                   <div className="flex items-center justify-between">
                     <Badge tone={item.severity === 'ERROR' ? 'danger' : 'warning'}>
-                      {item.severity === 'ERROR' ? 'Kritis' : item.severity === 'WARNING' ? 'Peringatan' : item.severity}
+                      {formatSeverity(item.severity)}
                     </Badge>
                     <span className="font-bold text-dd-ink">{formatRupiah(item.amountRp)}</span>
                   </div>
                   <div className="font-semibold text-dd-ink">
-                    {item.code === 'VERIFIKASI_TERTAHAN'
-                      ? 'Verifikasi Tertahan (> 24 Jam)'
-                      : item.code === 'UNMATCHED_MUTATION'
-                        ? 'Mutasi Belum Cocok'
-                        : item.code}
+                    {formatAnomalyType(item.code)}
                   </div>
                   <div className="flex items-center justify-between text-[11px] text-dd-muted pt-1 border-t border-dd-line/40">
-                    <span>{branches.find((b) => b.code === item.branchCode)?.name || item.branchCode || '—'} · {new Date(item.submittedAt).toLocaleDateString('id-ID')}</span>
+                    <span>{branches.find((b) => b.code === item.branchCode)?.name || formatStudioName(item.branchCode, 'short')} · {new Date(item.submittedAt).toLocaleDateString('id-ID')}</span>
                     <Link href={item.href || '#'} className="font-semibold text-dd-forest hover:underline">
                       Buka Pembayaran →
                     </Link>
@@ -1132,37 +1129,25 @@ export function FinanceView({
                   id: 'branch',
                   header: 'Studio/Cabang',
                   cell: (item: any) =>
-                    branches.find((b) => b.code === item.branchCode)?.name || item.branchCode || '—',
+                    branches.find((b) => b.code === item.branchCode)?.name || formatStudioName(item.branchCode, 'short'),
                 },
                 {
                   id: 'severity',
                   header: 'Tingkat Urgensi',
                   cell: (item: any) => (
                     <Badge tone={item.severity === 'ERROR' ? 'danger' : 'warning'}>
-                      {item.severity === 'ERROR'
-                        ? 'Kritis'
-                        : item.severity === 'WARNING'
-                          ? 'Peringatan'
-                          : item.severity}
+                      {formatSeverity(item.severity)}
                     </Badge>
                   ),
                 },
                 {
                   id: 'code',
                   header: 'Jenis Anomali',
-                  cell: (item: any) => {
-                    const anomalyNames: Record<string, string> = {
-                      VERIFIKASI_TERTAHAN: 'Verifikasi Tertahan (> 24 Jam)',
-                      UNMATCHED_MUTATION: 'Mutasi Belum Cocok',
-                      OVERPAID: 'Kelebihan Bayar',
-                      UNDERPAID: 'Kekurangan Bayar',
-                    };
-                    return (
-                      <span className="text-xs font-medium text-dd-ink">
-                        {anomalyNames[item.code] || item.code}
-                      </span>
-                    );
-                  },
+                  cell: (item: any) => (
+                    <span className="text-xs font-medium text-dd-ink">
+                      {formatAnomalyType(item.code)}
+                    </span>
+                  ),
                 },
                 {
                   id: 'amount',

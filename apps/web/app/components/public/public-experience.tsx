@@ -22,6 +22,7 @@ import { isCustomerOnlySession } from '@/lib/session-audience';
 import { Button } from '../actions';
 import { Modal, useAppFeedback } from '../app-feedback';
 import { RadioCard } from '../forms';
+import { formatTimezone } from '@/lib/system-dictionary';
 
 const visiblePaths = new Set(['/', '/classes', '/packages', '/locations', '/contact', '/terms', '/privacy', '/guide']);
 const hiddenPathPrefixes = [
@@ -211,7 +212,7 @@ export function PublicExperience({ children }: { children: ReactNode }) {
                   disabled={state === 'saving'}
                   onChange={() => setSelectedStudioId(studio.id)}
                   label={studio.name}
-                  description={`${studio.timezone === 'Asia/Jakarta' ? 'WIB' : studio.timezone} · Menjadi default untuk aktivitas baru`}
+                  description={`${formatTimezone(studio.timezone)} · Menjadi default untuk aktivitas baru`}
                   className="min-h-16 items-center"
                 />
               ))}

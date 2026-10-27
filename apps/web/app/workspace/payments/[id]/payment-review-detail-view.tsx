@@ -468,7 +468,7 @@ export function PaymentReviewDetailView({
                 </dd>
               </div>
               <div>
-                <dt className="text-dd-muted">Versi data</dt>
+                <dt className="text-dd-muted">Revisi Pesanan</dt>
                 <dd className="mt-1 font-semibold">{purchase.version}</dd>
               </div>
             </dl>
@@ -758,7 +758,7 @@ export function PaymentReviewDetailView({
           <Panel className="p-5">
             <h2 className="text-lg font-semibold">Keputusan Finance</h2>
             <p className="mt-1 text-sm leading-6 text-dd-muted">
-              Setiap tindakan mencatat cakupan cabang, versi data, idempotency key, dan audit.
+              Setiap keputusan diverifikasi dan dicatat pada audit studio.
             </p>
             {canDecide && isPendingDecision ? (() => {
               const isSuper = Boolean(

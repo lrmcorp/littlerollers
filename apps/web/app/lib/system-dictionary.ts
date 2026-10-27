@@ -73,6 +73,40 @@ const ORDER_STATUS_DICTIONARY: Record<string, string> = {
   EXPIRED: 'Kedaluwarsa',
 };
 
+const ANOMALY_DICTIONARY: Record<string, string> = {
+  VERIFIKASI_TERTAHAN: 'Verifikasi Tertahan (> 24 Jam)',
+  UNMATCHED_MUTATION: 'Mutasi Belum Cocok',
+  OVERPAID: 'Kelebihan Bayar',
+  UNDERPAID: 'Kekurangan Bayar',
+};
+
+const SEVERITY_DICTIONARY: Record<string, string> = {
+  ERROR: 'Kritis',
+  WARNING: 'Peringatan',
+  INFO: 'Informasi',
+};
+
+const REMINDER_STATUS_DICTIONARY: Record<
+  string,
+  { label: string; tone: 'success' | 'danger' | 'neutral' }
+> = {
+  SENT: { label: 'Terkirim', tone: 'success' },
+  FAILED: { label: 'Gagal', tone: 'danger' },
+  SKIPPED_DUPLICATE: { label: 'Dilewati (Duplikat)', tone: 'neutral' },
+  PENDING: { label: 'Menunggu', tone: 'neutral' },
+};
+
+const API_ERROR_DICTIONARY: Record<string, string> = {
+  CUSTOMER_VERIFICATION_REQUIRED:
+    'Pembelian paket belum bisa diproses karena identitas kamu belum diverifikasi. Isi data verifikasi dulu, sekitar 2 menit.',
+  IDEMPOTENCY_KEY_REUSED: 'Permintaan sudah pernah dikirim dengan data berbeda. Silakan muat ulang formulir.',
+  IDEMPOTENCY_IN_PROGRESS: 'Permintaan sebelumnya masih diproses. Mohon tunggu sebentar.',
+  OPTIMISTIC_LOCK_CONFLICT: 'Data telah diperbarui oleh staf lain. Silakan muat ulang halaman.',
+  SLOT_FULL: 'Kuota kelas telah penuh.',
+  SLOT_CANCELLED: 'Kelas telah dibatalkan oleh pihak studio.',
+  OUTSIDE_GEOFENCE: 'Lokasi Anda berada di luar radius cabang studio.',
+};
+
 /**
  * Format nama studio manusia (menghilangkan kode teknis DD-GG, DD-MK, dsb).
  */
@@ -145,6 +179,45 @@ export function formatTimezone(tz: string | null | undefined): string {
   if (!tz) return 'WIB';
   const key = tz.trim();
   return TIMEZONE_DICTIONARY[key] || key;
+}
+
+/**
+ * Format jenis anomali keuangan (misal: VERIFIKASI_TERTAHAN -> Verifikasi Tertahan (> 24 Jam)).
+ */
+export function formatAnomalyType(code: string | null | undefined): string {
+  if (!code) return '—';
+  const key = code.trim().toUpperCase();
+  return ANOMALY_DICTIONARY[key] || key.replace(/_/g, ' ');
+}
+
+/**
+ * Format tingkat urgensi / keparahan (misal: ERROR -> Kritis, WARNING -> Peringatan).
+ */
+export function formatSeverity(severity: string | null | undefined): string {
+  if (!severity) return '—';
+  const key = severity.trim().toUpperCase();
+  return SEVERITY_DICTIONARY[key] || key;
+}
+
+/**
+ * Format status pengingat reminder WhatsApp (misal: SENT -> Terkirim).
+ */
+export function formatReminderStatus(status: string | null | undefined): {
+  label: string;
+  tone: 'success' | 'danger' | 'neutral';
+} {
+  if (!status) return { label: '—', tone: 'neutral' };
+  const key = status.trim().toUpperCase();
+  return REMINDER_STATUS_DICTIONARY[key] || { label: key, tone: 'neutral' };
+}
+
+/**
+ * Terjemahkan kode error API teknis ke penjelasan ramah pengguna.
+ */
+export function formatApiErrorCode(code: string | null | undefined): string {
+  if (!code) return 'Terjadi kendala pada sistem. Silakan coba beberapa saat lagi.';
+  const key = code.trim().toUpperCase();
+  return API_ERROR_DICTIONARY[key] || code;
 }
 
 /**
@@ -255,7 +328,18 @@ export function sanitizeUserFacingText(text: string): string {
     .replace(/dd-checkin:v1:[a-zA-Z0-9_\-:]+/gi, 'QR Presensi Studio')
     .replace(/\bpayload\b/gi, 'data QR')
     .replace(/\bAsia\/Jakarta\b/gi, 'WIB')
+    .replace(/\bAsia\/Pontianak\b/gi, 'WIB')
+    .replace(/\bAsia\/Makassar\b/gi, 'WITA')
+    .replace(/\bAsia\/Jayapura\b/gi, 'WIT')
     .replace(/\bALL_LEVELS\b/gi, 'Semua Level')
     .replace(/\bPRIVATE_GROUP\b/gi, 'Private Group')
-    .replace(/\bSEMI_PRIVATE\b/gi, 'Semi Private');
+    .replace(/\bSEMI_PRIVATE\b/gi, 'Semi Private')
+    .replace(/\bDD-GG\b/g, 'Green Garden')
+    .replace(/\bDD-MK\b/g, 'Muara Karang')
+    .replace(/\bDD-SBY\b/g, 'Graha Family Surabaya')
+    .replace(/\bDD-PIK2\b/g, 'Orange Groves PIK 2')
+    .replace(/\bDD-UNTAR\b/g, 'Untar Kampus 2')
+    .replace(/\bidempotency\b/gi, 'tindakan')
+    .replace(/\boptimistic locking\b/gi, 'sinkronisasi data')
+    .replace(/\bversi data\b/gi, 'revisi pesanan');
 }

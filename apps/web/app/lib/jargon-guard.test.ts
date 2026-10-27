@@ -40,7 +40,13 @@ const forbidden: Array<[RegExp, string]> = [
   [/Gagal \(FAILED\)/i, 'kode enum FAILED di label UI'],
   [/Dokumen Identitas \(KYC\)/i, 'istilah KYC di profil'],
   [/Verifikasi KYC/i, 'istilah KYC di profil'],
+  [/Formulir KYC/i, 'istilah KYC di formulir'],
+  [/Status KYC/i, 'istilah KYC di status'],
   [/SessionLedger/i, 'nama model database SessionLedger'],
+  [/Versi data/i, 'istilah versi data database'],
+  [/idempotency key/i, 'istilah idempotency key'],
+  [/Tidak ada data/i, 'istilah Tidak ada data (melanggar spec 6 & 7)'],
+  [/Role assignment/i, 'istilah teknis role assignment'],
 ];
 
 describe('teks tampilan bebas istilah pemrogram', () => {

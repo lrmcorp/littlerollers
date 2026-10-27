@@ -26,6 +26,7 @@ import {
 import { Button } from '../../components/actions';
 import { useAppFeedback } from '../../components/app-feedback';
 import { ADMIN_PAGE_SIZE, pageOffset } from '../../lib/pagination';
+import { formatReminderStatus } from '../../lib/system-dictionary';
 import {
   reminderClient,
   type ReminderLogItem,
@@ -404,17 +405,7 @@ export function RemindersView() {
                   id: 'status',
                   header: 'Status',
                   cell: (item) => {
-                    const status = item.status;
-                    const label =
-                      status === 'SENT'
-                        ? 'Terkirim'
-                        : status === 'FAILED'
-                        ? 'Gagal'
-                        : status === 'SKIPPED_DUPLICATE'
-                        ? 'Dilewati (Duplikat)'
-                        : status;
-                    const tone =
-                      status === 'SENT' ? 'success' : status === 'FAILED' ? 'danger' : 'neutral';
+                    const { label, tone } = formatReminderStatus(item.status);
                     return <Badge tone={tone}>{label}</Badge>;
                   },
                 },

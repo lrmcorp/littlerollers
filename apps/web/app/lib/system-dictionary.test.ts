@@ -1,10 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
+  formatAnomalyType,
+  formatApiErrorCode,
   formatBookingStatus,
   formatClassLevel,
   formatClassType,
   formatCountLabel,
   formatOrderStatus,
+  formatReminderStatus,
+  formatSeverity,
   formatStudioName,
   formatTanggalHuman,
   formatTimezone,
@@ -178,9 +182,65 @@ describe('system-dictionary', () => {
     });
   });
 
+  describe('formatAnomalyType', () => {
+    it('translates anomaly codes to human readable Indonesian labels', () => {
+      expect(formatAnomalyType('VERIFIKASI_TERTAHAN')).toBe('Verifikasi Tertahan (> 24 Jam)');
+      expect(formatAnomalyType('UNMATCHED_MUTATION')).toBe('Mutasi Belum Cocok');
+      expect(formatAnomalyType('OVERPAID')).toBe('Kelebihan Bayar');
+      expect(formatAnomalyType('UNDERPAID')).toBe('Kekurangan Bayar');
+    });
+
+    it('falls back safely for null, undefined, or unrecognized codes', () => {
+      expect(formatAnomalyType(null)).toBe('—');
+      expect(formatAnomalyType(undefined)).toBe('—');
+      expect(formatAnomalyType('CUSTOM_ANOMALY')).toBe('CUSTOM ANOMALY');
+    });
+  });
+
+  describe('formatSeverity', () => {
+    it('translates error levels to polite Indonesian terms', () => {
+      expect(formatSeverity('ERROR')).toBe('Kritis');
+      expect(formatSeverity('WARNING')).toBe('Peringatan');
+      expect(formatSeverity('INFO')).toBe('Informasi');
+    });
+
+    it('falls back safely on null or unknown values', () => {
+      expect(formatSeverity(null)).toBe('—');
+      expect(formatSeverity(undefined)).toBe('—');
+    });
+  });
+
+  describe('formatReminderStatus', () => {
+    it('translates WhatsApp reminder states to Indonesian badges', () => {
+      expect(formatReminderStatus('SENT')).toEqual({ label: 'Terkirim', tone: 'success' });
+      expect(formatReminderStatus('FAILED')).toEqual({ label: 'Gagal', tone: 'danger' });
+      expect(formatReminderStatus('SKIPPED_DUPLICATE')).toEqual({
+        label: 'Dilewati (Duplikat)',
+        tone: 'neutral',
+      });
+      expect(formatReminderStatus('PENDING')).toEqual({ label: 'Menunggu', tone: 'neutral' });
+    });
+
+    it('falls back gracefully on empty or unknown status', () => {
+      expect(formatReminderStatus(null)).toEqual({ label: '—', tone: 'neutral' });
+      expect(formatReminderStatus('UNKNOWN')).toEqual({ label: 'UNKNOWN', tone: 'neutral' });
+    });
+  });
+
+  describe('formatApiErrorCode', () => {
+    it('translates technical API codes into friendly sentences', () => {
+      expect(formatApiErrorCode('CUSTOMER_VERIFICATION_REQUIRED')).toContain(
+        'identitas kamu belum diverifikasi',
+      );
+      expect(formatApiErrorCode('IDEMPOTENCY_KEY_REUSED')).toContain('Permintaan sudah pernah dikirim');
+      expect(formatApiErrorCode('OPTIMISTIC_LOCK_CONFLICT')).toContain('Data telah diperbarui oleh staf lain');
+    });
+  });
+
   describe('sanitizeUserFacingText', () => {
     it('purges technical jargon from sentences', () => {
-      const raw = 'Silakan lakukan KYC dan selesaikan payload dd-checkin:v1:abc di Asia/Jakarta untuk kelas ALL_LEVELS';
+      const raw =
+        'Silakan lakukan KYC dan selesaikan payload dd-checkin:v1:abc di Asia/Jakarta untuk kelas ALL_LEVELS di DD-GG dengan idempotency dan optimistic locking versi data';
       const clean = sanitizeUserFacingText(raw);
       expect(clean).not.toContain('KYC');
       expect(clean).toContain('Verifikasi Identitas');
@@ -190,6 +250,11 @@ describe('system-dictionary', () => {
       expect(clean).toContain('WIB');
       expect(clean).not.toContain('ALL_LEVELS');
       expect(clean).toContain('Semua Level');
+      expect(clean).not.toContain('DD-GG');
+      expect(clean).toContain('Green Garden');
+      expect(clean).not.toContain('idempotency');
+      expect(clean).not.toContain('optimistic locking');
+      expect(clean).not.toContain('versi data');
     });
   });
 });

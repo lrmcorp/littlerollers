@@ -42,6 +42,7 @@ import {
   isInstructorOnlySession,
   isPublicExperiencePath,
 } from '@/lib/session-audience';
+import { formatStudioName } from './lib/system-dictionary';
 
 const accountPageLabels: Record<string, string> = {
   '/account': 'Dashboard',
@@ -117,7 +118,7 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
         ...session.branches.map((branch) => ({
           id: branch.id,
           label: branch.name,
-          description: `${branch.code} · ${primaryRole ? roleLabel(primaryRole, 'short') : 'Staf'} · ${activeScopeLabel}`,
+          description: `${formatStudioName(branch.code, 'short')} · ${primaryRole ? roleLabel(primaryRole, 'short') : 'Staf'} · ${activeScopeLabel}`,
         })),
       ]
     : [];

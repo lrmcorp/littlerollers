@@ -9,6 +9,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { getKioskBranches, type KioskBranchItem } from '../api-clients/booking-client';
+import { formatStudioName } from '../lib/system-dictionary';
 import { Skeleton } from '../ui';
 
 export default function KioskPortalPage() {
@@ -83,8 +84,8 @@ export default function KioskPortalPage() {
                       <div className="flex size-10 items-center justify-center rounded-dd-lg bg-dd-success-soft text-dd-forest group-hover:bg-dd-forest group-hover:text-white transition shadow-sm">
                         <Building2 className="size-5" />
                       </div>
-                      <span className="rounded-full bg-dd-canvas border border-dd-line px-3 py-1 font-mono text-xs font-bold text-dd-forest">
-                        {b.code}
+                      <span className="rounded-full bg-dd-canvas border border-dd-line px-3 py-1 text-xs font-bold text-dd-forest">
+                        {formatStudioName(b.code, 'short')}
                       </span>
                     </div>
 

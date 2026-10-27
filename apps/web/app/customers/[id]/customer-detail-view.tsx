@@ -561,7 +561,7 @@ export function CustomerDetailView({ id }: { id: string }) {
 
       {/* 2-Column Studio Split Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* LEFT COLUMN: Profil, Dokumen KYC, Keamanan & Pengingat */}
+        {/* LEFT COLUMN: Profil, Dokumen Verifikasi Identitas, Keamanan & Pengingat */}
         <div className="lg:col-span-5 space-y-6">
           {/* Card 1: Profil & Data Demografi */}
           <div className="rounded-dd-lg border border-dd-line bg-white p-5 shadow-xs space-y-4">
@@ -646,7 +646,7 @@ export function CustomerDetailView({ id }: { id: string }) {
             </div>
           </div>
 
-          {/* Card 2: Dokumen Verifikasi (KYC) */}
+          {/* Card 2: Dokumen Verifikasi Identitas */}
           <div className="rounded-dd-lg border border-dd-line bg-white p-5 shadow-xs space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-dd-line/80 pb-3">
               <div>
