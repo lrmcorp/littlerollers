@@ -75,6 +75,8 @@ export interface BookingConfirmationSheetProps {
   packageItem?: LedgerBalance | null;
   availablePackages?: LedgerBalance[];
   onBookingSuccess?: (booking: Booking) => void;
+  /** Dipanggil saat server menolak karena kelas baru saja penuh atau sudah dipesan, agar daftar jadwal dimuat ulang. */
+  onSlotUnavailable?: () => void;
   bookingClient?: BookingClient;
   isVerified?: boolean;
   studioName?: string;
@@ -89,6 +91,7 @@ export function BookingConfirmationSheet({
   packageItem,
   availablePackages = EMPTY_PACKAGES,
   onBookingSuccess,
+  onSlotUnavailable,
   bookingClient = browserBookingClient,
   isVerified = true,
   studioName,
@@ -125,6 +128,8 @@ export function BookingConfirmationSheet({
 
   if (!isOpen || !slot) return null;
 
+  const hasActionFooter =
+    status !== 'success' && status !== 'slot_full' && status !== 'unverified';
   const currentPkg =
     availablePackages.find((p) => p.id === selectedPkgId) ?? packageItem;
 
@@ -163,6 +168,14 @@ export function BookingConfirmationSheet({
         setErrorMessage(
           'Slot kelas ini baru saja penuh. Pilih jam lain di hari yang sama.',
         );
+        onSlotUnavailable?.();
+      } else if (
+        problem.code === 'DUPLICATE_ACTIVE_BOOKING' ||
+        problem.code === 'DUPLICATE_BOOKING'
+      ) {
+        setStatus('error');
+        setErrorMessage(problem.message);
+        onSlotUnavailable?.();
       } else if (
         problem.code === 'IDENTITY_VERIFICATION_REQUIRED' ||
         problem.code === 'UNVERIFIED'
@@ -194,9 +207,15 @@ export function BookingConfirmationSheet({
       onClick={handleOverlayClick}
     >
       <div
-        className="max-h-[80vh] w-full overflow-y-auto rounded-t-[20px] bg-white p-6 shadow-2xl transition-transform pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]"
+        className="flex max-h-[80vh] w-full flex-col overflow-hidden rounded-t-[20px] bg-white shadow-2xl transition-transform"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Isi bisa digulir; tombol aksi ada di footer terpisah agar selalu terlihat. */}
+        <div
+          className={`min-h-0 flex-1 overflow-y-auto px-6 pt-6 ${
+            hasActionFooter ? 'pb-4' : 'pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]'
+          }`}
+        >
         {/* 1. Garis pegangan dekoratif */}
         <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-dd-line" />
 
@@ -354,16 +373,6 @@ export function BookingConfirmationSheet({
               </button>
             </div>
 
-            {/* Pesan Kesalahan jika ada */}
-            {errorMessage && (
-              <div
-                className="rounded-dd-md border border-red-200 bg-red-50 p-3.5 text-xs text-red-900 leading-relaxed"
-                role="alert"
-              >
-                {errorMessage}
-              </div>
-            )}
-
             {/* Lima baris dengan ikon (Spesifikasi 5.3) */}
             <div className="space-y-3 py-1 text-sm text-dd-ink">
               {/* 1. Tanggal lengkap dengan tahun */}
@@ -466,8 +475,24 @@ export function BookingConfirmationSheet({
               )}
             </div>
 
+          </div>
+        )}
+        </div>
+
+        {hasActionFooter && (
+          <div className="shrink-0 border-t border-dd-line/60 px-6 pt-3 pb-[calc(1rem+env(safe-area-inset-bottom,0px))]">
+            {/* Pesan kesalahan di footer agar terlihat tanpa menggulir */}
+            {errorMessage && (
+              <div
+                className="mb-3 rounded-dd-md border border-red-200 bg-red-50 p-3.5 text-xs text-red-900 leading-relaxed"
+                role="alert"
+              >
+                {errorMessage}
+              </div>
+            )}
+
             {/* Tombol Utama (Tinggi 52 px) & Tombol Batal */}
-            <div className="space-y-2.5 pt-2">
+            <div className="space-y-2.5">
               <button
                 type="button"
                 disabled={status === 'submitting' || !currentPkg}

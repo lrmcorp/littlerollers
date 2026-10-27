@@ -197,6 +197,49 @@ describe('BookingConfirmationSheet (Tiket T-05 / Spesifikasi 5.3)', () => {
     ).toBeVisible();
   });
 
+  it('keeps the confirm button outside the scrolling area so it stays visible with many packages', () => {
+    render(
+      <BookingConfirmationSheet
+        isOpen={true}
+        onClose={vi.fn()}
+        slot={mockSlot}
+        packageItem={mockPackage}
+        availablePackages={Array.from({ length: 12 }, (_, i) => ({ ...mockPackage, id: `pkg-${i}` }))}
+        studioName="Daily Dose Kemang"
+        bookingClient={{ create: vi.fn() } as unknown as BookingClient}
+      />,
+    );
+    const confirm = screen.getByRole('button', { name: 'Konfirmasi booking sekarang' });
+    expect(confirm.closest('.overflow-y-auto')).toBeNull();
+    expect(screen.getAllByRole('radio')).toHaveLength(12);
+  });
+
+  it.each([
+    ['CLASS_CAPACITY_FULL', 'Kapasitas kelas sudah penuh.'],
+    ['DUPLICATE_ACTIVE_BOOKING', 'Pelanggan sudah memiliki booking aktif untuk kelas ini.'],
+  ])('tells the list to refresh when the server answers %s', async (code) => {
+    const onSlotUnavailable = vi.fn();
+    render(
+      <BookingConfirmationSheet
+        isOpen={true}
+        onClose={vi.fn()}
+        slot={mockSlot}
+        packageItem={mockPackage}
+        studioName="Daily Dose Kemang"
+        onSlotUnavailable={onSlotUnavailable}
+        bookingClient={
+          {
+            create: vi
+              .fn()
+              .mockRejectedValue(new ApiError('x', 409, { error: { code } })),
+          } as unknown as BookingClient
+        }
+      />,
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Konfirmasi booking sekarang' }));
+    await waitFor(() => expect(onSlotUnavailable).toHaveBeenCalledTimes(1));
+  });
+
   it('handles Keadaan 4A (Gagal: Slot Habis) when server throws CLASS_CAPACITY_FULL', async () => {
     const mockBookingClient = {
       create: vi.fn().mockRejectedValue({

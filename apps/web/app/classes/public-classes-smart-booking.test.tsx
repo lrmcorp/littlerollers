@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PublicClassesView } from '@/classes/public-classes-view';
 import type { PublicClassCatalogClient } from '@/api-clients/public-class-catalog-client';
 import type { LedgerClient, LedgerBalance } from '@/api-clients/ledger-client';
+import { ApiError } from '@/lib/api-client';
 
 const session = vi.hoisted(() => ({
   displayName: 'Nadia Customer',
@@ -299,5 +300,110 @@ describe('Customer Smart Booking on Public Classes Catalog', () => {
     expect(await screen.findByText('Booking berhasil')).toBeVisible();
     expect(screen.getByText('BK-3TAP-SUCCESS')).toBeVisible();
     expect(screen.getByRole('link', { name: 'Lihat QR Pass' })).toBeVisible();
+  });
+
+  describe('kelas yang sudah dipesan dan slot yang baru penuh', () => {
+    const baseSlot = {
+      id: 'slot-x',
+      branchId: branchKemang.id,
+      classTypeId: typeGroup.id,
+      classType: typeGroup,
+      startAt: '2026-07-25T03:00:00.000Z',
+      endAt: '2026-07-25T03:50:00.000Z',
+      timezone: branchKemang.timezone,
+      status: 'PUBLISHED',
+      capacity: 6,
+      available: 4,
+      canBook: true,
+    };
+    const ledgerClient = (): LedgerClient => ({
+      list: vi.fn().mockResolvedValue({
+        items: [matchingPackage],
+        summary: { packageCount: 1, ledgerBalance: 5, reserved: 0, available: 5 },
+        page: {},
+      }),
+      detail: vi.fn(),
+      listAdjustments: vi.fn(),
+      getAdjustment: vi.fn(),
+      requestAdjustment: vi.fn(),
+      decideAdjustment: vi.fn(),
+    });
+    const catalog = (itemsFor: () => unknown[]): PublicClassCatalogClient => ({
+      list: vi.fn().mockImplementation(() =>
+        Promise.resolve({
+          branches: [branchKemang],
+          range: { from: '2026-07-23T00:00:00.000Z', until: '2026-08-06T00:00:00.000Z' },
+          items: itemsFor(),
+        }),
+      ),
+    });
+
+    it('menandai kelas yang sudah dipesan dan mengganti tombolnya dengan "Lihat booking"', async () => {
+      const client = catalog(() => [
+        { ...baseSlot, id: 'slot-booked' },
+        { ...baseSlot, id: 'slot-free', startAt: '2026-07-25T05:00:00.000Z', endAt: '2026-07-25T05:50:00.000Z' },
+      ]);
+      const bookingClient = {
+        list: vi.fn().mockResolvedValue({ items: [{ id: 'bk-77', classSlotId: 'slot-booked' }] }),
+      };
+
+      render(
+        <PublicClassesView
+          client={client}
+          ledgerClient={ledgerClient()}
+          bookingClient={bookingClient as any}
+        />,
+      );
+
+      expect(await screen.findByText('Sudah Anda booking')).toBeVisible();
+      expect(screen.getByRole('link', { name: 'Lihat booking' })).toHaveAttribute(
+        'href',
+        '/bookings/bk-77',
+      );
+      // Hanya kelas yang belum dipesan yang masih menawarkan booking.
+      const offers = screen.getAllByRole('link', { name: 'Lanjutkan booking' });
+      expect(offers).toHaveLength(1);
+      expect(offers[0]).toHaveAttribute('href', '/bookings/new?slot=slot-free');
+      expect(bookingClient.list).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'BOOKED', timeline: 'UPCOMING' }),
+      );
+    });
+
+    it('memuat ulang jadwal saat server menolak karena kelas baru saja penuh', async () => {
+      let full = false;
+      const client = catalog(() => [{ ...baseSlot, available: full ? 0 : 1 }]);
+      const bookingClient = {
+        list: vi.fn().mockResolvedValue({ items: [] }),
+        create: vi.fn().mockImplementation(() => {
+          full = true; // orang lain mengambil kursi terakhir
+          return Promise.reject(
+            new ApiError('Permintaan tidak dapat diproses.', 409, {
+              error: { code: 'CLASS_CAPACITY_FULL' },
+            }),
+          );
+        }),
+      };
+
+      render(
+        <PublicClassesView
+          client={client}
+          ledgerClient={ledgerClient()}
+          bookingClient={bookingClient as any}
+        />,
+      );
+
+      fireEvent.click(await screen.findByRole('link', { name: 'Lanjutkan booking' }));
+      await userEvent.click(
+        await screen.findByRole('button', { name: 'Konfirmasi booking sekarang' }),
+      );
+      expect(
+        await screen.findByRole('heading', { name: 'Slot kelas ini baru saja penuh' }),
+      ).toBeVisible();
+
+      await userEvent.click(screen.getByRole('button', { name: 'Lihat jam lain' }));
+      // Daftar sudah disegarkan: kartu menjadi penuh dan tidak lagi bisa dipesan.
+      await waitFor(() => expect(screen.getAllByText('Penuh, 0 slot').length).toBeGreaterThan(0));
+      expect(screen.queryByRole('link', { name: 'Lanjutkan booking' })).not.toBeInTheDocument();
+    });
   });
 });

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
   AlertCircle,
@@ -95,6 +95,8 @@ export function PublicClassesView({
   const [isTypeSheetOpen, setIsTypeSheetOpen] = useState(false);
   const [bookingSlot, setBookingSlot] = useState<PublicClassSlot | null>(null);
   const [isBookingSheetOpen, setIsBookingSheetOpen] = useState(false);
+  // classSlotId -> bookingId untuk booking aktif pelanggan, agar kartu kelas yang sudah dipesan tidak menawarkan booking lagi.
+  const [bookedBySlot, setBookedBySlot] = useState<Map<string, string>>(() => new Map());
 
   useEffect(() => {
     let active = true;
@@ -118,6 +120,23 @@ export function PublicClassesView({
       active = false;
     };
   }, [session, inCustomerShell, ledgerClient]);
+
+  const loadBookedSlots = useCallback(async () => {
+    if (!isCustomer) {
+      setBookedBySlot(new Map());
+      return;
+    }
+    try {
+      const page = await bookingClient.list({ status: 'BOOKED', timeline: 'UPCOMING', limit: 100 });
+      setBookedBySlot(new Map((page?.items ?? []).map((item) => [item.classSlotId, item.id])));
+    } catch {
+      // Tanpa penanda "sudah dibooking"; server tetap menolak booking ganda.
+    }
+  }, [isCustomer, bookingClient]);
+
+  useEffect(() => {
+    void loadBookedSlots();
+  }, [loadBookedSlots]);
 
   const findMatchingPackage = (slot: PublicClassSlot) => {
     if (!customerPackages.length) return null;
@@ -691,6 +710,7 @@ export function PublicClassesView({
                       const isFull = slot.available < 1;
                       const actionable = isActionable(slot);
                       const matchingPkg = findMatchingPackage(slot);
+                      const bookedId = isCustomer ? bookedBySlot.get(slot.id) : undefined;
 
                       return (
                         <article
@@ -739,12 +759,17 @@ export function PublicClassesView({
                                 )}
 
                                 {/* Smart Booking Badges */}
-                                {isCustomer && !isFull && matchingPkg && (
+                                {bookedId && (
+                                  <span className="mt-1.5 inline-flex items-center gap-1 rounded-dd-sm border border-dd-forest/20 bg-dd-forest-soft px-2 py-0.5 text-[11px] font-semibold text-dd-forest">
+                                    <Check className="size-3" /> Sudah Anda booking
+                                  </span>
+                                )}
+                                {isCustomer && !bookedId && !isFull && matchingPkg && (
                                   <span className="mt-1.5 inline-flex items-center gap-1 rounded-dd-sm border border-dd-forest/20 bg-dd-forest-soft px-2 py-0.5 text-[11px] font-semibold text-dd-forest">
                                     <Check className="size-3" /> Paket Sesuai ({matchingPkg.available} sesi)
                                   </span>
                                 )}
-                                {isCustomer && !isFull && !matchingPkg && customerPackages.length > 0 && (
+                                {isCustomer && !bookedId && !isFull && !matchingPkg && customerPackages.length > 0 && (
                                   <span className="mt-1.5 inline-flex items-center gap-1 rounded-dd-sm border border-amber-800/30 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-900">
                                     Perlu paket studio/kelas ini
                                   </span>
@@ -754,7 +779,14 @@ export function PublicClassesView({
 
                             {/* Tombol Aksi */}
                             <div className="shrink-0">
-                              {isFull ? (
+                              {bookedId ? (
+                                <a
+                                  href={`/bookings/${bookedId}`}
+                                  className="inline-flex min-h-[48px] w-full sm:w-auto items-center justify-center rounded-dd-md border-[1.5px] border-dd-border-interactive bg-white px-5 py-2.5 text-sm font-bold text-dd-forest shadow-xs transition hover:bg-dd-surface-muted focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#24483a]"
+                                >
+                                  Lihat booking
+                                </a>
+                              ) : isFull ? (
                                 <span
                                   className="inline-flex min-h-[44px] w-full sm:w-auto items-center justify-center rounded-dd-md border border-[#e8d5be] bg-[#fbf4eb] px-4 py-2 text-xs font-bold text-[#8a5b17] pointer-events-none select-none cursor-not-allowed"
                                   aria-disabled="true"
@@ -975,6 +1007,11 @@ export function PublicClassesView({
         bookingClient={bookingClient}
         onBookingSuccess={() => {
           if (branchId) void load(branchId);
+          void loadBookedSlots();
+        }}
+        onSlotUnavailable={() => {
+          if (branchId) void load(branchId);
+          void loadBookedSlots();
         }}
       />
 
