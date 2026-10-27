@@ -1,6 +1,7 @@
 'use client';
 
-import { ArrowLeft, CheckCircle2, Eye, RefreshCw } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Clock, Eye, Filter, RefreshCw } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import {
@@ -8,6 +9,8 @@ import {
   purchaseFailure,
   type PurchaseReviewClient,
   type ReviewDetail,
+  type ReviewPurchase,
+  type ReviewSummary,
 } from '@/api-clients/purchase-client';
 import { Badge, Pagination, Panel } from '../../../components/admin/admin-ui';
 import { Button, ButtonLink } from '../../../components/actions';
@@ -88,6 +91,18 @@ function formatDate(val?: Date | string | null): string {
   return isNaN(d.getTime()) ? '-' : d.toLocaleDateString('id-ID');
 }
 
+const ageLabel = (submittedAt?: Date | string | null) => {
+  if (!submittedAt) return 'baru saja';
+  const time = new Date(submittedAt).getTime();
+  const hours = Math.max(
+    0,
+    Math.floor((Date.now() - (Number.isNaN(time) ? Date.now() : time)) / 3_600_000),
+  );
+  if (hours < 1) return 'menunggu < 1 jam';
+  if (hours < 24) return `menunggu ${hours} jam`;
+  return `menunggu ${Math.floor(hours / 24)} hari`;
+};
+
 export function PaymentReviewDetailView({
   id,
   returnTo,
@@ -128,6 +143,10 @@ export function PaymentReviewDetailView({
   const [usageLoading, setUsageLoading] = useState(false);
   const [usageCursor, setUsageCursor] = useState<string>();
   const [usageCursorHistory, setUsageCursorHistory] = useState<string[]>([]);
+  const [pendingQueue, setPendingQueue] = useState<ReviewPurchase[]>([]);
+  const [pendingTotal, setPendingTotal] = useState<number>(0);
+  const [oldestSubmitted, setOldestSubmitted] = useState<Date | null>(null);
+  const [sortOrder, setSortOrder] = useState<'oldest' | 'newest'>('oldest');
   const backHref = safePaymentReturnTo(returnTo);
 
   const load = useCallback(async () => {
@@ -146,6 +165,31 @@ export function PaymentReviewDetailView({
   }, [canReview, client, id, sessionReady]);
 
   useEffect(() => void load(), [load]);
+
+  useEffect(() => {
+    if (!sessionReady || !canReview) return;
+    let active = true;
+    client
+      .list({ status: 'PENDING', limit: 20 })
+      .then((result) => {
+        if (!active) return;
+        setPendingQueue(result.items);
+        setPendingTotal(result.total ?? result.items.length);
+        if (result.items.length > 0) {
+          const sorted = [...result.items].sort(
+            (a, b) => new Date(a.submittedAt).getTime() - new Date(b.submittedAt).getTime(),
+          );
+          if (sorted[0]?.submittedAt) setOldestSubmitted(new Date(sorted[0].submittedAt));
+        }
+      })
+      .catch(() => {
+        // Abaikan kegagalan pemuatan antrean samping
+      });
+    return () => {
+      active = false;
+    };
+  }, [canReview, client, sessionReady]);
+
   useEffect(
     () => () => {
       if (previewUrl) URL.revokeObjectURL(previewUrl);
@@ -170,8 +214,6 @@ export function PaymentReviewDetailView({
       setPreviewLoading(false);
     }
   }, [client, detail?.purchase.paymentProof, previewUrl]);
-  // Catatan: loadPreview TIDAK dijalankan otomatis pada mount untuk mencegah persetujuan buta (blind approval).
-  // Staf peninjau wajib secara sadar menekan tombol pratinjau bukti sebelum persetujuan dapat diberikan.
 
   const loadUsagePage = async (cursor?: string) => {
     if (!detail) return;
@@ -242,7 +284,7 @@ export function PaymentReviewDetailView({
     }
     const copy = {
       APPROVE: [
-        'Setujui pembayaran',
+        'Setujui dan aktifkan paket',
         'Paket pelanggan akan diaktifkan.',
       ],
       ACTION_REQUIRED: [
@@ -250,7 +292,7 @@ export function PaymentReviewDetailView({
         'Pelanggan harus mengunggah bukti pembayaran pengganti.',
       ],
       DUPLICATE: [
-        'Tolak sebagai duplikat',
+        'Tolak pembayaran',
         'Transaksi ditolak tanpa mengaktifkan paket atau ledger.',
       ],
     } as const;
@@ -353,50 +395,56 @@ export function PaymentReviewDetailView({
     ['Keputusan dibuat', detail.timeline.decidedAt],
   ] as const;
 
+  const sortedQueue = [...pendingQueue].sort((a, b) => {
+    const timeA = new Date(a.submittedAt).getTime();
+    const timeB = new Date(b.submittedAt).getTime();
+    return sortOrder === 'oldest' ? timeA - timeB : timeB - timeA;
+  });
+
   return (
-    <section className="space-y-5" aria-labelledby="payment-detail-title">
-      <ButtonLink
-        href={backHref}
-        variant="ghost"
-        size="sm"
-        leadingIcon={<ArrowLeft className="size-4" />}
-      >
-        Kembali ke antrean
-      </ButtonLink>
-      <Panel className="p-5 sm:p-7">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.14em] text-dd-forest">
-              Pengguna / Pembayaran
-            </p>
+    <section className="space-y-5 font-sans text-dd-ink" aria-labelledby="payment-detail-title">
+      {/* Top Header: Bukti transfer menunggu & Finance info */}
+      <header className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-dd-line pb-4">
+        <div>
+          <div className="flex items-center gap-3">
+            <ButtonLink
+              href={backHref}
+              variant="ghost"
+              size="sm"
+              leadingIcon={<ArrowLeft className="size-4" />}
+            >
+              Kembali ke antrean
+            </ButtonLink>
             <h1
               id="payment-detail-title"
-              className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl"
+              className="text-2xl font-black tracking-tight text-dd-ink sm:text-3xl"
             >
-              Detail pembayaran
+              Bukti transfer menunggu
             </h1>
-            <p className="mt-2 break-all text-sm text-dd-muted">Transaksi {purchase.id}</p>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <Badge tone={paymentStatusTone(purchase.status)}>
-              {statusLabels[purchase.status] ?? purchase.status}
-            </Badge>
-            <Button
-              variant="secondary"
-              disabled={loading}
-              leadingIcon={
-                <RefreshCw
-                  className={`size-4 ${loading ? 'animate-spin' : ''}`}
-                  aria-hidden="true"
-                />
-              }
-              onClick={() => void load()}
-            >
-              Segarkan
-            </Button>
-          </div>
+          <p className="mt-1 text-xs text-dd-muted">Transaksi {purchase.id}</p>
         </div>
-      </Panel>
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-semibold text-dd-muted">Finance, semua cabang</span>
+          <Badge tone={paymentStatusTone(purchase.status)}>
+            {statusLabels[purchase.status] ?? purchase.status}
+          </Badge>
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={loading}
+            leadingIcon={
+              <RefreshCw
+                className={`size-4 ${loading ? 'animate-spin' : ''}`}
+                aria-hidden="true"
+              />
+            }
+            onClick={() => void load()}
+          >
+            Segarkan
+          </Button>
+        </div>
+      </header>
 
       {error && (
         <AlertBanner
@@ -412,103 +460,378 @@ export function PaymentReviewDetailView({
           title="Mode hanya baca"
           message="Anda dapat melihat transaksi dan bukti. Keputusan dilakukan oleh Finance atau Super Admin."
         />
-      )}
+      )}      <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+        {/* Panel Kiri: Antrean Bukti Transfer Menunggu (Mockup 16) */}
+        <aside aria-label="Antrean bukti transfer" className="space-y-3 lg:w-80 shrink-0">
+          <div className="rounded-dd-xl border border-dd-border-interactive bg-white p-4 shadow-sm space-y-3">
+            <div>
+              <p className="text-sm font-bold text-dd-ink">
+                <span className="text-dd-forest">{pendingTotal || pendingQueue.length} bukti</span> menunggu diperiksa.
+              </p>
+              {oldestSubmitted && (
+                <p className="text-xs text-dd-muted mt-0.5">
+                  Tertua dikirim {formatDate(oldestSubmitted)}.
+                </p>
+              )}
+            </div>
 
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
-        <div className="space-y-5">
+            <div className="flex items-center gap-2">
+              <select
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value as 'oldest' | 'newest')}
+                aria-label="Urutan antrean"
+                className="w-full rounded-dd-md border border-dd-border-interactive bg-white px-2.5 py-1.5 text-xs font-semibold text-dd-ink"
+              >
+                <option value="oldest">Tertua dulu</option>
+                <option value="newest">Terbaru dulu</option>
+              </select>
+              <Button variant="secondary" size="sm" leadingIcon={<Filter className="size-3.5" />}>
+                Filter
+              </Button>
+            </div>
+
+            <div className="rounded-dd-md bg-dd-surface-muted border border-dd-line p-2 text-xs text-dd-muted leading-tight">
+              Filter aktif: semua cabang, status menunggu pemeriksaan.
+            </div>
+
+            <div className="space-y-1.5 max-h-[calc(100vh-22rem)] overflow-y-auto pr-1">
+              {sortedQueue.length === 0 ? (
+                <p className="text-xs text-dd-muted py-2">Tidak ada bukti lain di antrean.</p>
+              ) : (
+                sortedQueue.map((item) => {
+                  const isActive = item.id === purchase.id;
+                  return (
+                    <Link
+                      key={item.id}
+                      href={`/workspace/payments/${encodeURIComponent(item.id)}?returnTo=${encodeURIComponent(backHref)}`}
+                      className={`block rounded-dd-lg border p-3 text-left transition no-underline ${
+                        isActive
+                          ? 'border-2 border-dd-forest bg-dd-forest/5 text-dd-ink'
+                          : 'border-dd-line bg-white text-dd-ink hover:border-dd-border-interactive hover:bg-dd-surface-muted'
+                      }`}
+                    >
+                      <p className="font-bold text-sm truncate">{item.customer.displayName}</p>
+                      <p className="text-xs text-dd-muted truncate">
+                        {item.branch.name}, {item.packageNameSnapshot}
+                      </p>
+                      <div className="mt-2 flex items-center justify-between text-xs">
+                        <span className="font-bold text-dd-forest">
+                          {formatRupiah(item.payableAmountRpSnapshot ?? item.priceRpSnapshot)}
+                        </span>
+                        <span className="text-dd-muted">{ageLabel(item.submittedAt)}</span>
+                      </div>
+                    </Link>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </aside>
+
+        {/* Panel Kanan: Pemeriksaan Bukti Terpilih */}
+        <div className="flex-1 space-y-5 min-w-0">
+          {/* Header Pelanggan & Paket */}
           <Panel className="p-5 sm:p-6">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <p className="text-xs font-bold uppercase tracking-wider text-dd-muted">Pelanggan</p>
-                <h2 className="mt-1 text-xl font-semibold">{purchase.customer.displayName}</h2>
-                <p className="text-sm text-dd-muted">
-                  {purchase.customer.phoneMasked ?? 'Kontak termasking tidak tersedia'}
+                <h2 className="text-xs font-bold uppercase tracking-wider text-dd-forest">
+                  Detail pembayaran
+                </h2>
+                <h3 className="mt-1 text-2xl font-black text-dd-ink sm:text-3xl">
+                  {purchase.customer.displayName}
+                </h3>
+                <p className="text-sm font-medium text-dd-muted mt-1">
+                  {purchase.branch.name} · {purchase.packageNameSnapshot}
                 </p>
               </div>
               <Badge>{purchase.branch.name}</Badge>
             </div>
-            <dl className="mt-5 grid gap-4 rounded-dd-lg border border-dd-line bg-dd-surface-muted p-4 text-sm sm:grid-cols-2 lg:grid-cols-3">
-              <div>
-                <dt className="text-dd-muted">Paket</dt>
-                <dd className="mt-1 font-semibold">{purchase.packageNameSnapshot}</dd>
-              </div>
-              <div>
-                <dt className="text-dd-muted">Harga paket</dt>
-                <dd className="mt-1 font-semibold">{formatRupiah(purchase.priceRpSnapshot)}</dd>
-              </div>
-              {purchase.packagePromotionId && (
-                <>
-                  <div>
-                    <dt className="text-dd-muted">Promo paket</dt>
-                    <dd className="mt-1 font-semibold">{purchase.packagePromotionNameSnapshot}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-dd-muted">Diskon promo</dt>
-                    <dd className="mt-1 font-semibold text-dd-success">
-                      − {formatRupiah(purchase.packagePromotionDiscountRpSnapshot ?? 0)}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-dd-muted">Harga promo</dt>
-                    <dd className="mt-1 font-semibold">
-                      {formatRupiah(
-                        purchase.promotionalPriceRpSnapshot ?? purchase.priceRpSnapshot,
-                      )}
-                    </dd>
-                  </div>
-                </>
-              )}
-              {purchase.voucherCodeSnapshot && (
-                <>
-                  <div>
-                    <dt className="text-dd-muted">Voucher</dt>
-                    <dd className="mt-1 font-semibold">{purchase.voucherCodeSnapshot}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-dd-muted">Diskon voucher</dt>
-                    <dd className="mt-1 font-semibold text-dd-success">
-                      − {formatRupiah(purchase.voucherDiscountRpSnapshot ?? 0)}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-dd-muted">Harga setelah diskon</dt>
-                    <dd className="mt-1 font-semibold">
-                      {formatRupiah(
-                        purchase.priceAfterDiscountRpSnapshot ?? purchase.priceRpSnapshot,
-                      )}
-                    </dd>
-                  </div>
-                </>
-              )}
-              <div>
-                <dt className="text-dd-muted">Identifikasi transfer</dt>
-                <dd className="mt-1 font-semibold">
-                  {purchase.paymentUniqueCode
-                    ? String(purchase.paymentUniqueCode).padStart(3, '0')
-                    : 'Nominal standar'}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-dd-muted">Nominal transfer</dt>
-                <dd className="mt-1 font-semibold text-dd-forest">
-                  {formatRupiah(purchase.payableAmountRpSnapshot ?? purchase.priceRpSnapshot)}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-dd-muted">Sesi / masa berlaku</dt>
-                <dd className="mt-1 font-semibold">
-                  {purchase.sessionCountSnapshot} sesi · {purchase.durationDaysSnapshot} hari
-                </dd>
-              </div>
-              <div>
-                <dt className="text-dd-muted">Revisi Pesanan</dt>
-                <dd className="mt-1 font-semibold">{purchase.version}</dd>
-              </div>
-            </dl>
           </Panel>
 
+          {/* KARTU NOMINAL DISANDINGKAN (Elemen Terbesar di Layar - Tiket T-21 / Mockup 16) */}
+          <PaymentAmountCheck
+            expectedRp={purchase.payableAmountRpSnapshot ?? purchase.priceRpSnapshot}
+          />
+
+          {/* Grid Bukti Transfer & Panel Keputusan */}
+          <div className="grid gap-5 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
+            {/* Kartu Gambar Bukti Transfer */}
+            <Panel id="private-payment-proof-panel" className="p-5 sm:p-6 flex flex-col justify-between">
+              <div>
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-dd-line pb-3">
+                  <div>
+                    <h3 className="text-lg font-bold text-dd-ink">Bukti transfer</h3>
+                    <p className="text-xs text-dd-muted">
+                      Status scan: {purchase.paymentProof?.scanStatus ?? 'Belum tersedia'}
+                    </p>
+                  </div>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    leadingIcon={<Eye className="size-4" aria-hidden="true" />}
+                    disabled={
+                      previewLoading ||
+                      !purchase.paymentProof ||
+                      purchase.paymentProof.scanStatus !== 'CLEAN'
+                    }
+                    onClick={() => void loadPreview()}
+                  >
+                    {previewLoading
+                      ? 'Memuat…'
+                      : previewUrl
+                        ? 'Terbitkan ulang preview'
+                        : 'Preview bukti'}
+                  </Button>
+                </div>
+
+                {previewLoading ? (
+                  <div className="mt-5 grid min-h-[420px] place-items-center rounded-dd-lg border border-dd-line bg-dd-surface-muted p-6">
+                    <Skeleton label="Memuat bukti pembayaran…" />
+                  </div>
+                ) : previewUrl && (previewType.startsWith('image/') || previewType === 'image/svg+xml') ? (
+                  <ProofImageViewer
+                    src={previewUrl}
+                    alt={`Bukti pembayaran ${purchase.customer.displayName}`}
+                    onLoad={() => setProofImageShown(true)}
+                    onError={() => setProofImageShown(false)}
+                  />
+                ) : previewUrl && previewType === 'application/pdf' ? (
+                  <object
+                    data={previewUrl}
+                    type={previewType}
+                    title={`Bukti pembayaran ${purchase.customer.displayName}`}
+                    className="mt-5 min-h-[420px] h-[34rem] w-full rounded-dd-lg border border-dd-line bg-white"
+                  >
+                    <p>Preview PDF tidak didukung browser ini.</p>
+                  </object>
+                ) : previewUrl ? (
+                  <AlertBanner
+                    tone="warning"
+                    title="Format tidak didukung"
+                    message="Bukti hanya dapat dipreview sebagai JPEG, PNG, WebP, atau PDF."
+                  />
+                ) : (
+                  <div className="mt-5 grid min-h-[420px] place-items-center rounded-dd-lg border border-dashed border-dd-line bg-dd-surface-muted p-6 text-center text-sm text-dd-muted">
+                    {purchase.paymentProof?.scanStatus === 'CLEAN'
+                      ? 'Pilih Preview bukti untuk menerbitkan akses privat berumur pendek.'
+                      : 'Preview tersedia setelah pemeriksaan file selesai dan berstatus bersih.'}
+                  </div>
+                )}
+              </div>
+            </Panel>
+
+            {/* Panel Ringkasan Informasi Sesi & Tiga Keputusan (Mockup 16) */}
+            <aside className="space-y-4">
+              <Panel className="p-5 space-y-4">
+                <h3 className="text-lg font-bold text-dd-ink">Keputusan Finance</h3>
+
+                {/* Ringkasan Informasi Sesi */}
+                <div className="space-y-2.5 rounded-dd-lg border border-dd-line bg-dd-surface-muted p-4 text-xs sm:text-sm">
+                  <div className="flex justify-between items-center">
+                    <span className="text-dd-muted">Waktu pengiriman</span>
+                    <span className="font-semibold text-dd-ink">{formatDateTime(detail.timeline.submittedAt)}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-dd-muted">Paket berlaku hingga</span>
+                    <span className="font-semibold text-dd-ink">
+                      {formatDate(
+                        detail.activation?.expiryAt ??
+                          (purchase.durationDaysSnapshot
+                            ? new Date(new Date(purchase.submittedAt).getTime() + purchase.durationDaysSnapshot * 86400000)
+                            : null),
+                      )}
+                    </span>
+                  </div>
+                  <hr className="border-dd-line my-1" />
+                  <div className="flex justify-between items-center">
+                    <span className="text-dd-muted">Sesi belum dipakai</span>
+                    <span className="font-semibold text-dd-ink">{detail.balance?.available ?? purchase.sessionCountSnapshot ?? 0}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-dd-muted">Sesi sudah dibooking</span>
+                    <span className="font-semibold text-dd-ink">{detail.balance?.reserved ?? 0}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-dd-muted">Sesi sudah terpakai</span>
+                    <span className="font-semibold text-dd-ink">{detail.balance?.used ?? 0}</span>
+                  </div>
+                </div>
+
+                {canDecide && isPendingDecision ? (() => {
+                  const isSuper = Boolean(
+                    sessionContext?.session?.roles?.some((r) =>
+                      r === 'SUPER_OWNER',
+                    ),
+                  );
+                  const isRecorder = Boolean(
+                    (purchase.recordedById || purchase.recordedBy?.id) &&
+                      sessionContext?.session?.id &&
+                      (purchase.recordedById === sessionContext.session.id ||
+                        purchase.recordedBy?.id === sessionContext.session.id),
+                  );
+                  const isSelfCustomer = Boolean(
+                    purchase.customer?.id &&
+                      sessionContext?.session?.id &&
+                      purchase.customer.id === sessionContext.session.id,
+                  );
+                  const separationOfDutiesBlocked = !isSuper && (isRecorder || isSelfCustomer);
+                  const proofRequiresReview = Boolean(purchase.paymentProof);
+                  const proofNotYetViewed =
+                    proofRequiresReview && (!previewUrl || previewLoading || (isImagePreview && !proofImageShown));
+
+                  return (
+                    <div className="space-y-3 pt-2 border-t border-dd-line">
+                      {delayed.pending && (
+                        <div role="status" className="space-y-2 rounded-dd-md border border-dd-forest bg-dd-forest/5 p-3 text-sm text-dd-ink">
+                          <p>
+                            <strong>{delayed.pending.label}</strong> akan dikirim dalam {delayed.pending.secondsLeft} detik.
+                            Setelah terkirim, keputusan tidak bisa dibatalkan.
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            <Button variant="secondary" size="sm" onClick={() => delayed.cancel()}>
+                              Batalkan
+                            </Button>
+                            <Button size="sm" onClick={() => delayed.flush()}>
+                              Kirim sekarang
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+
+                      {separationOfDutiesBlocked && (
+                        <div className="rounded-dd-md border border-dd-warning/30 bg-dd-warning-soft p-3 text-xs text-dd-warning leading-relaxed">
+                          <strong className="block font-semibold">Pemeriksaan Silang Staf:</strong>
+                          {isRecorder
+                            ? 'Anda mencatat transaksi ini. Untuk menjaga transparansi, persetujuan pembayaran harus dilakukan oleh staf atau manajer lain.'
+                            : 'Anda tidak dapat menyetujui transaksi milik akun Anda sendiri.'}
+                        </div>
+                      )}
+
+                      {proofNotYetViewed && !separationOfDutiesBlocked && (
+                        <div className="rounded-dd-md border border-dd-warning/30 bg-dd-warning-soft p-3 text-xs text-dd-warning leading-relaxed space-y-2">
+                          <div>
+                            <strong className="block font-semibold">Tinjauan Bukti Wajib:</strong>
+                            Buka dan periksa pratinjau bukti transfer di panel kiri sebelum menyetujui transaksi ini.
+                          </div>
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            className="w-full text-xs"
+                            disabled={
+                              previewLoading ||
+                              !purchase.paymentProof ||
+                              purchase.paymentProof.scanStatus !== 'CLEAN'
+                            }
+                            onClick={() => {
+                              const el = document.getElementById('private-payment-proof-panel');
+                              el?.scrollIntoView({ behavior: 'smooth' });
+                              void loadPreview();
+                            }}
+                          >
+                            {previewLoading ? 'Memuat bukti…' : 'Buka & Periksa Bukti Sekarang'}
+                          </Button>
+                        </div>
+                      )}
+
+                      {/* Tombol 1: Setujui dan aktifkan paket */}
+                      <Button
+                        className="w-full justify-center text-sm font-bold min-h-11"
+                        aria-label="Setujui pembayaran"
+                        disabled={mutating || Boolean(delayed.pending) || separationOfDutiesBlocked || proofNotYetViewed}
+                        title={
+                          proofNotYetViewed
+                            ? 'Buka pratinjau bukti transfer terlebih dahulu sebelum menyetujui.'
+                            : undefined
+                        }
+                        onClick={() => void decide('APPROVE')}
+                      >
+                        <CheckCircle2 className="size-4" /> Setujui dan aktifkan paket
+                      </Button>
+
+                      {/* Tombol 2: Minta perbaikan bukti */}
+                      <Button
+                        className="w-full justify-center text-sm font-semibold min-h-11"
+                        variant="secondary"
+                        disabled={mutating || Boolean(delayed.pending) || separationOfDutiesBlocked}
+                        onClick={() => void decide('ACTION_REQUIRED')}
+                      >
+                        Minta perbaikan bukti
+                      </Button>
+
+                      {/* Tombol 3: Tolak pembayaran */}
+                      <Button
+                        className="w-full justify-center text-sm font-semibold min-h-11"
+                        variant="danger"
+                        aria-label="Tolak sebagai duplikat"
+                        disabled={mutating || Boolean(delayed.pending) || separationOfDutiesBlocked}
+                        onClick={() => void decide('DUPLICATE')}
+                      >
+                        Tolak pembayaran
+                      </Button>
+
+                      <p className="text-xs text-dd-muted leading-relaxed pt-1">
+                        Tombol setujui baru aktif setelah gambar bukti terbuka. Setelah diputuskan, antrean langsung pindah ke bukti berikutnya dan keputusan bisa dibatalkan dalam 10 detik.
+                      </p>
+
+                      {/* Detail form alasan perbaikan jika dibutuhkan */}
+                      <div className="pt-3 border-t border-dd-line space-y-3">
+                        <SelectInput
+                          label="Alasan perbaikan"
+                          value={reasonCode}
+                          onChange={(event) => setReasonCode(event.target.value as RejectReason)}
+                        >
+                          {Object.entries(reasonLabels).map(([value, label]) => (
+                            <option key={value} value={value}>
+                              {label}
+                            </option>
+                          ))}
+                        </SelectInput>
+                        <div className="space-y-1.5">
+                          <span className="text-xs font-medium text-dd-muted">Templat alasan cepat:</span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {quickRejectionTemplates.map((tpl) => (
+                              <button
+                                key={tpl.label}
+                                type="button"
+                                onClick={() => {
+                                  setReasonCode(tpl.reason);
+                                  setNote(tpl.text);
+                                }}
+                                className="rounded-full border border-dd-line bg-dd-surface px-2.5 py-1 text-xs text-dd-ink transition hover:border-dd-forest hover:bg-dd-forest/5 hover:text-dd-forest"
+                              >
+                                {tpl.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <Textarea
+                          label={`Catatan ${reasonCode === 'OTHER_REVIEW_REQUIRED' ? '(wajib)' : '(opsional)'}`}
+                          value={note}
+                          onChange={(event) => setNote(event.target.value)}
+                          maxLength={500}
+                          placeholder="Jelaskan alasan keputusan"
+                        />
+                      </div>
+                    </div>
+                  );
+                })() : (
+                  <AlertBanner
+                    tone={purchase.status === 'APPROVED' || purchase.status === 'PAID' ? 'success' : 'info'}
+                    title={isPendingDecision ? 'Mode hanya baca' : 'Keputusan telah dibuat'}
+                    message={
+                      isPendingDecision
+                        ? 'Keputusan dilakukan Finance atau Super Admin.'
+                        : 'Mutation control ditutup untuk transaksi yang sudah diputus.'
+                    }
+                  />
+                )}
+              </Panel>
+            </aside>
+          </div>
+
+          {/* Rincian paket & Timeline Detail */}
           <Panel className="p-5 sm:p-6">
-            <h2 className="text-lg font-semibold">Timeline pembayaran</h2>
+            <h3 className="text-lg font-bold text-dd-ink">Timeline pembayaran</h3>
             <p className="mt-1 text-sm text-dd-muted">
               Waktu berikut berasal dari proses sistem, bukan waktu transfer pada bank pelanggan.
             </p>
@@ -531,75 +854,13 @@ export function PaymentReviewDetailView({
             </ol>
           </Panel>
 
-          <Panel id="private-payment-proof-panel" className="p-5 sm:p-6">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <h2 className="text-lg font-semibold">Bukti pembayaran privat</h2>
-                <p className="mt-1 text-sm text-dd-muted">
-                  Status pemeriksaan file: {purchase.paymentProof?.scanStatus ?? 'Belum tersedia'}
-                </p>
-              </div>
-              <Button
-                variant="secondary"
-                leadingIcon={<Eye className="size-4" aria-hidden="true" />}
-                disabled={
-                  previewLoading ||
-                  !purchase.paymentProof ||
-                  purchase.paymentProof.scanStatus !== 'CLEAN'
-                }
-                onClick={() => void loadPreview()}
-              >
-                {previewLoading
-                  ? 'Memuat…'
-                  : previewUrl
-                    ? 'Terbitkan ulang preview'
-                    : 'Preview bukti'}
-              </Button>
-            </div>
-            <div className="mt-4">
-              <PaymentAmountCheck expectedRp={purchase.payableAmountRpSnapshot ?? purchase.priceRpSnapshot} />
-            </div>
-            {previewLoading ? (
-              <div className="mt-5 grid min-h-48 place-items-center rounded-dd-lg border border-dd-line bg-dd-surface-muted p-6">
-                <Skeleton label="Memuat bukti pembayaran…" />
-              </div>
-            ) : previewUrl && (previewType.startsWith('image/') || previewType === 'image/svg+xml') ? (
-              <ProofImageViewer
-                src={previewUrl}
-                alt={`Bukti pembayaran ${purchase.customer.displayName}`}
-                onLoad={() => setProofImageShown(true)}
-                onError={() => setProofImageShown(false)}
-              />
-            ) : previewUrl && previewType === 'application/pdf' ? (
-              <object
-                data={previewUrl}
-                type={previewType}
-                title={`Bukti pembayaran ${purchase.customer.displayName}`}
-                className="mt-5 h-[34rem] w-full rounded-dd-lg border border-dd-line bg-white"
-              >
-                <p>Preview PDF tidak didukung browser ini.</p>
-              </object>
-            ) : previewUrl ? (
-              <AlertBanner
-                tone="warning"
-                title="Format tidak didukung"
-                message="Bukti hanya dapat dipreview sebagai JPEG, PNG, WebP, atau PDF."
-              />
-            ) : (
-              <div className="mt-5 grid min-h-48 place-items-center rounded-dd-lg border border-dashed border-dd-line bg-dd-surface-muted p-6 text-center text-sm text-dd-muted">
-                {purchase.paymentProof?.scanStatus === 'CLEAN'
-                  ? 'Pilih Preview bukti untuk menerbitkan akses privat berumur pendek.'
-                  : 'Preview tersedia setelah pemeriksaan file selesai dan berstatus bersih.'}
-              </div>
-            )}
-          </Panel>
-
+          {/* Penggunaan Sesi & Aktivasi (jika sudah aktif) */}
           {detail.activation && (
             <Panel className="border-dd-success/30 bg-dd-success-soft/35 p-5 sm:p-6">
               <div className="flex items-center gap-3">
                 <CheckCircle2 className="size-6 text-dd-success" />
                 <div>
-                  <h2 className="text-lg font-semibold">Paket pelanggan telah aktif</h2>
+                  <h3 className="text-lg font-bold">Paket pelanggan telah aktif</h3>
                   <p className="text-sm text-dd-muted">
                     Hasil ini dimuat dari data paket dan catatan sesi resmi.
                   </p>
@@ -609,9 +870,6 @@ export function PaymentReviewDetailView({
                 <div>
                   <dt className="text-dd-muted">Paket aktif</dt>
                   <dd className="mt-1 font-semibold">{detail.activation.packageName}</dd>
-                  <dd className="break-all text-xs text-dd-muted">
-                    {detail.activation.customerPackageId}
-                  </dd>
                 </div>
                 <div>
                   <dt className="text-dd-muted">Saldo awal</dt>
@@ -624,31 +882,19 @@ export function PaymentReviewDetailView({
                     {formatDate(detail.activation.expiryAt)}
                   </dd>
                 </div>
-                <div>
-                  <dt className="text-dd-muted">Referensi ledger</dt>
-                  <dd className="mt-1 break-all font-semibold">
-                    {detail.activation.ledgerEntryId ?? 'Tidak tersedia'}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-dd-muted">Referensi audit</dt>
-                  <dd className="mt-1 break-all font-semibold">
-                    {purchase.auditReference ?? 'Tidak tersedia'}
-                  </dd>
-                </div>
               </dl>
             </Panel>
           )}
 
-          <Panel className="p-5 sm:p-6">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <h2 className="text-lg font-semibold">Penggunaan sesi</h2>
-                <p className="mt-1 text-sm text-dd-muted">
-                  Saldo dan perubahan sesi berasal dari catatan sesi resmi.
-                </p>
-              </div>
-              {detail.balance ? (
+          {detail.balance && (
+            <Panel className="p-5 sm:p-6">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h3 className="text-lg font-bold">Penggunaan sesi</h3>
+                  <p className="mt-1 text-sm text-dd-muted">
+                    Saldo dan perubahan sesi berasal dari catatan sesi resmi.
+                  </p>
+                </div>
                 <Badge
                   tone={
                     detail.balance.status === 'ACTIVE'
@@ -664,290 +910,28 @@ export function PaymentReviewDetailView({
                       ? 'Paket kedaluwarsa'
                       : 'Paket tidak aktif'}
                 </Badge>
-              ) : (
-                <Badge>Belum diaktifkan</Badge>
-              )}
-            </div>
-            {detail.balance ? (
-              <>
-                <dl className="mt-5 grid grid-cols-2 gap-3 rounded-dd-lg border border-dd-line bg-dd-surface-muted p-4 text-sm sm:grid-cols-4">
-                  <div>
-                    <dt className="text-dd-muted">Saldo awal</dt>
-                    <dd className="mt-1 font-semibold">{detail.balance.sessionCount}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-dd-muted">Tersedia</dt>
-                    <dd className="mt-1 font-semibold">{detail.balance.available}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-dd-muted">Direservasi</dt>
-                    <dd className="mt-1 font-semibold">{detail.balance.reserved}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-dd-muted">Terpakai</dt>
-                    <dd className="mt-1 font-semibold">{detail.balance.used}</dd>
-                  </div>
-                </dl>
-                {detail.balance.status === 'EXPIRED' && (
-                  <p className="mt-3 text-sm font-semibold text-dd-danger">
-                    Paket kedaluwarsa · 0 sesi dapat digunakan.
-                  </p>
-                )}
-                {detail.balance.status === 'ACTIVE' && detail.balance.available === 0 && (
-                  <p className="mt-3 text-sm font-semibold text-dd-forest">Sesi telah habis.</p>
-                )}
-                <div className="mt-5 overflow-hidden rounded-dd-md border border-dd-line">
-                  <div className="hidden grid-cols-[minmax(0,1fr)_7rem_7rem_10rem] gap-3 border-b border-dd-line bg-dd-surface-muted px-4 py-3 text-xs font-bold uppercase tracking-wide text-dd-muted sm:grid">
-                    <span>Aktivitas</span>
-                    <span>Perubahan</span>
-                    <span>Saldo</span>
-                    <span>Waktu</span>
-                  </div>
-                  {detail.usageHistory.items.length ? (
-                    detail.usageHistory.items.map((entry) => (
-                      <div
-                        key={entry.id}
-                        className="grid gap-1 border-b border-dd-line px-4 py-3 text-sm last:border-0 sm:grid-cols-[minmax(0,1fr)_7rem_7rem_10rem] sm:gap-3"
-                      >
-                        <div>
-                          <strong>{entry.label}</strong>
-                          <p className="text-xs text-dd-muted">
-                            Saldo berubah melalui proses sistem yang diaudit.
-                          </p>
-                        </div>
-                        <span
-                          className={`font-semibold ${entry.quantity < 0 ? 'text-dd-danger' : 'text-dd-success'}`}
-                        >
-                          {entry.quantity > 0 ? '+' : ''}
-                          {entry.quantity} sesi
-                        </span>
-                        <span className="font-semibold">{entry.balanceAfter} sesi</span>
-                        <time className="text-dd-muted">
-                          {formatDateTime(entry.occurredAt)}
-                        </time>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="p-4 text-sm text-dd-muted">Belum ada histori penggunaan sesi.</p>
-                  )}
-                </div>
-                <div className="mt-4">
-                  <Pagination
-                    hasPrevious={usageCursorHistory.length > 0 && !usageLoading}
-                    hasNext={Boolean(detail.usageHistory.page.nextCursor) && !usageLoading}
-                    totalLabel={`${detail.usageHistory.items.length.toLocaleString('id-ID')} aktivitas`}
-                    currentPage={usageCursorHistory.length + 1}
-                    onPrevious={() => {
-                      const previous = usageCursorHistory.at(-1) ?? '';
-                      setUsageCursorHistory((current) => current.slice(0, -1));
-                      void loadUsagePage(previous || undefined);
-                    }}
-                    onNext={() => {
-                      const next = detail.usageHistory.page.nextCursor;
-                      if (!next) return;
-                      setUsageCursorHistory((current) => [...current, usageCursor ?? '']);
-                      void loadUsagePage(next);
-                    }}
-                  />
-                </div>
-              </>
-            ) : (
-              <p className="mt-4 text-sm text-dd-muted">
-                Histori tersedia setelah pembayaran disetujui dan paket diaktifkan.
-              </p>
-            )}
-          </Panel>
-
-          {!isPendingDecision && (
-            <Panel className="p-5 sm:p-6">
-              <h2 className="text-lg font-semibold">Keputusan pembayaran</h2>
-              <dl className="mt-4 grid gap-4 text-sm sm:grid-cols-2">
+              </div>
+              <dl className="mt-5 grid grid-cols-2 gap-3 rounded-dd-lg border border-dd-line bg-dd-surface-muted p-4 text-sm sm:grid-cols-4">
                 <div>
-                  <dt className="text-dd-muted">Keputusan</dt>
-                  <dd className="mt-1 font-semibold">
-                    {statusLabels[purchase.status] ?? purchase.status}
-                  </dd>
+                  <dt className="text-dd-muted">Saldo awal</dt>
+                  <dd className="mt-1 font-semibold">{detail.balance.sessionCount}</dd>
                 </div>
                 <div>
-                  <dt className="text-dd-muted">Aktor</dt>
-                  <dd className="mt-1 font-semibold">
-                    {detail.decisionActorMasked ?? 'Termasking'}
-                  </dd>
+                  <dt className="text-dd-muted">Tersedia</dt>
+                  <dd className="mt-1 font-semibold">{detail.balance.available}</dd>
                 </div>
                 <div>
-                  <dt className="text-dd-muted">Alasan</dt>
-                  <dd className="mt-1 font-semibold">
-                    {purchase.decisionReasonCode ?? 'Tidak tersedia'}
-                  </dd>
+                  <dt className="text-dd-muted">Direservasi</dt>
+                  <dd className="mt-1 font-semibold">{detail.balance.reserved}</dd>
                 </div>
                 <div>
-                  <dt className="text-dd-muted">Referensi audit</dt>
-                  <dd className="mt-1 break-all font-semibold">
-                    {purchase.auditReference ?? 'Tidak tersedia'}
-                  </dd>
+                  <dt className="text-dd-muted">Terpakai</dt>
+                  <dd className="mt-1 font-semibold">{detail.balance.used}</dd>
                 </div>
               </dl>
             </Panel>
           )}
         </div>
-
-        <aside className="h-fit space-y-4 xl:sticky xl:top-24">
-          <Panel className="p-5">
-            <h2 className="text-lg font-semibold">Keputusan Finance</h2>
-            <p className="mt-1 text-sm leading-6 text-dd-muted">
-              Setiap keputusan diverifikasi dan dicatat pada audit studio.
-            </p>
-            {canDecide && isPendingDecision ? (() => {
-              const isSuper = Boolean(
-                sessionContext?.session?.roles?.some((r) =>
-                  r === 'SUPER_OWNER',
-                ),
-              );
-              const isRecorder = Boolean(
-                (purchase.recordedById || purchase.recordedBy?.id) &&
-                  sessionContext?.session?.id &&
-                  (purchase.recordedById === sessionContext.session.id ||
-                    purchase.recordedBy?.id === sessionContext.session.id),
-              );
-              const isSelfCustomer = Boolean(
-                purchase.customer?.id &&
-                  sessionContext?.session?.id &&
-                  purchase.customer.id === sessionContext.session.id,
-              );
-              const separationOfDutiesBlocked = !isSuper && (isRecorder || isSelfCustomer);
-              const proofRequiresReview = Boolean(purchase.paymentProof);
-              const proofNotYetViewed =
-      proofRequiresReview && (!previewUrl || previewLoading || (isImagePreview && !proofImageShown));
-              return (
-                <div className="mt-5 space-y-4">
-                  {delayed.pending && (
-                    <div role="status" className="space-y-2 rounded-dd-md border border-dd-forest bg-dd-forest/5 p-3 text-sm text-dd-ink">
-                      <p>
-                        <strong>{delayed.pending.label}</strong> akan dikirim dalam {delayed.pending.secondsLeft} detik.
-                        Setelah terkirim, keputusan tidak bisa dibatalkan.
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        <Button variant="secondary" size="sm" onClick={() => delayed.cancel()}>
-                          Batalkan
-                        </Button>
-                        <Button size="sm" onClick={() => delayed.flush()}>
-                          Kirim sekarang
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                  {separationOfDutiesBlocked && (
-                    <div className="rounded-dd-md border border-dd-warning/30 bg-dd-warning-soft p-3 text-xs text-dd-warning leading-relaxed">
-                      <strong className="block font-semibold">Pemeriksaan Silang Staf:</strong>
-                      {isRecorder
-                        ? 'Anda mencatat transaksi ini. Untuk menjaga transparansi, persetujuan pembayaran harus dilakukan oleh staf atau manajer lain.'
-                        : 'Anda tidak dapat menyetujui transaksi milik akun Anda sendiri.'}
-                    </div>
-                  )}
-                  {proofNotYetViewed && !separationOfDutiesBlocked && (
-                    <div className="rounded-dd-md border border-dd-warning/30 bg-dd-warning-soft p-3 text-xs text-dd-warning leading-relaxed space-y-2">
-                      <div>
-                        <strong className="block font-semibold">Tinjauan Bukti Wajib:</strong>
-                        Buka dan periksa pratinjau bukti transfer di panel kiri sebelum menyetujui transaksi ini.
-                      </div>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        className="w-full text-xs"
-                        disabled={
-                          previewLoading ||
-                          !purchase.paymentProof ||
-                          purchase.paymentProof.scanStatus !== 'CLEAN'
-                        }
-                        onClick={() => {
-                          const el = document.getElementById('private-payment-proof-panel');
-                          el?.scrollIntoView({ behavior: 'smooth' });
-                          void loadPreview();
-                        }}
-                      >
-                        {previewLoading ? 'Memuat bukti…' : 'Buka & Periksa Bukti Sekarang'}
-                      </Button>
-                    </div>
-                  )}
-                  <Button
-                    className="w-full"
-                    disabled={mutating || Boolean(delayed.pending) || separationOfDutiesBlocked || proofNotYetViewed}
-                    title={
-                      proofNotYetViewed
-                        ? 'Buka pratinjau bukti transfer terlebih dahulu sebelum menyetujui.'
-                        : undefined
-                    }
-                    onClick={() => void decide('APPROVE')}
-                  >
-                    <CheckCircle2 className="size-4" /> Setujui pembayaran
-                  </Button>
-                  <SelectInput
-                    label="Alasan perbaikan"
-                    value={reasonCode}
-                    onChange={(event) => setReasonCode(event.target.value as RejectReason)}
-                  >
-                    {Object.entries(reasonLabels).map(([value, label]) => (
-                      <option key={value} value={value}>
-                        {label}
-                      </option>
-                    ))}
-                  </SelectInput>
-                  <div className="space-y-1.5">
-                    <span className="text-xs font-medium text-dd-muted">Templat alasan cepat:</span>
-                    <div className="flex flex-wrap gap-1.5">
-                      {quickRejectionTemplates.map((tpl) => (
-                        <button
-                          key={tpl.label}
-                          type="button"
-                          onClick={() => {
-                            setReasonCode(tpl.reason);
-                            setNote(tpl.text);
-                          }}
-                          className="rounded-full border border-dd-line bg-dd-surface px-2.5 py-1 text-xs text-dd-ink transition hover:border-dd-forest hover:bg-dd-forest/5 hover:text-dd-forest"
-                        >
-                          {tpl.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <Textarea
-                    label={`Catatan ${reasonCode === 'OTHER_REVIEW_REQUIRED' ? '(wajib)' : '(opsional)'}`}
-                    value={note}
-                    onChange={(event) => setNote(event.target.value)}
-                    maxLength={500}
-                    placeholder="Jelaskan alasan keputusan"
-                  />
-                  <Button
-                    className="w-full"
-                    variant="secondary"
-                    disabled={mutating || Boolean(delayed.pending) || separationOfDutiesBlocked}
-                    onClick={() => void decide('ACTION_REQUIRED')}
-                  >
-                    Minta perbaikan bukti
-                  </Button>
-                  <Button
-                    className="w-full"
-                    variant="danger"
-                    disabled={mutating || Boolean(delayed.pending) || separationOfDutiesBlocked}
-                    onClick={() => void decide('DUPLICATE')}
-                  >
-                    Tolak sebagai duplikat
-                  </Button>
-                </div>
-              );
-            })() : (
-              <AlertBanner
-                tone={purchase.status === 'APPROVED' || purchase.status === 'PAID' ? 'success' : 'info'}
-                title={isPendingDecision ? 'Mode hanya baca' : 'Keputusan telah dibuat'}
-                message={
-                  isPendingDecision
-                    ? 'Keputusan dilakukan Finance atau Super Admin.'
-                    : 'Mutation control ditutup untuk transaksi yang sudah diputus.'
-                }
-              />
-            )}
-          </Panel>
-        </aside>
       </div>
     </section>
   );
