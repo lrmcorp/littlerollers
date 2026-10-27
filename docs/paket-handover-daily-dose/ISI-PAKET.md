@@ -12,6 +12,9 @@ Disusun 26 Oktober 2026. Mulai dari `00-README-PAKET-HANDOVER.md`.
 | `03-BACKLOG-TIKET.md` | Developer dan manajer proyek | 22 tiket dalam 5 gelombang, masing masing dengan kriteria selesai |
 | `04-LAPORAN-UAT-BUG.md` | Developer dan tim operasional | 30 temuan dari pengujian langsung, 3 hal yang perlu direview, 16 yang sudah diperbaiki |
 
+Status tiap tiket terhadap kode ada di awal `03-BACKLOG-TIKET.md`, dan
+pemetaan token ke kode ada di bagian 11 `02-SPEC-DESAIN.md`.
+
 ## Gambar
 
 `mockup-png/` berisi 18 gambar mockup resolusi 2x, bisa dibuka tanpa akses

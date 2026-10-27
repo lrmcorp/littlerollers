@@ -4,10 +4,138 @@ Tiket diurutkan berdasarkan dampak ke konversi dan kepercayaan member.
 Kerjakan satu per satu, urut nomor. Jangan gabung beberapa tiket dalam satu
 perubahan.
 
-Rujukan: `02-SPEC-DESAIN.md` dan mockup 12 artboard di kanvas desain.
+Rujukan: `02-SPEC-DESAIN.md` dan 18 mockup (`mockup-png/`, sumber di `mockup-sumber/`).
 
 Keterangan ukuran: S kurang dari 1 hari, M 1 sampai 3 hari, L lebih dari
 3 hari. Perkiraan ini dari sisi desain, bukan dari pembacaan basis kode.
+
+---
+
+## Status per 27 Oktober 2026
+
+Diperiksa dengan membaca kode repositori (komit terakhir dan pekerjaan yang
+sedang berjalan di IDE lain), bukan dengan menjalankan aplikasinya. "Ada di
+kode" berarti berkas dan tesnya ada, belum berarti perilakunya sudah diuji di
+browser. "Belum ada jejak" berarti pencarian kata kunci tiket tidak menemukan
+apa pun.
+
+| Tiket | Status | Yang ditemukan | Sisa atau catatan |
+|---|---|---|---|
+| T-01 | Ada di kode | Checkout menangani `CUSTOMER_VERIFICATION_REQUIRED` dengan pesan dan tautan `returnTo` | Uji alur: setelah verifikasi kembali ke paket yang dipilih |
+| T-02 | Ada di kode | Banner status (belum, diperiksa, ditolak) dipakai di beranda, booking, dan pesanan | Uji bahwa tab tidak lagi dialihkan diam-diam |
+| T-03 | Sebagian | `/` mengalihkan member yang login ke `/account`; menu bawah member sudah ada | Hanya 5 halaman punya judul tab sendiri (panduan, QR Pass, kontak, jadwal detail, privasi). Selebihnya masih judul umum. |
+| T-04 | Ada di kode | Tombol `Studio:` dan `Tipe kelas:` dengan filter ringkas di halaman jadwal | Uji: konten pertama di atas y = 400 px pada 375 x 812 |
+| T-05 | Ada di kode | Lembar konfirmasi dengan keadaan berhasil dan slot penuh; kunci kuota di server sudah ada | Halaman perantara belum hilang: `/bookings/new` tanpa sesi terpilih masih menampilkan "Pilih jadwal kelas terlebih dahulu". Tombol "Booking kelas" harus langsung ke jadwal. |
+| T-06 | Ada di kode (sedang dikerjakan) | Urutkan dan kelompok `COBA DULU` ada di halaman paket | Berkas masih berubah di IDE lain |
+| T-07 | Ada di kode (sedang dikerjakan) | `Salin nominal` dan `Salin nomor rekening` ada | Rekening diisi di Master, Rekening Pembayaran (lihat Penyesuaian) |
+| T-08 | Ada di kode | QR Pass berlatar `#24483a`, QR minimal 230 px, `Simpan ke galeri`, masa berlaku | Uji kecerahan layar dan keterbacaan pemindai |
+| T-09 | Sebagian | Kalimat "KTP diminta nanti" dan kotak "Sudah pernah latihan di studio?" ada | Berkas daftar masih memuat unggah KTP dan selfie; pastikan tidak tampil di formulir awal. Bagian kode WhatsApp dikeluarkan. |
+| T-10 | Sebagian | Halaman `Hari Ini`, menu bawah 4 item, tombol administrasi disembunyikan, input `repeatUntil` pada ketersediaan | Ulang mingguan dikerjakan di sisi klien (beberapa pengajuan); API tidak punya parameter ulang. Cek pemilih cabang hanya memuat cabang penugasan. |
+| T-11 | Sebagian | Teks `Arahkan kamera ke QR di tablet studio` dan tautan `Tidak bisa memindai QR?`, kamera dibuka lewat pembaca QR (`decodeFromConstraints`) | Cek shutter otomatis dan kolom manual tersembunyi |
+| T-12 | Keamanan selesai | PIN per cabang diperiksa server, koordinat tidak lagi dikirim, QR berganti 60 detik, tata letak 40/22/280 px | Tinggal uji baca dari jarak 2 meter |
+| T-13 | Ada di kode | `lib/system-dictionary.ts` (345 baris) dan tes | Jalankan pencarian teks hasil render untuk kata terlarang |
+| T-14 | Sebagian | Tes status layar data ada; frasa "Tidak ada data" tidak ditemukan lagi | Uji tiga status di tiap layar data |
+| T-15 | Sebagian | Teks dasar 17 px di `tailwind.css`; utilitas `border-interactive` (#768b84) sudah ada | `outline-none` masih di 5 tempat tanpa pengganti fokus; belum semua batas interaktif memakai `border-interactive` |
+| T-16 | Sebagian | Tahun pada tanggal booking (`showYear`) ada | Paket kedaluwarsa, booking batal, dan penghitung pesanan belum |
+| T-17 | Belum ada jejak | Sidebar masih `--color-dd-sidebar #17352a` | Berkas yang dibutuhkan (`tailwind.css`, `admin-ui.tsx`) sedang diubah di IDE lain; kerjakan setelah itu |
+| T-18 | Belum ada jejak | Hanya ada "Duplikat sebagai draf" satu kelas | Lihat Penyesuaian: ukuran dipecah dua |
+| T-19 | Belum ada jejak | - | Bergantung T-18 |
+| T-20 | Belum ada jejak | `/workspace` untuk Admin masih ringkasan operasional | Lihat Penyesuaian: aturan H+2 dan reschedule |
+| T-21 | Belum ada jejak | Dialog setuju dengan nama dan nominal sudah ada | Lihat Penyesuaian: tiga keputusan sudah ada di API |
+| T-22 | Belum ada jejak | Antrean verifikasi punya setujui dan tolak | Lihat Penyesuaian: tidak ada "minta foto ulang" |
+
+---
+
+## Penyesuaian tiket terhadap aplikasi (27 Oktober 2026)
+
+Hal-hal berikut ditemukan saat mencocokkan tiket dengan kode. Yang bertanda
+**Keputusan** menunggu jawaban pemilik; sisanya sudah pasti dari kodenya.
+
+**Semua tiket**
+- Hanya T-12, T-18, T-19, dan T-22 (bila status baru dipilih) yang mungkin
+  menyentuh API atau skema. Aturan "dilarang ubah skema atau kontrak API" di
+  prompt berlaku untuk tiket lain. Tiket yang butuh API diajukan dulu dengan
+  satu paragraf dampaknya.
+- Tiket berstatus Ada di kode tidak dikerjakan ulang; yang dikerjakan hanya
+  kriteria "Selesai jika" yang terbukti belum terpenuhi.
+
+**T-03.** Menu bawah member sudah lima titik lewat Akun
+(`customer-navigation.tsx`); yang kurang adalah judul tab per halaman. Cukup
+tambahkan `metadata` pada tiap `page.tsx` member.
+
+**T-07.** Nama bank, nomor, dan pemilik rekening bukan keputusan developer atau
+pemilik produk; diisi lewat Master, Rekening Pembayaran (model
+`RekeningPembayaran`, per cabang). Tiket ini tidak tertahan.
+
+**T-09.** Bagian kode WhatsApp dihapus dari tiket (keputusan 27 Okt). Sisanya
+tetap: tiga kolom, validasi nomor, dan kalimat KTP nanti.
+
+**T-15.** Sasaran di kode, bukan di spesifikasi umum: komponen interaktif
+memakai `border-interactive` (`--color-dd-border-interactive`, sudah ada).
+`--color-border` (#d5dfda) dan `--color-border-strong` (#aabbb3) di
+`globals.css`, serta `--color-dd-line` (#d8ddd8, kontras 1,38:1) hanya boleh
+untuk pemisah. Lima `outline-none` yang tersisa
+(`application-shell`, `guide-view`, `customers-view`, `customer-detail-view`
+dua kali) perlu pengganti fokus.
+
+**T-16.** Penghitung pesanan dan aturan paket kedaluwarsa ada di halaman
+pesanan dan akun; belum ada perubahan.
+
+**T-17.** Panel admin memakai token `--color-dd-*` di `tailwind.css`, bukan
+token `brand` pada spesifikasi:
+- Sidebar: `bg-dd-sidebar` (#17352a) dan `border-white/10` di
+  `app-navigation.tsx`, plus dua logo di `application-shell.tsx`.
+- Bidang kerja #f4f2ec sudah sama dengan `--color-dd-canvas`.
+- Garis `--color-dd-line` #d8ddd8 gagal 3:1 (1,38:1); pengganti #827c6a
+  (3,72:1 di #f4f2ec) sesuai spesifikasi 10.2.
+- **Keputusan:** hijau tombol utama admin memakai `--color-dd-forest` yang ada
+  (#285740, kontras 8,31:1 di putih) atau #396552 dari spesifikasi. Usulan:
+  tetap #285740, supaya tidak ada dua hijau di satu aplikasi.
+- Kriteria "hijau di bawah 5 persen layar" perlu cara ukur yang disepakati
+  (hitung piksel pada tangkapan layar 1440 x 900).
+- **Keputusan:** spesifikasi 10.4 melarang kartu statistik hiasan, sedangkan
+  dashboard Super Owner dan Owner kini menampilkan sekitar 12 kartu metrik
+  (dashboard dua ringkasan, komit 9f97b8ee). Pilih: kartu dipertahankan
+  karena memuat tombol tindakan, atau dipangkas ke yang bisa ditindaklanjuti.
+
+**T-18.** Aplikasi sudah punya "Duplikat sebagai draf (+1 minggu)" untuk satu
+kelas. Usulan memecah tiket:
+- **T-18a, salin minggu** (ukuran S sampai M): tombol `Salin minggu ini ke
+  minggu depan` dan `ke empat minggu ke depan`, dengan hitungan kelas dan
+  daftar tabrakan sebelum disimpan; kelas yang sudah dipesan tidak tertimpa.
+  Bisa dikerjakan di web dengan API pembuatan kelas yang ada.
+- **T-18b, jadwal rutin** (ukuran L): form hari, jam, studio, tipe, instruktur,
+  rentang tanggal. Butuh endpoint pembuatan massal dengan laporan tabrakan,
+  jadi perlu persetujuan API baru.
+- **Keputusan:** kerjakan T-18a dulu, atau langsung T-18b.
+
+**T-19.** Dihitung dari daftar kelas per rentang tanggal yang sudah ada;
+tidak butuh API baru. Bergantung T-18.
+
+**T-20.** Tambahan aturan yang harus dihormati dan tidak ada di spesifikasi:
+- Presensi susulan oleh admin hanya sampai 2 jam setelah kelas selesai
+  (Rule #9); lewat itu lewat pengajuan penyesuaian ke Manager.
+- Sesi pelanggan baru terpotong saat kelas berstatus selesai dan pelanggan
+  hadir, bukan saat booking.
+- Memindahkan booking kurang dari H-24 butuh persetujuan Manager.
+- Ikuti pola `workspace/instructor-today-view.tsx` yang sudah ada. Halaman ini
+  menggantikan atau melengkapi ringkasan operasional di `/workspace` untuk
+  peran Admin.
+
+**T-21.** Tiga keputusan sudah ada di API tanpa skema baru: setuju memberi
+status pembelian `PAID`; menolak dengan kode alasan selain `DUPLICATE_PURCHASE`
+mengirim email "perlu tindakan" (minta bukti diperbaiki); `DUPLICATE_PURCHASE`
+adalah penolakan murni. Dialog setuju dengan nama dan nominal sudah ada di
+`purchase-review-view.tsx`; yang kurang adalah gambar bukti besar dan syarat
+membukanya. Syarat "tombol setujui tidak aktif sebelum bukti dibuka" hanya
+ditegakkan di antarmuka; server tidak tahu apakah bukti dibuka. Penundaan
+kirim 10 detik juga di antarmuka.
+
+**T-22.** Antrean verifikasi punya aksi setujui dan tolak
+(`identity-verifications/review-view.tsx`); `U minta foto ulang` sama dengan
+tolak dengan alasan, bukan status baru. `L lewati` cukup berupa daftar di
+sisi klien selama sesi petugas. Penundaan kirim 10 detik berlaku untuk S dan
+T; setelah terkirim, dokumen yang disetujui terkunci permanen.
 
 ---
 

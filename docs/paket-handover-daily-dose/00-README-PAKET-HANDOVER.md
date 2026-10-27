@@ -14,8 +14,9 @@ sepanjang 6 sampai 26 Oktober 2026.
 | `02-SPEC-DESAIN.md` | Developer dan desainer | Token, skala teks, aturan komponen, spesifikasi 12 layar member dan 6 layar admin |
 | `03-BACKLOG-TIKET.md` | Developer dan manajer proyek | 22 tiket dengan kriteria selesai, termasuk 6 tiket panel admin |
 | `04-LAPORAN-UAT-BUG.md` | Developer dan tim operasional | 30 temuan dan 3 hal yang perlu direview |
-| `mockup-png-daily-dose.zip` | Developer dan desainer | 18 gambar mockup, resolusi 2x, bisa dibuka tanpa akses kanvas |
-| Kanvas desain (artifact) | Semua | Mockup 18 artboard, bisa diukur dan dikomentari |
+| `mockup-png/` | Developer dan desainer | 18 gambar mockup, resolusi 2x, bisa dibuka tanpa akses kanvas |
+| `mockup-sumber/` | Developer dan desainer | Berkas sumber tiap artboard (`.dc.html`) dan `canvas.json` |
+| Kanvas desain (artifact) | Semua | Mockup 18 artboard, bisa diukur dan dikomentari (tautan belum dibagikan) |
 
 Gambar PNG dan kanvas berisi hal yang sama. PNG dipakai kalau developer
 belum diberi akses kanvas, atau untuk ditempel ke tiket. Kanvas dipakai
@@ -44,7 +45,10 @@ dengan kode pada 27 Oktober, kemungkinan besar data hasil migrasi dan bukan
 cacat alur booking (lihat catatan Verifikasi kode di B-02 dan B-03).
 
 **Langkah 3.** Baru mulai revisi UX dengan `01-PROMPT`, `02-SPEC`, dan
-`03-BACKLOG`. Kerjakan tiket urut nomor, satu per satu.
+`03-BACKLOG`. Kerjakan tiket urut nomor, satu per satu. Per 27 Oktober 2026
+sebagian besar tiket T-01 sampai T-16 sudah ada kodenya; lihat tabel status
+di awal `03-BACKLOG-TIKET.md` sebelum mengerjakan apa pun, dan jangan
+mengerjakan ulang yang sudah ada.
 
 **Catatan urutan untuk panel admin.** Gelombang 5 berisi enam tiket panel
 admin, T-17 sampai T-22. T-17 mengganti paletnya dan harus dikerjakan lebih
@@ -81,7 +85,11 @@ dijawab.
 | ~~Keamanan layar kiosk~~ | T-12, B-08 | **Diputuskan 27 Okt 2026: PIN per cabang yang diperiksa server. Sudah dikerjakan.** |
 | Verifikasi KTP member lama | T-02, R-03 | Member yang sudah bertahun-tahun berlatih tetap wajib unggah KTP, atau cukup diverifikasi front desk saat datang? |
 | Cakupan cabang superadmin | R-01 | Halaman admin kini berawal pada satu cabang, bukan semua cabang. Disengaja atau perlu dikembalikan? |
-| Rekening pembayaran | T-07 | Nama bank, nomor rekening, dan nama pemilik rekening untuk halaman bayar |
+| ~~Rekening pembayaran~~ | T-07 | Bukan keputusan developer: diisi lewat Master, Rekening Pembayaran (per cabang). Tiket tidak tertahan. |
+| Hijau tombol admin | T-17 | Pakai `#285740` yang sudah ada di panel admin, atau `#396552` dari spesifikasi? Usulan: `#285740` |
+| Kartu statistik dashboard | T-17, spesifikasi 10.4 | Dashboard Super Owner dan Owner memuat sekitar 12 kartu metrik. Dipertahankan karena punya tindakan, atau dipangkas? |
+| Ukuran T-18 | T-18, T-19 | Salin minggu dulu (T-18a, tanpa API baru), atau langsung jadwal rutin (T-18b, butuh endpoint pembuatan massal)? |
+| Font | spesifikasi bagian 2 | Tetap Poppins (usulan) atau tambah DM Sans untuk member? Georgia tidak dimuat |
 | ~~Login kode WhatsApp~~ | T-09 | **Diputuskan 27 Okt 2026: tidak dikerjakan.** Login tetap password. |
 | Penyedia WhatsApp | B-06 | Pengingat dan pembatalan otomatis sekarang hanya dicatat, tidak terkirim |
 | Teks hukum | T-09 | Syarat dan Ketentuan serta Kebijakan Privasi versi final |
@@ -122,3 +130,22 @@ QR pada mockup adalah pola placeholder, bukan kode yang bisa dipindai.
 Dua temuan berstatus dugaan dan ditandai jelas di laporan: B-04 tentang
 pencocokan pembayaran otomatis, dan R-02 tentang email hasil migrasi.
 Keduanya perlu diverifikasi developer ke sumber datanya.
+
+---
+
+## Yang berubah di aplikasi sejak paket ini disusun
+
+Paket ini disusun dari pengujian situs yang berjalan. Sejak itu repositori
+berubah, sehingga sebagian isi laporan dan spesifikasi sudah tidak berlaku:
+
+- Biaya proyeksi, tutup buku, dan jurnal koreksi dicabut; laporan keuangan
+  memakai rentang tanggal bebas.
+- Dashboard dua ringkasan (keuangan dan operasional) menggantikan lima fokus
+  peran; peran `OPS`, `SUPERADMIN`, `COACH`, dan `MEMBER` sebagai nama ganda
+  sudah dihapus.
+- Konten publik dan template notifikasi disimpan langsung tanpa draf dan versi.
+- Kiosk presensi memakai PIN cabang yang diperiksa server.
+- Login kode WhatsApp dan rute OTP tidak ada (dicabut), dan tidak akan dibuat.
+
+Ada versi paket yang lebih lama di `docs/pembaharuan-desain/` (16 tiket, tanpa
+laporan UAT dan panel admin). Paket ini adalah versi yang lebih lengkap.

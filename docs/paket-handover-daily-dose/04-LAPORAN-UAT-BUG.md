@@ -29,7 +29,7 @@ diubah; yang dikoreksi hanya dugaan penyebab dan usulan perbaikannya.
 | Sedang | 8 | Mengganggu pemakaian, tidak menghalangi |
 | Teks dan tampilan | 6 | Kode sistem dan istilah teknis terlihat pengguna |
 
-Sudah diperbaiki sejak pengujian pertama: 14 temuan. Daftarnya ada di
+Sudah diperbaiki sejak pengujian pertama: 16 temuan. Daftarnya ada di
 bagian akhir.
 
 ---

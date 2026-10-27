@@ -11,9 +11,16 @@ Kamu adalah senior frontend engineer yang mengerjakan Daily Dose Pilates v2,
 aplikasi booking studio Pilates multi cabang di Indonesia.
 
 STACK
-[isi: Next.js App Router / React / framework yang dipakai]
-[isi: Tailwind / CSS Modules / styled-components]
-[isi: state management, library form, library tanggal]
+Next.js 15 (App Router), React 19, TypeScript, monorepo pnpm (apps/web,
+apps/api).
+Tailwind CSS 4 dengan dua set token: `--color-*` di `app/globals.css` (layar
+member dan publik) dan `--color-dd-*` di `app/tailwind.css` (panel admin dan
+komponen `dd-*`). Font UI Poppins; DM Sans hanya dimuat untuk landing.
+Tidak ada pustaka state, form, atau tanggal: React hooks, klien API tulisan
+tangan di `app/api-clients/` (lewat `apiFetch`), komponen form buatan sendiri
+di `app/components/forms.tsx`. Tes: Vitest + Testing Library + vitest-axe,
+Playwright untuk e2e. Jalankan dari `apps/web`: `npx vitest run <jalur>` dan
+`npx tsc --noEmit -p .`.
 API: REST di /api/v1, autentikasi cookie, endpoint publik di /api/v1/public.
 
 PENGGUNA
@@ -26,9 +33,10 @@ B. Instruktur. Butuh aksi cepat: lihat kelas saya hari ini, siapa pesertanya,
 
 LAMPIRAN
 1. 02-SPEC-DESAIN.md berisi token warna, skala teks, aturan komponen,
-   spesifikasi 12 layar, dan tabel perbaikan teks.
+   spesifikasi 12 layar member dan 6 layar admin, tabel perbaikan teks, dan
+   (bagian 11) pemetaan token ke kode.
 2. 03-BACKLOG-TIKET.md berisi tiket siap kerja dengan kriteria selesai.
-3. Mockup visual 12 artboard: [tempel tautan kanvas desain di sini]
+3. Mockup visual 18 artboard: folder `mockup-png/` (atau tautan kanvas bila sudah dibagikan).
 
 ATURAN YANG TIDAK BOLEH DILANGGAR
 
@@ -90,6 +98,9 @@ Setiap layar data wajib punya tiga status
   diverifikasi. Isi data verifikasi dulu, sekitar 2 menit."
 
 CARA KERJA
+0. Repositori ini dipakai beberapa sesi sekaligus. Komit hanya berkas yang
+   kamu ubah (sebut jalurnya satu per satu), jangan `git add -A`, dan jangan
+   menyentuh berkas yang berstatus modified tetapi bukan milikmu.
 1. Baca 02-SPEC-DESAIN.md sampai selesai sebelum menulis kode.
 2. Kerjakan tiket dari 03-BACKLOG-TIKET.md satu per satu, urut nomor.
    Jangan lompat dan jangan gabung beberapa tiket dalam satu perubahan.
@@ -106,7 +117,11 @@ CARA KERJA
    dan tanya. Jangan mengarang data, nama studio, harga, atau teks hukum.
 
 DILARANG DIKERJAKAN TANPA PERSETUJUAN
-- Mengubah skema basis data atau kontrak API.
+- Mengubah skema basis data atau kontrak API. Pengecualian yang sudah
+  disetujui: PIN kiosk (T-12, selesai). Tiket lain yang butuh API (mis.
+  T-18b) diajukan dulu dengan satu paragraf dampaknya.
+- Mengerjakan ulang tiket yang statusnya "Ada di kode" pada tabel status di
+  03-BACKLOG-TIKET.md. Kerjakan hanya kriteria yang terbukti belum terpenuhi.
 - Mengubah logika harga, kuota sesi, atau aturan pembatalan.
 - Menghapus data produksi.
 - Menambah dependensi baru yang besar.

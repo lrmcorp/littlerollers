@@ -4,7 +4,7 @@ Dokumen ini adalah sumber kebenaran untuk pengerjaan antarmuka mobile.
 Disusun 26 Oktober 2026 dari pengujian langsung pada v2.dailydosepilates.com
 di layar 375 x 812 px.
 
-Mockup visual: 12 artboard di kanvas desain yang menyertai dokumen ini.
+Mockup visual: 18 artboard (`mockup-png/`, sumber di `mockup-sumber/`).
 
 ---
 
@@ -616,3 +616,33 @@ sebagai blok abu berlabel, bukan contoh kartu identitas.
 Petugas hanya perlu mencocokkan nama dan tanggal lahir. Nomor identitas
 tidak perlu dibaca atau dicatat, dan hal itu ditulis di layarnya supaya
 tidak ada yang menyalinnya tanpa keperluan.
+
+---
+
+## 11. Pemetaan token dan font ke kode (27 Oktober 2026)
+
+Spesifikasi di atas memakai nama token umum. Di aplikasi ada dua sistem token
+yang hidup berdampingan. Tabel ini yang dipakai saat menerapkan.
+
+| Spesifikasi | Nilai | Di kode |
+|---|---|---|
+| brand, brand-strong, brand-soft | #396552, #24483a, #e8f0ec | `--color-brand`, `--color-brand-strong`, `--color-brand-soft` di `globals.css` |
+| canvas member | #f3f6f4 | `--color-canvas` |
+| text, text-muted | #17231e, #607069 | `--color-text`, `--color-text-muted` |
+| border (komponen interaktif) | #768b84 | `--color-dd-border-interactive` dan utilitas `border-interactive` (sudah ada) |
+| divider (dekoratif) | #d5dfda | `--color-border` di `globals.css`; di panel admin `--color-dd-line` (#d8ddd8) |
+| #aabbb3 | gagal 3:1 | `--color-border-strong`; jangan dipakai untuk batas komponen |
+| canvas admin | #f4f2ec | `--color-dd-canvas` (sudah sama) |
+| sidebar admin lama | #17352a | `--color-dd-sidebar` dan `--color-dd-sidebar-soft` (#21483a) |
+| hijau tombol utama admin | #396552 pada spesifikasi | panel admin memakai `--color-dd-forest` #285740 (8,31:1 di putih); lihat keputusan di T-17 |
+| teks dasar | 17 px | `--text-base` 1,0625rem di `tailwind.css` (sudah diterapkan) |
+
+**Font.** Spesifikasi menulis DM Sans untuk teks isi dan Georgia untuk
+kutipan. Aplikasi memuat Poppins untuk seluruh UI, DM Sans hanya untuk
+landing, dan Georgia tidak dimuat (`--font-serif` sama dengan sans).
+Usulan: tetap Poppins di layar member dan admin supaya konsisten, dan
+hapus Georgia dari spesifikasi. Perlu persetujuan sebelum menambah font.
+
+**Dua dashboard.** Spesifikasi 10.4 melarang kartu statistik hiasan. Dashboard
+sekarang punya dua ringkasan (keuangan dan operasional) dan menampilkan
+kartu metrik untuk Super Owner dan Owner; lihat keputusan di T-17.
