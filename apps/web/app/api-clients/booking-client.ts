@@ -1021,9 +1021,13 @@ export async function bookingProblem(error: unknown): Promise<BookingProblem> {
   notifySessionFailure(error);
   const typed = error as {
     code?: string;
+    status?: number;
+    data?: { code?: string; error?: { code?: string } } | null;
     response?: Response & { status?: number };
   };
   let code = typed.code;
+  // `apiFetch` melempar ApiError { status, data } dengan data = badan problem dari server.
+  code ??= typed.data?.code ?? typed.data?.error?.code;
   if (!code && typed.response?.clone) {
     try {
       const problem = (await typed.response.clone().json()) as {
@@ -1035,7 +1039,7 @@ export async function bookingProblem(error: unknown): Promise<BookingProblem> {
       // A response without problem-details is mapped by status below.
     }
   }
-  const status = typed.response?.status;
+  const status = typed.status ?? typed.response?.status;
   code ??=
     status === 401
       ? 'SESSION_EXPIRED'

@@ -5,6 +5,7 @@ import { BookingConfirmationSheet } from './booking-confirmation-sheet';
 import type { PublicClassSlot } from '@/api-clients/public-class-catalog-client';
 import type { LedgerBalance } from '@/api-clients/ledger-client';
 import type { Booking, BookingClient } from '@/api-clients/booking-client';
+import { ApiError } from '@/lib/api-client';
 
 const mockSlot: PublicClassSlot = {
   id: 'slot-123',
@@ -165,6 +166,35 @@ describe('BookingConfirmationSheet (Tiket T-05 / Spesifikasi 5.3)', () => {
     const closeBtn = screen.getByRole('button', { name: 'Tutup' });
     await userEvent.click(closeBtn);
     expect(handleClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows Slot Habis when apiFetch rejects with the real ApiError for a full class', async () => {
+    const mockBookingClient = {
+      create: vi
+        .fn()
+        .mockRejectedValue(
+          new ApiError('Permintaan tidak dapat diproses.', 409, {
+            error: { code: 'CLASS_CAPACITY_FULL' },
+          }),
+        ),
+    } as unknown as BookingClient;
+
+    render(
+      <BookingConfirmationSheet
+        isOpen={true}
+        onClose={vi.fn()}
+        slot={mockSlot}
+        packageItem={mockPackage}
+        studioName="Daily Dose Kemang"
+        bookingClient={mockBookingClient}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'Konfirmasi booking sekarang' }));
+
+    expect(
+      await screen.findByRole('heading', { name: 'Slot kelas ini baru saja penuh' }),
+    ).toBeVisible();
   });
 
   it('handles Keadaan 4A (Gagal: Slot Habis) when server throws CLASS_CAPACITY_FULL', async () => {

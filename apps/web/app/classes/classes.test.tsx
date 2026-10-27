@@ -533,7 +533,7 @@ describe('ClassSlotView instructor check-in QR for studio staff', () => {
       .mockRejectedValue({ status: 409, data: { error: { code: 'CHECK_IN_TOO_EARLY' } } });
     const { user, dialog } = await open({}, { list: vi.fn(), issueInstructorCheckIn });
     await user.click(within(dialog).getByRole('button', { name: 'Tampilkan QR presensi instruktur' }));
-    await within(dialog).findByText(/30 menit sebelum kelas/);
+    await within(dialog).findByText('QR belum aktif. Check-in dibuka 30 menit sebelum kelas.');
     expect(within(dialog).queryByRole('img', { name: 'QR presensi instruktur' })).toBeNull();
   });
 

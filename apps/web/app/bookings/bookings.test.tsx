@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
 import { describe, expect, it, vi } from 'vitest';
 import { bookingFailure, bookingProblem, type BookingClient } from '@/api-clients/booking-client';
+import { ApiError } from '@/lib/api-client';
 import { BookingView } from '@/bookings/booking-view';
 import { AppFeedbackProvider } from '@/components/app-feedback';
 
@@ -359,6 +360,24 @@ describe('BookingView', () => {
         }),
       }),
     ).toBe('Pelanggan sudah memiliki booking aktif untuk kelas ini.');
+  });
+
+  it('membaca kode galat dari ApiError yang dilempar apiFetch', async () => {
+    // Bentuk nyata galat saat membuat booking: ApiError { status, data = badan problem server }.
+    const problem = (status: number, code?: string) =>
+      new ApiError('Permintaan tidak dapat diproses.', status, code ? { error: { code } } : null);
+    expect(await bookingProblem(problem(409, 'CLASS_CAPACITY_FULL'))).toEqual({
+      code: 'CLASS_CAPACITY_FULL',
+      message: 'Kapasitas kelas sudah penuh.',
+    });
+    expect((await bookingProblem(problem(409, 'DUPLICATE_ACTIVE_BOOKING'))).message).toBe(
+      'Pelanggan sudah memiliki booking aktif untuk kelas ini.',
+    );
+    expect((await bookingProblem(problem(401))).code).toBe('SESSION_EXPIRED');
+    expect((await bookingProblem(problem(422))).code).toBe('VALIDATION_ERROR');
+    expect((await bookingProblem(new TypeError('Failed to fetch'))).code).toBe(
+      'OFFLINE_OR_REQUEST_FAILED',
+    );
   });
 
   it('reviews and approves a pending reschedule with controlled reason', async () => {
