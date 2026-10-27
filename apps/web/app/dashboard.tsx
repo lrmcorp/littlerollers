@@ -11,7 +11,7 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { shortcutPagesFor } from '@/lib/frontend-pages';
-import { isInstructorOnlySession } from '@/lib/session-audience';
+import { isFrontDeskOnlySession, isInstructorOnlySession } from '@/lib/session-audience';
 import { useSessionContext } from './session-context';
 import { Feedback } from './ui';
 import { Button, ButtonLink } from './components/actions';
@@ -27,6 +27,7 @@ import { formatRupiah } from './lib/formatters';
 import { metricLabel } from './lib/audit-labels';
 import { iconForPage } from './lib/page-icons';
 import { timezoneLabel } from './classes/class-slot-presenters';
+import { FrontDeskTodayView } from './workspace/front-desk-today-view';
 import { InstructorTodayView } from './workspace/instructor-today-view';
 import type { ClassSlotClient } from '@/api-clients/class-slot-client';
 import type { BookingClient } from '@/api-clients/booking-client';
@@ -241,6 +242,16 @@ export function Dashboard({
         client={slotClient}
         bookingClient={bookingClient}
         availabilityClient={availabilityClient}
+      />
+    );
+  }
+  if (isFrontDeskOnlySession(session)) {
+    return (
+      <FrontDeskTodayView
+        client={slotClient}
+        bookingClient={bookingClient}
+        dashboardClient={client}
+        queues={overview ? overview.queues.filter((queue) => queue.count > 0) : null}
       />
     );
   }

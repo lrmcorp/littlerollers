@@ -420,6 +420,13 @@ export interface BookingClient {
     expectedVersion: number,
     idempotencyKey: string,
   ): Promise<CheckInIssue>;
+  /** Catat kehadiran pelanggan secara manual (batas H+2 setelah kelas selesai; alasan wajib 3-500 karakter). */
+  backfillAttendance?(
+    bookingId: string,
+    reason: string,
+    expectedVersion: number,
+    idempotencyKey: string,
+  ): Promise<unknown>;
   revokeCheckIn?(
     tokenId: string,
     expectedVersion: number,
@@ -872,6 +879,20 @@ export const browserBookingClient: BookingClient = {
     );
     if (!response.ok) throw { response };
     return response.json() as Promise<CheckInIssue>;
+  },
+  async backfillAttendance(bookingId, reason, expectedVersion, idempotencyKey) {
+    const response = await foregroundFetch(
+      '/api/v1/check-ins/customers/backfill',
+      {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'content-type': 'application/json', 'idempotency-key': idempotencyKey },
+        body: JSON.stringify({ bookingId, reason, expectedVersion }),
+      },
+      'Mencatat kehadiran…',
+    );
+    if (!response.ok) throw { response };
+    return response.json();
   },
   async issueBulkCheckIns(classSlotId, bookingIds, idempotencyKey) {
     const response = await foregroundFetch(

@@ -149,7 +149,7 @@ describe('Dashboard', () => {
     const cases: Array<[string[], { finance: boolean; operations: boolean }, RegExp]> = [
       [['SUPER_OWNER'], { finance: true, operations: true }, /Keuangan dan operasional dalam satu pandangan/],
       [['FINANCE'], { finance: true, operations: false }, /Arus transaksi dan pekerjaan keuangan/],
-      [['ADMIN'], { finance: false, operations: true }, /Operasional cabang hari ini/],
+      [['MANAGER'], { finance: false, operations: true }, /Operasional cabang hari ini/],
     ];
     for (const [roles, views, heading] of cases) {
       sessionState.roles = roles;
