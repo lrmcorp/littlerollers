@@ -103,6 +103,8 @@ export interface ClassSlotClient {
     from: Date;
     until: Date;
     status?: string;
+    /** Hanya jadwalnya: lewati daftar tipe kelas, instruktur, dan studio (peran baca-saja tidak berhak atasnya). */
+    slotsOnly?: boolean;
   }): Promise<ClassWorkspace>;
   getBranchStudios?(branchId: string): Promise<StudioOption[]>;
   create(input: {
@@ -234,7 +236,7 @@ export const browserClassSlotClient: ClassSlotClient = {
           { label: 'Memuat jadwal kelas…' },
         ),
         Promise.all(
-          scopedBranches.map(async (branch) => {
+          (input.slotsOnly ? [] : scopedBranches).map(async (branch) => {
             const [classTypes, assignments, studios] = await Promise.all([
               safeItems(
                 apiFetch<{ items: Array<{ id: string; code: string; name: string; active?: boolean }> }>(

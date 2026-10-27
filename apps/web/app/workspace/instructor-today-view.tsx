@@ -79,6 +79,7 @@ export function InstructorTodayView({
         timezone,
         from,
         until,
+        slotsOnly: true,
       });
       setWorkspace(result);
     } catch (err) {

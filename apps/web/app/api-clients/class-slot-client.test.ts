@@ -117,6 +117,30 @@ describe('browserClassSlotClient.discover', () => {
     });
   });
 
+  it('asks only for class slots when the caller needs nothing else (slotsOnly)', async () => {
+    const calls: string[] = [];
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      calls.push(String(input));
+      return jsonResponse({ items: [], page: { nextCursor: null } });
+    });
+
+    const workspace = await browserClassSlotClient.discover({
+      branchId: 'branch-1',
+      branches: [{ id: 'branch-1', timezone: 'Asia/Jakarta' }],
+      timezone: 'Asia/Jakarta',
+      from: new Date('2026-10-26T00:00:00Z'),
+      until: new Date('2026-11-01T00:00:00Z'),
+      slotsOnly: true,
+    });
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toContain('/class-slots?');
+    expect(calls.some((url) => /class-types|assignments|studios/.test(url))).toBe(false);
+    expect(workspace.slots).toEqual([]);
+    expect(workspace.classTypes).toEqual([]);
+    expect(workspace.instructors).toEqual([]);
+  });
+
   it('still surfaces a failure when the primary /class-slots request itself fails', async () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(async () => forbidden());
 

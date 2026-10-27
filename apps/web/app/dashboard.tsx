@@ -226,6 +226,11 @@ export function Dashboard({
 
   const load = useCallback(async () => {
     if (!session) return;
+    // Beranda instruktur tidak memakai ringkasan ini dan API menjawab 403 untuk perannya.
+    if (isInstructorOnlySession(session)) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setFailure(false);
     try {

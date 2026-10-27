@@ -41,7 +41,7 @@ export function EmptyWeeksNotice({
     setSlots(null);
     setFailed(false);
     client
-      .discover({ branchId, branches: [{ id: branchId, timezone }], timezone, from: first.start, until: last.end })
+      .discover({ branchId, branches: [{ id: branchId, timezone }], timezone, from: first.start, until: last.end, slotsOnly: true })
       .then((result) => {
         if (!cancelled) setSlots(result.slots);
       })

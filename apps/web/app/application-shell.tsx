@@ -165,8 +165,12 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
   }, [profileOpen]);
   const customerBadges = useCustomerBadges();
   const customerCatalog = customerOnly && isCustomerCatalogPath(pathname);
+  // Instruktur tidak berhak atas ringkasan antrean (API menjawab 403), jadi tidak diminta.
   const queueCounts = useQueueCounts(
-    Boolean(session) && !customerOnly && !isPublicExperiencePath(pathname),
+    Boolean(session) &&
+      !customerOnly &&
+      !isInstructorOnlySession(session) &&
+      !isPublicExperiencePath(pathname),
   );
   if (isPublicExperiencePath(pathname) && !customerCatalog) return children;
   // Tamu atau sesi belum terautentikasi: jangan render rangka navigasi internal.

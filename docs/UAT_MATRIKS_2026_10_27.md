@@ -96,12 +96,33 @@ Probe verifikasi 422 (tanpa 403) pada baris Super Owner berarti lolos otorisasi 
 | R-3 | Picu manual otomasi kuota H-24 hanya untuk Super Owner, sedangkan matriks menyebut Manager dan Admin juga boleh. | Menunggu keputusan: beri kapabilitas, atau ubah matriks |
 | R-4 | Urutan pemeriksaan penulisan konten publik: jenis konten divalidasi sebelum izin (tidak ada data yang berubah). | Belum, kecil |
 
+## 3b. Sapuan UI per peran (browser desktop, login tiap peran; 19 halaman staf untuk Manager, Admin, Owner)
+
+Yang dicatat per halaman: apakah halaman dibuka atau dialihkan ke Ringkasan, panggilan API yang gagal (4xx/5xx) saat memuat, dan tombol aksi yang tampil.
+
+| Peran | Hasil |
+|---|---|
+| **Manager** | Terbuka: Ringkasan, Timetable (dengan "Buat kelas"), Booking (booking manual, QR), Antrean Pembayaran (dengan "Setujui"), Pengingat WhatsApp, Pelanggan, Sesi Pelanggan, Instruktur, Pengguna, Scan QR. Dialihkan: Ketersediaan Mengajar, Voucher, Performa Cabang, Verifikasi KTP, Master, Keuangan, Operasi, Audit, Konten Publik. Tanpa panggilan API gagal. Sesuai API. |
+| **Admin** | Beranda "Hari ini" (T-20). Terbuka: Timetable, Booking, Antrean Pembayaran (hanya "Catat penjualan", **tanpa "Setujui"**, efek R-1), Pengingat (tanpa tombol jalankan), Pelanggan, Sesi Pelanggan, Instruktur, Pengguna (hanya staf), Scan QR. Dialihkan: Ketersediaan, Voucher, Performa Cabang, Verifikasi KTP, Master, Keuangan, Operasi, Audit, Konten Publik. Tanpa panggilan API gagal. |
+| **Owner GG** | Terbuka: Ringkasan, Timetable (tombol "Buat kelas" nonaktif dengan keterangan), Booking (tanpa aksi), Pengingat, Voucher (baca saja), Performa Cabang, Sesi Pelanggan, Instruktur, Pengguna, Audit (hanya entri cabangnya). Dialihkan: Pembayaran, Pelanggan, Verifikasi KTP, Master, Keuangan, Operasi, Konten Publik, Scan QR, Ketersediaan. |
+| **Instruktur** | Terbuka: beranda "Halo, Sarah", Jadwal kelas saya, Ketersediaan mengajar, Scan QR. Dialihkan ke beranda: Booking, Pembayaran, Pelanggan, Keuangan. |
+
+Temuan UI (kecil, diperbaiki sebagian pada 27 Okt):
+
+| ID | Temuan | Status |
+|---|---|---|
+| U-1 | Instruktur: setiap halaman memicu 403 pada `/dashboard/overview` (jumlah antrean di shell dan beranda), dan beranda juga pada `/class-types`, `/assignments`, `/branches/:id/studios`. | **Diperbaiki**: peringatan minggu kosong dan beranda instruktur hanya meminta jadwal (`slotsOnly`), shell dan beranda tidak meminta ringkasan antrean untuk instruktur. Beranda Instruktur dan Owner tanpa 403. |
+| U-2 | Owner dan Instruktur di halaman Timetable: 403 pada tipe kelas, penugasan, dan studio (dipakai form buat kelas yang tidak boleh mereka pakai). | Terbuka (kecil): minta daftar itu hanya bila punya `class-slot:manage` |
+| U-3 | Keterangan tombol nonaktif "Buat kelas" memuat kode teknis `class-slot:manage`. | Terbuka (kecil, kamus istilah T-13) |
+| U-4 | Admin dan Manager dapat membuka halaman Pengguna Internal (hanya staf cabang, setelah R-2); matriks lama menyebut Admin tidak boleh. | Sesuai kode (`user:read` untuk form jadwal); ubah dokumen atau cabut |
+| U-5 | Owner memegang `audit:read` dan `finance:read`; halaman Audit terbuka dan terbatas cabang (diverifikasi API: GG hanya entri GG, SBY hanya entri SBY). | OK |
+
 ## 4. Belum dijalankan
 
 | Area | Alasan atau catatan |
 |---|---|
-| Alur sungguhan per peran di UI (bukan hanya otorisasi API): Owner, Manager, Admin, Instruktur | Akun sudah siap; tinggal dijalankan di browser |
-| Peran Instruktur: ketersediaan, QR presensi, hari ini | Akun `coach.sarah@dailydose.test` sudah siap |
+| Alur kerja sungguhan per peran di UI (klik demi klik tindakan, bukan hanya akses halaman) | Sapuan halaman selesai (3b); alur tindakan per peran belum |
+| Peran Instruktur: mengajukan ketersediaan, QR presensi, daftar hadir hari ini | Halaman terbuka (3b); tindakannya belum dijalankan |
 | Kasus dukungan, penyesuaian sesi, reschedule | Belum |
 | Konten publik, manajemen notifikasi, operasi (evaluasi kuota H-24), audit, kesehatan sistem | Belum |
 | Presensi kiosk (PIN cabang, QR bergantian) dan pemindaian QR instruktur | Butuh perangkat |

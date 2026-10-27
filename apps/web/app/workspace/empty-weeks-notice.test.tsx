@@ -22,6 +22,14 @@ const clientWith = (slots: unknown[]) =>
   ({ discover: vi.fn().mockResolvedValue({ slots, classTypes: [], instructors: [], studios: [] }) }) as unknown as ClassSlotClient;
 
 describe('EmptyWeeksNotice', () => {
+
+  it('only asks for the schedule, not for lookups a read-only role may not read', async () => {
+    const client = clientWith([slot('a', '2026-10-27T02:00:00Z')]);
+    render(<EmptyWeeksNotice branchId="b1" timezone="Asia/Jakarta" client={client} initialNow={now} />);
+    await screen.findByRole('list');
+    expect(client.discover).toHaveBeenCalledWith(expect.objectContaining({ slotsOnly: true }));
+  });
+
   it('shows a count per week and warns about every empty week with a link to fill it', async () => {
     const client = clientWith([
       slot('a', '2026-10-27T02:00:00Z'),

@@ -233,4 +233,13 @@ describe('Dashboard', () => {
     expect(screen.getAllByText('Jakarta').length).toBeGreaterThan(0);
     expect(screen.getAllByText('60%').length).toBeGreaterThan(0);
   });
+  it('does not ask for the staff overview when an instructor opens the home page', async () => {
+    sessionState.roles = ['INSTRUCTOR'];
+    sessionState.capabilities = ['attendance:self', 'availability:self:read', 'class-slot:read'];
+    const overview = vi.fn().mockResolvedValue(response());
+    const slotClient = { discover: vi.fn().mockResolvedValue({ slots: [], classTypes: [], instructors: [], studios: [] }) };
+    render(<Dashboard client={{ overview } as DashboardClient} slotClient={slotClient as never} />);
+    await vi.waitFor(() => expect(slotClient.discover).toHaveBeenCalled());
+    expect(overview).not.toHaveBeenCalled();
+  });
 });
