@@ -1,7 +1,7 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PurchaseClient, PurchaseReviewClient } from '@/api-clients/purchase-client';
 import type { SessionClient } from '@/api-clients/session-client';
 import { PurchaseView } from '@/purchases/purchase-view';
@@ -10,8 +10,9 @@ import { PaymentReviewDetailView } from '@/workspace/payments/[id]/payment-revie
 import { SessionProvider } from '../session-context';
 import { AppFeedbackProvider } from '../components/app-feedback';
 
+const routerPush = vi.hoisted(() => vi.fn());
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  useRouter: () => ({ push: routerPush, replace: vi.fn() }),
   usePathname: () => '/workspace/payments/purchase-1',
   useSearchParams: () => new URLSearchParams(),
 }));
@@ -431,6 +432,7 @@ describe('purchase internal review workspace', () => {
         id="purchase-1"
         returnTo="/workspace/payments?status=PENDING"
         client={client}
+        decisionDelayMs={0}
         authorityOverride={{ canReview: true, canDecide: true }}
       />,
     );
@@ -445,12 +447,14 @@ describe('purchase internal review workspace', () => {
     );
     await user.selectOptions(screen.getByLabelText('Alasan perbaikan'), 'AMOUNT_MISMATCH');
     await user.click(screen.getByRole('button', { name: 'Minta perbaikan bukti' }));
-    expect(client.reject).toHaveBeenCalledWith(
-      'purchase-1',
-      0,
-      'AMOUNT_MISMATCH',
-      expect.any(String),
-      undefined,
+    await waitFor(() =>
+      expect(client.reject).toHaveBeenCalledWith(
+        'purchase-1',
+        0,
+        'AMOUNT_MISMATCH',
+        expect.any(String),
+        undefined,
+      ),
     );
   });
 
@@ -678,3 +682,91 @@ describe('purchase internal review workspace', () => {
   });
 });
 
+describe('payment decision safeguards', () => {
+  const renderDetail = (client: PurchaseReviewClient, decisionDelayMs = 10_000) =>
+    render(
+      <PaymentReviewDetailView
+        id="purchase-1"
+        returnTo="/workspace/payments?status=PENDING"
+        client={client}
+        authorityOverride={{ canReview: true, canDecide: true }}
+        decisionDelayMs={decisionDelayMs}
+      />,
+    );
+
+  beforeEach(() => {
+    routerPush.mockClear();
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+  });
+  afterEach(() => vi.useRealTimers());
+
+  it('puts the requested amount next to the amount read from the proof and writes the difference in words', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    renderDetail(reviewFake());
+    const group = await screen.findByRole('group', { name: 'Perbandingan nominal' });
+    expect(within(group).getByText(/2\.000\.000/)).toBeVisible();
+    const input = within(group).getByLabelText(/Nominal yang terlihat di bukti/);
+    expect(within(group).getByRole('status')).toHaveTextContent(/Isi nominal/);
+    await user.type(input, '1.995.000');
+    expect(within(group).getByRole('status')).toHaveTextContent(/Kurang Rp\s?5\.000/);
+    await user.clear(input);
+    await user.type(input, '2.001.500');
+    expect(within(group).getByRole('status')).toHaveTextContent(/Lebih Rp\s?1\.500/);
+    await user.clear(input);
+    await user.type(input, '2000000');
+    expect(within(group).getByRole('status')).toHaveTextContent(/sama persis/);
+  });
+
+  it('lets the officer zoom and rotate the proof image once it is open', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: vi.fn().mockReturnValue('blob:proof') });
+    Object.defineProperty(URL, 'revokeObjectURL', { configurable: true, value: vi.fn() });
+    renderDetail(reviewFake());
+    await screen.findByRole('group', { name: 'Perbandingan nominal' });
+    await user.click(screen.getByRole('button', { name: 'Preview bukti' }));
+    const image = await screen.findByRole('img', { name: /Bukti pembayaran Pelanggan Synthetic/ });
+    await user.click(screen.getByRole('button', { name: 'Perbesar' }));
+    await user.click(screen.getByRole('button', { name: 'Putar' }));
+    expect(image.style.transform).toBe('rotate(90deg) scale(1.5)');
+    await user.click(screen.getByRole('button', { name: 'Atur ulang' }));
+    expect(image.style.transform).toBe('rotate(0deg) scale(1)');
+  });
+
+  it('holds the decision for 10 seconds and sends nothing if the officer cancels', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    const client = reviewFake();
+    renderDetail(client);
+    await user.click(await screen.findByRole('button', { name: 'Minta perbaikan bukti' }));
+    const banner = await screen.findByText(/akan dikirim dalam 10 detik/);
+    expect(banner).toBeVisible();
+    expect(client.reject).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'Tolak sebagai duplikat' })).toBeDisabled();
+    await user.click(screen.getByRole('button', { name: 'Batalkan' }));
+    await vi.advanceTimersByTimeAsync(20_000);
+    expect(client.reject).not.toHaveBeenCalled();
+    expect(screen.queryByText(/akan dikirim dalam/)).toBeNull();
+  });
+
+  it('sends after the delay, then opens the next pending proof in the queue', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    const client = reviewFake({
+      list: vi.fn().mockResolvedValue({
+        items: [reviewPurchase, { ...reviewPurchase, id: 'purchase-2' }],
+        summary: { pending: 2, actionRequired: 0, approved: 0, rejected: 0, expired: 0, totalAmountRp: 0, agingOver24Hours: 0 },
+        generatedAt: new Date('2026-07-23T03:00:00Z'),
+        page: { nextCursor: null, hasMore: false },
+      }),
+    });
+    renderDetail(client);
+    await user.click(await screen.findByRole('button', { name: 'Minta perbaikan bukti' }));
+    await screen.findByText(/akan dikirim dalam/);
+    expect(client.reject).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(10_000);
+    await waitFor(() => expect(client.reject).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(routerPush).toHaveBeenCalledWith(
+        '/workspace/payments/purchase-2?returnTo=%2Fworkspace%2Fpayments%3Fstatus%3DPENDING',
+      ),
+    );
+  });
+});

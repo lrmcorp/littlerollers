@@ -1,6 +1,7 @@
 'use client';
 
 import { ArrowLeft, CheckCircle2, Eye, RefreshCw } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import {
   browserPurchaseReviewClient,
@@ -16,6 +17,9 @@ import { Skeleton } from '../../../ui';
 import { paymentStatusTone } from '../../../purchases/purchase-review-view';
 import { SelectInput, Textarea } from '../../../components/forms';
 import { formatRupiah } from '../../../lib/formatters';
+import { useDelayedAction } from '../../../lib/use-delayed-action';
+import { PaymentAmountCheck } from './payment-amount-check';
+import { ProofImageViewer } from './proof-image-viewer';
 
 const statusLabels: Record<string, string> = {
   AWAITING_PAYMENT: 'Menunggu pembayaran',
@@ -89,12 +93,17 @@ export function PaymentReviewDetailView({
   returnTo,
   client = browserPurchaseReviewClient,
   authorityOverride,
+  decisionDelayMs = 10_000,
 }: {
   id: string;
   returnTo?: string;
   client?: PurchaseReviewClient;
   authorityOverride?: { canReview: boolean; canDecide: boolean };
+  /** Keputusan baru dikirim setelah jeda ini supaya petugas masih bisa membatalkan. */
+  decisionDelayMs?: number;
 }) {
+  const router = useRouter();
+  const delayed = useDelayedAction(decisionDelayMs);
   const sessionContext = useSessionContext();
   const feedback = useOptionalAppFeedback();
   const sessionReady = Boolean(authorityOverride) || sessionContext?.status === 'authenticated';
@@ -177,6 +186,19 @@ export function PaymentReviewDetailView({
     }
   };
 
+  /** Setelah keputusan tersimpan, buka bukti berikutnya di antrean; bila tidak ada, tetap di sini. */
+  const goToNext = async (currentId: string) => {
+    try {
+      const page = await client.list({ status: 'PENDING', limit: 5 });
+      const next = page.items.find(
+        (item) => item.id !== currentId && (item.status === 'PENDING' || item.status === 'WAITING_VERIFICATION'),
+      );
+      if (next) router.push(`/workspace/payments/${next.id}?returnTo=${encodeURIComponent(backHref)}`);
+    } catch {
+      // Antrean tidak dapat dimuat: tetap di bukti yang baru diputuskan.
+    }
+  };
+
   const decide = async (action: 'APPROVE' | 'ACTION_REQUIRED' | 'DUPLICATE') => {
     const purchase = detail?.purchase;
     const isSuper = Boolean(
@@ -216,7 +238,7 @@ export function PaymentReviewDetailView({
     const copy = {
       APPROVE: [
         'Setujui pembayaran',
-        'Paket pelanggan akan diaktifkan dan ledger pembelian dibuat.',
+        'Paket pelanggan akan diaktifkan.',
       ],
       ACTION_REQUIRED: [
         'Minta perbaikan bukti',
@@ -231,50 +253,56 @@ export function PaymentReviewDetailView({
       ? await feedback.confirm({
           tone: action === 'APPROVE' ? 'warning' : 'danger',
           title: copy[action][0],
-          message: `${purchase.customer.displayName} · ${purchase.branch.name} · ${formatRupiah(purchase.payableAmountRpSnapshot ?? purchase.priceRpSnapshot)}. ${copy[action][1]} Cakupan ${purchase.branch.name}, versi ${purchase.version}.`,
+          message: `${purchase.customer.displayName} · ${purchase.branch.name} · ${formatRupiah(purchase.payableAmountRpSnapshot ?? purchase.priceRpSnapshot)}. ${copy[action][1]} Keputusan dikirim 10 detik setelah ini; Anda masih bisa membatalkannya sebelum itu.`,
           confirmLabel: copy[action][0],
         })
       : Boolean(authorityOverride);
     if (!confirmed) return;
-    setMutating(true);
-    setError('');
-    try {
-      const latest = await client.detail(purchase.id).catch(() => null);
-      const versionToUse = latest?.purchase?.version ?? purchase.version;
-      if (action === 'APPROVE') {
-        const result = await client.approve(
-          purchase.id,
-          versionToUse,
-          crypto.randomUUID(),
-          note.trim() || undefined,
-        );
-        feedback?.showToast({
-          tone: 'success',
-          title: 'Pembayaran disetujui',
-          message: `${result.customerPackage?.packageName ?? purchase.packageNameSnapshot} aktif dengan ${result.customerPackage?.available ?? 0} sesi.${result.ledgerEntry?.id ? ` Ledger ${result.ledgerEntry.id}.` : ''}`,
-          correlationReference: result.purchase.auditReference ?? undefined,
-        });
-      } else {
-        await client.reject(
-          purchase.id,
-          versionToUse,
-          action === 'DUPLICATE' ? 'DUPLICATE_PURCHASE' : reasonCode,
-          crypto.randomUUID(),
-          note.trim() || undefined,
-        );
-        feedback?.showToast({
-          tone: 'success',
-          title: action === 'DUPLICATE' ? 'Transaksi ditolak' : 'Perbaikan bukti diminta',
-          message: 'Keputusan dan audit telah disimpan.',
-        });
+    const execute = async () => {
+      setMutating(true);
+      setError('');
+      let succeeded = false;
+      try {
+        const latest = await client.detail(purchase.id).catch(() => null);
+        const versionToUse = latest?.purchase?.version ?? purchase.version;
+        if (action === 'APPROVE') {
+          const result = await client.approve(
+            purchase.id,
+            versionToUse,
+            crypto.randomUUID(),
+            note.trim() || undefined,
+          );
+          feedback?.showToast({
+            tone: 'success',
+            title: 'Pembayaran disetujui',
+            message: `${result.customerPackage?.packageName ?? purchase.packageNameSnapshot} aktif dengan ${result.customerPackage?.available ?? 0} sesi.`,
+            correlationReference: result.purchase.auditReference ?? undefined,
+          });
+        } else {
+          await client.reject(
+            purchase.id,
+            versionToUse,
+            action === 'DUPLICATE' ? 'DUPLICATE_PURCHASE' : reasonCode,
+            crypto.randomUUID(),
+            note.trim() || undefined,
+          );
+          feedback?.showToast({
+            tone: 'success',
+            title: action === 'DUPLICATE' ? 'Transaksi ditolak' : 'Perbaikan bukti diminta',
+            message: 'Keputusan dan audit telah disimpan.',
+          });
+        }
+        succeeded = true;
+        await load();
+      } catch (cause) {
+        await load();
+        setError(purchaseFailure(cause));
+      } finally {
+        setMutating(false);
       }
-      await load();
-    } catch (cause) {
-      await load();
-      setError(purchaseFailure(cause));
-    } finally {
-      setMutating(false);
-    }
+      if (succeeded) await goToNext(purchase.id);
+    };
+    delayed.schedule(copy[action][0], execute);
   };
 
   if (sessionContext?.status === 'unauthenticated' && !authorityOverride)
@@ -523,15 +551,17 @@ export function PaymentReviewDetailView({
                     : 'Preview bukti'}
               </Button>
             </div>
+            <div className="mt-4">
+              <PaymentAmountCheck expectedRp={purchase.payableAmountRpSnapshot ?? purchase.priceRpSnapshot} />
+            </div>
             {previewLoading ? (
               <div className="mt-5 grid min-h-48 place-items-center rounded-dd-lg border border-dd-line bg-dd-surface-muted p-6">
                 <Skeleton label="Memuat bukti pembayaran…" />
               </div>
             ) : previewUrl && (previewType.startsWith('image/') || previewType === 'image/svg+xml') ? (
-              <img
+              <ProofImageViewer
                 src={previewUrl}
                 alt={`Bukti pembayaran ${purchase.customer.displayName}`}
-                className="mt-5 max-h-[34rem] w-full rounded-dd-lg border border-dd-line bg-white object-contain"
               />
             ) : previewUrl && previewType === 'application/pdf' ? (
               <object
@@ -782,6 +812,22 @@ export function PaymentReviewDetailView({
               const proofNotYetViewed = proofRequiresReview && (!previewUrl || previewLoading);
               return (
                 <div className="mt-5 space-y-4">
+                  {delayed.pending && (
+                    <div role="status" className="space-y-2 rounded-dd-md border border-dd-forest bg-dd-forest/5 p-3 text-sm text-dd-ink">
+                      <p>
+                        <strong>{delayed.pending.label}</strong> akan dikirim dalam {delayed.pending.secondsLeft} detik.
+                        Setelah terkirim, keputusan tidak bisa dibatalkan.
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        <Button variant="secondary" size="sm" onClick={() => delayed.cancel()}>
+                          Batalkan
+                        </Button>
+                        <Button size="sm" onClick={() => delayed.flush()}>
+                          Kirim sekarang
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                   {separationOfDutiesBlocked && (
                     <div className="rounded-dd-md border border-dd-warning/30 bg-dd-warning-soft p-3 text-xs text-dd-warning leading-relaxed">
                       <strong className="block font-semibold">Pemeriksaan Silang Staf:</strong>
@@ -817,7 +863,7 @@ export function PaymentReviewDetailView({
                   )}
                   <Button
                     className="w-full"
-                    disabled={mutating || separationOfDutiesBlocked || proofNotYetViewed}
+                    disabled={mutating || Boolean(delayed.pending) || separationOfDutiesBlocked || proofNotYetViewed}
                     title={
                       proofNotYetViewed
                         ? 'Buka pratinjau bukti transfer terlebih dahulu sebelum menyetujui.'
@@ -866,7 +912,7 @@ export function PaymentReviewDetailView({
                   <Button
                     className="w-full"
                     variant="secondary"
-                    disabled={mutating || separationOfDutiesBlocked}
+                    disabled={mutating || Boolean(delayed.pending) || separationOfDutiesBlocked}
                     onClick={() => void decide('ACTION_REQUIRED')}
                   >
                     Minta perbaikan bukti
@@ -874,7 +920,7 @@ export function PaymentReviewDetailView({
                   <Button
                     className="w-full"
                     variant="danger"
-                    disabled={mutating || separationOfDutiesBlocked}
+                    disabled={mutating || Boolean(delayed.pending) || separationOfDutiesBlocked}
                     onClick={() => void decide('DUPLICATE')}
                   >
                     Tolak sebagai duplikat
