@@ -10,6 +10,14 @@ dihapus, atau dikirim.
 Dokumen ini terpisah dari revisi UX. Yang di sini adalah hal yang tidak
 berjalan sebagaimana mestinya, bukan usulan desain.
 
+**Catatan 27 Oktober 2026, pencocokan dengan kode repositori.** Pengamatan di
+bawah berasal dari situs yang sedang berjalan, yang dibangun dari versi kode
+lebih lama daripada repositori (contohnya masih menampilkan "PROJECTION COST",
+padahal fiturnya dicabut dari kode pada 25 Oktober). Karena itu beberapa
+temuan sudah dibandingkan dengan kode dan datanya. Hasilnya ditulis di blok
+**Verifikasi kode** pada temuan yang bersangkutan. Pengamatan aslinya tidak
+diubah; yang dikoreksi hanya dugaan penyebab dan usulan perbaikannya.
+
 ---
 
 ## Ringkasan status per 26 Oktober 2026
@@ -62,23 +70,57 @@ Bukti bahwa ini bukan hanya data migrasi: Muara Karang 7 Oktober pukul
 5/4 pada pengecekan berikutnya. Artinya booking masih bisa masuk setelah
 kelas penuh.
 
-Dugaan penyebab: pengecekan kuota dan penyimpanan booking tidak berada
+Dugaan penyebab awal: pengecekan kuota dan penyimpanan booking tidak berada
 dalam satu transaksi, sehingga dua permintaan bersamaan sama-sama lolos.
 
-Perbaikan: kunci kuota di server saat konfirmasi, dalam satu transaksi,
-termasuk untuk booking manual yang dibuat admin.
+**Verifikasi kode (27 Okt): dugaan itu tidak cocok dengan kode.**
+- Pembuatan booking sudah mengunci baris kelas (`SELECT ... FOR UPDATE`),
+  menghitung booking aktif yang sebenarnya, dan menolak dengan
+  `CLASS_CAPACITY_FULL` kalau sudah penuh. Ini berlaku juga untuk booking
+  yang dibuat admin.
+- Pemindahan jadwal (reschedule) mengunci kedua kelas yang terlibat dengan
+  urutan tetap.
+- Pada data uji hasil migrasi, 3.634 kelas punya booking melebihi kapasitas,
+  tetapi **tidak ada satu pun** yang bookingnya dibuat sejak 1 Oktober 2026
+  (saat aplikasi v2 mulai dipakai).
+- Sumber yang lebih mungkin: skrip migrasi susulan
+  (`tools/migrations/migrate-delta-catchup.ts`) memasukkan booking dari v1 dan
+  menaikkan hitungan terisi tanpa memeriksa kapasitas, sementara v1 masih
+  berjalan dan masih menerima booking.
+
+Status: dugaan penyebab direvisi menjadi **data hasil migrasi**, belum
+dipastikan di data situs yang berjalan. Yang perlu dicek developer adalah
+apakah kelas yang membesar pada 6 sampai 7 Oktober punya booking yang
+berasal dari impor susulan.
+
+Perbaikan (direvisi):
+1. Audit kelas dengan booking aktif lebih banyak dari kapasitas, lalu
+   putuskan per kelas: pindahkan peserta, atau naikkan kapasitas kalau
+   memang cukup tempat.
+2. Ubah skrip migrasi susulan supaya setelah tiap impor hitungan terisi
+   dihitung ulang dari booking aktif, dan kelas yang melebihi kapasitas
+   dilaporkan, tidak dibiarkan diam-diam.
+3. Tambahkan tes yang menjalankan dua booking bersamaan pada slot terakhir,
+   supaya kunci yang sudah ada tetap terjaga.
 
 ### B-03. Sesi terpakai sebelum pembayaran disetujui
 Terakhir dicek 26 Okt, masih terjadi.
 
-Pada antrean pembayaran, pesanan atas nama Lusianna untuk paket
+Pada antrean pembayaran, pesanan atas nama satu pelanggan (nama dirahasiakan) untuk paket
 "[BEST DEAL 10.10] 8 Sessions Private Group" berstatus "Menunggu
 pemeriksaan", tetapi tercatat "0 dipesan, 2 terpakai".
 
 Dampak: sesi terpakai tanpa pembayaran yang disetujui.
 
-Perbaikan: blokir booking dari paket yang pembayarannya belum disetujui.
-Audit paket lain dengan pola yang sama.
+**Verifikasi kode (27 Okt):** kode booking sudah menolak paket yang
+pembeliannya bukan berstatus `PAID`, jadi booking baru tidak bisa memakai paket
+yang belum disetujui. Pola "terpakai tanpa pembayaran disetujui" karena itu
+hampir pasti berasal dari data hasil migrasi.
+
+Perbaikan (direvisi): audit paket pelanggan yang sudah terpakai tetapi
+pembeliannya belum berstatus `PAID`, lalu putuskan per kasus (setujui
+pembayarannya atau koreksi pemakaian sesinya lewat penyesuaian sesi). Tidak
+perlu perubahan pada aturan booking.
 
 ### B-04. 895 pembayaran menunggu, tertua sejak 2 Oktober
 Terakhir dicek 26 Okt, jumlahnya tetap.
@@ -111,8 +153,14 @@ ditekan langsung dari daftar, tanpa membuka bukti transfer lebih dulu.
 Saya tidak menekan tombol itu, jadi belum diketahui apakah ada dialog
 konfirmasi sesudahnya.
 
-Perbaikan: wajibkan membuka detail atau pratinjau bukti sebelum menyetujui,
-atau tambahkan konfirmasi yang menyebut nama pelanggan dan nominal.
+**Verifikasi kode (27 Okt):** tombol di daftar sudah membuka dialog
+konfirmasi yang menyebut nama pelanggan, cabang, paket, dan nominal, dengan
+tombol "Setujui dan aktifkan paket". Yang belum ada: kewajiban melihat bukti
+transfer sebelum menyetujui (lihat T-21). Teks dialog masih memuat istilah
+teknis ("ledger pembelian", "Versi N").
+
+Perbaikan (direvisi): wajibkan membuka bukti sebelum tombol setuju aktif, dan
+ganti istilah teknis pada teks dialog.
 
 ### B-06. Notifikasi WhatsApp belum terkirim
 Terakhir dicek 26 Okt, masih mode uji.
@@ -131,9 +179,12 @@ bebas di halaman Otomasi, bisa ditekan dalam satu klik.
 
 Saya tidak menekan keduanya.
 
-Perbaikan: tambahkan dialog konfirmasi yang menyebut dampaknya, misalnya
-jumlah kelas yang akan dibatalkan dan jumlah pesan yang akan dikirim.
-Batasi ke superadmin dan catat pelakunya di log audit.
+**Verifikasi kode (27 Okt):** kedua tombol sudah memakai dialog konfirmasi
+sebelum menjalankan aksi, dan izin menjalankannya hanya dipegang Super Owner.
+Temuan ini kemungkinan berlaku untuk build yang lebih lama.
+
+Yang masih bisa ditambahkan: menyebut dampak di dialog (jumlah kelas yang akan
+dibatalkan, jumlah pesan yang akan dikirim).
 
 ### B-08. Layar kiosk terbuka publik
 Ditemukan 26 Okt.
@@ -146,9 +197,18 @@ Isinya: alamat lengkap kelima studio dan QR presensi instruktur.
 
 Pengaman satu-satunya adalah pencocokan GPS ponsel instruktur.
 
-Perbaikan yang disarankan: lepas tautan dari footer publik, beri kode akses
-atau pasangkan ke perangkat studio, dan putar QR secara berkala supaya
-tangkapan layar tidak bisa dipakai ulang.
+**Verifikasi kode (27 Okt):**
+- Tautan kiosk tidak ada lagi di footer pada kode saat ini.
+- QR sudah berganti setiap 60 detik dan berlaku sekitar 120 detik.
+- Endpoint publik kiosk tetap tanpa login dan mengembalikan **koordinat studio,
+  radius geofence, alamat, dan token QR instruktur** untuk kelas dalam jendela
+  waktu dekat. Karena koordinatnya ikut terbuka, pengaman GPS lebih lemah dari
+  yang dikira: instruktur yang tahu koordinat dan token bisa memalsukan lokasi
+  untuk mencatat presensi (dan honor).
+
+Perbaikan yang disarankan: beri kode akses atau pasangkan ke perangkat studio,
+dan berhenti mengirim koordinat dan radius geofence ke halaman publik (cukup
+nama studio dan QR).
 
 Ini keputusan pemilik, bukan hanya pekerjaan teknis.
 
@@ -198,12 +258,19 @@ semua kolom.
 
 Dampak: laporan keuangan tidak bisa dipakai untuk mengambil keputusan.
 
+**Verifikasi kode (27 Okt):** pada data uji, tabel tarif honor berisi 1.651
+baris (Rp 150.000 sampai Rp 250.000 per jam), jadi "semua instruktur Rp 0"
+tidak otomatis berarti tarif kosong. Dugaan: periode yang dilihat tidak punya
+kelas selesai (tidak ada kelas sejak 9 Oktober) dan halaman Keuangan memang
+berawal pada satu cabang (lihat R-01). Perlu dicek di data situs yang berjalan.
+
 ### B-13. Booking kembar
 Terakhir dicek 15 Okt.
 
 Pelanggan yang sama muncul beberapa kali pada kelas dan jam yang sama.
-Contoh: Fera Julia empat kali pada 5 Oktober pukul 11.00, sherly luciana
-dan hermi subianty masing-masing dua kali.
+Contoh: satu pelanggan muncul empat kali pada 5 Oktober pukul 11.00, dan dua
+pelanggan lain masing-masing dua kali. Nama dirahasiakan; tanggal dan jam
+cukup untuk menemukan datanya di sistem.
 
 Kalau ini booking untuk teman, tampilannya perlu menyebut jumlah orang.
 Kalau bukan, perlu dicegah.
@@ -324,6 +391,11 @@ Dasbor masih memakai "GROSS SALES" dan "PROJECTION COST".
 
 Beranda publik sudah diperbaiki pada pembaruan 26 Oktober.
 
+**Verifikasi kode (27 Okt):** kedua label itu tidak ada lagi di kode. Biaya
+proyeksi dicabut seluruhnya pada 25 Oktober dan dasbor kini memakai
+"Penjualan kotor". Temuan ini berlaku untuk build yang lebih lama dan akan
+hilang setelah dideploy ulang.
+
 ### B-27. Nama paket belum dirapikan
 Terakhir dicek 26 Okt.
 
@@ -353,6 +425,8 @@ Terakhir dicek 26 Okt.
 
 `/sitemap.xml` menghasilkan 404. `robots.txt` sudah ada.
 
+**Verifikasi kode (27 Okt):** benar, belum ada pembuat sitemap di aplikasi.
+
 ---
 
 ## Perlu direview, bukan bug
@@ -371,11 +445,15 @@ halaman Booking sempat menampilkan total 0 sebelum data cabang dimuat.
 Kalau ini disengaja, superadmin kehilangan gambaran lintas cabang. Kalau
 tidak, perlu dikembalikan.
 
+**Verifikasi kode (27 Okt):** benar. Halaman Keuangan memilih satu cabang
+sebagai awal dan tidak menyediakan pilihan "Semua cabang", padahal API
+laporan menerima permintaan tanpa cabang. Perlu keputusan pemilik.
+
 ### R-02. Email pelanggan hasil migrasi
 Ditemukan 6 Okt, belum dicek ulang.
 
 Pola email pada daftar pelanggan terlihat seperti dibentuk dari nama depan,
-contoh `rini@gmail.com`, `tina@gmail.com`, `mira@gmail.com`.
+contoh `[nama depan]@gmail.com`, dengan nama depan yang pendek dan umum.
 
 Kalau benar bukan email asli, reset kata sandi akan terkirim ke orang lain
 dan pelanggan lama tidak bisa masuk.

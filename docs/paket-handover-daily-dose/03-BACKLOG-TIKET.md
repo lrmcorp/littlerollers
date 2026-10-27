@@ -93,8 +93,11 @@ Yang dikerjakan:
   diproses, berhasil, gagal.
 - Hapus halaman perantara "Pilih jadwal kelas terlebih dahulu".
 - Tombol "Booking kelas" di beranda langsung menuju jadwal studio aktif.
-- Kuota dikunci di server saat konfirmasi, dalam satu transaksi, supaya
-  kelas tidak bisa terisi melebihi kapasitas.
+- Kuota sudah dikunci di server saat konfirmasi, dalam satu transaksi
+  (`FOR UPDATE` pada kelas, dihitung dari booking aktif). Tidak perlu dibuat
+  ulang; cukup dijaga dengan tes dua booking bersamaan pada slot terakhir.
+  Kelas yang sudah melebihi kapasitas di data berasal dari impor migrasi
+  (lihat B-02 di laporan UAT), bukan dari alur ini.
 
 Selesai jika:
 - Member dengan paket aktif bisa booking dalam 3 tap dari beranda.

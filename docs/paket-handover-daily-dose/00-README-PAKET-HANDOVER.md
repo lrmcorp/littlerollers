@@ -39,7 +39,9 @@ booking apa pun. Lima tiket juga tidak bisa diuji selama ini belum beres.
 **Langkah 2.** Serahkan `04-LAPORAN-UAT-BUG.md` ke developer. Bagian
 Kritis berisi sembilan hal, tiga di antaranya menyangkut uang: kelas
 terisi melebihi kapasitas, sesi terpakai sebelum pembayaran disetujui, dan
-895 pembayaran yang belum tercocokkan.
+895 pembayaran yang belum tercocokkan. Dua yang pertama, menurut pencocokan
+dengan kode pada 27 Oktober, kemungkinan besar data hasil migrasi dan bukan
+cacat alur booking (lihat catatan Verifikasi kode di B-02 dan B-03).
 
 **Langkah 3.** Baru mulai revisi UX dengan `01-PROMPT`, `02-SPEC`, dan
 `03-BACKLOG`. Kerjakan tiket urut nomor, satu per satu.
