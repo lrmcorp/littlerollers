@@ -35,6 +35,8 @@ export interface IdentityVerificationReviewCase {
     displayName: string;
     /** Nama yang diisi pelanggan pada form verifikasi (bisa kosong). */
     profileName?: string | null;
+    birthDate?: string | null;
+    dateOfBirth?: string | null;
     phoneMasked: string | null;
     status: 'PENDING_ACTIVATION' | 'ACTIVE' | 'INACTIVE';
   };

@@ -9,9 +9,8 @@ import {
   type IdentityVerificationReviewPage,
   type VerificationDocument,
 } from '@/api-clients/identity-verification-client';
-import { AdminPageHeader } from '../components/admin/admin-page-header';
 import { AdminEmptyState, Panel } from '../components/admin/admin-ui';
-import { Button } from '../components/actions';
+import { Button, ButtonLink } from '../components/actions';
 import { AlertBanner, messageForApiError, useAppFeedback } from '../components/app-feedback';
 import { useDelayedAction } from '../lib/use-delayed-action';
 import { useSessionContext } from '../session-context';
@@ -25,6 +24,14 @@ import {
   type FastReviewItem,
 } from './fast-review-queue';
 import { kindLabel, reasonLabels, type RejectionReason } from './review-components';
+
+function formatBirthDate(val?: string | null): string {
+  if (!val) return 'Tidak dicantumkan';
+  const d = new Date(val);
+  return isNaN(d.getTime())
+    ? val
+    : d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+}
 
 interface FastReviewClient {
   reviewQueue(filters?: IdentityVerificationReviewFilters): Promise<IdentityVerificationReviewPage>;
@@ -253,46 +260,103 @@ export function FastReviewView({
   const reasons = chooser === 'PHOTO' ? PHOTO_REASONS : REJECT_REASONS;
 
   return (
-    <section className="space-y-5" aria-labelledby="fast-review-title">
-      <AdminPageHeader
-        title="Mode cepat verifikasi identitas"
-        titleId="fast-review-title"
-        description="Satu berkas satu layar. Keputusan dikirim 10 detik setelah ditekan; sebelum itu masih bisa dibatalkan."
-        actions={
-          <div className="flex flex-wrap gap-2">
-            <Link href="/identity-verifications" className="inline-flex items-center gap-1.5 text-sm font-semibold text-dd-forest">
-              <ArrowLeft className="size-4" aria-hidden="true" /> Kembali ke daftar
-            </Link>
-            <Button
-              variant="secondary"
-              leadingIcon={<RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} aria-hidden="true" />}
-              disabled={loading}
-              onClick={() => void load()}
-            >
-              Muat ulang
-            </Button>
+    <section className="space-y-5 font-sans text-dd-ink" aria-labelledby="fast-review-title">
+      {/* Top Header Mockup 17: Verifikasi identitas & Status antrean */}
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-dd-line pb-4">
+        <div>
+          <h1
+            id="fast-review-title"
+            className="text-2xl font-black tracking-tight text-dd-ink sm:text-3xl"
+          >
+            Verifikasi identitas
+          </h1>
+          <p className="mt-1 text-xs sm:text-sm text-dd-muted">
+            Berkas ke {Math.min(sent + 1, totalPending || queue.length || 1)} dari {totalPending || queue.length || 1}.{' '}
+            {sent === 0
+              ? 'Belum ada yang diperiksa sejak antrean dibuka.'
+              : `${sent} berkas diperiksa sejak antrean dibuka.`}
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="text-right">
+            <div className="flex items-center gap-2">
+              <div
+                className="h-2 w-28 sm:w-36 rounded-full bg-dd-surface-muted overflow-hidden border border-dd-line"
+                aria-hidden="true"
+              >
+                <div
+                  className="h-full bg-dd-forest transition-all"
+                  style={{
+                    width: `${
+                      totalPending > 0
+                        ? Math.min(100, Math.round(((totalPending - remaining) / totalPending) * 100))
+                        : 0
+                    }%`,
+                  }}
+                />
+              </div>
+              <span className="text-xs sm:text-sm font-bold text-dd-ink whitespace-nowrap" aria-live="polite">
+                Sisa antrean: {remaining} berkas
+              </span>
+            </div>
+            {revisit.length > 0 && (
+              <p className="text-[11px] text-dd-muted mt-0.5">
+                {revisit.length} perlu dilihat ulang
+              </p>
+            )}
           </div>
-        }
-      />
+
+          <ButtonLink
+            href="/identity-verifications"
+            variant="secondary"
+            size="sm"
+            leadingIcon={<ArrowLeft className="size-4" aria-hidden="true" />}
+          >
+            Keluar dari mode cepat
+          </ButtonLink>
+          <Button
+            variant="ghost"
+            size="sm"
+            leadingIcon={
+              <RefreshCw
+                className={`size-4 ${loading ? 'animate-spin' : ''}`}
+                aria-hidden="true"
+              />
+            }
+            disabled={loading}
+            onClick={() => void load()}
+          >
+            Muat ulang
+          </Button>
+        </div>
+      </header>
 
       {error && <AlertBanner tone="danger" title={error.title} message={error.message} />}
       {!canDecide && (
-        <AlertBanner tone="info" title="Mode hanya baca" message="Keputusan dilakukan petugas yang berwenang menyetujui identitas." />
+        <AlertBanner
+          tone="info"
+          title="Mode hanya baca"
+          message="Keputusan dilakukan petugas yang berwenang menyetujui identitas."
+        />
       )}
 
-      <p className="text-sm font-semibold text-dd-ink" aria-live="polite">
-        Sisa antrean: {remaining} berkas
-        {revisit.length > 0 && ` · ${revisit.length} perlu dilihat ulang`}
-      </p>
-
       {delayed.pending && (
-        <div role="status" className="space-y-2 rounded-dd-md border border-dd-forest bg-dd-forest/5 p-3 text-sm text-dd-ink">
+        <div
+          role="status"
+          className="space-y-2 rounded-dd-md border border-dd-forest bg-dd-forest/5 p-3 text-sm text-dd-ink"
+        >
           <p>
             <strong>{delayed.pending.label}</strong> akan dikirim dalam {delayed.pending.secondsLeft} detik. Setelah
             terkirim, keputusan tidak bisa dibatalkan.
           </p>
           <div className="flex flex-wrap gap-2">
-            <Button variant="secondary" size="sm" leadingIcon={<Undo2 className="size-4" aria-hidden="true" />} onClick={undo}>
+            <Button
+              variant="secondary"
+              size="sm"
+              leadingIcon={<Undo2 className="size-4" aria-hidden="true" />}
+              onClick={undo}
+            >
               Batalkan keputusan terakhir (Z)
             </Button>
             <Button size="sm" onClick={() => delayed.flush()}>
@@ -319,111 +383,220 @@ export function FastReviewView({
           )}
         </Panel>
       ) : (
-        <div className="grid gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-          <Panel className="p-5">
-            <h2 className="text-lg font-semibold text-dd-ink">{kindLabel(current.document.kind)}</h2>
-            {previews[current.key] ? (
-              <>
-                <ProofImageViewer
-                  src={previews[current.key]!}
-                  alt={`${kindLabel(current.document.kind)} ${current.user.displayName}`}
-                  onLoad={() => setShown((value) => ({ ...value, [current.key]: true }))}
-                  onError={() => setPreviewFailed((value) => ({ ...value, [current.key]: true }))}
-                />
-                {previewFailed[current.key] && (
-                  <p className="mt-3 text-sm font-semibold text-dd-danger" role="alert">
-                    Berkas ini tidak dapat ditampilkan, jadi belum bisa disetujui. Pilih Minta foto ulang (U) atau Lewati (L).
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
+          {/* Panel Kiri: Foto identitas yang diunggah */}
+          <Panel className="p-5 flex flex-col justify-between">
+            <div>
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-dd-line pb-3">
+                <div>
+                  <h2 className="text-lg font-bold text-dd-ink">Foto identitas yang diunggah</h2>
+                  <p className="text-xs text-dd-muted">
+                    {kindLabel(current.document.kind)} · Status scan: {current.document.scanStatus}
+                  </p>
+                </div>
+              </div>
+
+              {previews[current.key] ? (
+                <>
+                  <div className="mt-4">
+                    <ProofImageViewer
+                      src={previews[current.key]!}
+                      alt={`${kindLabel(current.document.kind)} ${current.user.displayName}`}
+                      onLoad={() => setShown((value) => ({ ...value, [current.key]: true }))}
+                      onError={() => setPreviewFailed((value) => ({ ...value, [current.key]: true }))}
+                    />
+                    <p className="mt-2 text-center text-xs text-dd-muted">
+                      Area gambar identitas, lebar minimal 600 px
+                    </p>
+                  </div>
+                  {previewFailed[current.key] && (
+                    <p className="mt-3 text-sm font-semibold text-dd-danger" role="alert">
+                      Berkas ini tidak dapat ditampilkan, jadi belum bisa disetujui. Pilih Minta foto ulang (U) atau Lewati (L).
+                    </p>
+                  )}
+                </>
+              ) : previewFailed[current.key] && !previews[current.key] ? (
+                <div className="mt-4">
+                  <AlertBanner
+                    tone="warning"
+                    title="Berkas belum dapat dibuka"
+                    message="Lewati berkas ini (L) atau muat ulang halaman, lalu coba lagi."
+                  />
+                </div>
+              ) : (
+                <div className="mt-5 grid min-h-[420px] place-items-center rounded-dd-lg border border-dashed border-dd-line bg-dd-surface-muted">
+                  <Skeleton label="Memuat berkas…" />
+                </div>
+              )}
+            </div>
+          </Panel>
+
+          {/* Panel Kanan: Cocokkan dua hal ini saja & Keputusan */}
+          <div className="space-y-4">
+            <Panel className="space-y-4 p-5 sm:p-6">
+              <h2 className="text-xl font-black text-dd-ink border-b border-dd-line pb-3">
+                Cocokkan dua hal ini saja
+              </h2>
+
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-dd-muted">Nama pada akun</p>
+                <p className="mt-1 text-2xl font-black text-dd-ink">{current.user.displayName}</p>
+                {current.user.profileName && current.user.profileName !== current.user.displayName && (
+                  <p className="mt-1 text-xs text-dd-muted">
+                    Nama yang diisi pada form: <strong className="text-dd-ink">{current.user.profileName}</strong>
                   </p>
                 )}
-              </>
-            ) : previewFailed[current.key] && !previews[current.key] ? (
-              <AlertBanner
-                tone="warning"
-                title="Berkas belum dapat dibuka"
-                message="Lewati berkas ini (L) atau muat ulang halaman, lalu coba lagi."
-              />
-            ) : (
-              <div className="mt-5 grid min-h-[420px] place-items-center rounded-dd-lg border border-dashed border-dd-line bg-dd-surface-muted">
-                <Skeleton label="Memuat berkas…" />
+                {current.user.phoneMasked && (
+                  <p className="mt-0.5 text-xs text-dd-muted">{current.user.phoneMasked}</p>
+                )}
               </div>
-            )}
-          </Panel>
 
-          <Panel className="space-y-4 p-5">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-dd-muted">Nama pada akun</p>
-              <p className="mt-1 text-2xl font-bold text-dd-ink">{current.user.displayName}</p>
-              {current.user.profileName && current.user.profileName !== current.user.displayName && (
-                <p className="mt-2 text-sm text-dd-muted">
-                  Nama yang diisi pada form: <strong className="text-dd-ink">{current.user.profileName}</strong>
+              <div className="pt-3 border-t border-dd-line">
+                <p className="text-xs font-bold uppercase tracking-wider text-dd-muted">Tanggal lahir pada akun</p>
+                <p className="mt-1 text-xl font-black text-dd-ink">
+                  {formatBirthDate(current.user.birthDate ?? current.user.dateOfBirth)}
                 </p>
-              )}
-              {current.user.phoneMasked && <p className="mt-1 text-sm text-dd-muted">{current.user.phoneMasked}</p>}
-            </div>
-            <p className="rounded-dd-md border border-dd-line bg-dd-surface-muted p-3 text-sm text-dd-muted">
-              Cocokkan nama pada berkas dengan nama di atas. Nomor identitas tidak perlu dibaca atau dicatat.
-            </p>
+              </div>
+
+              <p className="rounded-dd-md border border-dd-line bg-dd-surface-muted p-3 text-xs sm:text-sm text-dd-muted leading-relaxed">
+                Nomor identitas tidak perlu dibaca atau dicatat. Yang diperlukan hanya nama dan tanggal lahir cocok dengan foto.
+              </p>
+            </Panel>
 
             {chooser ? (
-              <div role="group" aria-label={chooser === 'PHOTO' ? 'Alasan minta foto ulang' : 'Alasan tolak'} className="space-y-2">
-                <p className="text-sm font-semibold text-dd-ink">
-                  {chooser === 'PHOTO' ? 'Minta foto ulang, pilih alasan' : 'Tolak, pilih alasan'} (tekan angkanya, Esc batal)
-                </p>
-                {reasons.map((reason, index) => (
+              <Panel className="p-5">
+                <div
+                  role="group"
+                  aria-label={chooser === 'PHOTO' ? 'Alasan minta foto ulang' : 'Alasan tolak'}
+                  className="space-y-2"
+                >
+                  <p className="text-sm font-semibold text-dd-ink">
+                    {chooser === 'PHOTO' ? 'Minta foto ulang, pilih alasan' : 'Tolak, pilih alasan'} (tekan angkanya, Esc batal)
+                  </p>
+                  {reasons.map((reason, index) => (
+                    <Button
+                      key={reason}
+                      variant="secondary"
+                      className="w-full justify-start text-xs sm:text-sm"
+                      onClick={() => chooseReason(reason)}
+                    >
+                      {index + 1}. {reasonLabels[reason]}
+                    </Button>
+                  ))}
+                  {otherSelected && (
+                    <form
+                      className="space-y-2 pt-2"
+                      onSubmit={(event) => {
+                        event.preventDefault();
+                        if (note.trim().length >= 3) decide('reject', 'OTHER_REQUIRES_NOTE', note);
+                      }}
+                    >
+                      <label className="block text-sm font-semibold text-dd-ink" htmlFor="fast-review-note">
+                        Jelaskan alasannya
+                      </label>
+                      <input
+                        id="fast-review-note"
+                        autoFocus
+                        value={note}
+                        maxLength={500}
+                        onChange={(event) => setNote(event.target.value)}
+                        className="w-full rounded-dd-md border border-dd-border-interactive bg-white px-3 py-2 text-sm"
+                      />
+                      <Button type="submit" disabled={note.trim().length < 3}>
+                        Kirim alasan
+                      </Button>
+                    </form>
+                  )}
                   <Button
-                    key={reason}
-                    variant="secondary"
-                    className="w-full justify-start"
-                    onClick={() => chooseReason(reason)}
-                  >
-                    {index + 1}. {reasonLabels[reason]}
-                  </Button>
-                ))}
-                {otherSelected && (
-                  <form
-                    className="space-y-2"
-                    onSubmit={(event) => {
-                      event.preventDefault();
-                      if (note.trim().length >= 3) decide('reject', 'OTHER_REQUIRES_NOTE', note);
+                    variant="ghost"
+                    onClick={() => {
+                      setChooser(null);
+                      setOtherSelected(false);
                     }}
                   >
-                    <label className="block text-sm font-semibold text-dd-ink" htmlFor="fast-review-note">
-                      Jelaskan alasannya
-                    </label>
-                    <input
-                      id="fast-review-note"
-                      autoFocus
-                      value={note}
-                      maxLength={500}
-                      onChange={(event) => setNote(event.target.value)}
-                      className="w-full rounded-dd-md border border-dd-border-interactive bg-white px-3 py-2"
-                    />
-                    <Button type="submit" disabled={note.trim().length < 3}>
-                      Kirim alasan
-                    </Button>
-                  </form>
-                )}
-                <Button variant="ghost" onClick={() => { setChooser(null); setOtherSelected(false); }}>
-                  Batal
-                </Button>
-              </div>
+                    Batal
+                  </Button>
+                </div>
+              </Panel>
             ) : (
-              <div className="grid gap-2">
-                <Button disabled={!canDecide || !shown[current.key]} leadingIcon={<Check className="size-4" aria-hidden="true" />} onClick={() => decide('approve')}>
-                  Setujui (S)
+              <div className="grid gap-2.5">
+                {/* Tombol 1: Cocok, setujui (S) */}
+                <Button
+                  disabled={!canDecide || !shown[current.key]}
+                  aria-label="Setujui (S)"
+                  className="w-full justify-between text-sm font-bold min-h-11 shadow-sm"
+                  onClick={() => decide('approve')}
+                >
+                  <span className="flex items-center gap-2">
+                    <Check className="size-4" aria-hidden="true" />
+                    <span>Cocok, setujui</span>
+                  </span>
+                  <kbd className="rounded bg-white/20 px-2 py-0.5 text-xs font-mono font-bold">S</kbd>
                 </Button>
-                <Button variant="secondary" disabled={!canDecide} onClick={() => setChooser('PHOTO')}>
-                  Minta foto ulang (U)
+
+                {/* Tombol 2: Foto tidak terbaca, minta ulang (U) */}
+                <Button
+                  variant="secondary"
+                  disabled={!canDecide}
+                  aria-label="Minta foto ulang (U)"
+                  className="w-full justify-between text-sm font-semibold min-h-11"
+                  onClick={() => setChooser('PHOTO')}
+                >
+                  <span>Foto tidak terbaca, minta ulang</span>
+                  <kbd className="rounded border border-dd-border-interactive bg-dd-surface-muted px-2 py-0.5 text-xs font-mono font-bold text-dd-ink">
+                    U
+                  </kbd>
                 </Button>
-                <Button variant="danger" disabled={!canDecide} leadingIcon={<X className="size-4" aria-hidden="true" />} onClick={() => setChooser('REJECT')}>
-                  Tolak (T)
+
+                {/* Tombol 3: Tidak cocok, tolak (T) */}
+                <Button
+                  variant="danger"
+                  disabled={!canDecide}
+                  aria-label="Tolak (T)"
+                  className="w-full justify-between text-sm font-semibold min-h-11"
+                  onClick={() => setChooser('REJECT')}
+                >
+                  <span className="flex items-center gap-2">
+                    <X className="size-4" aria-hidden="true" />
+                    <span>Tidak cocok, tolak</span>
+                  </span>
+                  <kbd className="rounded bg-white/20 px-2 py-0.5 text-xs font-mono font-bold">T</kbd>
                 </Button>
-                <Button variant="ghost" leadingIcon={<SkipForward className="size-4" aria-hidden="true" />} onClick={skip}>
-                  Lewati (L)
+
+                {/* Tombol 4: Ragu, lewati dulu (L) */}
+                <Button
+                  variant="ghost"
+                  aria-label="Lewati (L)"
+                  className="w-full justify-between text-sm font-semibold min-h-11 border border-dd-line hover:bg-dd-surface-muted"
+                  onClick={skip}
+                >
+                  <span className="flex items-center gap-2">
+                    <SkipForward className="size-4" aria-hidden="true" />
+                    <span>Ragu, lewati dulu</span>
+                  </span>
+                  <kbd className="rounded border border-dd-border-interactive bg-dd-surface-muted px-2 py-0.5 text-xs font-mono font-bold text-dd-ink">
+                    L
+                  </kbd>
                 </Button>
               </div>
             )}
-          </Panel>
+
+            {/* Kotak Informasi Penjelas Mockup 17 */}
+            <div className="rounded-dd-lg border border-dd-line bg-dd-surface-muted p-4 text-xs sm:text-sm text-dd-muted space-y-2 leading-relaxed">
+              <p>
+                Setelah diputuskan, berkas berikutnya langsung muncul. Keputusan bisa dibatalkan dalam 10 detik dengan{' '}
+                <kbd className="rounded border border-dd-border-interactive bg-white px-1.5 py-0.5 text-xs font-mono font-bold text-dd-ink">
+                  Z
+                </kbd>.
+              </p>
+              <p>
+                Yang dilewati masuk ke daftar <strong>Perlu dilihat ulang</strong>, tidak hilang.
+              </p>
+              <p className="text-dd-muted text-[11px] pt-2 border-t border-dd-line">
+                Tidak ada tombol setujui banyak sekaligus. Satu berkas satu keputusan, karena ini menentukan siapa yang boleh masuk studio.
+              </p>
+            </div>
+          </div>
         </div>
       )}
     </section>
