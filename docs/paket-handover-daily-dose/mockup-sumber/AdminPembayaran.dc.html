@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Bukti transfer menunggu, Finance</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Poppins:wght@500;600&display=swap">
+<style>
+body { margin: 0; font-family: "DM Sans", system-ui, sans-serif; }
+button, a, input, select { font-family: inherit; }
+</style>
+</helmet>
+
+<div style="width: 1280px; height: 900px; box-sizing: border-box; background: #f4f2ec; display: flex; flex-direction: column; overflow: hidden">
+
+  <header style="background: #ffffff; border-bottom: 1px solid #827c6a; height: 60px; flex-shrink: 0; padding: 0 24px; display: flex; align-items: center; justify-content: space-between">
+    <h1 style="margin: 0; font-family: Poppins, sans-serif; font-weight: 600; font-size: 20px; color: #17231e">Bukti transfer menunggu</h1>
+    <span style="font-size: 15px; color: #607069">Finance, semua cabang</span>
+  </header>
+
+  <div style="flex: 1; display: flex; min-height: 0; overflow: hidden">
+
+    <aside style="width: 360px; flex-shrink: 0; background: #ffffff; border-right: 1px solid #827c6a; display: flex; flex-direction: column; overflow: hidden">
+
+      <div style="padding: 16px 18px; border-bottom: 1px solid #827c6a; display: flex; flex-direction: column; gap: 12px">
+        <span style="font-size: 16px; line-height: 24px; color: #17231e"><strong style="font-weight: 600">895 bukti</strong> menunggu diperiksa. Tertua dikirim 2 Okt 2026.</span>
+        <div style="display: flex; gap: 10px">
+          <select aria-label="Urutkan antrean" style="flex: 1; min-height: 44px; border: 1.5px solid #827c6a; border-radius: 8px; padding: 0 12px; font-size: 15px; color: #17231e; background: #ffffff">
+            <option>Tertua dulu</option>
+            <option>Nominal terbesar dulu</option>
+            <option>Per cabang</option>
+          </select>
+          <button type="button" style="min-height: 44px; padding: 0 14px; background: #ffffff; border: 1.5px solid #827c6a; border-radius: 8px; font-size: 15px; color: #17231e; cursor: pointer">Filter</button>
+        </div>
+        <span style="font-size: 14px; line-height: 20px; color: #607069; background: #eceadf; border-radius: 6px; padding: 8px 10px">Filter aktif: semua cabang, status menunggu pemeriksaan.</span>
+      </div>
+
+      <div style="flex: 1; overflow: hidden">
+        <div style="min-height: 72px; padding: 14px 18px 14px 14px; border-left: 4px solid #396552; background: #f6f4ee; border-bottom: 1px solid #827c6a; display: flex; flex-direction: column; gap: 3px">
+          <span style="font-size: 16px; font-weight: 500; color: #17231e">[nama pelanggan 1]</span>
+          <span style="font-size: 14px; color: #607069">Orange Groves PIK 2, 5 Sessions Private Class</span>
+          <span style="display: flex; justify-content: space-between; gap: 8px"><span style="font-size: 15px; font-weight: 500; color: #17231e">Rp 1.900.844</span><span style="font-size: 14px; color: #8a5b17">menunggu 24 hari</span></span>
+        </div>
+
+        <div style="min-height: 72px; padding: 14px 18px; border-bottom: 1px solid #827c6a; display: flex; flex-direction: column; gap: 3px">
+          <span style="font-size: 16px; font-weight: 500; color: #17231e">[nama pelanggan 2]</span>
+          <span style="font-size: 14px; color: #607069">Orange Groves PIK 2, 10 Sessions Private Group</span>
+          <span style="display: flex; justify-content: space-between; gap: 8px"><span style="font-size: 15px; font-weight: 500; color: #17231e">Rp 950.888</span><span style="font-size: 14px; color: #8a5b17">menunggu 24 hari</span></span>
+        </div>
+
+        <div style="min-height: 72px; padding: 14px 18px; border-bottom: 1px solid #827c6a; display: flex; flex-direction: column; gap: 3px">
+          <span style="font-size: 16px; font-weight: 500; color: #17231e">[nama pelanggan 3]</span>
+          <span style="font-size: 14px; color: #607069">Green Garden, 12 Ses PV Free 1 Ses</span>
+          <span style="display: flex; justify-content: space-between; gap: 8px"><span style="font-size: 15px; font-weight: 500; color: #17231e">Rp 6.750.387</span><span style="font-size: 14px; color: #8a5b17">menunggu 24 hari</span></span>
+        </div>
+
+        <div style="min-height: 72px; padding: 14px 18px; border-bottom: 1px solid #827c6a; display: flex; flex-direction: column; gap: 3px">
+          <span style="font-size: 16px; font-weight: 500; color: #17231e">[nama pelanggan 4]</span>
+          <span style="font-size: 14px; color: #607069">Graha Family Surabaya, Flash Sale</span>
+          <span style="display: flex; justify-content: space-between; gap: 8px"><span style="font-size: 15px; font-weight: 500; color: #17231e">Rp 850.596</span><span style="font-size: 14px; color: #8a5b17">menunggu 25 hari</span></span>
+        </div>
+      </div>
+
+    </aside>
+
+    <section style="flex: 1; min-width: 0; padding: 20px 24px; display: flex; flex-direction: column; gap: 16px; overflow: hidden">
+
+      <div style="display: flex; flex-direction: column; gap: 2px">
+        <h2 style="margin: 0; font-family: Poppins, sans-serif; font-weight: 600; font-size: 24px; color: #17231e">[nama pelanggan 1]</h2>
+        <span style="font-size: 16px; color: #607069">Orange Groves PIK 2, PIK 2 Kosambi. Paket 5 Sessions Private Class.</span>
+      </div>
+
+      <div style="background: #faeceb; border-left: 4px solid #9b3d38; border-radius: 12px; padding: 16px 20px; display: flex; align-items: center; gap: 40px">
+        <div style="display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: 13px; font-weight: 700; letter-spacing: 0.06em; color: #7d2f2b">NOMINAL PADA PAKET</span>
+          <span style="font-family: Poppins, sans-serif; font-weight: 600; font-size: 28px; color: #17231e">Rp 1.900.844</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: 13px; font-weight: 700; letter-spacing: 0.06em; color: #7d2f2b">NOMINAL PADA BUKTI</span>
+          <span style="font-family: Poppins, sans-serif; font-weight: 600; font-size: 28px; color: #17231e">Rp 1.900.000</span>
+        </div>
+        <span style="flex: 1; font-size: 17px; line-height: 24px; font-weight: 500; color: #7d2f2b">Selisih Rp 844 kurang dari nominal paket. Kode unik tidak terbawa.</span>
+      </div>
+
+      <div style="flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 20px">
+
+        <div style="background: #ffffff; border: 1px solid #827c6a; border-radius: 12px; display: flex; flex-direction: column; overflow: hidden">
+          <div style="padding: 12px 16px; border-bottom: 1px solid #827c6a; display: flex; align-items: center; justify-content: space-between">
+            <span style="font-size: 15px; font-weight: 500; color: #17231e">Bukti transfer</span>
+            <span style="display: flex; gap: 8px">
+              <button type="button" aria-label="Perbesar bukti" style="width: 36px; height: 36px; border: 1.5px solid #827c6a; border-radius: 8px; background: #ffffff; cursor: pointer; color: #396552; display: flex; align-items: center; justify-content: center">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5M11 8v6M8 11h6"></path></svg>
+              </button>
+              <button type="button" aria-label="Putar bukti" style="width: 36px; height: 36px; border: 1.5px solid #827c6a; border-radius: 8px; background: #ffffff; cursor: pointer; color: #396552; display: flex; align-items: center; justify-content: center">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7"></path><path d="M21 4v5h-5"></path></svg>
+              </button>
+            </span>
+          </div>
+          <div style="flex: 1; background: #f6f4ee; display: flex; align-items: center; justify-content: center; padding: 20px">
+            <div style="width: 260px; height: 340px; background: #ffffff; border: 1px solid #827c6a; border-radius: 6px; display: flex; flex-direction: column; gap: 10px; padding: 18px">
+              <div style="height: 14px; width: 60%; background: #e2ded0; border-radius: 3px"></div>
+              <div style="height: 10px; width: 85%; background: #efece2; border-radius: 3px"></div>
+              <div style="height: 10px; width: 70%; background: #efece2; border-radius: 3px"></div>
+              <div style="height: 26px; width: 75%; background: #e2ded0; border-radius: 3px; margin-top: 8px"></div>
+              <div style="height: 10px; width: 55%; background: #efece2; border-radius: 3px"></div>
+              <div style="margin-top: auto; font-size: 13px; color: #607069; text-align: center">Gambar bukti transfer</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 14px; min-height: 0">
+
+          <div style="background: #ffffff; border: 1px solid #827c6a; border-radius: 12px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px">
+            <div style="display: flex; justify-content: space-between; gap: 12px"><span style="font-size: 15px; color: #607069">Bukti dikirim</span><span style="font-size: 15px; color: #17231e">2 Okt 2026, 21.12</span></div>
+            <div style="display: flex; justify-content: space-between; gap: 12px"><span style="font-size: 15px; color: #607069">Paket berlaku hingga</span><span style="font-size: 15px; color: #17231e">1 Nov 2026</span></div>
+            <div style="display: flex; justify-content: space-between; gap: 12px; border-top: 1px solid #827c6a; padding-top: 10px"><span style="font-size: 15px; color: #607069">Sesi belum dipakai</span><span style="font-size: 15px; color: #17231e">0</span></div>
+            <div style="display: flex; justify-content: space-between; gap: 12px"><span style="font-size: 15px; color: #607069">Sesi sudah dibooking</span><span style="font-size: 15px; color: #17231e">0</span></div>
+            <div style="display: flex; justify-content: space-between; gap: 12px"><span style="font-size: 15px; color: #607069">Sesi sudah terpakai</span><span style="font-size: 15px; color: #17231e">0</span></div>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 10px">
+            <button type="button" style="min-height: 48px; background: #396552; color: #ffffff; border: none; border-radius: 10px; font-size: 16px; font-weight: 500; cursor: pointer">Setujui dan aktifkan paket</button>
+            <button type="button" style="min-height: 48px; background: #ffffff; color: #17231e; border: 1.5px solid #827c6a; border-radius: 10px; font-size: 16px; font-weight: 500; cursor: pointer">Minta perbaikan bukti</button>
+            <button type="button" style="min-height: 48px; background: #ffffff; color: #9b3d38; border: 1.5px solid #9b3d38; border-radius: 10px; font-size: 16px; font-weight: 500; cursor: pointer">Tolak pembayaran</button>
+            <span style="font-size: 14px; line-height: 20px; color: #607069">Tombol setujui baru aktif setelah gambar bukti terbuka. Setelah diputuskan, antrean langsung pindah ke bukti berikutnya dan keputusan bisa dibatalkan dalam 10 detik.</span>
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

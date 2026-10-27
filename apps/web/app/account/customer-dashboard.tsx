@@ -1,13 +1,51 @@
 'use client';
 
 import Link from 'next/link';
-import { Bell, CalendarDays, CreditCard, House, PackageCheck, ShieldCheck } from 'lucide-react';
+import { Bell, CalendarDays, CreditCard, House, PackageCheck, QrCode, ShieldCheck } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { AlertBanner } from '../components/app-feedback';
 import { ButtonLink } from '../components/actions';
 import { orderStatusLabels } from '@/lib/order-presenters';
 import { useSessionContext } from '../session-context';
 import { Skeleton } from '../ui';
+
+function formatBookingSchedule(startAt: string, endAt: string, timezone: string) {
+  try {
+    const dateFormatted = new Intl.DateTimeFormat('id-ID', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      timeZone: timezone,
+    }).format(new Date(startAt));
+
+    const startTime = new Intl.DateTimeFormat('id-ID', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+      timeZone: timezone,
+    }).format(new Date(startAt));
+
+    const endTime = new Intl.DateTimeFormat('id-ID', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+      timeZone: timezone,
+    }).format(new Date(endAt));
+
+    return {
+      date: dateFormatted,
+      time: `${startTime} - ${endTime} WIB`,
+      full: `${dateFormatted} · ${startTime} - ${endTime} WIB`,
+    };
+  } catch {
+    return {
+      date: startAt,
+      time: `${startAt} - ${endAt}`,
+      full: `${startAt} - ${endAt}`,
+    };
+  }
+}
 
 type CustomerDashboardOverview = {
   generatedAt: string;
@@ -36,11 +74,15 @@ type CustomerDashboardOverview = {
     payableAmountRp: number;
     expiresAt: string | null;
   }>;
-  verification: { status: 'APPROVED' | 'ACTION_REQUIRED' | 'PENDING' };
+  verification: {
+    status: 'APPROVED' | 'ACTION_REQUIRED' | 'PENDING' | 'REJECTED' | string;
+    rejectionReason?: string | null;
+  };
   unreadNotifications: number;
 };
 
 import { formatRupiah } from '../lib/formatters';
+import { VerificationStatusBanner } from '../components/verification-status-banner';
 
 export function CustomerDashboard() {
   const session = useSessionContext()?.session;
@@ -68,20 +110,25 @@ export function CustomerDashboard() {
     );
 
   const verificationStatus =
-    overview?.verification.status ??
+    overview?.verification?.status ??
     (session.identityVerificationStatus === 'APPROVED'
       ? 'APPROVED'
-      : session.identityVerificationStatus === 'ACTION_REQUIRED'
-        ? 'ACTION_REQUIRED'
-        : 'PENDING');
+      : session.identityVerificationStatus === 'PENDING'
+        ? 'PENDING'
+        : session.identityVerificationStatus === 'REJECTED'
+          ? 'REJECTED'
+          : 'ACTION_REQUIRED');
+  const rejectionReason = overview?.verification?.rejectionReason;
 
   const activeBranchId =
     session.preferredBranch?.id ??
     session.branches?.[0]?.id ??
     '';
   const bookingHref = activeBranchId
-    ? `/classes?branch=${encodeURIComponent(activeBranchId)}#schedule`
-    : '/classes#schedule';
+    ? `/classes?branch=${encodeURIComponent(activeBranchId)}`
+    : '/classes';
+
+  const nearestBooking = overview?.upcomingBookings?.[0];
 
   return (
     <main className="space-y-7" aria-labelledby="customer-dashboard-title">
@@ -110,27 +157,72 @@ export function CustomerDashboard() {
           </div>
         </div>
       )}
-      {verificationStatus !== 'APPROVED' && (
-        <AlertBanner
-          tone={verificationStatus === 'ACTION_REQUIRED' ? 'warning' : 'info'}
-          title={
-            verificationStatus === 'ACTION_REQUIRED'
-              ? 'Verifikasi KTP belum lengkap'
-              : 'Verifikasi sedang berlangsung'
-          }
-          message={
-            verificationStatus === 'ACTION_REQUIRED'
-              ? 'Lengkapi verifikasi KTP untuk membuka pembelian paket dan booking kelas.'
-              : 'Pembelian paket dan booking terbuka setelah Selfie serta KTP disetujui.'
-          }
-          action={{
-            label:
-              verificationStatus === 'ACTION_REQUIRED'
-                ? 'Lengkapi sekarang'
-                : 'Lihat status verifikasi',
-            onSelect: () => window.location.assign('/account/verification'),
-          }}
-        />
+
+      <VerificationStatusBanner
+        status={verificationStatus}
+        rejectionReason={rejectionReason}
+        returnTo="/account"
+      />
+
+      {/* Kartu Booking Terdekat di Paling Atas (Tiket T-08 / Spesifikasi 5.8) */}
+      {nearestBooking ? (
+        <section
+          aria-label="Booking terdekat"
+          className="rounded-none border-2 border-ed-forest bg-white p-5 shadow-none sm:p-6"
+        >
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 border border-ed-line bg-ed-tint px-2 py-0.5 text-[11px] font-bold tracking-wider text-ed-forest uppercase">
+                  <span className="size-1.5 rounded-full bg-ed-forest animate-pulse" />
+                  Jadwal Terdekat
+                </span>
+                <span className="text-xs text-ed-muted">
+                  {nearestBooking.branchName}
+                </span>
+              </div>
+              <h2 className="font-serif text-xl font-normal tracking-tight text-ed-ink sm:text-2xl">
+                {nearestBooking.className}
+              </h2>
+              <p className="text-sm text-ed-muted">
+                {formatBookingSchedule(
+                  nearestBooking.startAt,
+                  nearestBooking.endAt,
+                  nearestBooking.timezone,
+                ).full}
+              </p>
+            </div>
+            <div className="shrink-0 pt-2 sm:pt-0">
+              <Link
+                href={`/check-in-pass?bookingId=${encodeURIComponent(nearestBooking.id)}&class=${encodeURIComponent(nearestBooking.className)}&branch=${encodeURIComponent(nearestBooking.branchName)}&start=${encodeURIComponent(nearestBooking.startAt)}&end=${encodeURIComponent(nearestBooking.endAt)}&tz=${encodeURIComponent(nearestBooking.timezone)}`}
+                className="inline-flex h-11 min-h-[44px] w-full items-center justify-center gap-2 rounded-none bg-ed-forest px-6 text-sm font-bold text-white shadow-none transition hover:bg-ed-green sm:w-auto"
+              >
+                <QrCode className="size-4" />
+                <span>Lihat QR Pass</span>
+              </Link>
+            </div>
+          </div>
+        </section>
+      ) : (
+        <section
+          aria-label="Booking terdekat"
+          className="rounded-none border border-dashed border-ed-line bg-ed-tint/30 p-5 text-center sm:p-6"
+        >
+          <p className="text-sm text-ed-muted">
+            {overview?.packages.length
+              ? 'Belum ada booking mendatang. Pilih jadwal kelas untuk mulai latihan.'
+              : 'Belum ada paket aktif. Kamu perlu paket sesi sebelum bisa booking kelas.'}
+          </p>
+          <div className="mt-3">
+            <ButtonLink
+              href={overview?.packages.length ? bookingHref : '/packages'}
+              variant="secondary"
+              className="min-h-[44px]"
+            >
+              {overview?.packages.length ? 'Lihat jadwal kelas' : 'Lihat pilihan paket'}
+            </ButtonLink>
+          </div>
+        </section>
       )}
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Ringkasan akun">
@@ -177,16 +269,25 @@ export function CustomerDashboard() {
                 <strong className="block text-sm text-ed-ink">{booking.className}</strong>
                 <span className="mt-1 block text-xs text-ed-muted">{booking.branchName}</span>
               </div>
-              <time className="font-serif text-right text-sm font-normal text-ed-forest">
-                {new Date(booking.startAt).toLocaleString('id-ID', {
-                  weekday: 'short',
-                  day: 'numeric',
-                  month: 'short',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  timeZone: booking.timezone,
-                })}
-              </time>
+              <div className="flex items-center gap-3">
+                <time className="font-serif text-right text-sm font-normal text-ed-forest">
+                  {new Date(booking.startAt).toLocaleString('id-ID', {
+                    weekday: 'short',
+                    day: 'numeric',
+                    month: 'short',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    timeZone: booking.timezone,
+                  })}
+                </time>
+                <Link
+                  href={`/check-in-pass?bookingId=${encodeURIComponent(booking.id)}&class=${encodeURIComponent(booking.className)}&branch=${encodeURIComponent(booking.branchName)}&start=${encodeURIComponent(booking.startAt)}&end=${encodeURIComponent(booking.endAt)}&tz=${encodeURIComponent(booking.timezone)}`}
+                  className="inline-flex h-9 min-h-[36px] items-center gap-1 border border-ed-forest bg-white px-3 text-xs font-semibold text-ed-forest transition hover:bg-ed-forest hover:text-white"
+                >
+                  <QrCode className="size-3.5" />
+                  <span>QR Pass</span>
+                </Link>
+              </div>
             </article>
           ))}
         </DashboardSection>

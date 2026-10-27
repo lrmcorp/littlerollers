@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MobileBottomNavigation } from './mobile-bottom-navigation';
 
 let capabilities: string[] = [];
+let roles: string[] = [];
 let pathname = '/workspace';
 
 vi.mock('next/navigation', () => ({ usePathname: () => pathname }));
@@ -16,7 +17,7 @@ vi.mock('./customer/use-customer-badges', () => ({
 }));
 vi.mock('../session-context', () => ({
   useSessionContext: () => ({
-    session: { capabilities },
+    session: { capabilities, roles },
     hasCapability: (...required: string[]) =>
       required.some((capability) => capabilities.includes(capability)),
   }),
@@ -77,3 +78,93 @@ describe('MobileBottomNavigation (staff)', () => {
     expect(screen.queryByLabelText('Ada antrean baru di menu lain')).not.toBeInTheDocument();
   });
 });
+
+describe('MobileBottomNavigation (customer - Tiket T-03)', () => {
+  it('renders the 5 standardized customer tabs in correct order', () => {
+    pathname = '/account';
+    render(<MobileBottomNavigation customerOnly approved={false} />);
+    const nav = screen.getByRole('navigation', { name: 'Navigasi Bawah Mobile' });
+    const links = within(nav).getAllByRole('link');
+
+    expect(links).toHaveLength(5);
+    expect(links.map((l) => l.textContent?.trim())).toEqual([
+      'Beranda',
+      'Jadwal',
+      'Booking',
+      'Paket',
+      'Akun',
+    ]);
+
+    expect(links[0]?.getAttribute('href')).toBe('/account');
+    expect(links[1]?.getAttribute('href')).toBe('/classes');
+    expect(links[2]?.getAttribute('href')).toBe('/bookings');
+    expect(links[3]?.getAttribute('href')).toBe('/packages');
+    expect(links[4]?.getAttribute('href')).toBe('/account/profile');
+  });
+
+  it('marks active tab with #396552 color and top indicator line', () => {
+    pathname = '/bookings';
+    render(<MobileBottomNavigation customerOnly approved={true} />);
+    const nav = screen.getByRole('navigation', { name: 'Navigasi Bawah Mobile' });
+    const links = within(nav).getAllByRole('link');
+    const bookingLink = links.find((l) => l.textContent?.includes('Booking'))!;
+    const berandaLink = links.find((l) => l.textContent?.includes('Beranda'))!;
+
+    expect(bookingLink).toHaveAttribute('aria-current', 'page');
+    expect(bookingLink.className).toContain('text-[#396552]');
+    expect(berandaLink).not.toHaveAttribute('aria-current');
+
+    // Check 68px height container
+    const grid = nav.querySelector('div.grid');
+    expect(grid?.className).toContain('h-[68px]');
+  });
+});
+
+describe('MobileBottomNavigation (instructor - Tiket T-10)', () => {
+  beforeEach(() => {
+    pathname = '/workspace';
+    capabilities = ['class-slot:read', 'attendance:self'];
+    roles = ['INSTRUCTOR'];
+  });
+
+  it('renders the 4 standardized instructor tabs in correct order', () => {
+    render(<MobileBottomNavigation customerOnly={false} />);
+    const nav = screen.getByRole('navigation', { name: 'Navigasi Bawah Instruktur' });
+    const links = within(nav).getAllByRole('link');
+
+    expect(links).toHaveLength(4);
+    expect(links.map((l) => l.textContent?.trim())).toEqual([
+      'Hari Ini',
+      'Jadwal Saya',
+      'Scan',
+      'Akun',
+    ]);
+
+    expect(links[0]?.getAttribute('href')).toBe('/workspace');
+    expect(links[1]?.getAttribute('href')).toBe('/workspace/classes');
+    expect(links[2]?.getAttribute('href')).toBe('/check-in-scanner');
+    expect(links[3]?.getAttribute('href')).toBe('/account/profile');
+
+    // Does NOT render the 5th "Menu" button
+    expect(screen.queryByRole('button', { name: 'Buka semua menu navigasi' })).not.toBeInTheDocument();
+
+    // Check 4-column 68px container
+    const grid = nav.querySelector('div.grid');
+    expect(grid?.className).toContain('grid-cols-4');
+    expect(grid?.className).toContain('h-[68px]');
+  });
+
+  it('marks active tab for instructor with #396552 color and indicator line', () => {
+    pathname = '/check-in-scanner';
+    render(<MobileBottomNavigation customerOnly={false} />);
+    const nav = screen.getByRole('navigation', { name: 'Navigasi Bawah Instruktur' });
+    const links = within(nav).getAllByRole('link');
+    const scanLink = links.find((l) => l.textContent?.includes('Scan'))!;
+    const hariIniLink = links.find((l) => l.textContent?.includes('Hari Ini'))!;
+
+    expect(scanLink).toHaveAttribute('aria-current', 'page');
+    expect(scanLink.className).toContain('text-[#396552]');
+    expect(hariIniLink).not.toHaveAttribute('aria-current');
+  });
+});
+

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
   Building2,
@@ -228,6 +229,7 @@ function ClassSessionDetailCard({
 }
 
 export function CustomerBookingFlow({ client = browserBookingClient }: { client?: BookingClient }) {
+  const router = useRouter();
   const feedback = useAppFeedback();
   const [options, setOptions] = useState<CustomerBookingOptions | null>(null);
   const [selectedPackageId, setSelectedPackageId] = useState('');
@@ -241,7 +243,7 @@ export function CustomerBookingFlow({ client = browserBookingClient }: { client?
   useEffect(() => {
     const slot = new URLSearchParams(window.location.search).get('slot');
     if (!slot) {
-      setStatus('ready');
+      router.replace('/classes');
       return;
     }
     client

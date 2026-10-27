@@ -18,6 +18,9 @@ export type BranchManagementItem = {
   supportWhatsappE164: string | null;
   heroImageKey?: string | null;
   galleryImageKeys?: string[] | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  geofenceRadiusMeters?: number;
   active: boolean;
   /** Terisi bila cabang diarsipkan; cabang arsip tidak tampil di daftar kerja. */
   archivedAt?: string | null;
@@ -55,10 +58,13 @@ export type BranchManagementPage = {
   page: { hasMore: boolean; nextCursor: string | null };
 };
 
-type BranchCommand = {
-  name: string;
-  timezone: string;
+export type BranchCommand = {
+  name?: string;
+  timezone?: string;
   supportWhatsappE164?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  geofenceRadiusMeters?: number;
   reason?: string;
   expectedVersion?: number;
 };

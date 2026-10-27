@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Beranda instruktur</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Poppins:wght@500;600&display=swap">
+<style>
+body { margin: 0; font-family: "DM Sans", system-ui, sans-serif; }
+a { color: #396552; }
+a:hover { color: #24483a; }
+button, a { font-family: inherit; }
+</style>
+</helmet>
+
+<div style="width: 390px; height: 940px; box-sizing: border-box; background: #f3f6f4; display: flex; flex-direction: column; overflow: hidden">
+
+  <header style="background: #ffffff; border-bottom: 1px solid #768b84; padding: 16px 20px 14px; display: flex; flex-direction: column; gap: 4px; flex-shrink: 0">
+    <h1 style="margin: 0; font-family: Poppins, sans-serif; font-weight: 600; font-size: 20px; line-height: 26px; color: #17231e">Halo, [nama instruktur]</h1>
+    <span style="font-size: 15px; line-height: 22px; color: #607069">Senin, 26 Oktober 2026, Daily Dose Muara Karang</span>
+  </header>
+
+  <div style="flex: 1; overflow: hidden; padding: 20px 20px 0; display: flex; flex-direction: column; gap: 20px">
+
+    <button type="button" style="width: 100%; min-height: 60px; background: #396552; color: #ffffff; border: none; border-radius: 12px; font-size: 17px; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><path d="M14 14h3v3h-3zM19 19h2v2h-2z"></path></svg>
+      Scan QR presensi saya
+    </button>
+
+    <section style="display: flex; flex-direction: column; gap: 12px">
+      <h2 style="margin: 0; font-family: Poppins, sans-serif; font-weight: 600; font-size: 20px; line-height: 26px; color: #17231e">Kelas saya hari ini</h2>
+
+      <a href="#peserta-0800" style="text-decoration: none; background: #ffffff; border: 1px solid #768b84; border-radius: 16px; padding: 16px 18px; display: flex; align-items: center; gap: 16px; min-height: 92px; box-sizing: border-box">
+        <span style="display: flex; flex-direction: column; width: 64px">
+          <span style="font-family: Poppins, sans-serif; font-weight: 600; font-size: 22px; line-height: 28px; color: #17231e">08.00</span>
+          <span style="font-size: 13px; line-height: 18px; color: #607069">50 menit</span>
+        </span>
+        <span style="flex: 1; display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: 17px; line-height: 24px; font-weight: 500; color: #17231e">Private Group</span>
+          <span style="font-size: 15px; line-height: 22px; color: #607069">Studio 1</span>
+          <span style="font-size: 15px; line-height: 22px; font-weight: 500; color: #246144">3 dari 4 peserta</span>
+        </span>
+        <span style="background: #e6f4ec; color: #246144; font-size: 13px; font-weight: 700; letter-spacing: 0.04em; padding: 6px 10px; border-radius: 8px">HADIR</span>
+      </a>
+
+      <a href="#peserta-1700" style="text-decoration: none; background: #ffffff; border: 1px solid #768b84; border-radius: 16px; padding: 16px 18px; display: flex; align-items: center; gap: 16px; min-height: 92px; box-sizing: border-box">
+        <span style="display: flex; flex-direction: column; width: 64px">
+          <span style="font-family: Poppins, sans-serif; font-weight: 600; font-size: 22px; line-height: 28px; color: #17231e">17.00</span>
+          <span style="font-size: 13px; line-height: 18px; color: #607069">50 menit</span>
+        </span>
+        <span style="flex: 1; display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: 17px; line-height: 24px; font-weight: 500; color: #17231e">Private Group</span>
+          <span style="font-size: 15px; line-height: 22px; color: #607069">Studio 1</span>
+          <span style="font-size: 15px; line-height: 22px; font-weight: 500; color: #17231e">2 dari 4 peserta</span>
+        </span>
+        <span style="background: #f3f6f4; color: #607069; font-size: 13px; font-weight: 700; letter-spacing: 0.04em; padding: 6px 10px; border-radius: 8px; border: 1px solid #768b84">NANTI</span>
+      </a>
+    </section>
+
+    <section style="background: #ffffff; border: 1px solid #768b84; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 12px">
+      <h2 style="margin: 0; font-family: Poppins, sans-serif; font-weight: 600; font-size: 18px; line-height: 24px; color: #17231e">Peserta kelas 08.00</h2>
+      <div style="display: flex; flex-direction: column; gap: 10px">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px">
+          <span style="font-size: 17px; line-height: 24px; color: #17231e">[nama peserta 1]</span>
+          <span style="font-size: 15px; font-weight: 500; color: #246144">Sudah check-in</span>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; border-top: 1px solid #768b84; padding-top: 10px">
+          <span style="font-size: 17px; line-height: 24px; color: #17231e">[nama peserta 2]</span>
+          <span style="font-size: 15px; font-weight: 500; color: #246144">Sudah check-in</span>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; border-top: 1px solid #768b84; padding-top: 10px">
+          <span style="font-size: 17px; line-height: 24px; color: #17231e">[nama peserta 3]</span>
+          <span style="font-size: 15px; font-weight: 500; color: #8a5b17">Belum datang</span>
+        </div>
+      </div>
+      <span style="font-size: 15px; line-height: 22px; color: #607069">Instruktur tidak melihat data pembayaran peserta.</span>
+    </section>
+
+    <section style="background: #f8faf9; border: 1px solid #768b84; border-radius: 16px; padding: 16px 18px; display: flex; align-items: center; justify-content: space-between; gap: 12px">
+      <span style="display: flex; flex-direction: column; gap: 2px">
+        <span style="font-size: 16px; line-height: 22px; font-weight: 500; color: #17231e">Ketersediaan mengajar</span>
+        <span style="font-size: 15px; line-height: 22px; color: #607069">4 tanggal diajukan, 3 disetujui</span>
+      </span>
+      <a href="#ketersediaan" style="font-size: 16px; font-weight: 500; min-height: 44px; display: flex; align-items: center">Atur</a>
+    </section>
+
+  </div>
+
+  <nav aria-label="Navigasi instruktur" style="background: #ffffff; border-top: 1px solid #768b84; height: 68px; display: flex; align-items: stretch; flex-shrink: 0">
+    <a href="Instruktur.dc.html" aria-current="page" style="flex: 1; text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #396552; border-top: 3px solid #396552">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
+      <span style="font-size: 12px; font-weight: 500">Hari Ini</span>
+    </a>
+    <a href="#jadwal-saya" style="flex: 1; text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #607069">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M3 10h18M8 3v4M16 3v4"></path></svg>
+      <span style="font-size: 12px; font-weight: 500">Jadwal Saya</span>
+    </a>
+    <a href="#scan" style="flex: 1; text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #607069">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"></path><path d="M4 12h16"></path></svg>
+      <span style="font-size: 12px; font-weight: 500">Scan</span>
+    </a>
+    <a href="#akun" style="flex: 1; text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #607069">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"></path></svg>
+      <span style="font-size: 12px; font-weight: 500">Akun</span>
+    </a>
+  </nav>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":940}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

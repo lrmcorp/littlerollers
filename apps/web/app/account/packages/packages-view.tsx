@@ -59,6 +59,8 @@ export function CustomerPackagesView() {
         eyebrow="Member area"
         title="Paket Saya"
         description="Lihat saldo sesi, masa aktif, dan lanjutkan langsung ke jadwal booking."
+        backHref="/account"
+        backLabel="Kembali ke Beranda"
         context={
           <ButtonLink variant="secondary" size="sm" href="/packages">
             Tambah paket

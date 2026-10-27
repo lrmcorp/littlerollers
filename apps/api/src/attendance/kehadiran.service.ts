@@ -1039,8 +1039,9 @@ export class AttendanceService {
 
         if (window === 'OPEN' && !isAttended) {
           const secret = process.env.SESSION_SECRET || 'dailydose-kiosk-secret';
+          const timeBucket = Math.floor(now.getTime() / 60_000);
           const rawToken = createHmac('sha256', secret)
-            .update(`${slot.id}:${slot.startAt.toISOString()}`)
+            .update(`${slot.id}:${slot.startAt.toISOString()}:${timeBucket}`)
             .digest('base64url');
           const tokenHash = sha256(rawToken);
 
@@ -1049,11 +1050,15 @@ export class AttendanceService {
           });
 
           if (!existingToken) {
+            // Berlaku selama bucket ini plus grace period 60 detik (total ~120 detik), dibatasi slot.endAt
+            const bucketExpiresAt = new Date((timeBucket + 2) * 60_000);
+            const tokenExpiresAt = bucketExpiresAt < slot.endAt ? bucketExpiresAt : slot.endAt;
+
             await this.db.instructorCheckInToken.create({
               data: {
                 classSlotId: slot.id,
                 token: tokenHash,
-                expiresAt: slot.endAt,
+                expiresAt: tokenExpiresAt,
                 issuedById: null,
               },
             });
@@ -1072,6 +1077,8 @@ export class AttendanceService {
           instructorName: slot.instructor?.displayName ?? 'Instruktur',
           startAt: slot.startAt.toISOString(),
           endAt: slot.endAt.toISOString(),
+          capacity: slot.capacity,
+          bookedCount: slot.bookedCount,
           window,
           isAttended,
           attendance: slot.instructorAttendance

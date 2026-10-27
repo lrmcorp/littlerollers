@@ -1,5 +1,10 @@
+import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import { CheckoutView } from './checkout-view';
+
+export const metadata: Metadata = {
+  title: 'Checkout Pesanan',
+};
 
 export default function CheckoutPage() {
   return (

@@ -25,12 +25,19 @@ export function AuthPageShell({
   return (
     <main
       className="ed-scope grid min-h-svh w-full grid-cols-1 lg:grid-cols-[minmax(360px,0.85fr)_minmax(0,1.15fr)] bg-ed-cream text-ed-ink"
+      id="main-content"
     >
+      <a
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:px-4 focus:py-2.5 focus:bg-ed-forest focus:text-white focus:text-xs focus:font-bold focus:uppercase focus:tracking-wider focus:shadow-lg focus:outline-none focus:rounded-none"
+        href="#auth-form"
+      >
+        Langsung ke formulir pendaftaran
+      </a>
       {/* Left Visual Panel */}
       <section
-        className={`auth-visual-panel relative isolate flex flex-col justify-between overflow-hidden p-8 sm:p-12 min-h-svh sticky top-0 self-start border-r border-ed-line ${
+        className={`auth-visual-panel relative isolate flex flex-col justify-between overflow-hidden p-6 sm:p-12 lg:min-h-svh lg:sticky lg:top-0 lg:self-start border-r border-ed-line ${
           compactMobileVisual
-            ? 'max-[800px]:h-[140px] max-[800px]:min-h-[140px] max-[800px]:max-h-[140px] max-[800px]:p-4 max-[800px]:border-r-0 max-[800px]:border-b'
+            ? 'h-[140px] min-h-[140px] max-h-[140px] p-4 border-r-0 border-b lg:h-auto lg:min-h-svh lg:max-h-none lg:p-12 lg:border-r lg:border-b-0'
             : 'hidden lg:flex'
         }`}
       >
@@ -81,17 +88,20 @@ export function AuthPageShell({
       </section>
 
       {/* Right Form Panel */}
-      <section className="grid min-w-0 place-items-center p-6 sm:p-10 lg:p-14">
-        <div className="w-full max-w-[560px] rounded-none border border-ed-line bg-white p-6 sm:p-10 shadow-none">
+      <section className="flex flex-col items-center justify-center w-full min-w-0 p-3 sm:p-8 lg:p-14">
+        <div
+          id="auth-form"
+          className="w-full max-w-[560px] min-w-0 rounded-none border border-ed-line bg-white p-4 sm:p-8 lg:p-10 shadow-none"
+        >
           {/* Header Bar */}
-          <div className="mb-8 flex items-center justify-between gap-4 border-b border-ed-line pb-5">
-            <BrandMark className="w-32 sm:w-36" priority />
+          <div className="mb-6 sm:mb-8 flex items-center justify-between gap-2 sm:gap-3 border-b border-ed-line pb-4 sm:pb-5">
+            <BrandMark className="w-28 sm:w-36 shrink-0" priority />
             <Link
-              className="inline-flex min-h-[44px] items-center gap-2 rounded-none px-3 text-xs font-bold uppercase tracking-wider text-ed-forest hover:bg-ed-tint transition-colors no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ed-forest"
+              className="inline-flex min-h-[40px] sm:min-h-[44px] shrink-0 items-center gap-1.5 sm:gap-2 rounded-none px-2.5 sm:px-3 text-xs font-bold uppercase tracking-wider text-ed-forest hover:bg-ed-tint transition-colors no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ed-forest"
               href={loginHref}
             >
               <span>{loginLabel}</span>
-              <ArrowRight className="size-3.5" />
+              <ArrowRight className="size-3.5 shrink-0" />
             </Link>
           </div>
 

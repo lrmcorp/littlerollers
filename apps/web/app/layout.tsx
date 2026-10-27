@@ -32,7 +32,7 @@ const dmSans = localFont({
 export const metadata: Metadata = {
   metadataBase: new URL('https://dailydosepilates.com'),
   title: {
-    default: 'Daily Dose Pilates — Move with intention',
+    default: 'Daily Dose Pilates · Studio Pilates Modern',
     template: '%s · Daily Dose Pilates',
   },
   description:

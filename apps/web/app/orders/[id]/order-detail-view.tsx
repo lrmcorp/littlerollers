@@ -9,7 +9,7 @@ import { AlertBanner } from '../../components/app-feedback';
 import { ButtonLink } from '../../components/actions';
 import { browserOrderClient, orderError, type CustomerOrder } from '@/api-clients/order-client';
 import { orderReasonLabels, orderTimelineLabels } from '@/lib/order-presenters';
-import { Skeleton, StatusBadge } from '../../ui';
+import { PageHeader, Skeleton, StatusBadge } from '../../ui';
 
 function safeReturnTo(value: string | null) {
   if (!value || !value.startsWith('/orders') || value.startsWith('//')) return '/orders';
@@ -80,24 +80,14 @@ export function OrderDetailView({ id }: { id: string }) {
 
   return (
     <main className="space-y-6" aria-labelledby="order-title">
-      <header>
-        <Link
-          href={returnTo}
-          className="inline-flex items-center gap-2 text-sm font-semibold text-ed-forest hover:text-ed-green no-underline"
-        >
-          <ArrowLeft className="size-4" />
-          Semua pesanan
-        </Link>
-        <p className="mt-5 text-xs font-bold uppercase tracking-[0.18em] text-ed-green">
-          Pesanan •{order.id.slice(-8)}
-        </p>
-        <h1 id="order-title" className="font-serif mt-2 text-2xl font-normal tracking-tight text-ed-ink sm:text-3xl">
-          {order.packageName}
-        </h1>
-        <p className="mt-2 text-sm leading-relaxed text-ed-muted">
-          Pantau pembayaran, unggah bukti, dan lihat riwayat pesanan pada satu halaman.
-        </p>
-      </header>
+      <PageHeader
+        eyebrow={`Pesanan •${order.id.slice(-8)}`}
+        title={order.packageName}
+        description="Pantau pembayaran, unggah bukti, dan lihat riwayat pesanan pada satu halaman."
+        titleId="order-title"
+        backHref={returnTo}
+        backLabel="Semua pesanan"
+      />
 
       <CustomerPaymentFlow
         order={order}

@@ -11,7 +11,6 @@ const footerLinks = [
       { href: '/locations', label: 'Lokasi Studio' },
       { href: '/classes', label: 'Jadwal Kelas' },
       { href: '/packages', label: 'Paket & Harga' },
-      { href: '/kiosk', label: 'Layar Kiosk Studio' },
     ],
   },
   {

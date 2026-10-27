@@ -7,6 +7,9 @@ import type {
   PublicPackageCatalogClient,
 } from '@/api-clients/public-package-catalog-client';
 import {
+  filterActivePackages,
+  findCheapestPackageId,
+  groupPackages,
   packageCtaHref,
   packageCtaLabel,
   packageDescriptor,
@@ -15,6 +18,7 @@ import {
   publicBranchLocation,
   recommendedFirst,
   recommendedPackageId,
+  sortPackages,
 } from '@/packages/public-packages-view';
 import { packageAudienceState } from '@/lib/session-audience';
 import type { WebSession } from '@/api-clients/session-client';
@@ -317,5 +321,124 @@ describe('public package catalog', () => {
     render(<PublicPackagesView client={client} />);
     expect(await screen.findByRole('heading', { name: 'Pilates Starter' })).toBeVisible();
     expect(client.list).toHaveBeenCalledWith('branch-1');
+  });
+
+  it('groups packages into "COBA DULU, 1 SAMPAI 3 SESI" and "PAKET RUTIN, 5 SESI KE ATAS"', async () => {
+    const singleSession: PublicPackage = {
+      id: 'pkg-single',
+      branchId: branch.id,
+      name: 'Single Trial Reformer',
+      sessionCount: 1,
+      durationDays: 14,
+      priceRp: 350_000,
+      effectiveUntil: null,
+      classType: { id: 'type-reformer', code: 'REFORMER', name: 'Reformer Pilates' },
+    };
+
+    const client: PublicPackageCatalogClient = {
+      list: vi
+        .fn()
+        .mockResolvedValueOnce({ branches: [branch], items: [] })
+        .mockResolvedValueOnce({ branches: [branch], items: [singleSession, ...packages] }),
+    };
+
+    render(<PublicPackagesView client={client} />);
+    await userEvent.click(await screen.findByRole('button', { name: /Daily Dose Jakarta/ }));
+
+    // Group headings
+    expect(await screen.findByRole('heading', { name: /COBA DULU, 1 SAMPAI 3 SESI/ })).toBeVisible();
+    expect(screen.getByRole('heading', { name: /PAKET RUTIN, 5 SESI KE ATAS/ })).toBeVisible();
+
+    // Verify helper unit logic
+    const { introductory, routine } = groupPackages([singleSession, ...packages]);
+    expect(introductory.map((p) => p.id)).toEqual(['pkg-single']);
+    expect(routine.map((p) => p.id)).toEqual(['package-starter', 'package-routine', 'package-commitment']);
+  });
+
+  it('displays "TERMURAH PER SESI" badge on the most economical package', async () => {
+    // packages:
+    // starter: 1.200.000 / 4 = 300.000 / sesi
+    // routine: 2.000.000 / 8 = 250.000 / sesi
+    // commitment: 2.700.000 / 12 = 225.000 / sesi (cheapest!)
+    const cheapestId = findCheapestPackageId(packages);
+    expect(cheapestId).toBe('package-commitment');
+
+    const client: PublicPackageCatalogClient = {
+      list: vi
+        .fn()
+        .mockResolvedValueOnce({ branches: [branch], items: [] })
+        .mockResolvedValueOnce({ branches: [branch], items: packages }),
+    };
+
+    render(<PublicPackagesView client={client} />);
+    await userEvent.click(await screen.findByRole('button', { name: /Daily Dose Jakarta/ }));
+
+    expect(await screen.findByText('TERMURAH PER SESI')).toBeVisible();
+  });
+
+  it('allows sorting by "Sesi terbanyak" and "Termurah per sesi"', async () => {
+    const client: PublicPackageCatalogClient = {
+      list: vi
+        .fn()
+        .mockResolvedValueOnce({ branches: [branch], items: [] })
+        .mockResolvedValueOnce({ branches: [branch], items: packages }),
+    };
+
+    render(<PublicPackagesView client={client} />);
+    await userEvent.click(await screen.findByRole('button', { name: /Daily Dose Jakarta/ }));
+
+    await screen.findByRole('heading', { name: 'Pilates Starter' });
+
+    // Test sort unit logic
+    const sortedBySessions = sortPackages(packages, 'most_sessions');
+    expect(sortedBySessions.map((p) => p.sessionCount)).toEqual([12, 8, 4]);
+
+    const sortedByPrice = sortPackages(packages, 'cheapest_per_session');
+    expect(sortedByPrice.map((p) => p.id)).toEqual([
+      'package-commitment', // 225k
+      'package-routine',    // 250k
+      'package-starter',    // 300k
+    ]);
+
+    // Test sort buttons in UI
+    const mostSessionsBtn = screen.getByRole('button', { name: 'Sesi terbanyak' });
+    await userEvent.click(mostSessionsBtn);
+    expect(mostSessionsBtn).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('filters out packages with expired promo dates and shows closing statement', async () => {
+    const expiredPackage: PublicPackage = {
+      id: 'pkg-expired',
+      branchId: branch.id,
+      name: 'Promo Imlek Terlewat',
+      sessionCount: 5,
+      durationDays: 30,
+      priceRp: 999_000,
+      effectiveUntil: '2020-01-01T00:00:00.000Z', // in the past
+      classType: { id: 'type-reformer', code: 'REFORMER', name: 'Reformer Pilates' },
+    };
+
+    const activeList = filterActivePackages([expiredPackage, ...packages]);
+    expect(activeList.map((p) => p.id)).toEqual(packages.map((p) => p.id));
+    expect(activeList.some((p) => p.id === 'pkg-expired')).toBe(false);
+
+    const client: PublicPackageCatalogClient = {
+      list: vi
+        .fn()
+        .mockResolvedValueOnce({ branches: [branch], items: [] })
+        .mockResolvedValueOnce({ branches: [branch], items: [expiredPackage, ...packages] }),
+    };
+
+    render(<PublicPackagesView client={client} />);
+    await userEvent.click(await screen.findByRole('button', { name: /Daily Dose Jakarta/ }));
+
+    // Expired package should not be rendered
+    await screen.findByRole('heading', { name: 'Pilates Starter' });
+    expect(screen.queryByRole('heading', { name: 'Promo Imlek Terlewat' })).not.toBeInTheDocument();
+
+    // Closing statement (Spec 5.6 Point 6)
+    expect(
+      screen.getByText(/Paket promo yang sudah lewat periodenya tidak ditampilkan\./),
+    ).toBeVisible();
   });
 });

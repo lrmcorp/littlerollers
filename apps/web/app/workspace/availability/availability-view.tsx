@@ -44,6 +44,7 @@ export function AvailabilityView({
   const [message, setMessage] = useState<string>();
   const [formFailure, setFormFailure] = useState<string>();
   const [submitting, setSubmitting] = useState(false);
+  const [isRecurring, setIsRecurring] = useState(false);
   const [editing, setEditing] = useState<AvailabilityWindow | null>(null);
   const [editFailure, setEditFailure] = useState<string>();
   const [editBusy, setEditBusy] = useState(false);
@@ -214,19 +215,63 @@ export function AvailabilityView({
                 setFormFailure('Waktu selesai harus setelah waktu mulai.');
                 return;
               }
+
+              const recurringChecked = isRecurring || Boolean(data.get('isRecurring'));
+              const repeatUntilStr = data.get('repeatUntil') ? String(data.get('repeatUntil')) : '';
+              let windowsToCreate: Array<{ startAt: Date; endAt: Date }> = [{ startAt, endAt }];
+
+              if (recurringChecked) {
+                if (!repeatUntilStr) {
+                  setFormFailure('Pilih batas tanggal pengulangan ketersediaan.');
+                  return;
+                }
+                try {
+                  const repeatUntilDate = zonedLocalDateTime(
+                    repeatUntilStr,
+                    String(data.get('endTime')),
+                    branch.timezone,
+                  );
+                  if (repeatUntilDate <= startAt) {
+                    setFormFailure('Batas pengulangan harus setelah tanggal mulai.');
+                    return;
+                  }
+                  let currentStart = new Date(startAt.getTime() + 7 * 86_400_000);
+                  let currentEnd = new Date(endAt.getTime() + 7 * 86_400_000);
+                  while (currentStart <= repeatUntilDate) {
+                    windowsToCreate.push({ startAt: currentStart, endAt: currentEnd });
+                    currentStart = new Date(currentStart.getTime() + 7 * 86_400_000);
+                    currentEnd = new Date(currentEnd.getTime() + 7 * 86_400_000);
+                  }
+                } catch {
+                  setFormFailure('Format batas pengulangan tidak valid.');
+                  return;
+                }
+              }
+
               void (async () => {
+                const count = windowsToCreate.length;
                 const accepted = await feedback.confirm({
                   tone: 'warning',
                   title: 'Ajukan ketersediaan?',
-                  message: `Anda akan tersedia mengajar di ${branch.name} pada waktu yang dipilih.`,
+                  message:
+                    count > 1
+                      ? `Anda akan mengajukan ketersediaan mengajar di ${branch.name} untuk ${count} minggu berturut-turut.`
+                      : `Anda akan tersedia mengajar di ${branch.name} pada waktu yang dipilih.`,
                   confirmLabel: 'Ajukan',
                 });
                 if (!accepted) return;
                 setSubmitting(true);
                 try {
-                  await client.create({ branchId: branch.id, startAt, endAt });
-                  setMessage('Ketersediaan berhasil diajukan.');
+                  for (const win of windowsToCreate) {
+                    await client.create({ branchId: branch.id, startAt: win.startAt, endAt: win.endAt });
+                  }
+                  setMessage(
+                    count > 1
+                      ? `Ketersediaan berhasil diajukan untuk ${count} minggu berturut-turut.`
+                      : 'Ketersediaan berhasil diajukan.',
+                  );
                   form.reset();
+                  setIsRecurring(false);
                   await load();
                 } catch (error) {
                   setFormFailure(availabilityFailure(error));
@@ -244,6 +289,31 @@ export function AvailabilityView({
             />
             <TextInput label="Mulai" name="startTime" type="time" required />
             <TextInput label="Selesai" name="endTime" type="time" required />
+
+            <div className="sm:col-span-3 space-y-3 pt-1">
+              <label className="inline-flex items-center gap-2 cursor-pointer select-none text-sm font-medium text-dd-ink">
+                <input
+                  type="checkbox"
+                  name="isRecurring"
+                  checked={isRecurring}
+                  onChange={(event) => setIsRecurring(event.target.checked)}
+                  className="size-4 rounded border-dd-line text-dd-forest focus:ring-dd-forest"
+                />
+                <span>Ulangi setiap minggu sampai tanggal tertentu</span>
+              </label>
+
+              {isRecurring && (
+                <div className="max-w-xs pl-6">
+                  <DateInput
+                    label="Ulangi setiap minggu sampai"
+                    name="repeatUntil"
+                    min={localDateKey(new Date(Date.now() + 7 * 86_400_000), branch.timezone)}
+                    required={isRecurring}
+                  />
+                </div>
+              )}
+            </div>
+
             <div className="sm:col-span-3">
               <Button type="submit" loading={submitting}>
                 Ajukan ketersediaan

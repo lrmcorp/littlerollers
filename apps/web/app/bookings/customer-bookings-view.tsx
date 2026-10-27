@@ -12,6 +12,8 @@ import {
 import { EmptyState, Feedback, PageHeader, Skeleton, StatusBadge } from '../ui';
 import { ButtonLink } from '../components/actions';
 import { Pagination } from '../components/admin/admin-ui';
+import { useSessionContext } from '../session-context';
+import { VerificationStatusBanner } from '../components/verification-status-banner';
 
 const statusLabels: Record<string, string> = {
   BOOKED: 'Terjadwal',
@@ -48,6 +50,7 @@ export function CustomerBookingsView({
 }: {
   client?: BookingClient;
 }) {
+  const session = useSessionContext()?.session;
   const [items, setItems] = useState<CustomerBookingRecord[]>([]);
   const [timeline, setTimeline] = useState<'UPCOMING' | 'HISTORY'>('UPCOMING');
   const [loading, setLoading] = useState(true);
@@ -92,6 +95,12 @@ export function CustomerBookingsView({
         description="Lihat booking aktif dan riwayat kelas yang dibuat menggunakan akun Anda."
         context={<ButtonLink href="/classes#schedule">Booking kelas baru</ButtonLink>}
       />
+      <div className="mt-4">
+        <VerificationStatusBanner
+          status={session?.identityVerificationStatus}
+          returnTo="/bookings"
+        />
+      </div>
       <div
         className="my-5 inline-flex rounded-none border border-ed-line bg-ed-tint/50 p-1"
         role="tablist"

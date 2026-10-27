@@ -6,12 +6,15 @@ import {
   type BookingClient,
   type CustomerBookingRecord,
 } from '@/api-clients/booking-client';
+import { Info } from 'lucide-react';
 import type { ClassSlot } from '@/api-clients/class-slot-client';
 import { Feedback, StatusBadge } from '../ui';
 import { Button, ButtonLink } from '../components/actions';
 import { SearchInput, SelectInput } from '../components/forms';
 import { DataTable, Pagination } from '../components/admin/admin-ui';
 import { pageOffset } from '../lib/pagination';
+import { useSessionContext } from '../session-context';
+import { isInstructorOnlySession } from '@/lib/session-audience';
 import { DetailSection, MetricTile } from './class-slot-detail-parts';
 
 const bookingStatusLabels: Record<string, string> = {
@@ -43,6 +46,8 @@ export function ClassRosterSection({
   canReadBookings: boolean;
   bookingClient: Pick<BookingClient, 'list'>;
 }) {
+  const sessionContext = useSessionContext();
+  const isInstructor = isInstructorOnlySession(sessionContext?.session);
   const [roster, setRoster] = useState<CustomerBookingRecord[]>([]);
   const [rosterSummary, setRosterSummary] =
     useState<Awaited<ReturnType<BookingClient['list']>>['summary']>();
@@ -149,24 +154,30 @@ export function ClassRosterSection({
                 cell: (item) => (
                   <div>
                     <strong className="block">{item.customer?.displayName ?? 'Pelanggan'}</strong>
-                    <span className="text-xs text-dd-muted">
-                      {item.customer?.phoneMasked ?? 'Kontak termasking'}
-                    </span>
+                    {!isInstructor && (
+                      <span className="text-xs text-dd-muted">
+                        {item.customer?.phoneMasked ?? 'Kontak termasking'}
+                      </span>
+                    )}
                   </div>
                 ),
               },
-              {
-                id: 'package',
-                header: 'Paket & sesi',
-                cell: (item) => (
-                  <div>
-                    <span className="block">{item.package?.name ?? 'Paket pelanggan'}</span>
-                    <span className="text-xs text-dd-muted">
-                      {item.sessionBalance?.available ?? 0} sesi tersedia
-                    </span>
-                  </div>
-                ),
-              },
+              ...(!isInstructor
+                ? [
+                    {
+                      id: 'package',
+                      header: 'Paket & sesi',
+                      cell: (item: CustomerBookingRecord) => (
+                        <div>
+                          <span className="block">{item.package?.name ?? 'Paket pelanggan'}</span>
+                          <span className="text-xs text-dd-muted">
+                            {item.sessionBalance?.available ?? 0} sesi tersedia
+                          </span>
+                        </div>
+                      ),
+                    },
+                  ]
+                : []),
               {
                 id: 'status',
                 header: 'Status',
@@ -176,36 +187,46 @@ export function ClassRosterSection({
                   </StatusBadge>
                 ),
               },
-              {
-                id: 'action',
-                header: 'Tindakan',
-                cell: (item) => (
-                  <ButtonLink size="sm" variant="secondary" href={bookingHref(item.id)}>
-                    Lihat booking
-                  </ButtonLink>
-                ),
-              },
+              ...(!isInstructor
+                ? [
+                    {
+                      id: 'action',
+                      header: 'Tindakan',
+                      cell: (item: CustomerBookingRecord) => (
+                        <ButtonLink size="sm" variant="secondary" href={bookingHref(item.id)}>
+                          Lihat booking
+                        </ButtonLink>
+                      ),
+                    },
+                  ]
+                : []),
             ]}
             mobileCard={(item) => (
               <div className="grid gap-3">
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <strong className="block">{item.customer?.displayName ?? 'Pelanggan'}</strong>
-                    <span className="text-xs text-dd-muted">
-                      {item.customer?.phoneMasked ?? 'Kontak termasking'}
-                    </span>
+                    {!isInstructor && (
+                      <span className="text-xs text-dd-muted">
+                        {item.customer?.phoneMasked ?? 'Kontak termasking'}
+                      </span>
+                    )}
                   </div>
                   <StatusBadge tone={bookingStatusTone(item.status)}>
                     {bookingStatusLabels[item.status] ?? 'Status booking'}
                   </StatusBadge>
                 </div>
-                <p className="m-0 text-sm">
-                  {item.package?.name ?? 'Paket pelanggan'} · {item.sessionBalance?.available ?? 0}{' '}
-                  sesi tersedia
-                </p>
-                <ButtonLink size="sm" variant="secondary" href={bookingHref(item.id)}>
-                  Lihat booking
-                </ButtonLink>
+                {!isInstructor && (
+                  <>
+                    <p className="m-0 text-sm">
+                      {item.package?.name ?? 'Paket pelanggan'} · {item.sessionBalance?.available ?? 0}{' '}
+                      sesi tersedia
+                    </p>
+                    <ButtonLink size="sm" variant="secondary" href={bookingHref(item.id)}>
+                      Lihat booking
+                    </ButtonLink>
+                  </>
+                )}
               </div>
             )}
           />
@@ -226,6 +247,12 @@ export function ClassRosterSection({
                 setRosterCursor(rosterNextCursor);
               }}
             />
+          )}
+          {isInstructor && (
+            <div className="pt-3 border-t border-dd-line/60 flex items-center gap-2 text-xs text-dd-muted">
+              <Info className="size-4 shrink-0 text-dd-muted" aria-hidden="true" />
+              <span>Instruktur tidak melihat data pembayaran peserta.</span>
+            </div>
           )}
         </>
       )}

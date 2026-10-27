@@ -118,12 +118,14 @@ export function CheckoutView() {
       error?.toLowerCase().includes('401') ||
       sessionContext?.status === 'unauthenticated';
 
-    const checkoutDestination = `/checkout?package=${packageId}${branchId ? `&branch=${branchId}` : ''}${requestedClassTypeId ? `&classType=${requestedClassTypeId}` : ''}${slot ? `&slot=${encodeURIComponent(slot)}` : ''}`;
+    const checkoutDestination = packageId
+      ? `/checkout?package=${packageId}${branchId ? `&branch=${branchId}` : ''}${requestedClassTypeId ? `&classType=${requestedClassTypeId}` : ''}${slot ? `&slot=${encodeURIComponent(slot)}` : ''}`
+      : '/packages';
     const returnTo = encodeURIComponent(checkoutDestination);
 
     if (isAuthError && packageId) {
       return (
-        <section className="rounded-none border border-ed-line bg-white p-8 shadow-none max-w-xl mx-auto text-center space-y-4">
+        <section className="rounded-none border border-ui bg-white p-8 shadow-none max-w-xl mx-auto text-center space-y-4">
           <div className="mx-auto flex size-12 items-center justify-center rounded-none border border-ed-line bg-ed-tint text-ed-forest">
             <ShieldCheck className="size-6" />
           </div>
@@ -133,15 +135,15 @@ export function CheckoutView() {
           <h1 className="font-serif text-2xl font-normal tracking-tight text-ed-ink sm:text-3xl">
             Masuk untuk Melanjutkan Pembelian
           </h1>
-          <p className="text-sm leading-relaxed text-ed-muted">
+          <p className="text-[17px] leading-relaxed text-ed-muted">
             Untuk mengaitkan paket sesi Pilates dengan akun Anda dan memproses pembayaran secara aman,
             silakan masuk atau buat akun baru terlebih dahulu.
           </p>
           <div className="pt-2 flex flex-col sm:flex-row gap-3 justify-center">
-            <ButtonLink href={`/sign-in?returnTo=${returnTo}`} className="w-full sm:w-auto">
+            <ButtonLink href={`/sign-in?returnTo=${returnTo}`} className="w-full sm:w-auto min-h-[44px]">
               Masuk ke Akun
             </ButtonLink>
-            <ButtonLink variant="secondary" href={`/register?returnTo=${returnTo}`} className="w-full sm:w-auto">
+            <ButtonLink variant="secondary" href={`/register?returnTo=${returnTo}`} className="w-full sm:w-auto min-h-[44px] border-ui">
               Daftar Akun Baru
             </ButtonLink>
           </div>
@@ -156,34 +158,34 @@ export function CheckoutView() {
         session?.identityVerificationStatus &&
         session?.identityVerificationStatus !== 'APPROVED');
 
-    if (isVerificationRequired && packageId) {
+    if (isVerificationRequired) {
       const isPending =
         session?.identityVerificationStatus === 'PENDING' ||
         error?.toLowerCase().includes('sedang diperiksa') ||
         error?.toLowerCase().includes('sedang berlangsung');
 
       return (
-        <section className="rounded-none border border-ed-line bg-white p-8 shadow-none max-w-xl mx-auto text-center space-y-4">
+        <section className="rounded-none border border-ui bg-white p-8 shadow-none max-w-xl mx-auto text-center space-y-4">
           <div className="mx-auto flex size-12 items-center justify-center rounded-none border border-amber-800/20 bg-amber-50 text-amber-900">
             <ShieldCheck className="size-6" />
           </div>
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-900">
-            Verifikasi Identitas Member
+            Verifikasi Identitas
           </p>
           <h1 className="font-serif text-2xl font-normal tracking-tight text-ed-ink sm:text-3xl">
-            {isPending ? 'Verifikasi KTP Sedang Diproses' : 'Verifikasi KTP Diperlukan'}
+            {isPending ? 'Verifikasi identitas sedang diproses' : 'Pembelian paket belum bisa diproses'}
           </h1>
-          <p className="text-sm leading-relaxed text-ed-muted">
+          <p className="text-[17px] leading-relaxed text-ed-muted">
             {isPending
-              ? 'Dokumen KTP Anda sedang dalam proses peninjauan oleh tim Daily Dose. Setelah verifikasi disetujui, Anda dapat melanjutkan pembelian paket.'
-              : 'Lengkapi verifikasi KTP terlebih dahulu untuk dapat membeli paket sesi Pilates di Daily Dose.'}
+              ? 'Data kamu sedang diperiksa tim studio. Kami kabari lewat WhatsApp kalau sudah selesai.'
+              : 'Identitas kamu belum diverifikasi. Isi data verifikasi dulu, sekitar 2 menit.'}
           </p>
           <div className="pt-2 flex flex-col sm:flex-row gap-3 justify-center">
-            <ButtonLink href={`/account/verification?returnTo=${returnTo}`} className="w-full sm:w-auto">
-              {isPending ? 'Lihat Status Verifikasi' : 'Lengkapi Verifikasi KTP'}
+            <ButtonLink href={`/account/verification?returnTo=${returnTo}`} className="w-full sm:w-auto min-h-[44px]">
+              {isPending ? 'Lihat status verifikasi' : 'Isi data verifikasi'}
             </ButtonLink>
-            <ButtonLink variant="secondary" href="/packages" className="w-full sm:w-auto">
-              Kembali ke Paket
+            <ButtonLink variant="secondary" href="/packages" className="w-full sm:w-auto min-h-[44px] border-ui">
+              Kembali ke paket
             </ButtonLink>
           </div>
         </section>
@@ -191,10 +193,10 @@ export function CheckoutView() {
     }
 
     return (
-      <section className="rounded-none border border-ed-line bg-white p-6 shadow-none">
+      <section className="rounded-none border border-ui bg-white p-6 shadow-none">
         <p className="text-xs font-bold uppercase tracking-[0.18em] text-ed-green">Checkout</p>
         <h1 className="font-serif mt-2 text-2xl font-normal tracking-tight text-ed-ink">Paket belum tersedia</h1>
-        <p className="mt-2 text-sm leading-relaxed text-ed-muted">
+        <p className="mt-2 text-[17px] leading-relaxed text-ed-muted">
           Checkout harus dimulai dari paket dan studio yang sesuai.
         </p>
         {error && (
@@ -202,7 +204,7 @@ export function CheckoutView() {
             <AlertBanner tone="danger" title="Checkout belum dapat dimuat" message={error} />
           </div>
         )}
-        <ButtonLink className="mt-5" href="/packages">
+        <ButtonLink className="mt-5 min-h-[44px]" href="/packages">
           Lihat paket
         </ButtonLink>
       </section>
@@ -214,7 +216,7 @@ export function CheckoutView() {
       <header>
         <Link
           href={`/packages?branch=${encodeURIComponent(options.package.branchId)}`}
-          className="inline-flex items-center gap-2 text-sm font-semibold text-ed-forest hover:text-ed-green no-underline"
+          className="inline-flex items-center gap-2 text-sm font-semibold text-ed-forest hover:text-ed-green no-underline min-h-[44px]"
         >
           <ArrowLeft className="size-4" />
           Kembali ke paket
@@ -235,15 +237,22 @@ export function CheckoutView() {
         <AlertBanner
           tone="danger"
           title={
-            errorCode === 'CUSTOMER_VERIFICATION_REQUIRED'
-              ? 'Verifikasi KTP Diperlukan'
+            errorCode === 'CUSTOMER_VERIFICATION_REQUIRED' ||
+            errorCode === 'IDENTITY_VERIFICATION_REQUIRED'
+              ? 'Pembelian paket belum bisa diproses'
               : 'Pesanan belum berhasil dibuat'
           }
-          message={error}
+          message={
+            errorCode === 'CUSTOMER_VERIFICATION_REQUIRED' ||
+            errorCode === 'IDENTITY_VERIFICATION_REQUIRED'
+              ? 'Identitas kamu belum diverifikasi. Isi data verifikasi dulu, sekitar 2 menit.'
+              : error
+          }
           action={
-            errorCode === 'CUSTOMER_VERIFICATION_REQUIRED'
+            errorCode === 'CUSTOMER_VERIFICATION_REQUIRED' ||
+            errorCode === 'IDENTITY_VERIFICATION_REQUIRED'
               ? {
-                  label: 'Verifikasi KTP Sekarang',
+                  label: 'Isi data verifikasi',
                   onSelect: () => {
                     const checkoutDestination = `/checkout?package=${packageId}${branchId ? `&branch=${branchId}` : ''}${selectedClassTypeId ? `&classType=${selectedClassTypeId}` : ''}${slot ? `&slot=${encodeURIComponent(slot)}` : ''}`;
                     window.location.assign(

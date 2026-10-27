@@ -10,7 +10,27 @@ const branch = { id: 'branch-1', code: 'GG', name: 'Green Garden', timezone: 'As
 describe('public class catalog', () => {
   beforeEach(() => {
     window.history.replaceState(null, '', '/');
-    window.localStorage.clear();
+    if (typeof window.localStorage === 'undefined') {
+      const storage: Record<string, string> = {};
+      Object.defineProperty(window, 'localStorage', {
+        value: {
+          getItem: (key: string) => storage[key] ?? null,
+          setItem: (key: string, val: string) => {
+            storage[key] = val;
+          },
+          removeItem: (key: string) => {
+            delete storage[key];
+          },
+          clear: () => {
+            Object.keys(storage).forEach((k) => delete storage[k]);
+          },
+        },
+        configurable: true,
+        writable: true,
+      });
+    } else {
+      window.localStorage.clear();
+    }
   });
 
   it('requires an explicit studio and renders authoritative availability accessibly', async () => {
@@ -92,9 +112,10 @@ describe('public class catalog', () => {
     expect(closed).toHaveAttribute('aria-disabled', 'true');
     expect(closed).not.toHaveAttribute('href');
 
-    const full = screen.getByText('Penuh', { selector: 'a' });
-    expect(full).toHaveAttribute('aria-disabled', 'true');
-    expect(full).not.toHaveAttribute('href');
+    const full = screen.getAllByText('Penuh, 0 slot');
+    expect(full.length).toBeGreaterThanOrEqual(1);
+    expect(full[0]).toHaveAttribute('aria-disabled', 'true');
+    expect(full[0]).not.toHaveAttribute('href');
   }, 30_000);
 
   it('shows a safe dependency state without exposing backend details', async () => {
@@ -141,9 +162,8 @@ describe('public class catalog', () => {
     expect(await screen.findByRole('heading', { name: 'Reformer Flow' })).toBeVisible();
     expect(window.localStorage.getItem('dd_last_selected_branch')).toBe('branch-1');
 
-    // 14-Day Calendar is rendered
-    expect(screen.getByText('Jadwal 14 Hari ke Depan')).toBeVisible();
-    expect(screen.getByRole('button', { name: /Semua/ })).toBeVisible();
+    // 7-Day horizontal calendar strip is rendered
+    expect(screen.getByRole('group', { name: 'Pilih tanggal cepat' })).toBeVisible();
   });
 });
 

@@ -140,7 +140,7 @@ export function AppNavigation({
               ariaLabel={`Daily Dose Pilates — ${customerOnly ? 'Dashboard Saya' : 'Dashboard'}`}
               tone="light"
               className="h-auto w-[166px]"
-              href={customerOnly ? '/account' : instructorOnly ? '/workspace/classes' : '/workspace'}
+              href={customerOnly ? '/account' : '/workspace'}
               priority
             />
             {!collapsed && !customerOnly && (
@@ -214,7 +214,6 @@ export function AppNavigation({
                 const pagesInGroup = frontendPages
                   .filter((item) => item.group === group)
                   .filter((item) => !item.isDormant && !item.isAdvanced)
-                  .filter((item) => !(instructorOnly && item.href === '/workspace'))
                   .filter(
                     (item) =>
                       item.capabilities.length === 0 ||
@@ -237,6 +236,12 @@ export function AppNavigation({
                     {pagesInGroup.map((item) => {
                       const active = item.href === activeHref;
                       const Icon = iconForPage(item.href);
+                      const displayLabel =
+                        instructorOnly && item.href === '/workspace'
+                          ? 'Hari Ini'
+                          : instructorOnly && item.href === '/workspace/classes'
+                            ? 'Jadwal Saya'
+                            : item.shortLabel;
                       return (
                         <Link
                           href={item.href}
@@ -244,7 +249,7 @@ export function AppNavigation({
                           key={item.href}
                           title={
                             collapsed
-                              ? `${item.shortLabel}${item.queueBadgeSource && (queueCounts[item.queueBadgeSource] ?? 0) > 0 ? ` (${queueCounts[item.queueBadgeSource]})` : ''}`
+                              ? `${displayLabel}${item.queueBadgeSource && (queueCounts[item.queueBadgeSource] ?? 0) > 0 ? ` (${queueCounts[item.queueBadgeSource]})` : ''}`
                               : undefined
                           }
                           onClick={onClose}
@@ -261,7 +266,7 @@ export function AppNavigation({
                                 />
                               )}
                           </div>
-                          {!collapsed && <span className="truncate">{item.shortLabel}</span>}
+                          {!collapsed && <span className="truncate">{displayLabel}</span>}
                           {!collapsed && item.maturity === 'preview' && <PreviewTag tone="dark" />}
                           {!collapsed &&
                             item.queueBadgeSource &&

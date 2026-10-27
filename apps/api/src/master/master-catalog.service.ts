@@ -127,6 +127,9 @@ export class MasterCatalogService {
     const items = rows.slice(0, limit).map((b) => {
       return {
         ...b,
+        latitude: b.latitude !== null && b.latitude !== undefined ? Number(b.latitude) : null,
+        longitude: b.longitude !== null && b.longitude !== undefined ? Number(b.longitude) : null,
+        geofenceRadiusMeters: b.geofenceRadiusMeters ?? 100,
         publicProfile: {
           slug: b.code.toLowerCase(),
           ...branchPublicLocation(b.code, b.name, b.address),
@@ -189,6 +192,9 @@ export class MasterCatalogService {
 
     return {
       ...branch,
+      latitude: branch.latitude !== null && branch.latitude !== undefined ? Number(branch.latitude) : null,
+      longitude: branch.longitude !== null && branch.longitude !== undefined ? Number(branch.longitude) : null,
+      geofenceRadiusMeters: branch.geofenceRadiusMeters ?? 100,
       publicProfile,
       version: 1,
       dependencies: { assignments, futureClasses, packages, paymentAccounts, classTypes, staff },
@@ -266,6 +272,8 @@ export class MasterCatalogService {
       name?: string;
       timezone?: string;
       supportWhatsappE164?: string | null;
+      latitude?: number | null;
+      longitude?: number | null;
       geofenceRadiusMeters?: number;
       expectedVersion?: number;
       reason?: string;
@@ -283,6 +291,28 @@ export class MasterCatalogService {
           HttpStatus.BAD_REQUEST,
           false,
           [{ field: 'geofenceRadiusMeters', issue: 'Radius geofence harus bernilai positif minimal 10 meter' }],
+        );
+      }
+    }
+
+    if (input.latitude !== undefined && input.latitude !== null) {
+      if (typeof input.latitude !== 'number' || Number.isNaN(input.latitude) || input.latitude < -90 || input.latitude > 90) {
+        throw new ApiProblem(
+          'VALIDATION_ERROR',
+          HttpStatus.BAD_REQUEST,
+          false,
+          [{ field: 'latitude', issue: 'Latitude harus berada dalam rentang -90 hingga 90 derajat' }],
+        );
+      }
+    }
+
+    if (input.longitude !== undefined && input.longitude !== null) {
+      if (typeof input.longitude !== 'number' || Number.isNaN(input.longitude) || input.longitude < -180 || input.longitude > 180) {
+        throw new ApiProblem(
+          'VALIDATION_ERROR',
+          HttpStatus.BAD_REQUEST,
+          false,
+          [{ field: 'longitude', issue: 'Longitude harus berada dalam rentang -180 hingga 180 derajat' }],
         );
       }
     }
@@ -316,6 +346,8 @@ export class MasterCatalogService {
             ...(input.timezone !== undefined ? { timezone: input.timezone } : {}),
             ...(input.supportWhatsappE164 !== undefined ? { supportWhatsappE164: input.supportWhatsappE164?.trim() || null } : {}),
             ...(input.geofenceRadiusMeters !== undefined ? { geofenceRadiusMeters: input.geofenceRadiusMeters } : {}),
+            ...(input.latitude !== undefined ? { latitude: input.latitude !== null ? new Prisma.Decimal(input.latitude) : null } : {}),
+            ...(input.longitude !== undefined ? { longitude: input.longitude !== null ? new Prisma.Decimal(input.longitude) : null } : {}),
           },
         });
 

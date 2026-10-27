@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Verifikasi identitas</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Poppins:wght@500;600&display=swap">
+<style>
+body { margin: 0; font-family: "DM Sans", system-ui, sans-serif; }
+a { color: #396552; }
+a:hover { color: #24483a; }
+button, a, input, textarea { font-family: inherit; }
+</style>
+</helmet>
+
+<div style="width: 390px; height: 1000px; box-sizing: border-box; background: #f3f6f4; display: flex; flex-direction: column; overflow: hidden">
+
+  <header style="background: #ffffff; border-bottom: 1px solid #768b84; padding: 8px 12px; display: flex; align-items: center; gap: 4px; flex-shrink: 0">
+    <a href="Main.dc.html" aria-label="Kembali ke beranda" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: #17231e">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 19l-7-7 7-7"></path></svg>
+    </a>
+    <h1 style="margin: 0; font-family: Poppins, sans-serif; font-weight: 600; font-size: 20px; line-height: 26px; color: #17231e">Verifikasi identitas</h1>
+  </header>
+
+  <div style="flex: 1; overflow: hidden; padding: 20px; display: flex; flex-direction: column; gap: 20px">
+
+    <p style="margin: 0; font-size: 16px; line-height: 24px; color: #607069">Studio membutuhkan identitas resmi sebelum kamu membeli paket dan booking kelas. Data ini hanya dilihat tim studio dan tidak ditampilkan ke member lain.</p>
+
+    <form style="display: flex; flex-direction: column; gap: 18px">
+
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <label for="nama" style="font-size: 16px; line-height: 22px; font-weight: 500; color: #17231e">Nama lengkap sesuai KTP</label>
+        <input id="nama" type="text" placeholder="Tulis nama sesuai KTP" style="min-height: 52px; border: 1.5px solid #768b84; border-radius: 12px; padding: 0 16px; font-size: 17px; color: #17231e; background: #ffffff; box-sizing: border-box">
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <label for="nik" style="font-size: 16px; line-height: 22px; font-weight: 500; color: #17231e">Nomor NIK</label>
+        <input id="nik" type="text" inputmode="numeric" placeholder="16 angka pada KTP" style="min-height: 52px; border: 1.5px solid #768b84; border-radius: 12px; padding: 0 16px; font-size: 17px; color: #17231e; background: #ffffff; box-sizing: border-box">
+        <span style="font-size: 15px; line-height: 22px; color: #607069">Kolom ini kosong sampai kamu mengisinya</span>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <label for="alamat" style="font-size: 16px; line-height: 22px; font-weight: 500; color: #17231e">Alamat sesuai KTP</label>
+        <textarea id="alamat" rows="3" placeholder="Tulis alamat lengkap sesuai KTP" style="border: 1.5px solid #768b84; border-radius: 12px; padding: 14px 16px; font-size: 17px; line-height: 24px; color: #17231e; background: #ffffff; box-sizing: border-box; resize: none"></textarea>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <span style="font-size: 16px; line-height: 22px; font-weight: 500; color: #17231e">Foto KTP dan foto selfie</span>
+        <div style="display: flex; gap: 12px">
+          <button type="button" style="flex: 1; min-height: 96px; background: #ffffff; border: 1.5px dashed #768b84; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; cursor: pointer; color: #396552">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="2"></rect><circle cx="12" cy="12.5" r="3"></circle><path d="M8 6l1.5-2h5L16 6"></path></svg>
+            <span style="font-size: 15px; font-weight: 500">Foto KTP</span>
+          </button>
+          <button type="button" style="flex: 1; min-height: 96px; background: #ffffff; border: 1.5px dashed #768b84; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; cursor: pointer; color: #396552">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="9" r="4"></circle><path d="M5 20c0-3.3 3.1-5.5 7-5.5s7 2.2 7 5.5"></path></svg>
+            <span style="font-size: 15px; font-weight: 500">Foto selfie</span>
+          </button>
+        </div>
+      </div>
+
+      <button type="submit" style="width: 100%; min-height: 52px; background: #396552; color: #ffffff; border: none; border-radius: 12px; font-size: 17px; font-weight: 500; cursor: pointer; margin-top: 2px">Kirim data verifikasi</button>
+
+    </form>
+
+    <div style="border-top: 1px solid #768b84; padding-top: 18px; display: flex; flex-direction: column; gap: 10px">
+      <span style="font-size: 13px; font-weight: 700; letter-spacing: 0.06em; line-height: 18px; color: #607069">SETELAH DIKIRIM, BANNER BERUBAH JADI</span>
+      <div style="background: #fff4da; border-left: 4px solid #8a5b17; border-radius: 12px; padding: 14px 16px">
+        <p style="margin: 0; font-size: 16px; line-height: 24px; color: #6d4712">Data kamu sedang diperiksa tim studio. Kami kabari lewat WhatsApp kalau sudah selesai.</p>
+      </div>
+      <div style="background: #faeceb; border-left: 4px solid #9b3d38; border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px">
+        <p style="margin: 0; font-size: 16px; line-height: 24px; color: #7d2f2b">Data ditolak: [alasan dari tim studio]. Perbaiki lalu kirim lagi.</p>
+        <button type="button" style="align-self: flex-start; min-height: 44px; background: #ffffff; border: 1.5px solid #9b3d38; border-radius: 12px; padding: 0 16px; font-size: 16px; font-weight: 500; color: #9b3d38; cursor: pointer">Perbaiki data</button>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

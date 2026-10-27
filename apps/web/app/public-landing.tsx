@@ -3,6 +3,9 @@
 import { useEffect, useState } from 'react';
 
 import { accountClient, type PublicSiteConfig } from '@/api-clients/account-client';
+import { isCustomerOnlySession } from '@/lib/session-audience';
+import { useSessionContext } from './session-context';
+import { useTrackedRouter } from './components/app-loading';
 import { PublicFooter } from './components/public/public-footer';
 import { PublicHeader } from './components/public/public-header';
 import { HeroCarousel } from './components/public/hero-carousel';
@@ -38,8 +41,23 @@ export function classDurationSummary(classes: PublicSiteConfig['classes']) {
 }
 
 export function PublicLanding() {
+  const sessionContext = useSessionContext();
+  const router = useTrackedRouter();
   const [siteConfig, setSiteConfig] = useState<PublicSiteConfig | null>(null);
   const [catalogError, setCatalogError] = useState('');
+
+  const isCustomer = Boolean(
+    sessionContext?.status === 'authenticated' &&
+      sessionContext.session &&
+      (isCustomerOnlySession(sessionContext.session) ||
+        sessionContext.session.roles.includes('CUSTOMER')),
+  );
+
+  useEffect(() => {
+    if (isCustomer) {
+      router.replace('/account');
+    }
+  }, [isCustomer, router]);
 
   useEffect(() => {
     let active = true;
@@ -55,6 +73,14 @@ export function PublicLanding() {
       active = false;
     };
   }, []);
+
+  if (isCustomer) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center bg-ed-cream text-ed-forest" role="status">
+        <p className="font-serif text-lg">Mengarahkan ke Beranda Member…</p>
+      </div>
+    );
+  }
 
   const classCards = siteConfig?.classes ?? [];
   const studioCount = siteConfig?.branches.length ?? 0;

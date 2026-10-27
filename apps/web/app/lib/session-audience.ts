@@ -24,8 +24,12 @@ export function isPublicExperiencePath(pathname: string) {
 }
 
 export function isCustomerCatalogPath(pathname: string) {
-  return publicRoutePrefixes.some(
-    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  return (
+    pathname === '/check-in-pass' ||
+    pathname.startsWith('/check-in-pass/') ||
+    publicRoutePrefixes.some(
+      (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+    )
   );
 }
 

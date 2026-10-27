@@ -1,12 +1,13 @@
 'use client';
 
-import { ArrowLeft, ExternalLink, MapPin, Pencil, Plus } from 'lucide-react';
+import { ArrowLeft, ExternalLink, MapPin, Pencil, Plus, ShieldCheck, ShieldAlert } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTrackedRouter } from '../components/app-loading';
 import { Button, ButtonLink } from '../components/actions';
 import { Drawer, useAppFeedback } from '../components/app-feedback';
 import { Badge, Panel, StatCard, TableActionMenu } from '../components/admin/admin-ui';
 import { TextInput } from '../components/forms';
+import { LocationMapPicker } from '../components/forms/location-map-picker';
 import { useSessionContext } from '../session-context';
 import { browserBranchClient, type BranchManagementDetail } from '@/api-clients/branch-client';
 import { Skeleton } from '../ui';
@@ -199,6 +200,41 @@ export function BranchDetailView({ id }: { id: string }) {
                 {branch.address || branch.publicProfile?.address || 'Alamat fisik belum dicatat.'}
               </dd>
             </div>
+            <div className="sm:col-span-2 border-t border-dd-line/60 pt-3">
+              <div className="flex items-center justify-between">
+                <dt className="text-xs font-semibold text-dd-muted">Area Geofence Presensi</dt>
+                {canManage && (
+                  <button
+                    type="button"
+                    onClick={() => setEditorOpen(true)}
+                    className="text-xs font-medium text-dd-forest hover:underline"
+                  >
+                    Ubah Titik &amp; Radius
+                  </button>
+                )}
+              </div>
+              <dd className="mt-1.5 flex flex-wrap items-center gap-2">
+                {branch.latitude !== null &&
+                branch.latitude !== undefined &&
+                branch.longitude !== null &&
+                branch.longitude !== undefined ? (
+                  <>
+                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-600/20">
+                      <ShieldCheck className="size-3.5" />
+                      Aktif ({branch.geofenceRadiusMeters ?? 100}m)
+                    </span>
+                    <span className="font-mono text-xs text-dd-muted">
+                      {Number(branch.latitude).toFixed(6)}, {Number(branch.longitude).toFixed(6)}
+                    </span>
+                  </>
+                ) : (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-700 ring-1 ring-amber-600/20">
+                    <ShieldAlert className="size-3.5" />
+                    Bypass GPS (Belum dikonfigurasi)
+                  </span>
+                )}
+              </dd>
+            </div>
           </dl>
         </Panel>
 
@@ -370,10 +406,17 @@ export function BranchDetailView({ id }: { id: string }) {
           onSubmit={async (event) => {
             event.preventDefault();
             const data = new FormData(event.currentTarget);
+            const latRaw = data.get('latitude');
+            const lngRaw = data.get('longitude');
+            const radRaw = data.get('geofenceRadiusMeters');
+
             const input = {
               name: String(data.get('name')).trim(),
               timezone: String(data.get('timezone')).trim(),
               supportWhatsappE164: String(data.get('supportWhatsappE164')).trim() || null,
+              latitude: latRaw !== null && latRaw !== '' ? Number(latRaw) : null,
+              longitude: lngRaw !== null && lngRaw !== '' ? Number(lngRaw) : null,
+              geofenceRadiusMeters: radRaw !== null && radRaw !== '' ? Number(radRaw) : 100,
               expectedVersion: branch.version,
             };
             setBusy(true);
@@ -385,13 +428,13 @@ export function BranchDetailView({ id }: { id: string }) {
               feedback.showToast({
                 tone: 'success',
                 title: 'Cabang diperbarui',
-                message: 'Informasi cabang berhasil disimpan.',
+                message: 'Informasi cabang dan area geofence berhasil disimpan.',
               });
             } catch {
               feedback.showAlert({
                 tone: 'danger',
                 title: 'Perubahan belum disimpan',
-                message: 'Periksa timezone, nomor WhatsApp, atau muat ulang versi terbaru.',
+                message: 'Periksa koordinat geofence, timezone, nomor WhatsApp, atau muat ulang versi terbaru.',
               });
             } finally {
               setBusy(false);
@@ -406,6 +449,14 @@ export function BranchDetailView({ id }: { id: string }) {
             label="WhatsApp support"
             defaultValue={branch.supportWhatsappE164 ?? ''}
             description="Gunakan format E.164."
+          />
+          <LocationMapPicker
+            key={`${branch.id}-${editorOpen}`}
+            initialLatitude={branch.latitude}
+            initialLongitude={branch.longitude}
+            initialRadius={branch.geofenceRadiusMeters ?? 100}
+            branchName={branch.name}
+            onChange={() => setEditDirty(true)}
           />
         </form>
       </Drawer>

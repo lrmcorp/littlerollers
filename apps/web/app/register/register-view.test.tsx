@@ -30,11 +30,11 @@ describe('customer self-registration', () => {
     );
     expect(
       screen.getByLabelText(
-        'Saya menyetujui pemrosesan selfie dan KTP untuk verifikasi identitas.',
+        /Saya menyetujui Syarat & Ketentuan Layanan/i,
       ),
     ).not.toBeRequired();
     expect(
-      screen.getByText(/Selfie dan foto KTP hanya digunakan untuk verifikasi identitas/),
+      screen.getByText(/Data pendaftaran dan dokumen identitas Anda disimpan secara privat/i),
     ).toBeVisible();
     expect(screen.getByRole('button', { name: 'Daftar dan masuk' })).toHaveClass(
       'min-h-12',
@@ -51,7 +51,21 @@ describe('customer self-registration', () => {
     expect(screen.getByText(/2\. Keamanan Akun/)).toBeVisible();
     expect(screen.getByText(/3\. Dokumen Identitas/)).toBeVisible();
     expect(screen.queryByText(/siap digunakan untuk memilih paket dan memesan jadwal/)).toBeNull();
-    expect(screen.getByText(/lengkapi verifikasi identitas/i)).toBeVisible();
+    expect(
+      screen.getByText(/Verifikasi KTP dan identitas diri baru diminta nanti saat pembelian paket pertama/i),
+    ).toBeVisible();
+  });
+
+  it('renders callout for existing studio members with direct link to sign in (Tiket T-09)', () => {
+    render(<RegisterView />);
+    expect(screen.getByText('Sudah pernah latihan di studio?')).toBeVisible();
+    expect(
+      screen.getByText(/Akun kamu mungkin sudah dibuatkan staf\. Masuk pakai nomor WhatsApp/i),
+    ).toBeVisible();
+    const waLoginLinks = screen.getAllByRole('link', { name: /Masuk dengan nomor WhatsApp/i });
+    expect(waLoginLinks.length).toBeGreaterThanOrEqual(1);
+    expect(waLoginLinks[0]).toBeVisible();
+    expect(waLoginLinks[0]).toHaveAttribute('href', '/sign-in');
   });
 
   it('allows both password fields to be revealed independently', async () => {
@@ -121,7 +135,7 @@ describe('customer self-registration', () => {
     await user.type(phone, 'bukan-nomor');
     await user.tab();
     expect(
-      screen.getByText('Masukkan nomor WhatsApp yang valid, misalnya 0812 3456 7890.'),
+      screen.getByText('Masukkan nomor WhatsApp yang valid (awalan 08 atau +62), misalnya 0812 3456 7890.'),
     ).toBeVisible();
   });
 
@@ -176,7 +190,7 @@ describe('customer self-registration', () => {
     );
     await user.click(
       screen.getByLabelText(
-        'Saya menyetujui pemrosesan selfie dan KTP untuk verifikasi identitas.',
+        /Saya menyetujui Syarat & Ketentuan Layanan/i,
       ),
     );
     await user.click(screen.getByRole('button', { name: 'Daftar dan masuk' }));
@@ -192,5 +206,26 @@ describe('customer self-registration', () => {
     );
     expect(screen.getByRole('button', { name: 'Membuat akun…' })).toBeDisabled();
     expect(screen.getByLabelText('Nama lengkap')).toBeDisabled();
+  });
+
+  it('requires consent to register and clears the error when checked', async () => {
+    const user = userEvent.setup();
+    render(<RegisterView />);
+
+    await user.type(screen.getByLabelText('Nama lengkap'), 'Nadia Putri');
+    await user.type(screen.getByLabelText('Nomor WhatsApp'), '0812 3456 7890');
+    await user.type(screen.getByLabelText('Email'), 'nadia@example.com');
+    await user.type(screen.getByLabelText('Password'), 'password-aman');
+    await user.type(screen.getByLabelText('Ulangi password'), 'password-aman');
+
+    await user.click(screen.getByRole('button', { name: 'Daftar dan masuk' }));
+    expect(
+      screen.getByText('Anda wajib menyetujui Syarat & Ketentuan serta Kebijakan Privasi Daily Dose.'),
+    ).toBeVisible();
+
+    await user.click(screen.getByLabelText(/Saya menyetujui Syarat & Ketentuan Layanan/i));
+    expect(
+      screen.queryByText('Anda wajib menyetujui Syarat & Ketentuan serta Kebijakan Privasi Daily Dose.'),
+    ).not.toBeInTheDocument();
   });
 });

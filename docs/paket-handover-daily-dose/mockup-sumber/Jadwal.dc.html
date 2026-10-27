@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Jadwal kelas</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Poppins:wght@500;600&display=swap">
+<style>
+body { margin: 0; font-family: "DM Sans", system-ui, sans-serif; }
+a { color: #396552; }
+a:hover { color: #24483a; }
+button, a { font-family: inherit; }
+</style>
+</helmet>
+
+<div style="width: 390px; height: 940px; box-sizing: border-box; background: #f3f6f4; display: flex; flex-direction: column; overflow: hidden">
+
+  <header style="background: #ffffff; border-bottom: 1px solid #768b84; padding: 8px 12px; display: flex; align-items: center; gap: 4px; flex-shrink: 0">
+    <a href="Main.dc.html" aria-label="Kembali ke beranda" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: #17231e">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 19l-7-7 7-7"></path></svg>
+    </a>
+    <h1 style="margin: 0; font-family: Poppins, sans-serif; font-weight: 600; font-size: 20px; line-height: 26px; color: #17231e">Jadwal kelas</h1>
+  </header>
+
+  <div style="background: #ffffff; padding: 14px 0 16px; border-bottom: 1px solid #768b84; flex-shrink: 0">
+    <div style="display: flex; gap: 8px; padding: 0 20px; overflow: hidden">
+      <sc-for list="{{days}}" as="day" hint-placeholder-count="5">
+        <button type="button" onClick="{{day.pick}}" aria-pressed="{{day.pressed}}" style="{{day.style}}">
+          <span style="font-size: 13px; line-height: 18px; font-weight: 500">{{day.name}}</span>
+          <span style="font-family: Poppins, sans-serif; font-size: 20px; line-height: 26px; font-weight: 600">{{day.date}}</span>
+        </button>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="background: #ffffff; padding: 0 20px 16px; display: flex; gap: 10px; border-bottom: 1px solid #768b84; flex-shrink: 0">
+    <button type="button" style="flex: 1; min-height: 48px; background: #ffffff; border: 1.5px solid #768b84; border-radius: 12px; padding: 0 14px; font-size: 15px; color: #17231e; text-align: left; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 6px">
+      <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap">Studio: Muara Karang</span>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#607069" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><path d="M6 9l6 6 6-6"></path></svg>
+    </button>
+    <button type="button" style="flex: 1; min-height: 48px; background: #ffffff; border: 1.5px solid #768b84; border-radius: 12px; padding: 0 14px; font-size: 15px; color: #17231e; text-align: left; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 6px">
+      <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap">Tipe: Semua</span>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#607069" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><path d="M6 9l6 6 6-6"></path></svg>
+    </button>
+  </div>
+
+  <div style="flex: 1; overflow: hidden; padding: 16px 20px 0; display: flex; flex-direction: column; gap: 12px">
+    <h2 style="margin: 0; font-size: 15px; line-height: 22px; color: #607069">{{heading}}</h2>
+
+    <sc-for list="{{sessions}}" as="s" hint-placeholder-count="4">
+      <a href="{{s.href}}" style="{{s.cardStyle}}">
+        <span style="font-family: Poppins, sans-serif; font-weight: 600; font-size: 20px; line-height: 26px; width: 64px; color: {{s.timeColor}}">{{s.time}}</span>
+        <span style="flex: 1; display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: 17px; line-height: 24px; font-weight: 500; color: {{s.titleColor}}">{{s.type}}</span>
+          <span style="font-size: 15px; line-height: 22px; color: #607069">{{s.instructor}}, 50 menit</span>
+          <span style="font-size: 15px; line-height: 22px; font-weight: 500; color: {{s.slotColor}}">{{s.slots}}</span>
+        </span>
+      </a>
+    </sc-for>
+  </div>
+
+  <nav aria-label="Navigasi utama" style="background: #ffffff; border-top: 1px solid #768b84; height: 68px; display: flex; align-items: stretch; flex-shrink: 0">
+    <a href="Main.dc.html" style="flex: 1; text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #607069">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"></path><path d="M5 9.5V21h14V9.5"></path></svg>
+      <span style="font-size: 12px; font-weight: 500">Beranda</span>
+    </a>
+    <a href="Jadwal.dc.html" aria-current="page" style="flex: 1; text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #396552; border-top: 3px solid #396552">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M3 10h18M8 3v4M16 3v4"></path></svg>
+      <span style="font-size: 12px; font-weight: 500">Jadwal</span>
+    </a>
+    <a href="#booking-saya" style="flex: 1; text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #607069">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 7 9 18l-5-5"></path></svg>
+      <span style="font-size: 12px; font-weight: 500">Booking</span>
+    </a>
+    <a href="#paket" style="flex: 1; text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #607069">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8 12 3 3 8v8l9 5 9-5z"></path><path d="M3 8l9 5 9-5"></path></svg>
+      <span style="font-size: 12px; font-weight: 500">Paket</span>
+    </a>
+    <a href="#akun" style="flex: 1; text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #607069">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"></path></svg>
+      <span style="font-size: 12px; font-weight: 500">Akun</span>
+    </a>
+  </nav>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":940}}'>
+// Date pills select a real day; the session list below swaps with the selection.
+// Data mirrors the live Muara Karang timetable (Private Group, 50 minutes, capacity 4).
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { picked: 1 };
+  }
+
+  renderVals() {
+    const days = [
+      { name: 'Sen', date: '26', label: 'Senin, 26 Okt 2026' },
+      { name: 'Sel', date: '27', label: 'Selasa, 27 Okt 2026' },
+      { name: 'Rab', date: '28', label: 'Rabu, 28 Okt 2026' },
+      { name: 'Kam', date: '29', label: 'Kamis, 29 Okt 2026' },
+      { name: 'Jum', date: '30', label: 'Jumat, 30 Okt 2026' }
+    ];
+
+    const byDay = {
+      0: [
+        { time: '08.00', instructor: 'Amel', left: 1 },
+        { time: '09.00', instructor: 'Amel', left: 0 },
+        { time: '17.00', instructor: 'Dina', left: 4 }
+      ],
+      1: [
+        { time: '08.00', instructor: 'Clara', left: 3 },
+        { time: '09.00', instructor: 'Clara', left: 4 },
+        { time: '17.00', instructor: 'Yuniati', left: 2 },
+        { time: '18.00', instructor: 'Yuniati', left: 0 }
+      ],
+      2: [
+        { time: '08.00', instructor: 'Dina', left: 2 },
+        { time: '17.00', instructor: 'Dina', left: 4 }
+      ],
+      3: [
+        { time: '09.00', instructor: 'Agatha', left: 4 },
+        { time: '18.00', instructor: 'Agatha', left: 1 }
+      ],
+      4: [
+        { time: '08.00', instructor: 'Clara', left: 3 },
+        { time: '19.00', instructor: 'Yuniati', left: 4 }
+      ]
+    };
+
+    const picked = this.state.picked;
+
+    const pillBase = 'flex: 1; min-width: 0; min-height: 64px; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; cursor: pointer; ';
+
+    return {
+      heading: 'Kelas pada ' + days[picked].label,
+      days: days.map((d, i) => ({
+        name: d.name,
+        date: d.date,
+        pressed: i === picked ? 'true' : 'false',
+        pick: () => this.setState({ picked: i }),
+        style: i === picked
+          ? pillBase + 'background: #396552; color: #ffffff; border: 1.5px solid #396552;'
+          : pillBase + 'background: #ffffff; color: #17231e; border: 1.5px solid #768b84;'
+      })),
+      sessions: (byDay[picked] || []).map((s) => {
+        const full = s.left === 0;
+        return {
+          time: s.time,
+          type: 'Private Group',
+          instructor: s.instructor,
+          slots: full ? 'Penuh, 0 slot' : 'Sisa ' + s.left + ' slot',
+          href: full ? '#penuh' : 'Konfirmasi.dc.html',
+          timeColor: full ? '#607069' : '#17231e',
+          titleColor: full ? '#607069' : '#17231e',
+          slotColor: full ? '#8a5b17' : '#246144',
+          cardStyle: 'text-decoration: none; border-radius: 16px; padding: 16px 18px; display: flex; align-items: center; gap: 16px; min-height: 88px; box-sizing: border-box; '
+            + (full
+              ? 'background: #f8faf9; border: 1px solid #768b84;'
+              : 'background: #ffffff; border: 1px solid #768b84;')
+        };
+      })
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -118,10 +118,10 @@ export default function KioskPortalPage() {
           <div className="mt-10 rounded-dd-2xl border border-dd-line bg-dd-surface-muted p-6 text-xs text-dd-muted space-y-3 shadow-sm">
             <div className="flex items-center gap-2 font-bold text-dd-ink">
               <ShieldCheck className="size-4 text-dd-forest" />
-              <span>Keamanan Lokasi &amp; Geofencing Presensi:</span>
+              <span>Keamanan Tablet Kiosk Studio &amp; Integrasi Geofence:</span>
             </div>
             <p className="leading-relaxed">
-              Layar Kiosk dapat dibuka secara publik pada tablet atau TV display studio tanpa memerlukan login akun staf. Ketika instruktur memindai QR code dari aplikasi ponselnya, sistem akan secara otomatis memverifikasi bahwa koordinat GPS ponsel berada di dalam area radius cabang tempat sesi kelas berlangsung.
+              Setiap tablet studio diamankan dengan 6 digit PIN otorisasi studio sebelum menampilkan jadwal kelas. Ketika instruktur memindai QR code dari aplikasi ponselnya, sistem memverifikasi bahwa koordinat GPS ponsel berada di dalam area radius cabang tempat sesi kelas berlangsung. QR presensi diperbarui secara otomatis setiap 60 detik untuk mencegah penyalahgunaan tangkapan layar.
             </p>
           </div>
         </div>

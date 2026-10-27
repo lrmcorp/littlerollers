@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Check,
+  ChevronLeft,
   Eye,
   FileCheck2,
   HelpCircle,
@@ -548,16 +549,25 @@ function KycSubmissionForm({ onSubmitted }: { onSubmitted: () => Promise<void> }
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <section className="rounded-dd-xl border border-dd-line bg-white p-6 shadow-dd-card sm:p-8">
-        <div className="border-b border-dd-line/60 pb-5">
-          <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-dd-brass-dark">
-            Verifikasi Identitas KTP
-          </span>
-          <h1 className="mt-2 text-2xl font-bold tracking-tight text-dd-ink sm:text-3xl">
-            Lengkapi Dokumen Verifikasi
-          </h1>
-          <p className="mt-2 text-sm leading-6 text-dd-muted">
-            Sesuai kebijakan keamanan studio Daily Dose, silakan siapkan 4 data berikut: 16 digit NIK, alamat lengkap sesuai KTP, foto e-KTP jelas, dan foto selfie untuk mengaktifkan pemesanan kelas.
-          </p>
+        <div className="flex items-start gap-3.5 border-b border-dd-line/60 pb-5">
+          <Link
+            href="/account"
+            aria-label="Kembali ke Beranda"
+            className="inline-flex size-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-dd-md border border-dd-border-interactive bg-white text-dd-forest shadow-xs transition hover:bg-dd-surface-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-dd-forest"
+          >
+            <ChevronLeft className="size-5" aria-hidden="true" />
+          </Link>
+          <div>
+            <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-dd-brass-dark">
+              Verifikasi Identitas KTP
+            </span>
+            <h1 className="mt-2 text-2xl font-bold tracking-tight text-dd-ink sm:text-3xl">
+              Lengkapi Dokumen Verifikasi
+            </h1>
+            <p className="mt-2 text-sm leading-6 text-dd-muted">
+              Sesuai kebijakan keamanan studio Daily Dose, silakan siapkan 4 data berikut: 16 digit NIK, alamat lengkap sesuai KTP, foto e-KTP jelas, dan foto selfie untuk mengaktifkan pemesanan kelas.
+            </p>
+          </div>
         </div>
 
         {error && (
@@ -675,15 +685,26 @@ function KycSubmissionForm({ onSubmitted }: { onSubmitted: () => Promise<void> }
       <section className="overflow-hidden rounded-dd-xl border border-dd-line bg-white shadow-dd-card">
         <div className="grid gap-7 p-6 sm:p-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:p-10">
           <div>
-            <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-dd-brass-dark">
-              {copy.eyebrow}
-            </span>
-            <h1 className="mt-3 max-w-2xl text-3xl font-bold tracking-tight text-dd-ink sm:text-4xl">
-              {copy.title}
-            </h1>
-            <p className="mt-4 max-w-2xl text-sm leading-7 text-dd-muted sm:text-base">
-              {copy.description}
-            </p>
+            <div className="flex items-start gap-3.5">
+              <Link
+                href="/account"
+                aria-label="Kembali ke Beranda"
+                className="inline-flex size-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-dd-md border border-dd-border-interactive bg-white text-dd-forest shadow-xs transition hover:bg-dd-surface-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-dd-forest"
+              >
+                <ChevronLeft className="size-5" aria-hidden="true" />
+              </Link>
+              <div>
+                <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-dd-brass-dark">
+                  {copy.eyebrow}
+                </span>
+                <h1 className="mt-3 max-w-2xl text-3xl font-bold tracking-tight text-dd-ink sm:text-4xl">
+                  {copy.title}
+                </h1>
+                <p className="mt-4 max-w-2xl text-sm leading-7 text-dd-muted sm:text-base">
+                  {copy.description}
+                </p>
+              </div>
+            </div>
             <div className="mt-6 flex flex-wrap gap-3">
               {summary.status === 'PENDING' && (
                 <>

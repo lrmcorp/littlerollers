@@ -4,8 +4,23 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { accountClient } from '@/api-clients/account-client';
 import { classDurationSummary, PublicLanding, studioAreaSummary } from './public-landing';
 
+const mockReplace = vi.fn();
+let mockSessionContext: any = null;
+
+vi.mock('./components/app-loading', () => ({
+  useTrackedRouter: () => ({ replace: mockReplace, push: vi.fn() }),
+}));
+
+vi.mock('./session-context', () => ({
+  useSessionContext: () => mockSessionContext,
+}));
+
 describe('public landing page', () => {
-  afterEach(() => vi.restoreAllMocks());
+  afterEach(() => {
+    vi.restoreAllMocks();
+    mockSessionContext = null;
+    mockReplace.mockClear();
+  });
 
   it('renders the full public journey without requiring a session', async () => {
     vi.spyOn(accountClient, 'siteConfig').mockResolvedValue({
@@ -152,5 +167,20 @@ describe('public landing page', () => {
         },
       ]),
     ).toBe('45–60 menit');
+  });
+
+  it('redirects authenticated customer from root (/) to member home (/account) - Tiket T-03', () => {
+    mockSessionContext = {
+      status: 'authenticated',
+      session: {
+        id: 'cust-1',
+        roles: ['CUSTOMER'],
+        capabilities: ['customer:self'],
+      },
+    };
+
+    render(<PublicLanding />);
+    expect(screen.getByText('Mengarahkan ke Beranda Member…')).toBeInTheDocument();
+    expect(mockReplace).toHaveBeenCalledWith('/account');
   });
 });

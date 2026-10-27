@@ -154,6 +154,8 @@ export class MasterController {
       name?: string;
       timezone?: string;
       supportWhatsappE164?: string | null;
+      latitude?: number | null;
+      longitude?: number | null;
       geofenceRadiusMeters?: number;
       expectedVersion?: number;
       reason?: string;

@@ -1,0 +1,148 @@
+{
+  "v": 3,
+  "createdOnFiles": { "v": 1, "at": "2026-10-26T08:30:00Z" },
+  "title": "Daily Dose Pilates — Revisi UI/UX Mobile dan Panel Admin",
+  "launch": { "view": "canvas" },
+  "pages": [],
+  "boards": {
+    "Main.dc.html": { "x": 0, "y": 0, "w": 390, "h": 1080, "title": "1. Beranda Member" },
+    "Jadwal.dc.html": { "x": 470, "y": 0, "w": 390, "h": 940, "title": "2. Jadwal — pilih kelas", "is_interactive": true },
+    "Konfirmasi.dc.html": { "x": 940, "y": 0, "w": 390, "h": 844, "title": "3. Konfirmasi booking" },
+    "Verifikasi.dc.html": { "x": 1410, "y": 0, "w": 390, "h": 1000, "title": "4. Verifikasi identitas" },
+    "Instruktur.dc.html": { "x": 1880, "y": 0, "w": 390, "h": 940, "title": "5. Beranda instruktur" },
+    "Status.dc.html": { "x": 0, "y": 1430, "w": 390, "h": 1240, "title": "6. Status kosong, memuat, error" },
+    "Fondasi.dc.html": { "x": 470, "y": 1430, "w": 880, "h": 1240, "title": "7. Fondasi visual" },
+    "Paket.dc.html": { "x": 0, "y": 3020, "w": 390, "h": 1120, "title": "8. Paket — 11 layar jadi 1" },
+    "Checkout.dc.html": { "x": 470, "y": 3020, "w": 390, "h": 1120, "title": "9. Bayar dan unggah bukti" },
+    "QRPass.dc.html": { "x": 940, "y": 3020, "w": 390, "h": 844, "title": "10. QR Pass di pintu studio" },
+    "Daftar.dc.html": { "x": 1410, "y": 3020, "w": 390, "h": 1040, "title": "11. Daftar akun — 3 kolom" },
+    "Kiosk.dc.html": { "x": 1880, "y": 3020, "w": 1024, "h": 768, "title": "12. Tablet kiosk studio" },
+    "AdminWarna.dc.html": { "x": 0, "y": 4430, "w": 880, "h": 1720, "title": "13. Aturan warna panel admin" },
+    "AdminHariIni.dc.html": { "x": 980, "y": 4430, "w": 1280, "h": 900, "title": "14. Front desk — Hari Ini" },
+    "AdminTimetable.dc.html": { "x": 2360, "y": 4430, "w": 1280, "h": 1060, "title": "15. Timetable — isi jadwal ke depan" },
+    "AdminPembayaran.dc.html": { "x": 0, "y": 5720, "w": 1280, "h": 900, "title": "16. Finance — periksa bukti transfer" },
+    "AdminVerifikasi.dc.html": { "x": 1380, "y": 5720, "w": 1280, "h": 900, "title": "17. Antrean verifikasi identitas" },
+    "AdminOwner.dc.html": { "x": 2760, "y": 5720, "w": 1280, "h": 1000, "title": "18. Owner — yang perlu ditindak" }
+  },
+  "order": [
+    "Main.dc.html",
+    "Jadwal.dc.html",
+    "Konfirmasi.dc.html",
+    "Verifikasi.dc.html",
+    "Instruktur.dc.html",
+    "Status.dc.html",
+    "Fondasi.dc.html",
+    "Paket.dc.html",
+    "Checkout.dc.html",
+    "QRPass.dc.html",
+    "Daftar.dc.html",
+    "Kiosk.dc.html",
+    "AdminWarna.dc.html",
+    "AdminHariIni.dc.html",
+    "AdminTimetable.dc.html",
+    "AdminPembayaran.dc.html",
+    "AdminVerifikasi.dc.html",
+    "AdminOwner.dc.html"
+  ],
+  "notes": {
+    "t1": {
+      "x": 0,
+      "y": -300,
+      "text": "Alur member dan instruktur",
+      "kind": "title1",
+      "maxW": 2270
+    },
+    "t2": {
+      "x": 0,
+      "y": 1130,
+      "text": "Status, pesan, dan fondasi visual",
+      "kind": "title1",
+      "maxW": 1350
+    },
+    "t3": {
+      "x": 0,
+      "y": 2720,
+      "text": "Layar yang paling boros langkah",
+      "kind": "title1",
+      "maxW": 2904
+    },
+    "t4": {
+      "x": 0,
+      "y": 4130,
+      "text": "Panel admin: front desk, finance, owner",
+      "kind": "title1",
+      "maxW": 3640
+    },
+    "n1": {
+      "x": 0,
+      "y": -140,
+      "text": "Target: member usia 45-55 bisa booking dalam 3 tap. Dial ENERGY 1 / RHYTHM 2 / MOTION 1 (tenang, konsisten, tanpa animasi berulang). Palet dan font diambil dari token asli situs, bukan karangan.",
+      "w": 760,
+      "size": "m"
+    },
+    "n2": {
+      "x": 2340,
+      "y": 0,
+      "text": "Tap 1: tap kartu kelas di Beranda atau Jadwal.\nTap 2: sheet konfirmasi terbuka.\nTap 3: Konfirmasi booking sekarang.\n\nHalaman perantara \"Pilih jadwal kelas terlebih dahulu\" dihapus.",
+      "w": 420,
+      "fill": "green"
+    },
+    "n3": {
+      "x": 2340,
+      "y": 300,
+      "text": "Nama orang ditulis sebagai [placeholder] karena data member asli tidak boleh dikarang di mockup. Nama studio, tipe kelas, nama instruktur, jam, dan harga paket diambil dari data sistem yang sebenarnya.",
+      "w": 420,
+      "fill": "orange"
+    },
+    "n4": {
+      "x": 1420,
+      "y": 1430,
+      "text": "Garis tepi komponen memakai #768b84 (3.62:1 pada putih) untuk layar member, dan #827c6a untuk panel admin yang latarnya krem. Token lama #d5dfda (1.36:1) dan #aabbb3 (2.01:1) dibuang karena gagal syarat 3:1.",
+      "w": 420,
+      "fill": "teal"
+    },
+    "n5": {
+      "x": 0,
+      "y": 2860,
+      "text": "Lima layar ini dipilih karena langkahnya paling boros: Paket (11 layar gulir jadi 1), Bayar (nominal unik mudah disalin), QR Pass (1 tap dari beranda, tidak perlu dicari), Daftar (3 kolom, KTP ditunda), dan Kiosk (terbaca dari jarak 2 meter).",
+      "w": 900,
+      "size": "m"
+    },
+    "n6": {
+      "x": 2340,
+      "y": 3900,
+      "text": "QR pada mockup adalah pola placeholder, bukan kode yang bisa dipindai. Kode asli diterbitkan server, ditandatangani per cabang dan jendela jam kelas, dan berganti tiap 60 detik.",
+      "w": 420,
+      "fill": "orange"
+    },
+    "n7": {
+      "x": 0,
+      "y": 4270,
+      "text": "Keluhan yang diperbaiki di baris ini: panel admin terasa terlalu hijau. Diukur pada panel yang berjalan, sidebar #17352a menutup 18 persen layar secara permanen. Papan 13 berisi aturan paletnya, dan papan 14 sampai 18 memakainya.",
+      "w": 900,
+      "size": "m"
+    },
+    "n8": {
+      "x": 3720,
+      "y": 4430,
+      "text": "Panel admin dipakai berjam-jam setiap hari, bukan beberapa menit seperti layar member. Jadi tiga hal berbeda dari sisi member: tidak ada kartu statistik hiasan, grafik hanya dipasang kalau menjawab satu pertanyaan, dan setiap angka masalah punya tombol tindakannya sendiri.",
+      "w": 420,
+      "fill": "green"
+    },
+    "n9": {
+      "x": 3720,
+      "y": 4760,
+      "text": "Papan 15 adalah inti perbaikan operasional. Jadwal kosong sejak 9 Okt bukan karena lupa, tapi karena membuat kelas harus satu per satu. Salin minggu dan jadwal rutin mengubah 39 kelas menjadi satu kali isi form.",
+      "w": 420,
+      "fill": "orange"
+    },
+    "n10": {
+      "x": 4120,
+      "y": 5720,
+      "text": "Papan 16 dan 17 sengaja tidak punya tombol setujui banyak sekaligus. Keduanya menentukan uang masuk dan siapa yang boleh masuk studio, jadi satu berkas satu keputusan, dengan pembatalan 10 detik.",
+      "w": 420,
+      "fill": "teal"
+    }
+  },
+  "designSystems": []
+}

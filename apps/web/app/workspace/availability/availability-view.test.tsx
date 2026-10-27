@@ -206,4 +206,33 @@ describe('AvailabilityView', () => {
     await waitFor(() => expect(client.list).toHaveBeenCalled());
     expect(screen.queryByRole('button', { name: /Aksi ketersediaan/ })).toBeNull();
   });
+
+  it('submits recurring weekly availability windows until the selected date', async () => {
+    const user = userEvent.setup();
+    const client = makeClient();
+    renderView(client);
+    await waitFor(() => expect(client.list).toHaveBeenCalled());
+
+    await user.type(screen.getByLabelText('Tanggal'), '2026-12-01');
+    await user.type(screen.getByLabelText('Mulai'), '08:00');
+    await user.type(screen.getByLabelText('Selesai'), '09:00');
+
+    // Click checkbox "Ulangi setiap minggu sampai tanggal tertentu"
+    await user.click(screen.getByLabelText('Ulangi setiap minggu sampai tanggal tertentu'));
+
+    // The repeatUntil date input appears
+    const repeatInput = await screen.findByLabelText('Ulangi setiap minggu sampai');
+    // Dec 15, 2026 gives 3 occurrences: Dec 1, Dec 8, Dec 15
+    await user.type(repeatInput, '2026-12-15');
+
+    await user.click(screen.getByRole('button', { name: 'Ajukan ketersediaan' }));
+
+    await screen.findByRole('dialog', { name: 'Ajukan ketersediaan?' });
+    expect(screen.getByText(/3 minggu berturut-turut/i)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Ajukan' }));
+
+    await waitFor(() => expect(client.create).toHaveBeenCalledTimes(3));
+    expect(await screen.findByText('Ketersediaan berhasil diajukan untuk 3 minggu berturut-turut.')).toBeVisible();
+  });
 });
+

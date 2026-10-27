@@ -5,6 +5,18 @@ import type { BookingClient, CustomerBookingOptions } from '@/api-clients/bookin
 import { AppFeedbackProvider } from '../../components/app-feedback';
 import { CustomerBookingFlow } from './customer-booking-flow';
 
+const navigation = vi.hoisted(() => ({
+  replace: vi.fn(),
+  push: vi.fn(),
+}));
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({
+    replace: navigation.replace,
+    push: navigation.push,
+  }),
+}));
+
 const options: CustomerBookingOptions = {
   slot: {
     id: '00000000-0000-4000-8000-000000000101',
@@ -153,5 +165,18 @@ describe('customer self booking flow', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Ya, konfirmasi booking' }));
     await waitFor(() => expect(client.create).toHaveBeenCalledTimes(3));
     expect(vi.mocked(client.create).mock.calls[2]![1]).not.toBe(firstKey);
+  });
+
+  it('redirects directly to /classes when no slot is selected (no intermediary screen)', async () => {
+    window.history.replaceState(null, '', '/bookings/new');
+    const client = bookingClient(options);
+    render(
+      <AppFeedbackProvider>
+        <CustomerBookingFlow client={client} />
+      </AppFeedbackProvider>,
+    );
+
+    expect(navigation.replace).toHaveBeenCalledWith('/classes');
+    expect(screen.queryByText('Pilih jadwal kelas terlebih dahulu')).not.toBeInTheDocument();
   });
 });

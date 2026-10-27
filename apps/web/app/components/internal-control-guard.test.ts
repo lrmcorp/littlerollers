@@ -65,10 +65,14 @@ describe('internal Tailwind control guardrail', () => {
       'app-navigation.tsx',
       'components/customer/customer-navigation.tsx',
       'components/public/public-header.tsx',
+      'classes/public-classes-view.tsx',
+      'components/booking/booking-confirmation-sheet.tsx',
     ]);
     const dialogAllowlist = new Set([
       'components/app-feedback.tsx',
       'components/public/public-header.tsx',
+      'classes/public-classes-view.tsx',
+      'components/booking/booking-confirmation-sheet.tsx',
     ]);
     const sources = productionViews();
     expect(

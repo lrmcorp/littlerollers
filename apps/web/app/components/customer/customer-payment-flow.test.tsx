@@ -96,7 +96,82 @@ describe('customer payment proof preview', () => {
     expect(screen.getByText('Estimasi verifikasi: 15–30 menit')).toBeVisible();
   });
 
-  it('renders QRIS tab by default when awaiting payment, displaying QRIS code and WhatsApp link', async () => {
+  it('renders Tiket T-07 payment layout with 30 px nominal, copy buttons with feedback, order code warning, and server deadline', async () => {
+    const awaitingOrder: CustomerOrder = {
+      ...order,
+      status: 'AWAITING_PAYMENT',
+      expiresAt: new Date(Date.now() + 2 * 3600 * 1000),
+      paymentProofId: null,
+      paymentProofStatus: null,
+      paymentAccount: {
+        bankName: 'BCA',
+        accountNumber: '1234567890',
+        accountHolderName: 'PT DAILY DOSE INDONESIA',
+      },
+    };
+
+    render(
+      <AppFeedbackProvider>
+        <CustomerPaymentFlow order={awaitingOrder} onUpdated={vi.fn()} />
+      </AppFeedbackProvider>,
+    );
+
+    const user = userEvent.setup();
+
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    });
+
+    // 1. Kartu Ringkasan Paket
+    expect(screen.getByText('Ringkasan pesanan')).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Reformer Pilates 10' })).toBeVisible();
+
+    // 2. Kartu LANGKAH 1, TRANSFER TEPAT SEJUMLAH INI
+    expect(screen.getByText('LANGKAH 1, TRANSFER TEPAT SEJUMLAH INI')).toBeVisible();
+    const payableAmount = screen.getByTestId('payable-amount');
+    expect(payableAmount).toBeVisible();
+    expect(payableAmount).toHaveClass('text-[30px]');
+
+    // Satu baris peringatan kode pesanan
+    expect(
+      screen.getByText(/Tiga angka terakhir adalah kode pesanan dan transfer harus pas/),
+    ).toBeVisible();
+
+    // Tombol Salin nominal dengan feedback visual
+    const copyNominalBtn = screen.getByRole('button', { name: 'Salin nominal' });
+    expect(copyNominalBtn).toBeVisible();
+    await user.click(copyNominalBtn);
+    expect(writeText).toHaveBeenCalledWith('1730377');
+    expect(screen.getByText('Tersalin ✓')).toBeVisible();
+
+    // Rekening tujuan dan Tombol Salin nomor rekening dengan feedback visual
+    expect(screen.getByTestId('account-number')).toHaveTextContent('1234567890');
+    expect(screen.getByText(/PT DAILY DOSE INDONESIA/)).toBeVisible();
+    const copyAccountBtn = screen.getByRole('button', { name: 'Salin nomor rekening' });
+    expect(copyAccountBtn).toBeVisible();
+    await user.click(copyAccountBtn);
+    expect(writeText).toHaveBeenCalledWith('1234567890');
+
+    // 3. Kartu LANGKAH 2, UNGGAH BUKTI TRANSFER
+    expect(screen.getByText('LANGKAH 2, UNGGAH BUKTI TRANSFER')).toBeVisible();
+    expect(screen.getByText('Ambil foto atau pilih dari galeri')).toBeVisible();
+    expect(
+      screen.getAllByText(/Format JPEG, PNG, atau PDF · Maksimal 10 MB/).length,
+    ).toBeGreaterThanOrEqual(1);
+
+    // 4. Kartu Batas Waktu Pembayaran
+    expect(screen.getByText('BATAS WAKTU PEMBAYARAN')).toBeVisible();
+    expect(screen.getByText('Batas Waktu Transfer')).toBeVisible();
+    expect(
+      screen.getByText(
+        /Jika melewati batas waktu ini, pesanan akan otomatis dibatalkan dan kode pembayaran kedaluwarsa/,
+      ),
+    ).toBeVisible();
+  });
+
+  it('allows switching to QRIS tab when awaiting payment, displaying QRIS code and WhatsApp link', async () => {
     const awaitingOrder: CustomerOrder = {
       ...order,
       status: 'AWAITING_PAYMENT',
@@ -115,7 +190,10 @@ describe('customer payment proof preview', () => {
       </AppFeedbackProvider>,
     );
 
-    // Default tab is QRIS (UAT #26)
+    const user = userEvent.setup();
+
+    // Switch to QRIS tab
+    await user.click(screen.getByRole('tab', { name: /QRIS Instan/ }));
     expect(screen.getByText('Scan QRIS Instan')).toBeVisible();
     expect(screen.getByLabelText('QRIS Code Daily Dose Pilates')).toBeInTheDocument();
     expect(screen.getByText('Nominal Otomatis Terdeteksi')).toBeVisible();
@@ -123,13 +201,6 @@ describe('customer payment proof preview', () => {
       'href',
       expect.stringContaining('wa.me'),
     );
-
-    // Switch to Transfer Bank tab
-    const user = userEvent.setup();
-    await user.click(screen.getByRole('tab', { name: /Transfer Bank/ }));
-    expect(screen.getByText('Tujuan transfer')).toBeVisible();
-    expect(screen.getByText('1234567890')).toBeVisible();
-    expect(screen.getByText(/PT DAILY DOSE INDONESIA/)).toBeVisible();
   });
 });
 

@@ -43,7 +43,7 @@ describe('registration validation', () => {
       ),
     ).toMatchObject({
       displayName: 'Nama lengkap wajib diisi.',
-      phone: 'Masukkan nomor WhatsApp yang valid, misalnya 0812 3456 7890.',
+      phone: 'Masukkan nomor WhatsApp yang valid (awalan 08 atau +62), misalnya 0812 3456 7890.',
       email: 'Masukkan alamat email yang valid.',
       password: 'Password minimal 8 karakter.',
       confirmation: 'Konfirmasi password tidak sama.',

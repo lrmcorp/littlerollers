@@ -5,6 +5,7 @@ import {
   CalendarDays,
   CheckCircle2,
   ChevronRight,
+  CreditCard,
   Info,
   Lock,
   Mail,
@@ -18,6 +19,7 @@ import { useEffect, useState } from 'react';
 import { accountClient, type MyProfile } from '@/api-clients/account-client';
 import { internalStaffRoles, isCustomerOnlySession } from '@/lib/session-audience';
 import { useSessionContext } from '../../session-context';
+import { useCustomerBadges } from '../../components/customer/use-customer-badges';
 import { messageForApiError, useAppFeedback } from '../../components/app-feedback';
 import { Button, ButtonLink } from '../../components/actions';
 import { useStudioPreference } from '../../components/public/public-experience';
@@ -92,6 +94,7 @@ export function ProfileView() {
     };
   })();
 
+  const badges = useCustomerBadges();
   const bookingsHref = isInternal ? '/workspace/bookings' : '/bookings';
 
   return (
@@ -101,6 +104,8 @@ export function ProfileView() {
         title="Profil Saya"
         description="Kelola informasi identitas, kontak akun, dan preferensi studio utama Anda."
         titleId="profile-heading"
+        backHref="/account"
+        backLabel="Kembali ke Beranda"
         context={
           <div className="flex flex-wrap items-center gap-2">
             {isInternal && (
@@ -314,7 +319,7 @@ export function ProfileView() {
       </section>
 
       {/* Quick Navigation Hub */}
-      <section className="grid gap-4 sm:grid-cols-3">
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Link
           href={kycHref}
           className="group rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card transition hover:border-dd-forest/40 no-underline"
@@ -327,6 +332,26 @@ export function ProfileView() {
           </div>
           <strong className="mt-3 block text-sm font-semibold text-dd-ink">Verifikasi Identitas Akun</strong>
           <p className="mt-1 text-xs text-dd-muted">Dokumen identitas resmi & selfie akun.</p>
+        </Link>
+
+        <Link
+          href="/orders"
+          className="group rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card transition hover:border-dd-forest/40 no-underline"
+        >
+          <div className="flex items-center justify-between">
+            <CreditCard className="size-5 text-dd-forest group-hover:scale-105 transition-transform" />
+            {badges.actionableOrdersCount > 0 ? (
+              <span className="rounded-full bg-dd-brass px-2 py-0.5 text-[10px] font-bold text-white shadow-xs">
+                {badges.actionableOrdersCount} perlu tindakan
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 text-xs font-semibold text-dd-forest">
+                Buka <ChevronRight className="size-3.5" />
+              </span>
+            )}
+          </div>
+          <strong className="mt-3 block text-sm font-semibold text-dd-ink">Pesanan Saya</strong>
+          <p className="mt-1 text-xs text-dd-muted">Riwayat transaksi & status pembayaran transfer.</p>
         </Link>
 
         <Link

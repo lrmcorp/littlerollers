@@ -39,6 +39,7 @@ import { BrandMark } from './components/public/brand-mark';
 import {
   isCustomerCatalogPath,
   isCustomerOnlySession,
+  isInstructorOnlySession,
   isPublicExperiencePath,
 } from '@/lib/session-audience';
 
@@ -83,7 +84,9 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
   const isDetailPath = Boolean(
     currentPage && currentPage.href !== '/workspace' && pathname !== currentPage.href,
   );
-  const canViewAllBranches = Boolean(session?.capabilities.includes('branch:all'));
+  const customerOnly = isCustomerOnlySession(session);
+  const instructorOnly = Boolean(!customerOnly && isInstructorOnlySession(session));
+  const canViewAllBranches = Boolean(!instructorOnly && session?.capabilities.includes('branch:all'));
   const primaryRole = session?.roles.find((role) => role !== 'CUSTOMER');
   const activeScopeLabel = context?.activeBranch
     ? context.activeBranch.name
@@ -93,7 +96,7 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
         ? 'Cabang assignment'
         : 'Scope belum tersedia';
   const canViewAssignedBranches = Boolean(
-    !canViewAllBranches && (session?.branches.length ?? 0) > 1,
+    !instructorOnly && !canViewAllBranches && (session?.branches.length ?? 0) > 1,
   );
   const aggregateBranchLabel = canViewAllBranches
     ? 'Semua cabang'
@@ -160,7 +163,6 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
     };
   }, [profileOpen]);
   const customerBadges = useCustomerBadges();
-  const customerOnly = isCustomerOnlySession(session);
   const customerCatalog = customerOnly && isCustomerCatalogPath(pathname);
   const queueCounts = useQueueCounts(
     Boolean(session) && !customerOnly && !isPublicExperiencePath(pathname),
@@ -215,10 +217,7 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
               >
                 {CUSTOMER_PRIMARY_NAVIGATION.map((item) => {
                   const selected = isCustomerNavigationActive(pathname, item.href);
-                  const locked = Boolean(item.requiresApproval && !approved);
-                  const href = locked
-                    ? `/account/verification?returnTo=${encodeURIComponent(item.href)}`
-                    : item.href;
+                  const href = item.href;
                   const showOrderBadge =
                     item.href === '/orders' && customerBadges.actionableOrdersCount > 0;
                   const showBookingBadge =
@@ -228,7 +227,7 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
                       key={item.href}
                       href={href}
                       aria-current={!mobileOpen && selected ? 'page' : undefined}
-                      aria-label={locked ? `${item.label}, memerlukan verifikasi` : item.label}
+                      aria-label={item.label}
                       className={`inline-flex min-h-10 items-center gap-1.5 rounded-dd-md px-3 text-xs font-semibold no-underline xl:text-sm ${
                         selected
                           ? 'bg-dd-forest text-white shadow-dd-soft'
@@ -246,7 +245,6 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
                           {customerBadges.upcomingBookingsCount}
                         </span>
                       )}
-                      {locked && <LockKeyhole className="size-3" aria-hidden="true" />}
                     </Link>
                   );
                 })}
@@ -321,24 +319,16 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
                     </div>
                     {CUSTOMER_ACCOUNT_NAVIGATION.map((item) => {
                       const Icon = item.icon;
-                      const locked = Boolean(item.requiresApproval && !approved);
                       return (
                         <Link
                           key={item.href}
-                          href={
-                            locked
-                              ? `/account/verification?returnTo=${encodeURIComponent(item.href)}`
-                              : item.href
-                          }
+                          href={item.href}
                           onClick={() => setProfileOpen(false)}
-                          aria-label={locked ? `${item.label}, memerlukan verifikasi` : item.label}
+                          aria-label={item.label}
                           className="flex min-h-10 items-center gap-2 rounded-dd-md px-3 text-sm font-semibold text-dd-ink no-underline hover:bg-dd-surface-muted"
                         >
                           <Icon className="size-4" aria-hidden="true" />
                           <span className="flex-1">{item.label}</span>
-                          {locked && (
-                            <LockKeyhole className="size-3.5 text-dd-muted" aria-hidden="true" />
-                          )}
                         </Link>
                       );
                     })}
@@ -512,7 +502,7 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
               >
                 <Search className="size-[18px]" />
               </IconButton>
-              {session && (
+              {session && (!instructorOnly || session.branches.length > 1) && (
                 <div
                   className="!hidden max-w-[220px] md:!block"
                   title={branchLocked ? lockedBranchHint : undefined}
@@ -628,7 +618,7 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
               </div>
             </div>
           </div>
-          {session && (
+          {session && (!instructorOnly || session.branches.length > 1) && (
             <div
               className="border-t border-dd-line px-4 py-2 md:hidden"
               title={branchLocked ? lockedBranchHint : undefined}

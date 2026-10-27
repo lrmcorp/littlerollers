@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Timetable kelas, isi jadwal ke depan</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Poppins:wght@500;600&display=swap">
+<style>
+body { margin: 0; font-family: "DM Sans", system-ui, sans-serif; }
+button, a, input, select { font-family: inherit; }
+</style>
+</helmet>
+
+<div style="width: 1280px; height: 1060px; box-sizing: border-box; background: #f4f2ec; display: flex; flex-direction: column; overflow: hidden">
+
+  <header style="background: #ffffff; border-bottom: 1px solid #827c6a; padding: 14px 24px; flex-shrink: 0; display: flex; align-items: center; justify-content: space-between">
+    <div style="display: flex; flex-direction: column; gap: 2px">
+      <h1 style="margin: 0; font-family: Poppins, sans-serif; font-weight: 600; font-size: 20px; color: #17231e">Timetable kelas</h1>
+      <span style="font-size: 15px; color: #607069">Daily Dose Muara Karang</span>
+    </div>
+    <span style="font-size: 15px; color: #607069">Senin, 26 Okt 2026</span>
+  </header>
+
+  <div style="flex: 1; overflow: hidden; padding: 20px 24px; display: flex; flex-direction: column; gap: 16px">
+
+    <section style="background: #faeceb; border-left: 4px solid #9b3d38; border-radius: 12px; padding: 16px 20px; display: flex; align-items: center; gap: 24px; flex-shrink: 0">
+      <div style="flex: 1; display: flex; flex-direction: column; gap: 4px">
+        <span style="font-size: 18px; line-height: 25px; font-weight: 600; color: #7d2f2b">Empat minggu ke depan belum ada kelas sama sekali.</span>
+        <span style="font-size: 16px; line-height: 23px; color: #7d2f2b">Selama kosong, pelanggan tidak bisa memesan apa pun dan paket yang sudah dibeli tidak bisa dipakai. Jadwal terakhir dibuat 9 Okt 2026.</span>
+      </div>
+      <button type="button" style="min-height: 48px; padding: 0 22px; background: #9b3d38; color: #ffffff; border: none; border-radius: 10px; font-size: 16px; font-weight: 500; cursor: pointer; white-space: nowrap">Isi pakai jadwal rutin</button>
+    </section>
+
+    <section style="display: flex; align-items: center; gap: 10px; flex-shrink: 0">
+      <sc-for list="{{weeks}}" as="w" hint-placeholder-count="5">
+        <div style="{{w.style}}">
+          <span style="font-size: 14px; color: {{w.labelColor}}">{{w.range}}</span>
+          <span style="font-size: 16px; font-weight: 600; color: {{w.countColor}}">{{w.count}}</span>
+        </div>
+      </sc-for>
+    </section>
+
+    <div style="flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 20px">
+
+      <section style="background: #ffffff; border: 1px solid #827c6a; border-radius: 14px; display: flex; flex-direction: column; overflow: hidden">
+
+        <div style="padding: 14px 18px; border-bottom: 1px solid #827c6a; display: flex; align-items: center; justify-content: space-between; gap: 16px">
+          <div style="display: flex; align-items: center; gap: 12px">
+            <button type="button" aria-label="Minggu sebelumnya" style="width: 40px; height: 40px; border: 1.5px solid #827c6a; border-radius: 8px; background: #ffffff; cursor: pointer; color: #24483a; display: flex; align-items: center; justify-content: center">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>
+            </button>
+            <span style="font-family: Poppins, sans-serif; font-weight: 600; font-size: 17px; color: #17231e">26 Okt sampai 1 Nov 2026</span>
+            <button type="button" aria-label="Minggu berikutnya" style="width: 40px; height: 40px; border: 1.5px solid #827c6a; border-radius: 8px; background: #ffffff; cursor: pointer; color: #24483a; display: flex; align-items: center; justify-content: center">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg>
+            </button>
+          </div>
+          <span style="font-size: 15px; color: #607069">7 kelas minggu ini</span>
+        </div>
+
+        <div style="flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 1px; background: #827c6a; overflow: hidden">
+          <sc-for list="{{days}}" as="d" hint-placeholder-count="7">
+            <div style="background: #ffffff; padding: 10px 8px; display: flex; flex-direction: column; gap: 8px; overflow: hidden">
+              <div style="display: flex; flex-direction: column; gap: 1px">
+                <span style="font-size: 13px; font-weight: 700; letter-spacing: 0.04em; color: #607069">{{d.name}}</span>
+                <span style="font-size: 15px; font-weight: 600; color: #17231e">{{d.date}}</span>
+              </div>
+              <sc-for list="{{d.classes}}" as="c" hint-placeholder-count="2">
+                <div style="background: #eceadf; border-left: 3px solid #396552; border-radius: 6px; padding: 7px 8px; display: flex; flex-direction: column; gap: 1px">
+                  <span style="font-family: Poppins, sans-serif; font-weight: 600; font-size: 14px; color: #17231e">{{c.time}}</span>
+                  <span style="font-size: 13px; line-height: 17px; color: #17231e">{{c.type}}</span>
+                  <span style="font-size: 13px; color: #607069">{{c.who}}</span>
+                  <span style="font-size: 13px; color: #607069">{{c.fill}}</span>
+                </div>
+              </sc-for>
+              <span style="{{d.emptyStyle}}">Belum ada kelas</span>
+              <button type="button" style="margin-top: auto; min-height: 36px; border: 1.5px dashed #827c6a; border-radius: 6px; background: #ffffff; color: #24483a; font-size: 14px; cursor: pointer">Tambah</button>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="padding: 14px 18px; border-top: 1px solid #827c6a; display: flex; gap: 12px">
+          <button type="button" style="flex: 1; min-height: 52px; background: #396552; color: #ffffff; border: none; border-radius: 10px; font-size: 16px; font-weight: 500; cursor: pointer">Salin minggu ini ke minggu depan</button>
+          <button type="button" style="flex: 1; min-height: 52px; background: #ffffff; color: #17231e; border: 1.5px solid #827c6a; border-radius: 10px; font-size: 16px; font-weight: 500; cursor: pointer">Salin ke empat minggu ke depan</button>
+        </div>
+
+      </section>
+
+      <aside style="background: #ffffff; border: 2px solid #396552; border-radius: 14px; padding: 16px 18px; display: flex; flex-direction: column; gap: 11px; overflow: hidden">
+
+        <div style="display: flex; flex-direction: column">
+          <h2 style="margin: 0 0 2px; font-family: Poppins, sans-serif; font-weight: 600; font-size: 18px; color: #17231e">Jadwal rutin</h2>
+          <span style="font-size: 15px; line-height: 22px; color: #607069">Satu kali isi, kelasnya dibuat berulang sampai tanggal akhir.</span>
+        </div>
+
+        <label style="display: flex; flex-direction: column; gap: 6px">
+          <span style="font-size: 15px; font-weight: 500; color: #17231e">Hari</span>
+          <span style="display: flex; gap: 6px">
+            <sc-for list="{{dayPicks}}" as="p" hint-placeholder-count="7">
+              <span style="{{p.style}}">{{p.label}}</span>
+            </sc-for>
+          </span>
+        </label>
+
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+          <label style="display: flex; flex-direction: column; gap: 6px">
+            <span style="font-size: 15px; font-weight: 500; color: #17231e">Jam mulai</span>
+            <input type="text" value="08.00" style="min-height: 46px; border: 1.5px solid #827c6a; border-radius: 8px; padding: 0 12px; font-size: 16px; color: #17231e; background: #ffffff">
+          </label>
+          <label style="display: flex; flex-direction: column; gap: 6px">
+            <span style="font-size: 15px; font-weight: 500; color: #17231e">Studio</span>
+            <select style="min-height: 46px; border: 1.5px solid #827c6a; border-radius: 8px; padding: 0 10px; font-size: 16px; color: #17231e; background: #ffffff">
+              <option>Studio 1</option>
+              <option>Studio 2</option>
+            </select>
+          </label>
+        </div>
+
+        <label style="display: flex; flex-direction: column; gap: 6px">
+          <span style="font-size: 15px; font-weight: 500; color: #17231e">Tipe kelas</span>
+          <select style="min-height: 46px; border: 1.5px solid #827c6a; border-radius: 8px; padding: 0 10px; font-size: 16px; color: #17231e; background: #ffffff">
+            <option>Private Group, 4 orang</option>
+            <option>Private Class, 1 orang</option>
+            <option>Duo Class, 2 orang</option>
+          </select>
+        </label>
+
+        <label style="display: flex; flex-direction: column; gap: 6px">
+          <span style="font-size: 15px; font-weight: 500; color: #17231e">Instruktur</span>
+          <select style="min-height: 46px; border: 1.5px solid #827c6a; border-radius: 8px; padding: 0 10px; font-size: 16px; color: #17231e; background: #ffffff">
+            <option>Amel</option>
+            <option>Clara</option>
+            <option>Dina</option>
+          </select>
+        </label>
+
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+          <label style="display: flex; flex-direction: column; gap: 6px">
+            <span style="font-size: 15px; font-weight: 500; color: #17231e">Mulai tanggal</span>
+            <input type="text" value="2 Nov 2026" style="min-height: 46px; border: 1.5px solid #827c6a; border-radius: 8px; padding: 0 12px; font-size: 16px; color: #17231e; background: #ffffff">
+          </label>
+          <label style="display: flex; flex-direction: column; gap: 6px">
+            <span style="font-size: 15px; font-weight: 500; color: #17231e">Sampai tanggal</span>
+            <input type="text" value="31 Jan 2027" style="min-height: 46px; border: 1.5px solid #827c6a; border-radius: 8px; padding: 0 12px; font-size: 16px; color: #17231e; background: #ffffff">
+          </label>
+        </div>
+
+        <div style="margin-top: auto; display: flex; flex-direction: column; gap: 10px">
+          <div style="background: #eceadf; border-radius: 10px; padding: 11px 14px">
+            <span style="font-size: 16px; line-height: 23px; color: #17231e">Akan membuat <strong style="font-weight: 600">39 kelas</strong>. Tidak ada yang bertabrakan.</span>
+          </div>
+          <button type="button" style="min-height: 52px; background: #396552; color: #ffffff; border: none; border-radius: 10px; font-size: 17px; font-weight: 500; cursor: pointer">Buat 39 kelas</button>
+          <span style="font-size: 14px; line-height: 20px; color: #607069">Kelas yang sudah dipesan tidak akan tertimpa.</span>
+        </div>
+
+      </aside>
+
+    </div>
+
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1060}}'>
+// Week chips carry the real shape of the problem: this week has classes,
+// every week after it is empty. The grid shows the real 26 Oct schedule.
+class Component extends DCLogic {
+  renderVals() {
+    const chip = (active, empty) =>
+      'flex: 1; min-height: 56px; border-radius: 10px; padding: 8px 12px; display: flex; flex-direction: column; gap: 1px; justify-content: center; '
+      + (active
+          ? 'background: #ffffff; border: 2px solid #396552;'
+          : empty
+            ? 'background: #faeceb; border: 1px solid #9b3d38;'
+            : 'background: #ffffff; border: 1px solid #827c6a;');
+
+    const weeks = [
+      { range: '26 Okt sampai 1 Nov', count: '7 kelas', active: true, empty: false },
+      { range: '2 sampai 8 Nov', count: 'Kosong', active: false, empty: true },
+      { range: '9 sampai 15 Nov', count: 'Kosong', active: false, empty: true },
+      { range: '16 sampai 22 Nov', count: 'Kosong', active: false, empty: true },
+      { range: '23 sampai 29 Nov', count: 'Kosong', active: false, empty: true }
+    ].map(w => ({
+      range: w.range,
+      count: w.count,
+      style: chip(w.active, w.empty),
+      labelColor: w.empty ? '#7d2f2b' : '#607069',
+      countColor: w.empty ? '#7d2f2b' : '#17231e'
+    }));
+
+    const hidden = 'display: none';
+    const shown = 'font-size: 13px; line-height: 18px; color: #607069';
+
+    const days = [
+      { name: 'SEN', date: '26', classes: [
+        { time: '08.00', type: 'Private Group', who: 'Amel', fill: '3 dari 4' },
+        { time: '09.00', type: 'Private Group', who: 'Clara', fill: '4 dari 4' },
+        { time: '17.00', type: 'Private Group', who: 'Dina', fill: '1 dari 4' }
+      ] },
+      { name: 'SEL', date: '27', classes: [] },
+      { name: 'RAB', date: '28', classes: [
+        { time: '08.00', type: 'Private Group', who: 'Amel', fill: '2 dari 4' },
+        { time: '18.00', type: 'Private Group', who: 'Dina', fill: '0 dari 4' }
+      ] },
+      { name: 'KAM', date: '29', classes: [] },
+      { name: 'JUM', date: '30', classes: [
+        { time: '08.00', type: 'Private Group', who: 'Clara', fill: '1 dari 4' },
+        { time: '17.00', type: 'Duo Class', who: 'Amel', fill: '0 dari 2' }
+      ] },
+      { name: 'SAB', date: '31', classes: [] },
+      { name: 'MIN', date: '1', classes: [] }
+    ].map(d => Object.assign({}, d, {
+      emptyStyle: d.classes.length ? hidden : shown
+    }));
+
+    // Three letters, because Senin, Selasa and Sabtu all start with S.
+    const dayPicks = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'].map((label, i) => {
+      const on = i === 0 || i === 2 || i === 4;
+      return {
+        label,
+        style: 'flex: 1; min-height: 46px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 14px; font-weight: 500; '
+          + (on
+              ? 'background: #396552; color: #ffffff; border: 1.5px solid #396552;'
+              : 'background: #ffffff; color: #17231e; border: 1.5px solid #827c6a;')
+      };
+    });
+
+    return { weeks, days, dayPicks };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Bayar dan unggah bukti</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Poppins:wght@500;600&display=swap">
+<style>
+body { margin: 0; font-family: "DM Sans", system-ui, sans-serif; }
+a { color: #396552; }
+a:hover { color: #24483a; }
+button, a { font-family: inherit; }
+</style>
+</helmet>
+
+<div style="width: 390px; height: 1120px; box-sizing: border-box; background: #f3f6f4; display: flex; flex-direction: column; overflow: hidden">
+
+  <header style="background: #ffffff; border-bottom: 1px solid #768b84; padding: 8px 12px; display: flex; align-items: center; gap: 4px; flex-shrink: 0">
+    <a href="Paket.dc.html" aria-label="Kembali ke daftar paket" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: #17231e">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 19l-7-7 7-7"></path></svg>
+    </a>
+    <h1 style="margin: 0; font-family: Poppins, sans-serif; font-weight: 600; font-size: 20px; line-height: 26px; color: #17231e">Bayar paket</h1>
+  </header>
+
+  <div style="flex: 1; overflow: hidden; padding: 20px; display: flex; flex-direction: column; gap: 18px">
+
+    <section style="background: #ffffff; border: 1px solid #768b84; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 6px">
+      <span style="font-size: 13px; font-weight: 700; letter-spacing: 0.06em; color: #607069">PAKET YANG DIBELI</span>
+      <span style="font-family: Poppins, sans-serif; font-weight: 600; font-size: 18px; line-height: 24px; color: #17231e">10 Session Private Group</span>
+      <span style="font-size: 15px; line-height: 22px; color: #607069">10 sesi, berlaku 75 hari, Daily Dose Muara Karang</span>
+    </section>
+
+    <section style="background: #ffffff; border: 2px solid #396552; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 14px">
+      <div style="display: flex; flex-direction: column; gap: 4px">
+        <span style="font-size: 13px; font-weight: 700; letter-spacing: 0.06em; color: #607069">LANGKAH 1, TRANSFER TEPAT SEJUMLAH INI</span>
+        <span style="font-family: Poppins, sans-serif; font-weight: 600; font-size: 30px; line-height: 38px; color: #17231e">Rp 2.000.317</span>
+        <span style="font-size: 15px; line-height: 22px; color: #8a5b17">Tiga angka terakhir adalah kode khusus pesanan kamu. Transfer harus pas sampai angka terakhir supaya terdeteksi otomatis.</span>
+      </div>
+      <button type="button" style="width: 100%; min-height: 48px; background: #ffffff; color: #396552; border: 1.5px solid #768b84; border-radius: 12px; font-size: 16px; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"></rect><path d="M5 15V5a2 2 0 0 1 2-2h8"></path></svg>
+        Salin nominal
+      </button>
+      <div style="border-top: 1px solid #768b84; padding-top: 14px; display: flex; flex-direction: column; gap: 4px">
+        <span style="font-size: 15px; line-height: 22px; color: #607069">Rekening tujuan</span>
+        <span style="font-size: 18px; line-height: 26px; font-weight: 500; color: #17231e">[nama bank] [nomor rekening]</span>
+        <span style="font-size: 15px; line-height: 22px; color: #607069">Atas nama [nama pemilik rekening]</span>
+      </div>
+      <button type="button" style="width: 100%; min-height: 48px; background: #ffffff; color: #396552; border: 1.5px solid #768b84; border-radius: 12px; font-size: 16px; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"></rect><path d="M5 15V5a2 2 0 0 1 2-2h8"></path></svg>
+        Salin nomor rekening
+      </button>
+    </section>
+
+    <section style="background: #ffffff; border: 1px solid #768b84; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 12px">
+      <span style="font-size: 13px; font-weight: 700; letter-spacing: 0.06em; color: #607069">LANGKAH 2, UNGGAH BUKTI TRANSFER</span>
+      <button type="button" style="width: 100%; min-height: 110px; background: #f8faf9; border: 1.5px dashed #768b84; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; cursor: pointer; color: #396552">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4"></path><path d="M7 9l5-5 5 5"></path><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"></path></svg>
+        <span style="font-size: 16px; font-weight: 500">Ambil foto atau pilih dari galeri</span>
+      </button>
+      <span style="font-size: 15px; line-height: 22px; color: #607069">Format JPG, PNG, atau PDF, maksimal 5 MB.</span>
+      <button type="button" style="width: 100%; min-height: 52px; background: #396552; color: #ffffff; border: none; border-radius: 12px; font-size: 17px; font-weight: 500; cursor: pointer">Kirim bukti transfer</button>
+    </section>
+
+    <section style="background: #fff4da; border-left: 4px solid #8a5b17; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 6px">
+      <span style="font-family: Poppins, sans-serif; font-weight: 600; font-size: 17px; line-height: 24px; color: #6d4712">Batas waktu transfer</span>
+      <span style="font-size: 16px; line-height: 24px; color: #6d4712">Selesaikan sebelum Selasa, 27 Okt 2026 pukul 08.30 WIB. Lewat dari itu, pesanan dibatalkan dan kamu bisa memesan ulang.</span>
+    </section>
+
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1120}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

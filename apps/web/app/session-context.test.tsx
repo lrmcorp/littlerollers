@@ -15,6 +15,8 @@ import {
   useSessionContext,
 } from './session-context';
 import { setSessionHint, type SessionClient, type WebSession } from '@/api-clients/session-client';
+import type { ClassSlotClient } from '@/api-clients/class-slot-client';
+import type { AvailabilityClient } from '@/api-clients/availability-client';
 
 const navigation = vi.hoisted(() => ({ pathname: '/workspace', replace: vi.fn() }));
 vi.mock('next/navigation', () => ({
@@ -73,8 +75,8 @@ describe('capability-aware session shell', () => {
   beforeEach(() => {
     navigation.pathname = '/workspace';
     navigation.replace.mockReset();
-    sessionStorage.clear();
-    localStorage.clear();
+    if (typeof sessionStorage !== 'undefined') sessionStorage.clear();
+    if (typeof localStorage !== 'undefined') localStorage.clear();
   });
 
   it('loads authoritative context, filters navigation and requires explicit branch selection', async () => {
@@ -399,9 +401,9 @@ describe('capability-aware session shell', () => {
     await waitFor(() => expect(navigation.replace).toHaveBeenCalledWith('/identity-verifications'));
   });
 
-  it('routes instructor/coach-only accounts to their class schedule instead of the operational workspace', () => {
-    expect(defaultSessionDestination(instructorSession)).toBe('/workspace/classes');
-    expect(canAccessSessionPath(instructorSession, '/workspace')).toBe(false);
+  it('routes instructor/coach-only accounts to their today workspace instead of the general operational workspace', () => {
+    expect(defaultSessionDestination(instructorSession)).toBe('/workspace');
+    expect(canAccessSessionPath(instructorSession, '/workspace')).toBe(true);
     expect(canAccessSessionPath(instructorSession, '/workspace/classes')).toBe(true);
     expect(canAccessSessionPath(instructorSession, '/workspace/payments')).toBe(false);
   });
@@ -430,29 +432,39 @@ describe('capability-aware session shell', () => {
     );
     const navigationRegion = await screen.findByRole('navigation', { name: 'Navigasi utama' });
     expect(within(navigationRegion).getByText('Area instruktur')).toBeVisible();
-    expect(within(navigationRegion).getByRole('link', { name: 'Kelas' })).toHaveAttribute(
+    expect(within(navigationRegion).getByRole('link', { name: 'Jadwal Saya' })).toHaveAttribute(
       'href',
       '/workspace/classes',
+    );
+    expect(within(navigationRegion).getByRole('link', { name: 'Hari Ini' })).toHaveAttribute(
+      'href',
+      '/workspace',
     );
     expect(within(navigationRegion).queryByRole('link', { name: 'Dashboard' })).not.toBeInTheDocument();
     expect(within(navigationRegion).queryByText('Penjualan & Keuangan')).not.toBeInTheDocument();
     expect(within(navigationRegion).queryByText('Member & Pelanggan')).not.toBeInTheDocument();
   });
 
-  it('renders the instructor-only fallback view instead of branch operational data', async () => {
-    navigation.pathname = '/workspace/classes';
+  it('renders the instructor today view instead of branch operational data', async () => {
+    navigation.pathname = '/workspace';
     const client: SessionClient = { me: vi.fn().mockResolvedValue(instructorSession), logout: vi.fn() };
+    const mockSlotClient = {
+      discover: vi.fn().mockResolvedValue({ slots: [], classTypes: [], studios: [] }),
+    } as unknown as ClassSlotClient;
+    const mockAvailabilityClient = {
+      list: vi.fn().mockResolvedValue({ items: [] }),
+    } as unknown as AvailabilityClient;
     render(
       <SessionProvider client={client}>
-        <Dashboard />
+        <Dashboard slotClient={mockSlotClient} availabilityClient={mockAvailabilityClient} />
       </SessionProvider>,
     );
     expect(
-      await screen.findByRole('heading', { name: 'Selamat datang, Coach Sarah' }),
+      await screen.findByRole('heading', { name: /Halo, Coach/ }),
     ).toBeVisible();
     expect(
-      screen.getByRole('link', { name: /Lihat Jadwal Kelas Saya/ }),
-    ).toHaveAttribute('href', '/workspace/classes');
+      screen.getByRole('link', { name: /Scan QR presensi saya/ }),
+    ).toHaveAttribute('href', '/check-in-scanner');
     expect(screen.queryByText('Pilih cabang aktif di bagian atas', { exact: false })).not.toBeInTheDocument();
   });
 
@@ -477,13 +489,13 @@ describe('capability-aware session shell', () => {
         '/health',
       ),
     ).toBe(true);
-    expect(defaultSessionDestination(customerSession)).toBe('/classes#schedule');
+    expect(defaultSessionDestination(customerSession)).toBe('/account');
     expect(
       defaultSessionDestination({
         ...customerSession,
         identityVerificationStatus: 'APPROVED',
       }),
-    ).toBe('/classes#schedule');
+    ).toBe('/account');
     expect(defaultSessionDestination(adminSession)).toBe('/workspace');
     expect(canAccessSessionPath(adminSession, '/bookings')).toBe(false);
     expect(canAccessSessionPath(adminSession, '/bookings/booking-1')).toBe(false);
@@ -538,7 +550,7 @@ describe('capability-aware session shell', () => {
       '/purchases?package=one',
     );
     expect(resolveSessionDestination(customerSession, '//evil.example/path')).toBe(
-      '/classes#schedule',
+      '/account',
     );
     expect(
       resolveSessionDestination(
@@ -631,8 +643,8 @@ describe('capability-aware session shell', () => {
     const customerNav = await screen.findByRole('navigation', { name: 'Navigasi customer' });
     expect(
       customerNav.querySelector<HTMLAnchorElement>('a[aria-current="page"]'),
-    ).toHaveTextContent('Dashboard');
-    expect(screen.getAllByRole('link', { name: 'Dashboard' })[0]).toHaveAttribute(
+    ).toHaveTextContent('Beranda');
+    expect(screen.getAllByRole('link', { name: 'Beranda' })[0]).toHaveAttribute(
       'href',
       '/account',
     );

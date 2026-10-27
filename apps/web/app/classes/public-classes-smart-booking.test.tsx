@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PublicClassesView } from '@/classes/public-classes-view';
@@ -8,6 +8,7 @@ import type { LedgerClient, LedgerBalance } from '@/api-clients/ledger-client';
 const session = vi.hoisted(() => ({
   displayName: 'Nadia Customer',
   roles: ['CUSTOMER'],
+  identityVerificationStatus: 'APPROVED',
   user: { verificationStatus: 'APPROVED' },
 }));
 
@@ -200,5 +201,103 @@ describe('Customer Smart Booking on Public Classes Catalog', () => {
     // Now Private Pilates should be filtered out
     expect(screen.getByText('Group Reformer')).toBeVisible();
     expect(screen.queryByText('Private Pilates')).not.toBeInTheDocument();
+  });
+
+  it('opens confirmation bottom sheet in-place when "Lanjutkan booking" is clicked (3-Tap Flow)', async () => {
+    const itemsList = [
+      {
+        id: 'slot-tap2',
+        branchId: branchKemang.id,
+        classTypeId: typeGroup.id,
+        classType: typeGroup,
+        startAt: '2026-07-25T03:00:00.000Z',
+        endAt: '2026-07-25T03:50:00.000Z',
+        timezone: branchKemang.timezone,
+        status: 'PUBLISHED',
+        capacity: 6,
+        available: 4,
+        canBook: true,
+      },
+    ];
+
+    const client: PublicClassCatalogClient = {
+      list: vi.fn().mockImplementation((input: { branchId?: string }) => {
+        if (input?.branchId) {
+          return Promise.resolve({
+            branches: [branchKemang],
+            range: { from: '2026-07-23T00:00:00.000Z', until: '2026-08-06T00:00:00.000Z' },
+            items: itemsList,
+          });
+        }
+        return Promise.resolve({
+          branches: [branchKemang],
+          items: [],
+          range: { from: '', until: '' },
+        });
+      }),
+    };
+
+    const mockLedgerClient: LedgerClient = {
+      list: vi.fn().mockResolvedValue({
+        items: [matchingPackage],
+        summary: { packageCount: 1, ledgerBalance: 5, reserved: 0, available: 5 },
+        page: {},
+      }),
+      detail: vi.fn(),
+      listAdjustments: vi.fn(),
+      getAdjustment: vi.fn(),
+      requestAdjustment: vi.fn(),
+      decideAdjustment: vi.fn(),
+    };
+
+    const mockBookingClient = {
+      create: vi.fn().mockResolvedValue({
+        id: 'bk-tap3',
+        bookingNumber: 'BK-3TAP-SUCCESS',
+        status: 'BOOKED',
+        createdAt: new Date(),
+        version: 1,
+      }),
+      list: vi.fn(),
+      get: vi.fn(),
+      cancel: vi.fn(),
+      reschedule: vi.fn(),
+      requestAdjustment: vi.fn(),
+      listAdjustments: vi.fn(),
+      getAdjustment: vi.fn(),
+      decideAdjustment: vi.fn(),
+      getCheckInPass: vi.fn(),
+      verifyAttendance: vi.fn(),
+    };
+
+    render(
+      <PublicClassesView
+        client={client}
+        ledgerClient={mockLedgerClient}
+        bookingClient={mockBookingClient as any}
+      />,
+    );
+
+    // Ensure customer package is loaded and matching badge is visible
+    expect(await screen.findByText(/Paket Aktif:/)).toBeVisible();
+    expect(await screen.findByText(/Paket Sesuai \(5 sesi\)/)).toBeVisible();
+
+    // Tap 2: Click "Lanjutkan booking"
+    const continueBtn = screen.getByRole('link', { name: 'Lanjutkan booking' });
+    fireEvent.click(continueBtn);
+
+    // Bottom sheet opens in-place
+    expect(await screen.findByRole('dialog', { name: 'Group Reformer' })).toBeVisible();
+    expect(screen.getByText('Konfirmasi Booking')).toBeVisible();
+    expect(screen.getByText('Daily Dose Kemang')).toBeVisible();
+
+    // Tap 3: Click "Konfirmasi booking sekarang"
+    const confirmBtn = screen.getByRole('button', { name: 'Konfirmasi booking sekarang' });
+    await userEvent.click(confirmBtn);
+
+    // Booking success in-place
+    expect(await screen.findByText('Booking berhasil')).toBeVisible();
+    expect(screen.getByText('BK-3TAP-SUCCESS')).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Lihat QR Pass' })).toBeVisible();
   });
 });

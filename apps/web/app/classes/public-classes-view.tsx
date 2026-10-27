@@ -2,7 +2,16 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { AlertCircle, Check, MapPin, Ticket } from 'lucide-react';
+import {
+  AlertCircle,
+  Check,
+  ChevronDown,
+  ChevronLeft,
+  MapPin,
+  SlidersHorizontal,
+  Ticket,
+  X,
+} from 'lucide-react';
 import {
   browserPublicClassCatalogClient,
   publicCatalogFailure,
@@ -15,14 +24,15 @@ import {
   type LedgerBalance,
   type LedgerClient,
 } from '@/api-clients/ledger-client';
+import {
+  browserBookingClient,
+  type BookingClient,
+} from '@/api-clients/booking-client';
+import { BookingConfirmationSheet } from '../components/booking/booking-confirmation-sheet';
 import { PublicFooter } from '../components/public/public-footer';
 import { PublicHeader } from '../components/public/public-header';
-import { PublicPageHero, PublicSectionHeading } from '../components/public/public-page';
-import { publicField, publicPrimaryButton, publicSecondaryButton } from '../components/public/public-styles';
 import { useSessionContext } from '../session-context';
-import { SearchSelect } from '../components/forms';
 import { isCustomerOnlySession } from '@/lib/session-audience';
-import { timezoneLabel } from './class-slot-presenters';
 
 function dayKey(value: string, timezone: string) {
   return new Intl.DateTimeFormat('en-CA', {
@@ -62,9 +72,11 @@ function durationLabel(startAt: string, endAt: string) {
 export function PublicClassesView({
   client = browserPublicClassCatalogClient,
   ledgerClient = browserLedgerClient,
+  bookingClient = browserBookingClient,
 }: {
   client?: PublicClassCatalogClient;
   ledgerClient?: LedgerClient;
+  bookingClient?: BookingClient;
 }) {
   const sessionContext = useSessionContext();
   const session = sessionContext?.session;
@@ -82,6 +94,10 @@ export function PublicClassesView({
   const [message, setMessage] = useState('');
   const [customerPackages, setCustomerPackages] = useState<LedgerBalance[]>([]);
   const [onlyEligible, setOnlyEligible] = useState(false);
+  const [isStudioSheetOpen, setIsStudioSheetOpen] = useState(false);
+  const [isTypeSheetOpen, setIsTypeSheetOpen] = useState(false);
+  const [bookingSlot, setBookingSlot] = useState<PublicClassSlot | null>(null);
+  const [isBookingSheetOpen, setIsBookingSheetOpen] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -142,7 +158,9 @@ export function PublicClassesView({
         );
         let savedBranchId: string | null = null;
         try {
-          savedBranchId = window.localStorage.getItem('dd_last_selected_branch');
+          if (typeof window !== 'undefined' && typeof window.localStorage !== 'undefined') {
+            savedBranchId = window.localStorage.getItem('dd_last_selected_branch');
+          }
         } catch {}
         const preferredBranch =
           requestedBranch ??
@@ -194,6 +212,15 @@ export function PublicClassesView({
       setBranches(result.branches);
       setSlots(result.items);
       setStatus('ready');
+
+      const querySlot = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('slot') : null;
+      if (querySlot) {
+        const found = result.items.find((s) => s.id === querySlot);
+        if (found) {
+          setBookingSlot(found);
+          setIsBookingSheetOpen(true);
+        }
+      }
     } catch (error) {
       setSlots([]);
       setMessage(publicCatalogFailure(error));
@@ -204,10 +231,12 @@ export function PublicClassesView({
   const handleSelectBranch = (selectedId: string) => {
     setBranchId(selectedId);
     try {
-      if (selectedId) {
-        window.localStorage.setItem('dd_last_selected_branch', selectedId);
-      } else {
-        window.localStorage.removeItem('dd_last_selected_branch');
+      if (typeof window !== 'undefined' && typeof window.localStorage !== 'undefined') {
+        if (selectedId) {
+          window.localStorage.setItem('dd_last_selected_branch', selectedId);
+        } else {
+          window.localStorage.removeItem('dd_last_selected_branch');
+        }
       }
     } catch {}
     setSlots([]);
@@ -237,7 +266,9 @@ export function PublicClassesView({
       );
       let savedBranchId: string | null = null;
       try {
-        savedBranchId = window.localStorage.getItem('dd_last_selected_branch');
+        if (typeof window !== 'undefined' && typeof window.localStorage !== 'undefined') {
+          savedBranchId = window.localStorage.getItem('dd_last_selected_branch');
+        }
       } catch {}
       const preferredBranch =
         requestedBranch ??
@@ -287,8 +318,8 @@ export function PublicClassesView({
     const days: {
       key: string;
       label: string;
-      weekday: string;
-      dayNum: string;
+      weekdayShort: string;
+      dayNumber: string;
       count: number;
     }[] = [];
 
@@ -296,25 +327,14 @@ export function PublicClassesView({
       const d = new Date(baseDate.getTime() + i * 86_400_000);
       const key = dayKey(d.toISOString(), tz);
       const count = slots.filter((slot) => dayKey(slot.startAt, slot.timezone) === key).length;
-      const weekday = new Intl.DateTimeFormat('id-ID', { timeZone: tz, weekday: 'short' }).format(d);
-      const dayNum = new Intl.DateTimeFormat('id-ID', { timeZone: tz, day: 'numeric', month: 'short' }).format(d);
+      const weekdayShort = new Intl.DateTimeFormat('id-ID', { timeZone: tz, weekday: 'short' })
+        .format(d)
+        .replace('.', '')
+        .toUpperCase();
+      const dayNumber = new Intl.DateTimeFormat('id-ID', { timeZone: tz, day: 'numeric' }).format(d);
       const label = dateLabel(d.toISOString(), tz);
-      days.push({ key, label, weekday, dayNum, count });
+      days.push({ key, label, weekdayShort, dayNumber, count });
     }
-
-    const generatedKeys = new Set(days.map((d) => d.key));
-    slots.forEach((s) => {
-      const key = dayKey(s.startAt, s.timezone);
-      if (!generatedKeys.has(key)) {
-        generatedKeys.add(key);
-        const d = new Date(s.startAt);
-        const count = slots.filter((slot) => dayKey(slot.startAt, slot.timezone) === key).length;
-        const weekday = new Intl.DateTimeFormat('id-ID', { timeZone: tz, weekday: 'short' }).format(d);
-        const dayNum = new Intl.DateTimeFormat('id-ID', { timeZone: tz, day: 'numeric', month: 'short' }).format(d);
-        const label = dateLabel(s.startAt, tz);
-        days.push({ key, label, weekday, dayNum, count });
-      }
-    });
 
     return days;
   }, [branch, slots]);
@@ -332,522 +352,599 @@ export function PublicClassesView({
     );
   };
 
+  const hasFilterChanged = Boolean(day || classType || onlyEligible);
+
+  const handleResetFilter = () => {
+    setDay('');
+    setClassType('');
+    setOnlyEligible(false);
+    updateQuery({ date: '', classType: '' });
+  };
+
   return (
-    <div className="ed-scope min-w-0 overflow-x-clip bg-ed-cream text-ed-ink">
+    <div className="min-w-0 overflow-x-clip bg-dd-surface text-dd-ink">
       <a className="skip-link" href="#catalog-main">
         Langsung ke jadwal
       </a>
-      {!inCustomerShell && <PublicHeader variant="editorial" />}
+      {!inCustomerShell && <PublicHeader />}
 
-      <main id="catalog-main">
-        <PublicPageHero
-          eyebrow="Jadwal Daily Dose"
-          title="Bergerak sesuai ritme Anda."
-          description="Pilih studio dan temukan kelas aktif untuk dua minggu ke depan. Waktu dan kapasitas ditampilkan langsung dari sistem."
-          variant={inCustomerShell ? 'compact' : 'default'}
-        />
-        <section
-          className={inCustomerShell ? 'py-7 sm:py-10' : 'py-12 sm:py-16'}
-          id="schedule"
-          aria-labelledby="catalog-filter-title"
-        >
-          <div className="ed-wrap">
-            <PublicSectionHeading
-              eyebrow="01 — Pilih jadwal"
-              title="Kelas dua minggu ke depan"
-              titleId="catalog-filter-title"
-              description="Temukan kelas berdasarkan studio, tanggal, dan tipe latihan."
-              aside={
-                inCustomerShell ? undefined : branch ? (
-                  <p className="rounded-none border border-ed-line bg-white px-4 py-3 text-sm ">
-                    <strong className="block">{branch.name}</strong>
-                    <span className="text-ed-muted">{timezoneLabel(branch.timezone)}</span>
-                  </p>
-                ) : (
-                  <p className="text-sm text-ed-muted">Pilih studio untuk melihat jadwal kelas.</p>
-                )
-              }
-            />
+      <main id="catalog-main" className="mx-auto max-w-4xl px-4 py-4 sm:px-6 sm:py-6">
+        {/* 1. Header 56 px */}
+        <div className="flex h-14 min-h-[56px] items-center justify-between gap-3 border-b border-dd-line/60 pb-3">
+          <div className="flex items-center gap-3">
+            <Link
+              href={inCustomerShell ? '/account' : '/'}
+              aria-label={inCustomerShell ? 'Kembali ke Beranda' : 'Kembali ke situs utama'}
+              className="inline-flex size-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-dd-md border border-dd-border-interactive bg-white text-dd-forest shadow-xs transition hover:bg-dd-surface-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-dd-forest"
+            >
+              <ChevronLeft className="size-5" aria-hidden="true" />
+            </Link>
+            <h1 className="text-xl font-bold tracking-tight text-dd-ink sm:text-2xl">
+              Jadwal kelas
+            </h1>
+          </div>
+          {branch && (
+            <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-dd-forest/20 bg-dd-forest-soft px-3 py-1 text-xs font-semibold text-dd-forest">
+              <MapPin className="size-3.5" aria-hidden="true" />
+              <span>{branch.name}</span>
+            </span>
+          )}
+        </div>
 
-            {isCustomer &&
-              session?.identityVerificationStatus &&
-              session.identityVerificationStatus !== 'APPROVED' && (
-                <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-none border border-amber-800/30 bg-amber-50 p-4 text-xs sm:text-sm text-amber-900">
-                  <div className="flex items-center gap-2.5">
-                    <AlertCircle className="size-4 text-amber-800 shrink-0" />
-                    <span>
-                      Verifikasi identitas (KTP &amp; Selfie) Anda sedang ditinjau atau perlu
-                      dilengkapi sebelum sesi dapat direservasi mandiri.
-                    </span>
-                  </div>
-                  <Link
-                    href="/account/verification"
-                    className="font-semibold text-amber-900 underline shrink-0 hover:text-ed-ink"
-                  >
-                    Cek Status Verifikasi →
-                  </Link>
-                </div>
-              )}
-
-            {isCustomer && customerPackages.length > 0 && (
-              <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-none border border-ed-green/30 bg-ed-tint p-4 text-xs sm:text-sm">
-                <div className="flex items-center gap-2.5">
-                  <div className="flex size-7 shrink-0 items-center justify-center rounded-none bg-ed-mist text-ed-forest">
-                    <Ticket className="size-3.5" aria-hidden="true" />
-                  </div>
-                  <div>
-                    <span className="font-semibold text-ed-green">Paket Aktif: </span>
-                    <strong className="text-ed-ink">{customerPackages[0]!.packageName}</strong>
-                    <span className="text-ed-muted"> · {customerPackages[0]!.branchName}</span>
-                    <span className="text-ed-muted"> · Sisa </span>
-                    <strong className="text-ed-forest font-semibold">
-                      {customerPackages[0]!.available} sesi
-                    </strong>
-                    <span className="text-ed-muted">
-                      {' '}
-                      (Berlaku s/d{' '}
-                      {new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium' }).format(
-                        new Date(customerPackages[0]!.expiryAt),
-                      )}
-                      )
-                    </span>
-                  </div>
-                </div>
-                <div className="flex flex-wrap items-center gap-4">
-                  {branchId !==
-                    (customerPackages[0]?.packageBranchId || customerPackages[0]?.branchId) && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const targetBranchId =
-                          customerPackages[0]?.packageBranchId || customerPackages[0]?.branchId;
-                        if (targetBranchId) {
-                          handleSelectBranch(targetBranchId);
-                        }
-                      }}
-                      className="font-semibold text-ed-green underline hover:text-ed-forest cursor-pointer"
-                    >
-                      Buka jadwal di {customerPackages[0]!.branchName} →
-                    </button>
-                  )}
-                  <label className="inline-flex items-center gap-2 font-medium text-ed-green cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={onlyEligible}
-                      onChange={(e) => {
-                        const checked = e.target.checked;
-                        setOnlyEligible(checked);
-                        if (checked) {
-                          const targetBranchId =
-                            customerPackages[0]?.packageBranchId || customerPackages[0]?.branchId;
-                          if (targetBranchId && branchId !== targetBranchId) {
-                            handleSelectBranch(targetBranchId);
-                          }
-                        }
-                      }}
-                      className="size-4 accent-ed-green rounded-none"
-                    />
-                    <span>Hanya kelas sesuai paket saya</span>
-                  </label>
-                  <Link
-                    href="/account/packages"
-                    className="font-semibold text-ed-green hover:underline"
-                  >
-                    Kelola paket →
-                  </Link>
-                </div>
+        {/* Verifikasi Status Banner (jika login tapi belum disetujui) */}
+        {isCustomer &&
+          session?.identityVerificationStatus &&
+          session.identityVerificationStatus !== 'APPROVED' && (
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-dd-md border border-amber-800/30 bg-amber-50 p-4 text-xs sm:text-sm text-amber-900">
+              <div className="flex items-center gap-2.5">
+                <AlertCircle className="size-4 text-amber-800 shrink-0" />
+                <span>
+                  Verifikasi identitas (KTP) Anda sedang ditinjau atau perlu dilengkapi sebelum
+                  dapat reservasi mandiri.
+                </span>
               </div>
-            )}
+              <Link
+                href="/account/verification"
+                className="font-semibold text-amber-900 underline shrink-0 hover:text-dd-ink"
+              >
+                Cek Status Verifikasi →
+              </Link>
+            </div>
+          )}
 
-            {/* Studio Quick Buttons (UAT #23) */}
-            {branches.length > 0 && (
-              <div className="mb-6 rounded-none border border-ed-line bg-white p-4 sm:p-5">
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <span className="text-xs font-bold uppercase tracking-wider text-ed-green">
-                      Pilih Lokasi Studio
-                    </span>
-                    <h3 className="font-sans text-base font-bold text-ed-ink sm:text-lg">
-                      Mau latihan di studio mana?
-                    </h3>
-                  </div>
-                  {branch && (
-                    <span className="inline-flex items-center gap-1.5 self-start rounded-none border border-ed-green/30 bg-ed-tint px-2.5 py-1 text-xs font-semibold uppercase tracking-wider text-ed-forest sm:self-auto">
-                      <MapPin className="size-3.5" /> Studio Aktif: {branch.name}
-                    </span>
-                  )}
-                </div>
-                <div
-                  className="mt-3 flex flex-wrap gap-2.5"
-                  role="group"
-                  aria-label="Pilihan Cepat Studio"
-                >
-                  {branches.map((b) => {
-                    const isSelected = b.id === branchId;
-                    return (
-                      <button
-                        type="button"
-                        key={b.id}
-                        onClick={() => handleSelectBranch(b.id)}
-                        className={`min-h-[44px] rounded-none px-4 py-2 text-sm font-bold transition-colors cursor-pointer flex items-center gap-2 border ${
-                          isSelected
-                            ? 'border-ed-green bg-ed-green text-white ring-2 ring-ed-green/20'
-                            : 'border-ed-line bg-ed-cream text-ed-ink hover:border-ed-green/50 hover:bg-white'
-                        }`}
-                      >
-                        <MapPin className={`size-4 ${isSelected ? 'text-white' : 'text-ed-green'}`} />
-                        <span>{b.name}</span>
-                        <span
-                          className={`text-xs px-1.5 py-0.5 rounded-none font-mono ${
-                            isSelected ? 'bg-white/20 text-white' : 'bg-ed-line/50 text-ed-muted'
-                          }`}
-                        >
-                          {b.code}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
+        {/* Customer Active Package Bar */}
+        {isCustomer && customerPackages.length > 0 && (
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-dd-md border border-dd-forest/20 bg-dd-forest-soft p-4 text-xs sm:text-sm text-dd-forest">
+            <div className="flex items-center gap-2.5">
+              <div className="flex size-7 shrink-0 items-center justify-center rounded-dd-sm bg-white text-dd-forest shadow-2xs">
+                <Ticket className="size-3.5" aria-hidden="true" />
               </div>
-            )}
-
-            {/* 14 Days Calendar Strip (UAT #23) */}
-            {branchId && status !== 'loading' && calendarDays.length > 0 && (
-              <div className="mb-6 rounded-none border border-ed-line bg-white p-4 sm:p-5">
-                <div className="mb-3 flex items-center justify-between">
-                  <div>
-                    <span className="text-xs font-bold uppercase tracking-wider text-ed-green">
-                      Jadwal 14 Hari ke Depan
-                    </span>
-                    <h4 className="font-sans text-sm font-bold text-ed-ink sm:text-base">
-                      Pilih tanggal untuk melihat sesi
-                    </h4>
-                  </div>
-                  {day && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setDay('');
-                        updateQuery({ date: '' });
-                      }}
-                      className="text-xs font-semibold text-ed-green underline hover:text-ed-forest cursor-pointer"
-                    >
-                      Lihat Semua Tanggal
-                    </button>
+              <div>
+                <span className="font-semibold text-dd-forest">Paket Aktif: </span>
+                <strong className="text-dd-ink">{customerPackages[0]!.packageName}</strong>
+                <span className="text-dd-muted"> · {customerPackages[0]!.branchName}</span>
+                <span className="text-dd-muted"> · Sisa </span>
+                <strong className="text-dd-forest font-semibold">
+                  {customerPackages[0]!.available} sesi
+                </strong>
+                <span className="text-dd-muted">
+                  {' '}
+                  (Berlaku s/d{' '}
+                  {new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium' }).format(
+                    new Date(customerPackages[0]!.expiryAt),
                   )}
-                </div>
-                <div
-                  className="flex gap-2 overflow-x-auto pb-2 pt-1"
-                  role="group"
-                  aria-label="Pilih tanggal cepat"
-                >
+                  )
+                </span>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <label className="inline-flex items-center gap-2 font-medium text-dd-forest cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={onlyEligible}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setOnlyEligible(checked);
+                    if (checked) {
+                      const targetBranchId =
+                        customerPackages[0]?.packageBranchId || customerPackages[0]?.branchId;
+                      if (targetBranchId && branchId !== targetBranchId) {
+                        handleSelectBranch(targetBranchId);
+                      }
+                    }
+                  }}
+                  className="size-4 accent-dd-forest rounded-dd-sm"
+                />
+                <span>Hanya kelas sesuai paket saya</span>
+              </label>
+              <Link
+                href="/account/packages"
+                className="font-semibold text-dd-forest hover:underline"
+              >
+                Kelola paket →
+              </Link>
+            </div>
+          </div>
+        )}
+
+        {/* 2. Baris Tanggal Horizontal (7 Pil 56 x 64 px) */}
+        {branchId && status !== 'loading' && calendarDays.length > 0 && (
+          <div className="mt-4">
+            <div
+              className="flex gap-2 overflow-x-auto pb-2 pt-1 scrollbar-none"
+              role="group"
+              aria-label="Pilih tanggal cepat"
+            >
+              {calendarDays.map((item) => {
+                const isSelected = day === item.key;
+                return (
                   <button
                     type="button"
-                    className={`${
-                      !day
-                        ? 'border-ed-green bg-ed-green text-white ring-2 ring-ed-green/20'
-                        : 'border-ed-line bg-ed-cream text-ed-ink hover:border-ed-green/50 hover:bg-white'
-                    } min-h-[50px] shrink-0 rounded-none border px-4 py-2 text-center text-sm font-semibold transition-all cursor-pointer flex flex-col items-center justify-center`}
+                    key={item.key}
+                    onClick={() => {
+                      const nextDay = isSelected ? '' : item.key;
+                      setDay(nextDay);
+                      updateQuery({ date: nextDay });
+                    }}
+                    aria-label={`${item.label}, ${item.count} kelas tersedia`}
+                    aria-pressed={isSelected}
+                    className={`flex h-[64px] min-h-[64px] w-[56px] min-w-[56px] shrink-0 flex-col items-center justify-center rounded-dd-md transition-colors cursor-pointer ${
+                      isSelected
+                        ? 'border-transparent bg-[#396552] text-white shadow-xs'
+                        : 'border-[1.5px] border-[#768b84] bg-white text-dd-ink hover:bg-dd-surface-muted'
+                    }`}
+                  >
+                    <span
+                      className={`text-[13px] font-semibold tracking-wide ${
+                        isSelected ? 'text-white/90' : 'text-dd-muted'
+                      }`}
+                    >
+                      {item.weekdayShort}
+                    </span>
+                    <span className="mt-1 text-[20px] font-bold leading-none">
+                      {item.dayNumber}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* 3. Baris Filter Ringkas (2 Tombol Sejajar: Studio & Tipe Kelas) */}
+        <div className="mt-3 flex flex-wrap items-center gap-2.5">
+          {/* Studio button */}
+          <button
+            type="button"
+            role="combobox"
+            aria-expanded={isStudioSheetOpen}
+            aria-haspopup="dialog"
+            aria-label="Studio"
+            onClick={() => setIsStudioSheetOpen(true)}
+            className="inline-flex min-h-[44px] items-center gap-2 rounded-dd-md border border-dd-border-interactive bg-white px-3.5 py-2 text-sm font-semibold text-dd-ink shadow-xs transition hover:bg-dd-surface-muted cursor-pointer"
+          >
+            <MapPin className="size-4 text-dd-forest shrink-0" aria-hidden="true" />
+            <span>Studio: {branch ? branch.name : 'Pilih studio'}</span>
+            <ChevronDown className="size-4 text-dd-muted shrink-0 ml-0.5" aria-hidden="true" />
+          </button>
+
+          {/* Tipe kelas button */}
+          <button
+            type="button"
+            role="combobox"
+            aria-expanded={isTypeSheetOpen}
+            aria-haspopup="dialog"
+            aria-label="Tipe kelas"
+            disabled={!branchId}
+            onClick={() => setIsTypeSheetOpen(true)}
+            className="inline-flex min-h-[44px] items-center gap-2 rounded-dd-md border border-dd-border-interactive bg-white px-3.5 py-2 text-sm font-semibold text-dd-ink shadow-xs transition hover:bg-dd-surface-muted disabled:opacity-50 disabled:pointer-events-none cursor-pointer"
+          >
+            <SlidersHorizontal className="size-4 text-dd-forest shrink-0" aria-hidden="true" />
+            <span>
+              Tipe kelas: {classTypes.find((t) => t.id === classType)?.name ?? 'Semua'}
+            </span>
+            <ChevronDown className="size-4 text-dd-muted shrink-0 ml-0.5" aria-hidden="true" />
+          </button>
+
+          {/* Reset filter link */}
+          {hasFilterChanged && (
+            <button
+              type="button"
+              onClick={handleResetFilter}
+              className="inline-flex min-h-[44px] items-center text-xs font-semibold text-dd-forest underline hover:text-dd-ink cursor-pointer px-1"
+            >
+              Reset filter
+            </button>
+          )}
+        </div>
+
+        {/* 4. Daftar Sesi Hari Terpilih */}
+        <div className="mt-5">
+          {status === 'loading' ? (
+            <div
+              className="rounded-dd-xl border border-dd-line bg-white p-10 text-center shadow-dd-card"
+              role="status"
+            >
+              <div className="inline-block size-6 animate-spin rounded-full border-2 border-dd-forest border-t-transparent mb-2" />
+              <p className="text-sm font-medium text-dd-muted">Memuat jadwal kelas…</p>
+            </div>
+          ) : status === 'error' ? (
+            <div
+              className="rounded-dd-xl border border-red-900/20 bg-red-50 p-8 text-center text-red-900 shadow-dd-card"
+              role="alert"
+            >
+              <strong className="text-xl font-bold">Jadwal sedang tidak tersedia</strong>
+              <p className="mt-2 text-sm text-red-800">{message}</p>
+              <button
+                className="mt-4 inline-flex min-h-[44px] items-center justify-center rounded-dd-md bg-white px-4 py-2 text-sm font-bold text-red-900 border border-red-300 shadow-xs hover:bg-red-100"
+                type="button"
+                onClick={() => void retryCatalog()}
+              >
+                Coba lagi
+              </button>
+            </div>
+          ) : !branchId ? (
+            <div className="rounded-dd-xl border border-dd-line bg-white p-6 sm:p-8 text-center shadow-dd-card">
+              <MapPin className="mx-auto size-8 text-dd-forest" />
+              <strong className="mt-3 block text-lg font-bold text-dd-ink">
+                Pilih studio untuk melihat kelas
+              </strong>
+              <p className="mt-1 text-sm text-dd-muted">
+                Silakan pilih studio terlebih dahulu untuk menampilkan jadwal kelas yang tersedia.
+              </p>
+              <div className="mt-5 flex flex-wrap justify-center gap-2.5">
+                {branches.map((b) => (
+                  <button
+                    type="button"
+                    key={b.id}
+                    onClick={() => handleSelectBranch(b.id)}
+                    className="min-h-[44px] rounded-dd-md border border-dd-border-interactive bg-white px-4 py-2.5 text-sm font-bold text-dd-ink shadow-xs transition hover:bg-dd-forest hover:text-white cursor-pointer"
+                  >
+                    {b.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : visible.length === 0 ? (
+            <div className="rounded-dd-xl border border-dd-line bg-white p-6 sm:p-8 text-center shadow-dd-card">
+              <strong className="text-lg font-bold text-dd-ink">
+                Belum ada kelas pada filter ini
+              </strong>
+              <p className="mt-1 text-sm text-dd-muted">
+                Ubah tanggal atau tipe kelas untuk melihat pilihan lain.
+              </p>
+              <div className="mt-4 flex flex-wrap justify-center gap-3">
+                {day && (
+                  <button
+                    type="button"
                     onClick={() => {
                       setDay('');
                       updateQuery({ date: '' });
                     }}
+                    className="min-h-[44px] rounded-dd-md border border-dd-border-interactive bg-white px-4 py-2 text-sm font-bold text-dd-forest hover:bg-dd-forest-soft cursor-pointer"
                   >
-                    <span>Semua</span>
-                    <span className="text-[10px] opacity-80">{slots.length} sesi</span>
+                    Lihat Semua Tanggal
                   </button>
-                  {calendarDays.map((item) => {
-                    const isSelected = day === item.key;
-                    return (
-                      <button
-                        type="button"
-                        key={item.key}
-                        className={`${
-                          isSelected
-                            ? 'border-ed-green bg-ed-green text-white ring-2 ring-ed-green/20'
-                            : 'border-ed-line bg-ed-cream text-ed-ink hover:border-ed-green/50 hover:bg-white'
-                        } min-h-[50px] min-w-[76px] shrink-0 rounded-none border px-3 py-1.5 text-center transition-all cursor-pointer flex flex-col items-center justify-center`}
-                        onClick={() => {
-                          setDay(item.key);
-                          updateQuery({ date: item.key });
-                        }}
-                        aria-label={`${item.label}, ${item.count} kelas tersedia`}
-                      >
-                        <span
-                          className={`text-[11px] font-medium uppercase ${
-                            isSelected ? 'text-white/80' : 'text-ed-muted'
-                          }`}
-                        >
-                          {item.weekday}
-                        </span>
-                        <span className="text-sm font-bold leading-tight">{item.dayNum}</span>
-                        <span
-                          className={`mt-0.5 rounded-none px-1 text-[10px] font-semibold ${
-                            isSelected
-                              ? 'bg-white/20 text-white'
-                              : item.count > 0
-                                ? 'bg-ed-green/10 text-ed-green'
-                                : 'text-ed-muted/60'
-                          }`}
-                        >
-                          {item.count > 0 ? `${item.count} sesi` : '0 sesi'}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            <div className="grid gap-4 rounded-none border border-ed-line bg-white p-4 md:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_auto] lg:items-end">
-              <SearchSelect
-                variant="editorial"
-                label="Pilih Lokasi Studio"
-                value={branchId}
-                placeholder="Pilih lokasi studio..."
-                options={branches.map((item) => ({
-                  id: item.id,
-                  label: item.name,
-                  description: item.code,
-                }))}
-                onChange={(value) => {
-                  handleSelectBranch(value);
-                }}
-              />
-              <label className="grid gap-2 text-sm font-semibold">
-                Tanggal
-                <input
-                  className={publicField}
-                  aria-label="Tanggal"
-                  type="date"
-                  value={day}
-                  disabled={!branchId}
-                  onChange={(event) => {
-                    setDay(event.target.value);
-                    updateQuery({ date: event.target.value });
-                  }}
-                />
-              </label>
-              <SearchSelect
-                variant="editorial"
-                label="Tipe kelas"
-                value={classType}
-                disabled={!branchId}
-                placeholder="Semua tipe"
-                options={classTypes.map((item) => ({ id: item.id, label: item.name }))}
-                onChange={(value) => {
-                  setClassType(value);
-                  updateQuery({ classType: value });
-                }}
-              />
-              <button
-                className={publicSecondaryButton}
-                type="button"
-                disabled={!day && !classType}
-                onClick={() => {
-                  setDay('');
-                  setClassType('');
-                  updateQuery({ date: '', classType: '' });
-                }}
-              >
-                Reset filter
-              </button>
-            </div>
-
-            {status === 'loading' ? (
-              <div
-                className="mt-8 rounded-none border border-ed-line bg-white p-10 text-center "
-                role="status"
-              >
-                Memuat jadwal kelas…
-              </div>
-            ) : status === 'error' ? (
-              <div
-                className="mt-8 rounded-none border border-red-900/30 bg-red-50 p-10 text-center text-red-900"
-                role="alert"
-              >
-                <strong className="font-sans text-2xl">Jadwal belum tersedia</strong>
-                <p className="mt-2">{message}</p>
-                <button
-                  className={`${publicSecondaryButton} mt-5`}
-                  type="button"
-                  onClick={() => void retryCatalog()}
+                )}
+                <a
+                  href="https://wa.me/6281234567890?text=Halo%20Daily%20Dose,%20saya%20ingin%20tanya%20jadwal%20kelas"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="min-h-[44px] inline-flex items-center justify-center rounded-dd-md bg-dd-forest px-4 py-2 text-sm font-bold text-white shadow-xs hover:bg-dd-forest-hover"
                 >
-                  Coba lagi
-                </button>
+                  Bantuan CS WhatsApp
+                </a>
               </div>
-            ) : !branchId ? (
-              <div className="mt-8 rounded-none border border-ed-line bg-white p-10 text-center">
-                <strong className="font-sans text-2xl">Pilih studio untuk melihat kelas</strong>
-                <p className="mt-2 text-ed-muted">
-                  Silakan pilih studio terlebih dahulu untuk menampilkan jadwal kelas yang tersedia.
-                </p>
-              </div>
-            ) : visible.length === 0 ? (
-              <div className="mt-8 rounded-none border border-ed-line bg-white p-10 text-center">
-                <strong className="font-sans text-2xl">Belum ada kelas pada filter ini</strong>
-                <p className="mt-2 text-ed-muted">
-                  Ubah tanggal atau tipe kelas untuk melihat pilihan lain.
-                </p>
-                <div className="mt-4 flex flex-wrap justify-center gap-3">
-                  {day && (
-                    <button
-                      type="button"
-                      className={publicSecondaryButton}
-                      onClick={() => {
-                        setDay('');
-                        updateQuery({ date: '' });
-                      }}
+            </div>
+          ) : (
+            <div className="grid gap-6" aria-live="polite">
+              {Object.entries(grouped).map(([date, items]) => (
+                <section
+                  className="overflow-hidden rounded-dd-xl border border-dd-line bg-white shadow-dd-card"
+                  aria-labelledby={`day-${date}`}
+                  key={date}
+                >
+                  <header className="border-b border-dd-line/60 bg-dd-surface-muted/40 px-5 py-3.5">
+                    <h2
+                      className="font-sans text-base sm:text-lg font-bold tracking-tight text-dd-ink"
+                      id={`day-${date}`}
                     >
-                      Lihat Semua Tanggal
-                    </button>
-                  )}
-                  <a
-                    href="https://wa.me/6281234567890?text=Halo%20Daily%20Dose,%20saya%20ingin%20tanya%20jadwal%20kelas"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={`${publicPrimaryButton} inline-flex items-center gap-2`}
-                  >
-                    Bantuan CS WhatsApp
-                  </a>
-                </div>
-              </div>
-            ) : (
-              <div className="mt-8 grid gap-6" aria-live="polite">
-                {Object.entries(grouped).map(([date, items]) => (
-                  <section
-                    className="overflow-hidden rounded-none border border-ed-line bg-white"
-                    aria-labelledby={`day-${date}`}
-                    key={date}
-                  >
-                    <header className="border-b border-ed-line bg-ed-tint/60 px-5 py-4">
-                      <span className="ed-eyebrow text-ed-green">{date}</span>
-                      <h3 className="mt-1 font-sans text-xl sm:text-2xl font-bold tracking-tight text-ed-ink" id={`day-${date}`}>
-                        {dateLabel(items[0]!.startAt, items[0]!.timezone)}
-                      </h3>
-                    </header>
-                    <div className="divide-y divide-ed-line">
-                      {items.map((slot) => (
+                      {dateLabel(items[0]!.startAt, items[0]!.timezone)}
+                    </h2>
+                  </header>
+                  <div className="divide-y divide-dd-line/60">
+                    {items.map((slot) => {
+                      const isFull = slot.available < 1;
+                      const actionable = isActionable(slot);
+                      const matchingPkg = findMatchingPackage(slot);
+
+                      return (
                         <article
-                          className="grid gap-4 p-5 sm:grid-cols-[100px_minmax(0,1fr)_120px_auto] sm:items-center"
+                          className={`p-4 sm:p-5 transition ${
+                            isFull ? 'bg-dd-surface-muted/20 opacity-75' : 'hover:bg-dd-surface-muted/10'
+                          }`}
                           key={slot.id}
                         >
-                          <div>
-                            <strong className="block text-lg">
-                              {timeLabel(slot.startAt, slot.timezone)}
-                            </strong>
-                            <span className="text-sm text-ed-muted">
-                              sampai {timeLabel(slot.endAt, slot.timezone)} ·{' '}
-                              {durationLabel(slot.startAt, slot.endAt)}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-xs font-bold uppercase tracking-wider text-ed-green">
-                              {slot.classType.code}
-                            </span>
-                            <h4 className="mt-1 font-sans text-xl font-bold tracking-tight text-ed-ink">
-                              {slot.classType.name}
-                            </h4>
-                            <p className="mt-1 text-sm text-ed-muted">
-                              {slot.status === 'CONFIRMED'
-                                ? 'Kelas dikonfirmasi'
-                                : 'Terbuka untuk booking'}
-                            </p>
-                            {slot.instructor?.displayName && (
-                              <p className="mt-1 text-xs font-semibold text-ed-muted">
-                                Instruktur · {slot.instructor.displayName}
-                              </p>
-                            )}
-                            <div className="mt-2 flex flex-wrap gap-3 text-xs font-bold">
-                              <Link
-                                href={`/schedule/${slot.id}`}
-                                className="text-ed-green underline-offset-4 hover:underline"
-                              >
-                                Detail jadwal
-                              </Link>
-                              <Link
-                                href={`/classes/${
-                                  slot.classType.code === 'GROUP_CLASS'
-                                    ? 'group-class'
-                                    : slot.classType.code === 'PRIVATE_CLASS'
-                                      ? 'private-class'
-                                      : slot.classType.code === 'SEMI_PRIVATE'
-                                        ? 'semi-private'
-                                        : 'private-group'
-                                }`}
-                                className="text-ed-green underline-offset-4 hover:underline"
-                              >
-                                Detail kelas
-                              </Link>
+                          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="grid gap-2 sm:grid-cols-[130px_minmax(0,1fr)] sm:gap-5 sm:items-center">
+                              {/* Jam & Durasi */}
+                              <div>
+                                <strong className="block text-lg sm:text-xl font-bold tracking-tight text-dd-ink">
+                                  {timeLabel(slot.startAt, slot.timezone)}
+                                </strong>
+                                <span className="text-xs text-dd-muted">
+                                  sampai {timeLabel(slot.endAt, slot.timezone)} ·{' '}
+                                  {durationLabel(slot.startAt, slot.endAt)}
+                                </span>
+                              </div>
+
+                              {/* Tipe Kelas & Instruktur */}
+                              <div>
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <h3 className="font-sans text-base sm:text-lg font-bold text-dd-ink">
+                                    {slot.classType.name}
+                                  </h3>
+                                  {isFull ? (
+                                    <span
+                                      className="inline-flex items-center rounded-dd-sm border border-[#e8d5be] bg-[#fbf4eb] px-2 py-0.5 text-xs font-semibold text-[#8a5b17]"
+                                      aria-disabled="true"
+                                    >
+                                      Penuh, 0 slot
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center rounded-dd-sm border border-dd-forest/20 bg-dd-forest-soft px-2 py-0.5 text-xs font-semibold text-dd-forest">
+                                      Sisa {slot.available} tempat
+                                    </span>
+                                  )}
+                                </div>
+
+                                {slot.instructor?.displayName && (
+                                  <p className="mt-1 text-xs font-medium text-dd-muted">
+                                    Instruktur · {slot.instructor.displayName}
+                                  </p>
+                                )}
+
+                                {/* Smart Booking Badges */}
+                                {isCustomer && !isFull && matchingPkg && (
+                                  <span className="mt-1.5 inline-flex items-center gap-1 rounded-dd-sm border border-dd-forest/20 bg-dd-forest-soft px-2 py-0.5 text-[11px] font-semibold text-dd-forest">
+                                    <Check className="size-3" /> Paket Sesuai ({matchingPkg.available} sesi)
+                                  </span>
+                                )}
+                                {isCustomer && !isFull && !matchingPkg && customerPackages.length > 0 && (
+                                  <span className="mt-1.5 inline-flex items-center gap-1 rounded-dd-sm border border-amber-800/30 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-900">
+                                    Perlu paket studio/kelas ini
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Tombol Aksi */}
+                            <div className="shrink-0">
+                              {isFull ? (
+                                <span
+                                  className="inline-flex min-h-[44px] w-full sm:w-auto items-center justify-center rounded-dd-md border border-[#e8d5be] bg-[#fbf4eb] px-4 py-2 text-xs font-bold text-[#8a5b17] pointer-events-none select-none cursor-not-allowed"
+                                  aria-disabled="true"
+                                >
+                                  Penuh, 0 slot
+                                </span>
+                              ) : !actionable ? (
+                                <span
+                                  className="inline-flex min-h-[44px] w-full sm:w-auto items-center justify-center rounded-dd-md border border-dd-line bg-dd-surface-muted px-4 py-2 text-xs font-bold text-dd-muted pointer-events-none opacity-50 cursor-not-allowed"
+                                  aria-disabled="true"
+                                >
+                                  Pemesanan ditutup
+                                </span>
+                              ) : (
+                                <a
+                                  href={
+                                    isStaff
+                                      ? '/workspace/classes'
+                                      : isCustomer
+                                        ? matchingPkg
+                                          ? `/bookings/new?slot=${slot.id}`
+                                          : `/packages?branch=${encodeURIComponent(slot.branchId)}&classType=${encodeURIComponent(slot.classType.id)}&slot=${encodeURIComponent(slot.id)}`
+                                        : session
+                                          ? `/bookings/new?slot=${slot.id}`
+                                          : `/sign-in?returnTo=${encodeURIComponent(`/bookings/new?slot=${slot.id}`)}`
+                                  }
+                                  onClick={(e) => {
+                                    if (isCustomer && matchingPkg) {
+                                      e.preventDefault();
+                                      setBookingSlot(slot);
+                                      setIsBookingSheetOpen(true);
+                                    }
+                                  }}
+                                  className={`inline-flex min-h-[44px] w-full sm:w-auto items-center justify-center rounded-dd-md px-5 py-2.5 text-sm font-bold shadow-xs transition cursor-pointer ${
+                                    isCustomer && !matchingPkg
+                                      ? 'border border-dd-border-interactive bg-white text-dd-forest hover:bg-dd-forest-soft'
+                                      : 'bg-dd-forest text-white hover:bg-dd-forest-hover'
+                                  }`}
+                                >
+                                  {isStaff
+                                    ? 'Buka workspace kelas'
+                                    : isCustomer && !matchingPkg
+                                      ? 'Beli paket untuk kelas ini'
+                                      : !session
+                                        ? 'Masuk untuk booking'
+                                        : 'Lanjutkan booking'}
+                                </a>
+                              )}
                             </div>
                           </div>
-                          <div>
-                            <span className="block text-xs text-ed-muted">Ketersediaan</span>
-                            <strong className="mt-1 block">
-                              {slot.available > 0 ? `Sisa ${slot.available} tempat` : 'Kelas penuh'}
-                            </strong>
-                            {isCustomer && slot.canBook && findMatchingPackage(slot) && (
-                              <span className="mt-1 inline-flex items-center gap-1 rounded-none border border-ed-green/30 bg-ed-tint px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-ed-forest">
-                                <Check className="size-3" /> Paket Sesuai (
-                                {findMatchingPackage(slot)!.available} sesi)
-                              </span>
-                            )}
-                            {isCustomer &&
-                              slot.canBook &&
-                              !findMatchingPackage(slot) &&
-                              customerPackages.length > 0 && (
-                                <span className="mt-1 inline-flex items-center gap-1 rounded-none border border-amber-800/30 bg-amber-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-900">
-                                  Perlu paket studio/kelas ini
-                                </span>
-                              )}
-                          </div>
-                          <a
-                            className={`${
-                              isActionable(slot)
-                                ? isCustomer && !findMatchingPackage(slot)
-                                ? `${publicSecondaryButton} border-ed-green text-ed-green hover:bg-ed-tint`
-                                : publicPrimaryButton
-                                : `${publicSecondaryButton} pointer-events-none opacity-50`
-                            } w-full sm:w-auto`}
-                            aria-disabled={!isActionable(slot)}
-                            href={
-                              isActionable(slot)
-                                ? isStaff
-                                  ? '/workspace/classes'
-                                  : isCustomer
-                                    ? findMatchingPackage(slot)
-                                      ? `/bookings/new?slot=${slot.id}`
-                                      : `/packages?branch=${encodeURIComponent(slot.branchId)}&classType=${encodeURIComponent(slot.classType.id)}&slot=${encodeURIComponent(slot.id)}`
-                                    : session
-                                      ? `/bookings/new?slot=${slot.id}`
-                                      : `/sign-in?returnTo=${encodeURIComponent(`/bookings/new?slot=${slot.id}`)}`
-                                : undefined
-                            }
-                          >
-                            {slot.available < 1
-                              ? 'Penuh'
-                              : !isActionable(slot)
-                                ? 'Pemesanan ditutup'
-                                : isStaff
-                                  ? 'Buka workspace kelas'
-                                  : isCustomer && !findMatchingPackage(slot)
-                                    ? 'Beli paket untuk kelas ini'
-                                    : !session
-                                      ? 'Masuk untuk booking'
-                                      : 'Lanjutkan booking'}
-                          </a>
                         </article>
-                      ))}
-                    </div>
-                  </section>
-                ))}
-              </div>
-            )}
-          </div>
-        </section>
+                      );
+                    })}
+                  </div>
+                </section>
+              ))}
+            </div>
+          )}
+        </div>
       </main>
+
+      {/* Bottom Sheet Studio */}
+      {isStudioSheetOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Pilih Lokasi Studio"
+          className="fixed inset-0 z-50 flex flex-col justify-end bg-[#17231e]/45 backdrop-blur-xs"
+          onClick={() => setIsStudioSheetOpen(false)}
+        >
+          <div
+            className="max-h-[80vh] w-full overflow-y-auto rounded-t-[20px] bg-white p-6 shadow-2xl transition-transform"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-dd-line" />
+            <div className="flex items-center justify-between pb-3 border-b border-dd-line/60">
+              <h2 className="text-lg font-bold text-dd-ink">Pilih Lokasi Studio</h2>
+              <button
+                type="button"
+                onClick={() => setIsStudioSheetOpen(false)}
+                className="size-11 min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-dd-md text-dd-muted hover:text-dd-ink"
+                aria-label="Tutup pemilih studio"
+              >
+                <X className="size-5" />
+              </button>
+            </div>
+            <div role="listbox" aria-label="Daftar Studio" className="mt-4 grid gap-2">
+              {branches.map((b) => {
+                const isSelected = b.id === branchId;
+                return (
+                  <button
+                    type="button"
+                    key={b.id}
+                    role="option"
+                    aria-selected={isSelected}
+                    onClick={() => {
+                      handleSelectBranch(b.id);
+                      setIsStudioSheetOpen(false);
+                    }}
+                    className={`flex min-h-[48px] w-full items-center justify-between rounded-dd-md px-4 py-3 text-left transition cursor-pointer ${
+                      isSelected
+                        ? 'bg-dd-forest-soft text-dd-forest font-bold'
+                        : 'hover:bg-dd-surface-muted text-dd-ink font-medium'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <MapPin className={`size-4 ${isSelected ? 'text-dd-forest' : 'text-dd-muted'}`} />
+                      <span>{b.name}</span>
+                    </div>
+                    {isSelected && <Check className="size-4 text-dd-forest" />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bottom Sheet Tipe Kelas */}
+      {isTypeSheetOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Pilih Tipe Kelas"
+          className="fixed inset-0 z-50 flex flex-col justify-end bg-[#17231e]/45 backdrop-blur-xs"
+          onClick={() => setIsTypeSheetOpen(false)}
+        >
+          <div
+            className="max-h-[80vh] w-full overflow-y-auto rounded-t-[20px] bg-white p-6 shadow-2xl transition-transform"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-dd-line" />
+            <div className="flex items-center justify-between pb-3 border-b border-dd-line/60">
+              <h2 className="text-lg font-bold text-dd-ink">Pilih Tipe Kelas</h2>
+              <button
+                type="button"
+                onClick={() => setIsTypeSheetOpen(false)}
+                className="size-11 min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-dd-md text-dd-muted hover:text-dd-ink"
+                aria-label="Tutup pemilih tipe kelas"
+              >
+                <X className="size-5" />
+              </button>
+            </div>
+            <div role="listbox" aria-label="Daftar Tipe Kelas" className="mt-4 grid gap-2">
+              <button
+                type="button"
+                role="option"
+                aria-selected={!classType}
+                onClick={() => {
+                  setClassType('');
+                  updateQuery({ classType: '' });
+                  setIsTypeSheetOpen(false);
+                }}
+                className={`flex min-h-[48px] w-full items-center justify-between rounded-dd-md px-4 py-3 text-left transition cursor-pointer ${
+                  !classType
+                    ? 'bg-dd-forest-soft text-dd-forest font-bold'
+                    : 'hover:bg-dd-surface-muted text-dd-ink font-medium'
+                }`}
+              >
+                <span>Semua tipe kelas</span>
+                {!classType && <Check className="size-4 text-dd-forest" />}
+              </button>
+              {classTypes.map((t) => {
+                const isSelected = classType === t.id;
+                return (
+                  <button
+                    type="button"
+                    key={t.id}
+                    role="option"
+                    aria-selected={isSelected}
+                    onClick={() => {
+                      setClassType(t.id);
+                      updateQuery({ classType: t.id });
+                      setIsTypeSheetOpen(false);
+                    }}
+                    className={`flex min-h-[48px] w-full items-center justify-between rounded-dd-md px-4 py-3 text-left transition cursor-pointer ${
+                      isSelected
+                        ? 'bg-dd-forest-soft text-dd-forest font-bold'
+                        : 'hover:bg-dd-surface-muted text-dd-ink font-medium'
+                    }`}
+                  >
+                    <span>{t.name}</span>
+                    {isSelected && <Check className="size-4 text-dd-forest" />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Booking Confirmation Bottom Sheet (3-Tap Flow) */}
+      <BookingConfirmationSheet
+        isOpen={isBookingSheetOpen}
+        onClose={() => setIsBookingSheetOpen(false)}
+        slot={bookingSlot}
+        studioName={
+          bookingSlot
+            ? branches.find((b) => b.id === bookingSlot.branchId)?.name ?? branch?.name
+            : branch?.name
+        }
+        packageItem={bookingSlot ? (findMatchingPackage(bookingSlot) ?? null) : null}
+        availablePackages={
+          bookingSlot
+            ? customerPackages.filter((pkg) => {
+                const branchMatches =
+                  pkg.isMultiBranch === true ||
+                  !pkg.packageBranchId ||
+                  pkg.packageBranchId === 'global' ||
+                  pkg.packageBranchId === bookingSlot.branchId;
+                const classTypeMatches =
+                  !pkg.classTypeId || pkg.classTypeId === bookingSlot.classType.id;
+                return branchMatches && classTypeMatches && pkg.available > 0;
+              })
+            : []
+        }
+        isVerified={session?.identityVerificationStatus === 'APPROVED'}
+        bookingClient={bookingClient}
+        onBookingSuccess={() => {
+          if (branchId) void load(branchId);
+        }}
+      />
+
       {!inCustomerShell && <PublicFooter variant="editorial" />}
     </div>
   );
 }
-

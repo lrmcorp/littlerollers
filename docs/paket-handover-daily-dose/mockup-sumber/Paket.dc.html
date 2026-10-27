@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Pilih paket</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Poppins:wght@500;600&display=swap">
+<style>
+body { margin: 0; font-family: "DM Sans", system-ui, sans-serif; }
+a { color: #396552; }
+a:hover { color: #24483a; }
+button, a { font-family: inherit; }
+</style>
+</helmet>
+
+<div style="width: 390px; height: 1120px; box-sizing: border-box; background: #f3f6f4; display: flex; flex-direction: column; overflow: hidden">
+
+  <header style="background: #ffffff; border-bottom: 1px solid #768b84; padding: 8px 12px; display: flex; align-items: center; gap: 4px; flex-shrink: 0">
+    <a href="Main.dc.html" aria-label="Kembali ke beranda" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: #17231e">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 19l-7-7 7-7"></path></svg>
+    </a>
+    <h1 style="margin: 0; font-family: Poppins, sans-serif; font-weight: 600; font-size: 20px; line-height: 26px; color: #17231e">Pilih paket</h1>
+  </header>
+
+  <div style="background: #ffffff; padding: 0 20px 14px; display: flex; flex-direction: column; gap: 12px; flex-shrink: 0; border-bottom: 1px solid #768b84">
+    <div style="display: flex; gap: 10px">
+      <button type="button" style="flex: 1; min-height: 48px; background: #ffffff; border: 1.5px solid #768b84; border-radius: 12px; padding: 0 14px; font-size: 15px; color: #17231e; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 6px">
+        <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap">Muara Karang</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#607069" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><path d="M6 9l6 6 6-6"></path></svg>
+      </button>
+      <button type="button" style="flex: 1; min-height: 48px; background: #ffffff; border: 1.5px solid #768b84; border-radius: 12px; padding: 0 14px; font-size: 15px; color: #17231e; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 6px">
+        <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap">Termurah per sesi</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#607069" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><path d="M6 9l6 6 6-6"></path></svg>
+      </button>
+    </div>
+    <div style="display: flex; gap: 8px; overflow: hidden">
+      <button type="button" aria-pressed="true" style="min-height: 44px; padding: 0 16px; border-radius: 10px; background: #396552; color: #ffffff; border: 1.5px solid #396552; font-size: 15px; font-weight: 500; cursor: pointer; white-space: nowrap">Private Group</button>
+      <button type="button" aria-pressed="false" style="min-height: 44px; padding: 0 16px; border-radius: 10px; background: #ffffff; color: #17231e; border: 1.5px solid #768b84; font-size: 15px; font-weight: 500; cursor: pointer; white-space: nowrap">Private</button>
+      <button type="button" aria-pressed="false" style="min-height: 44px; padding: 0 16px; border-radius: 10px; background: #ffffff; color: #17231e; border: 1.5px solid #768b84; font-size: 15px; font-weight: 500; cursor: pointer; white-space: nowrap">Semi</button>
+      <button type="button" aria-pressed="false" style="min-height: 44px; padding: 0 16px; border-radius: 10px; background: #ffffff; color: #17231e; border: 1.5px solid #768b84; font-size: 15px; font-weight: 500; cursor: pointer; white-space: nowrap">Group</button>
+    </div>
+  </div>
+
+  <div style="flex: 1; overflow: hidden; padding: 16px 20px 0; display: flex; flex-direction: column; gap: 14px">
+
+    <h2 style="margin: 0; font-size: 13px; font-weight: 700; letter-spacing: 0.06em; color: #607069">COBA DULU, 1 SAMPAI 3 SESI</h2>
+
+    <a href="Checkout.dc.html" style="text-decoration: none; background: #ffffff; border: 1px solid #768b84; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 10px">
+      <span style="font-family: Poppins, sans-serif; font-weight: 600; font-size: 18px; line-height: 24px; color: #17231e">3 Session Private Group</span>
+      <span style="display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap">
+        <span style="font-family: Poppins, sans-serif; font-weight: 600; font-size: 22px; line-height: 28px; color: #17231e">Rp 660.000</span>
+        <span style="font-size: 15px; line-height: 22px; color: #607069">Rp 220.000 per sesi</span>
+      </span>
+      <span style="font-size: 15px; line-height: 22px; color: #607069">3 sesi, berlaku 45 hari sejak pembayaran disetujui</span>
+      <span style="align-self: flex-start; background: #396552; color: #ffffff; font-size: 16px; font-weight: 500; padding: 13px 20px; border-radius: 12px; min-height: 48px; box-sizing: border-box; display: flex; align-items: center">Beli paket ini</span>
+    </a>
+
+    <h2 style="margin: 4px 0 0; font-size: 13px; font-weight: 700; letter-spacing: 0.06em; color: #607069">PAKET RUTIN, 5 SESI KE ATAS</h2>
+
+    <a href="Checkout.dc.html" style="text-decoration: none; background: #ffffff; border: 2px solid #396552; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 10px">
+      <span style="display: flex; align-items: center; justify-content: space-between; gap: 10px">
+        <span style="font-family: Poppins, sans-serif; font-weight: 600; font-size: 18px; line-height: 24px; color: #17231e">10 Session Private Group</span>
+        <span style="background: #e8f0ec; color: #24483a; font-size: 13px; font-weight: 700; letter-spacing: 0.04em; padding: 6px 10px; border-radius: 8px; white-space: nowrap">TERMURAH</span>
+      </span>
+      <span style="display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap">
+        <span style="font-family: Poppins, sans-serif; font-weight: 600; font-size: 22px; line-height: 28px; color: #17231e">Rp 2.000.000</span>
+        <span style="font-size: 15px; line-height: 22px; color: #246144; font-weight: 500">Rp 200.000 per sesi</span>
+      </span>
+      <span style="font-size: 15px; line-height: 22px; color: #607069">10 sesi, berlaku 75 hari sejak pembayaran disetujui</span>
+      <span style="align-self: flex-start; background: #396552; color: #ffffff; font-size: 16px; font-weight: 500; padding: 13px 20px; border-radius: 12px; min-height: 48px; box-sizing: border-box; display: flex; align-items: center">Beli paket ini</span>
+    </a>
+
+    <a href="Checkout.dc.html" style="text-decoration: none; background: #ffffff; border: 1px solid #768b84; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 10px">
+      <span style="font-family: Poppins, sans-serif; font-weight: 600; font-size: 18px; line-height: 24px; color: #17231e">5 Session Private Group</span>
+      <span style="display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap">
+        <span style="font-family: Poppins, sans-serif; font-weight: 600; font-size: 22px; line-height: 28px; color: #17231e">Rp 1.050.000</span>
+        <span style="font-size: 15px; line-height: 22px; color: #607069">Rp 210.000 per sesi</span>
+      </span>
+      <span style="font-size: 15px; line-height: 22px; color: #607069">5 sesi, berlaku 65 hari sejak pembayaran disetujui</span>
+      <span style="align-self: flex-start; background: #396552; color: #ffffff; font-size: 16px; font-weight: 500; padding: 13px 20px; border-radius: 12px; min-height: 48px; box-sizing: border-box; display: flex; align-items: center">Beli paket ini</span>
+    </a>
+
+    <div style="background: #f8faf9; border: 1px solid #768b84; border-radius: 12px; padding: 14px 16px">
+      <p style="margin: 0; font-size: 15px; line-height: 22px; color: #607069">Menampilkan 3 dari 4 paket Private Group di Muara Karang. Paket promo yang sudah lewat periodenya tidak ditampilkan.</p>
+    </div>
+
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1120}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

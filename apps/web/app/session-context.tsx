@@ -140,10 +140,10 @@ export function safeReturnTo(value: string | null): string {
 
 export function defaultSessionDestination(session: WebSession): string {
   if (session.passwordChangeRequired) return '/account/security?required=true';
-  if (isInstructorOnlySession(session)) return '/workspace/classes';
+  if (isInstructorOnlySession(session)) return '/workspace';
   if (session.roles.some((role) => internalStaffRoles.has(role))) return '/workspace';
   if (session.roles.some((role) => role === 'CUSTOMER'))
-    return '/classes#schedule';
+    return '/account';
   return '/workspace';
 }
 
@@ -171,9 +171,7 @@ export function canAccessSessionPath(session: WebSession, value: string): boolea
   if (customerOnly && path === '/ledger') return false;
   if (path === '/account/verification' && !customerOnly) return false;
   if (path === '/workspace')
-    return (
-      !isInstructorOnlySession(session) && session.roles.some((role) => internalStaffRoles.has(role))
-    );
+    return session.roles.some((role) => internalStaffRoles.has(role));
   const rule = routeCapabilities.find(([route]) => path === route || path.startsWith(`${route}/`));
   if (!rule) return false;
   return rule[1].length === 0 || rule[1].some((cap) => session.capabilities.includes(cap));
@@ -233,7 +231,11 @@ export function SessionProvider({
         }
         setSession(current);
         const stored = sessionStorage.getItem(ACTIVE_BRANCH_KEY) ?? '';
-        setBranch(current.branches.some(({ id }) => id === stored) ? stored : '');
+        const defaultBranch =
+          current.branches.length === 1 || isInstructorOnlySession(current)
+            ? (current.branches[0]?.id ?? '')
+            : '';
+        setBranch(current.branches.some(({ id }) => id === stored) ? stored : defaultBranch);
         if (stored && !current.branches.some(({ id }) => id === stored))
           sessionStorage.removeItem(ACTIVE_BRANCH_KEY);
         setStatus('authenticated');
@@ -339,7 +341,11 @@ export function SessionProvider({
       status,
       session,
       activeBranchId,
-      activeBranch: session?.branches.find(({ id }) => id === activeBranchId) ?? null,
+      activeBranch:
+        session?.branches.find(({ id }) => id === activeBranchId) ??
+        ((isInstructorOnlySession(session) || session?.branches.length === 1)
+          ? (session?.branches[0] ?? null)
+          : null),
       setActiveBranchId,
       hasCapability: (...required) =>
         required.some((capability) => session?.capabilities.includes(capability)),

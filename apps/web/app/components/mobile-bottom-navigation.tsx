@@ -10,13 +10,16 @@ import {
   ListChecks,
   LockKeyhole,
   Menu,
+  QrCode,
+  UserRound,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { frontendPages } from '@/lib/frontend-pages';
+import { isInstructorOnlySession } from '@/lib/session-audience';
 import { useSessionContext } from '../session-context';
 import { useCustomerBadges } from './customer/use-customer-badges';
-import { isCustomerNavigationActive } from './customer/customer-navigation';
+import { isCustomerTabActive } from './customer/customer-navigation';
 
 /** Urutan prioritas tab staf; hanya halaman yang boleh dibuka akun yang tampil (maks. 4). */
 const MAX_STAFF_TABS = 4;
@@ -50,37 +53,33 @@ export function MobileBottomNavigation({
     const tabs = [
       { href: '/account', label: 'Beranda', icon: House },
       { href: '/classes', label: 'Jadwal', icon: CalendarDays },
-      { href: '/packages', label: 'Paket', icon: ListChecks },
       {
         href: '/bookings',
         label: 'Booking',
         icon: BookOpenCheck,
         badge: customerBadges.upcomingBookingsCount,
         badgeColor: 'bg-dd-forest',
-        requiresApproval: true,
       },
+      { href: '/packages', label: 'Paket', icon: ListChecks },
       {
-        href: '/orders',
-        label: 'Pesanan',
-        icon: CreditCard,
+        href: '/account/profile',
+        label: 'Akun',
+        icon: UserRound,
         badge: customerBadges.actionableOrdersCount,
         badgeColor: 'bg-dd-brass',
-        requiresApproval: true,
+        dot: customerBadges.verificationActionRequired,
       },
     ];
 
     return (
       <nav
         aria-label="Navigasi Bawah Mobile"
-        className="fixed bottom-0 inset-x-0 z-40 lg:hidden border-t border-dd-line/80 bg-white/95 backdrop-blur-xl shadow-[0_-4px_20px_rgba(0,0,0,0.06)] pb-[max(0.6rem,env(safe-area-inset-bottom))] pt-1.5 px-2"
+        className="fixed bottom-0 inset-x-0 z-40 lg:hidden border-t border-dd-line/80 bg-white/95 backdrop-blur-xl shadow-[0_-4px_20px_rgba(0,0,0,0.06)] pb-[env(safe-area-inset-bottom)]"
       >
-        <div className="grid grid-cols-5 items-center justify-around gap-1 max-w-lg mx-auto">
+        <div className="grid grid-cols-5 items-stretch h-[68px] max-w-lg mx-auto px-1">
           {tabs.map((tab) => {
-            const active = isCustomerNavigationActive(pathname, tab.href);
-            const locked = Boolean(tab.requiresApproval && !approved);
-            const href = locked
-              ? `/account/verification?returnTo=${encodeURIComponent(tab.href)}`
-              : tab.href;
+            const active = isCustomerTabActive(pathname, tab.href);
+            const href = tab.href;
             const Icon = tab.icon;
 
             return (
@@ -88,35 +87,102 @@ export function MobileBottomNavigation({
                 key={tab.href}
                 href={href}
                 aria-current={active ? 'page' : undefined}
-                className={`flex flex-col items-center justify-center min-h-[48px] py-1 px-1 rounded-dd-md text-[11px] font-semibold transition-all select-none ${
+                className={`relative flex flex-col items-center justify-center h-full py-1 px-0.5 text-[12px] font-semibold transition-all select-none ${
                   active
-                    ? 'text-dd-forest font-bold bg-dd-forest/8'
-                    : 'text-dd-muted hover:text-dd-forest hover:bg-dd-surface-muted/60'
+                    ? 'text-[#396552]'
+                    : 'text-dd-muted hover:text-[#396552] hover:bg-dd-surface-muted/50'
                 }`}
               >
-                <div className="relative shrink-0 mb-0.5">
+                {/* Indikator garis atas 3 px saat aktif */}
+                <span
+                  className={`absolute top-0 inset-x-2 h-[3px] rounded-full transition-colors ${
+                    active ? 'bg-[#396552]' : 'bg-transparent'
+                  }`}
+                  aria-hidden="true"
+                />
+                <div className="relative shrink-0 mb-1">
                   <Icon
-                    className={`size-5 transition-transform ${active ? 'scale-110 stroke-[2.2]' : 'stroke-[1.8]'}`}
+                    className={`size-5 transition-transform ${active ? 'scale-105 stroke-[2.2]' : 'stroke-[1.8]'}`}
                     aria-hidden="true"
                   />
                   {tab.badge && tab.badge > 0 ? (
                     <span
-                      className={`absolute -top-1.5 -right-2 grid min-h-4 min-w-4 place-items-center rounded-full px-1 text-[9px] font-bold text-white leading-none shadow-xs ${tab.badgeColor}`}
+                      className={`absolute -top-1.5 -right-2.5 grid min-h-4 min-w-4 place-items-center rounded-full px-1 text-[9px] font-bold text-white leading-none shadow-xs ${tab.badgeColor}`}
                     >
                       {tab.badge > 99 ? '99+' : tab.badge}
                     </span>
-                  ) : null}
-                  {locked && (
-                    <LockKeyhole
-                      className="absolute -bottom-1 -right-1 size-3 text-dd-muted"
-                      aria-hidden="true"
+                  ) : tab.dot ? (
+                    <span
+                      className="absolute -top-0.5 -right-1 size-2 rounded-full bg-dd-brass ring-1 ring-white"
+                      aria-label="Perlu tindakan"
                     />
-                  )}
+                  ) : null}
                 </div>
-                <span className="truncate max-w-[64px] tracking-tight">{tab.label}</span>
-                {active && (
-                  <span className="w-4 h-0.5 mt-0.5 rounded-full bg-dd-forest" aria-hidden="true" />
-                )}
+                <span className="truncate max-w-full tracking-tight text-center leading-none text-[12px]">
+                  {tab.label}
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
+    );
+  }
+
+  // Navigasi Bawah Instruktur: 4 item (Hari Ini | Jadwal Saya | Scan | Akun) sesuai spesifikasi 5.4 & Bagian 3
+  if (isInstructorOnlySession(context?.session)) {
+    const instructorTabs = [
+      { href: '/workspace', label: 'Hari Ini', icon: House },
+      { href: '/workspace/classes', label: 'Jadwal Saya', icon: CalendarDays },
+      { href: '/check-in-scanner', label: 'Scan', icon: QrCode },
+      { href: '/account/profile', label: 'Akun', icon: UserRound },
+    ];
+
+    const isTabActive = (href: string) => {
+      if (href === '/workspace') {
+        return pathname === '/workspace';
+      }
+      return pathname === href || pathname.startsWith(`${href}/`);
+    };
+
+    return (
+      <nav
+        aria-label="Navigasi Bawah Instruktur"
+        className="fixed bottom-0 inset-x-0 z-40 lg:hidden border-t border-dd-line/80 bg-white/95 backdrop-blur-xl shadow-[0_-4px_20px_rgba(0,0,0,0.06)] pb-[env(safe-area-inset-bottom)]"
+      >
+        <div className="grid grid-cols-4 items-stretch h-[68px] max-w-lg mx-auto px-1">
+          {instructorTabs.map((tab) => {
+            const active = isTabActive(tab.href);
+            const href = tab.href;
+            const Icon = tab.icon;
+
+            return (
+              <Link
+                key={tab.href}
+                href={href}
+                aria-current={active ? 'page' : undefined}
+                className={`relative flex flex-col items-center justify-center h-full py-1 px-0.5 text-[12px] font-semibold transition-all select-none ${
+                  active
+                    ? 'text-[#396552]'
+                    : 'text-dd-muted hover:text-[#396552] hover:bg-dd-surface-muted/50'
+                }`}
+              >
+                {/* Indikator garis atas 3 px saat aktif */}
+                <span
+                  className={`absolute top-0 inset-x-2 h-[3px] rounded-full transition-colors ${
+                    active ? 'bg-[#396552]' : 'bg-transparent'
+                  }`}
+                  aria-hidden="true"
+                />
+                <div className="relative shrink-0 mb-1">
+                  <Icon
+                    className={`size-5 transition-transform ${active ? 'scale-105 stroke-[2.2]' : 'stroke-[1.8]'}`}
+                    aria-hidden="true"
+                  />
+                </div>
+                <span className="truncate max-w-full tracking-tight text-center leading-none text-[12px]">
+                  {tab.label}
+                </span>
               </Link>
             );
           })}

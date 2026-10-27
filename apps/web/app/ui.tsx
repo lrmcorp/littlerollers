@@ -1,7 +1,8 @@
 'use client';
 
 import { type ReactNode, useEffect, useState } from 'react';
-import { Inbox, X } from 'lucide-react';
+import Link from 'next/link';
+import { ChevronLeft, Inbox, X } from 'lucide-react';
 
 export function PageHeader({
   eyebrow,
@@ -9,24 +10,54 @@ export function PageHeader({
   description,
   context,
   titleId,
+  backHref,
+  onBack,
+  backLabel = 'Kembali',
 }: {
-  eyebrow: string;
+  eyebrow?: string;
   title: string;
-  description: string;
+  description?: string;
   context?: ReactNode;
   titleId?: string;
+  backHref?: string;
+  onBack?: () => void;
+  backLabel?: string;
 }) {
   return (
     <header className="flex flex-col gap-4 border-b border-dd-line pb-5 sm:flex-row sm:items-end sm:justify-between">
-      <div className="min-w-0">
-        <p className="text-xs font-bold uppercase tracking-[0.16em] text-dd-forest">{eyebrow}</p>
-        <h1
-          id={titleId}
-          className="mt-1 text-2xl font-semibold tracking-tight text-dd-ink sm:text-3xl"
-        >
-          {title}
-        </h1>
-        <p className="mt-2 max-w-3xl text-sm leading-6 text-dd-muted">{description}</p>
+      <div className="flex min-w-0 items-start gap-3.5">
+        {backHref ? (
+          <Link
+            href={backHref}
+            aria-label={backLabel}
+            className="inline-flex size-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-dd-md border border-dd-border-interactive bg-white text-dd-forest shadow-xs transition hover:bg-dd-surface-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-dd-forest"
+          >
+            <ChevronLeft className="size-5" aria-hidden="true" />
+          </Link>
+        ) : onBack ? (
+          <button
+            type="button"
+            onClick={onBack}
+            aria-label={backLabel}
+            className="inline-flex size-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-dd-md border border-dd-border-interactive bg-white text-dd-forest shadow-xs transition hover:bg-dd-surface-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-dd-forest"
+          >
+            <ChevronLeft className="size-5" aria-hidden="true" />
+          </button>
+        ) : null}
+        <div className="min-w-0">
+          {eyebrow && (
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-dd-forest">{eyebrow}</p>
+          )}
+          <h1
+            id={titleId}
+            className="mt-1 text-2xl font-semibold tracking-tight text-dd-ink sm:text-3xl"
+          >
+            {title}
+          </h1>
+          {description && (
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-dd-muted">{description}</p>
+          )}
+        </div>
       </div>
       {context && <div className="flex shrink-0 flex-wrap items-center gap-2">{context}</div>}
     </header>

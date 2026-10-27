@@ -27,6 +27,10 @@ import { formatRupiah } from './lib/formatters';
 import { metricLabel } from './lib/audit-labels';
 import { iconForPage } from './lib/page-icons';
 import { timezoneLabel } from './classes/class-slot-presenters';
+import { InstructorTodayView } from './workspace/instructor-today-view';
+import type { ClassSlotClient } from '@/api-clients/class-slot-client';
+import type { BookingClient } from '@/api-clients/booking-client';
+import type { AvailabilityClient } from '@/api-clients/availability-client';
 
 const number = new Intl.NumberFormat('id-ID');
 const compact = new Intl.NumberFormat('id-ID', { notation: 'compact', maximumFractionDigits: 1 });
@@ -190,7 +194,17 @@ function TrendChart({ points, finance }: { points: DashboardOverview['trend']; f
   );
 }
 
-export function Dashboard({ client = browserDashboardClient }: { client?: DashboardClient }) {
+export function Dashboard({
+  client = browserDashboardClient,
+  slotClient,
+  bookingClient,
+  availabilityClient,
+}: {
+  client?: DashboardClient;
+  slotClient?: ClassSlotClient;
+  bookingClient?: BookingClient;
+  availabilityClient?: AvailabilityClient;
+} = {}) {
   const context = useSessionContext();
   const session = context?.session;
   const [overview, setOverview] = useState<DashboardOverview>();
@@ -223,20 +237,11 @@ export function Dashboard({ client = browserDashboardClient }: { client?: Dashbo
   if (!session) return null;
   if (isInstructorOnlySession(session)) {
     return (
-      <div className="space-y-6 font-sans text-dd-ink">
-        <AdminPageHeader
-          eyebrow="Area Instruktur"
-          title={`Selamat datang, ${session.displayName}`}
-          description="Dashboard operasional tidak tersedia untuk peran instruktur. Gunakan pintasan di bawah untuk melihat jadwal kelas Anda."
-        />
-        <Feedback kind="info">
-          Sebagai instruktur, gunakan menu <strong>Kelas</strong> untuk melihat jadwal yang
-          ditugaskan kepada Anda.
-        </Feedback>
-        <ButtonLink href="/workspace/classes" variant="primary">
-          Lihat Jadwal Kelas Saya →
-        </ButtonLink>
-      </div>
+      <InstructorTodayView
+        client={slotClient}
+        bookingClient={bookingClient}
+        availabilityClient={availabilityClient}
+      />
     );
   }
   const views = overview?.views ?? fallbackViews(session.roles);

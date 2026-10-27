@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Daftar akun</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Poppins:wght@500;600&display=swap">
+<style>
+body { margin: 0; font-family: "DM Sans", system-ui, sans-serif; }
+a { color: #396552; }
+a:hover { color: #24483a; }
+button, a, input { font-family: inherit; }
+</style>
+</helmet>
+
+<div style="width: 390px; height: 1040px; box-sizing: border-box; background: #f3f6f4; display: flex; flex-direction: column; overflow: hidden">
+
+  <header style="background: #ffffff; border-bottom: 1px solid #768b84; padding: 20px; display: flex; flex-direction: column; gap: 6px; flex-shrink: 0">
+    <h1 style="margin: 0; font-family: Poppins, sans-serif; font-weight: 600; font-size: 24px; line-height: 30px; color: #17231e">Buat akun Daily Dose</h1>
+    <p style="margin: 0; font-size: 16px; line-height: 24px; color: #607069">Tiga kolom saja. Verifikasi KTP diminta nanti, saat kamu membeli paket pertama.</p>
+  </header>
+
+  <div style="flex: 1; overflow: hidden; padding: 20px; display: flex; flex-direction: column; gap: 20px">
+
+    <form style="display: flex; flex-direction: column; gap: 18px">
+
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <label for="d-nama" style="font-size: 16px; line-height: 22px; font-weight: 500; color: #17231e">Nama lengkap</label>
+        <input id="d-nama" type="text" placeholder="Tulis nama kamu" style="min-height: 52px; border: 1.5px solid #768b84; border-radius: 12px; padding: 0 16px; font-size: 17px; color: #17231e; background: #ffffff; box-sizing: border-box">
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <label for="d-wa" style="font-size: 16px; line-height: 22px; font-weight: 500; color: #17231e">Nomor WhatsApp</label>
+        <input id="d-wa" type="tel" inputmode="tel" placeholder="08xx xxxx xxxx" style="min-height: 52px; border: 1.5px solid #768b84; border-radius: 12px; padding: 0 16px; font-size: 17px; color: #17231e; background: #ffffff; box-sizing: border-box">
+        <span style="font-size: 15px; line-height: 22px; color: #607069">Nomor ini dipakai untuk masuk dan menerima pengingat kelas.</span>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <label for="d-pass" style="font-size: 16px; line-height: 22px; font-weight: 500; color: #17231e">Password</label>
+        <div style="position: relative; display: flex">
+          <input id="d-pass" type="password" placeholder="Minimal 8 karakter" style="flex: 1; min-height: 52px; border: 1.5px solid #768b84; border-radius: 12px; padding: 0 72px 0 16px; font-size: 17px; color: #17231e; background: #ffffff; box-sizing: border-box">
+          <button type="button" style="position: absolute; right: 6px; top: 6px; min-height: 40px; padding: 0 12px; background: none; border: none; color: #396552; font-size: 16px; font-weight: 500; cursor: pointer">Lihat</button>
+        </div>
+      </div>
+
+      <button type="submit" style="width: 100%; min-height: 52px; background: #396552; color: #ffffff; border: none; border-radius: 12px; font-size: 17px; font-weight: 500; cursor: pointer">Buat akun</button>
+
+    </form>
+
+    <div style="display: flex; align-items: center; gap: 12px">
+      <span style="flex: 1; height: 1px; background: #768b84"></span>
+      <span style="font-size: 15px; color: #607069">atau</span>
+      <span style="flex: 1; height: 1px; background: #768b84"></span>
+    </div>
+
+    <button type="button" style="width: 100%; min-height: 52px; background: #ffffff; color: #396552; border: 1.5px solid #768b84; border-radius: 12px; font-size: 17px; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+      Masuk dengan kode WhatsApp
+    </button>
+    <span style="font-size: 15px; line-height: 22px; color: #607069; margin-top: -10px">Kami kirim 6 angka ke WhatsApp kamu. Tidak perlu mengingat password.</span>
+
+    <div style="background: #e8f0ec; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 6px">
+      <span style="font-family: Poppins, sans-serif; font-weight: 600; font-size: 17px; line-height: 24px; color: #24483a">Sudah pernah latihan di studio?</span>
+      <span style="font-size: 16px; line-height: 24px; color: #24483a">Akun kamu mungkin sudah dibuatkan staf. Masuk pakai nomor WhatsApp yang kamu berikan ke studio.</span>
+    </div>
+
+    <p style="margin: 0; font-size: 15px; line-height: 22px; color: #607069">Dengan membuat akun, kamu menyetujui <a href="#syarat">Syarat dan Ketentuan</a> serta <a href="#privasi">Kebijakan Privasi</a> Daily Dose Pilates.</p>
+
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1040}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Hari Ini, front desk</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Poppins:wght@500;600&display=swap">
+<style>
+body { margin: 0; font-family: "DM Sans", system-ui, sans-serif; }
+a { color: #396552; }
+button, a { font-family: inherit; }
+</style>
+</helmet>
+
+<div style="width: 1280px; height: 900px; box-sizing: border-box; background: #f4f2ec; display: flex; overflow: hidden">
+
+  <aside style="width: 232px; flex-shrink: 0; background: #ebe8e0; border-right: 1px solid #827c6a; padding: 20px 0; display: flex; flex-direction: column; gap: 22px; overflow: hidden">
+    <div style="padding: 0 20px; display: flex; flex-direction: column; gap: 2px">
+      <span style="font-family: Poppins, sans-serif; font-weight: 600; font-size: 16px; color: #17231e">Daily Dose</span>
+      <span style="font-size: 13px; color: #5f6b63">Front desk, Muara Karang</span>
+    </div>
+
+    <nav style="display: flex; flex-direction: column; gap: 18px">
+      <div style="display: flex; flex-direction: column; gap: 2px">
+        <span style="padding: 0 20px 6px; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; color: #5f6b63">HARI INI</span>
+        <a href="#hari-ini" aria-current="page" style="margin: 0 10px; padding: 11px 14px; text-decoration: none; color: #24483a; background: #ffffff; border-left: 3px solid #396552; border-radius: 0 8px 8px 0; font-size: 15px; font-weight: 600">Hari Ini</a>
+        <a href="AdminTimetable.dc.html" style="margin: 0 10px; padding: 11px 14px; text-decoration: none; color: #17231e; font-size: 15px">Timetable Kelas</a>
+        <a href="#checkin" style="margin: 0 10px; padding: 11px 14px; text-decoration: none; color: #17231e; font-size: 15px">Check-in QR</a>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 2px">
+        <span style="padding: 0 20px 6px; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; color: #5f6b63">PELANGGAN</span>
+        <a href="#cari" style="margin: 0 10px; padding: 11px 14px; text-decoration: none; color: #17231e; font-size: 15px">Cari Pelanggan</a>
+        <a href="#sisa-sesi" style="margin: 0 10px; padding: 11px 14px; text-decoration: none; color: #17231e; font-size: 15px">Sisa Sesi</a>
+        <a href="AdminVerifikasi.dc.html" style="margin: 0 10px; padding: 11px 14px; text-decoration: none; color: #17231e; font-size: 15px">Dokumen Pelanggan</a>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 2px">
+        <span style="padding: 0 20px 6px; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; color: #5f6b63">BANTUAN</span>
+        <a href="#riwayat" style="margin: 0 10px; padding: 11px 14px; text-decoration: none; color: #17231e; font-size: 15px">Riwayat Tindakan Saya</a>
+      </div>
+    </nav>
+  </aside>
+
+  <main style="flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden">
+
+    <header style="background: #ffffff; border-bottom: 1px solid #827c6a; height: 56px; flex-shrink: 0; padding: 0 24px; display: flex; align-items: center; justify-content: space-between">
+      <span style="font-size: 16px; color: #17231e">Cabang <strong style="font-weight: 600">Daily Dose Muara Karang</strong>, Senin, 26 Okt 2026</span>
+      <span style="font-family: Poppins, sans-serif; font-weight: 600; font-size: 20px; color: #17231e">08.42</span>
+    </header>
+
+    <div style="flex: 1; overflow: hidden; padding: 20px 24px; display: flex; flex-direction: column; gap: 20px">
+
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px">
+        <section style="background: #ffffff; border: 2px solid #396552; border-radius: 14px; padding: 18px 20px; display: flex; flex-direction: column; gap: 10px; min-height: 160px">
+          <span style="font-size: 12px; font-weight: 700; letter-spacing: 0.08em; color: #246144">BERJALAN SEKARANG</span>
+          <span style="font-family: Poppins, sans-serif; font-weight: 600; font-size: 24px; line-height: 30px; color: #17231e">08.00 Private Group</span>
+          <span style="font-size: 16px; color: #607069">Instruktur Amel, Studio 1, 3 dari 4 terisi</span>
+          <div style="display: flex; gap: 10px; margin-top: auto">
+            <button type="button" style="min-height: 44px; padding: 0 18px; background: #396552; color: #ffffff; border: none; border-radius: 10px; font-size: 15px; font-weight: 500; cursor: pointer">Buka daftar hadir</button>
+            <button type="button" style="min-height: 44px; padding: 0 18px; background: #ffffff; color: #396552; border: 1.5px solid #827c6a; border-radius: 10px; font-size: 15px; font-weight: 500; cursor: pointer">Tampilkan QR check-in</button>
+          </div>
+        </section>
+
+        <section style="background: #ffffff; border: 1px solid #827c6a; border-radius: 14px; padding: 18px 20px; display: flex; flex-direction: column; gap: 10px; min-height: 160px">
+          <span style="font-size: 12px; font-weight: 700; letter-spacing: 0.08em; color: #607069">MULAI 18 MENIT LAGI</span>
+          <span style="font-family: Poppins, sans-serif; font-weight: 600; font-size: 24px; line-height: 30px; color: #17231e">09.00 Private Group</span>
+          <span style="font-size: 16px; color: #607069">Instruktur Clara, Studio 1, 4 dari 4 terisi</span>
+          <div style="display: flex; gap: 10px; margin-top: auto">
+            <button type="button" style="min-height: 44px; padding: 0 18px; background: #ffffff; color: #396552; border: 1.5px solid #827c6a; border-radius: 10px; font-size: 15px; font-weight: 500; cursor: pointer">Buka daftar hadir</button>
+          </div>
+        </section>
+      </div>
+
+      <div style="display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 20px; flex: 1; min-height: 0">
+
+        <section style="background: #ffffff; border: 1px solid #827c6a; border-radius: 14px; padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; overflow: hidden">
+          <h2 style="margin: 0; font-family: Poppins, sans-serif; font-weight: 600; font-size: 18px; color: #17231e">Daftar hadir kelas 08.00</h2>
+
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 64px; border-bottom: 1px solid #827c6a">
+            <span style="display: flex; flex-direction: column; gap: 2px">
+              <span style="font-size: 16px; color: #17231e">[nama pelanggan 1]</span>
+              <span style="font-size: 14px; color: #607069">Sisa 6 sesi</span>
+            </span>
+            <span style="font-size: 15px; font-weight: 500; color: #246144">Hadir 07.54</span>
+          </div>
+
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 64px; border-bottom: 1px solid #827c6a">
+            <span style="display: flex; flex-direction: column; gap: 2px">
+              <span style="font-size: 16px; color: #17231e">[nama pelanggan 2]</span>
+              <span style="font-size: 14px; color: #607069">Sisa 2 sesi</span>
+            </span>
+            <span style="font-size: 15px; font-weight: 500; color: #246144">Hadir 07.58</span>
+          </div>
+
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 64px">
+            <span style="display: flex; flex-direction: column; gap: 2px">
+              <span style="font-size: 16px; color: #17231e">[nama pelanggan 3]</span>
+              <span style="font-size: 14px; color: #607069">Sisa 11 sesi</span>
+            </span>
+            <button type="button" style="min-height: 44px; padding: 0 20px; background: #ffffff; color: #396552; border: 1.5px solid #827c6a; border-radius: 10px; font-size: 15px; font-weight: 500; cursor: pointer">Tandai hadir</button>
+          </div>
+
+          <h2 style="margin: 8px 0 0; font-family: Poppins, sans-serif; font-weight: 600; font-size: 18px; color: #17231e">Sisa kelas hari ini</h2>
+
+          <div style="display: flex; align-items: center; gap: 16px; min-height: 48px; border-bottom: 1px solid #827c6a">
+            <span style="font-family: Poppins, sans-serif; font-weight: 600; font-size: 16px; width: 56px; color: #17231e">17.00</span>
+            <span style="flex: 1; font-size: 15px; color: #17231e">Private Group, Dina</span>
+            <span style="font-size: 15px; color: #607069">1 dari 4 terisi</span>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 12px; min-height: 48px; background: #faeceb; border-radius: 8px; padding: 0 12px">
+            <span style="flex-shrink: 0; font-family: Poppins, sans-serif; font-weight: 600; font-size: 16px; width: 52px; color: #7d2f2b">18.00</span>
+            <span style="flex: 1; min-width: 0; font-size: 15px; color: #7d2f2b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Private Group, Dina</span>
+            <span style="flex-shrink: 0; font-size: 15px; font-weight: 500; color: #7d2f2b; white-space: nowrap">6 dari 4, lebih 2 orang</span>
+            <button type="button" style="flex-shrink: 0; min-height: 36px; padding: 0 12px; background: #ffffff; color: #9b3d38; border: 1.5px solid #9b3d38; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; white-space: nowrap">Lihat detail</button>
+          </div>
+        </section>
+
+        <div style="display: flex; flex-direction: column; gap: 16px; min-height: 0">
+
+          <section style="display: flex; flex-direction: column; gap: 10px">
+            <button type="button" style="min-height: 72px; background: #396552; color: #ffffff; border: none; border-radius: 12px; font-size: 17px; font-weight: 500; cursor: pointer; text-align: left; padding: 0 20px">Buat booking manual</button>
+            <button type="button" style="min-height: 60px; background: #ffffff; color: #17231e; border: 1.5px solid #827c6a; border-radius: 12px; font-size: 16px; font-weight: 500; cursor: pointer; text-align: left; padding: 0 20px">Pindahkan jadwal booking</button>
+            <button type="button" style="min-height: 60px; background: #ffffff; color: #17231e; border: 1.5px solid #827c6a; border-radius: 12px; font-size: 16px; font-weight: 500; cursor: pointer; text-align: left; padding: 0 20px">Cari pelanggan</button>
+          </section>
+
+          <section style="background: #fff4da; border-left: 4px solid #8a5b17; border-radius: 12px; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px">
+            <h2 style="margin: 0; font-family: Poppins, sans-serif; font-weight: 600; font-size: 17px; color: #6d4712">Perlu dibereskan di cabang ini</h2>
+            <div style="display: flex; flex-direction: column; gap: 4px">
+              <span style="font-size: 15px; line-height: 22px; color: #6d4712">Tidak ada kelas terjadwal setelah hari ini. Jadwal terakhir dibuat 9 Okt 2026.</span>
+              <a href="AdminTimetable.dc.html" style="font-size: 15px; font-weight: 500; color: #6d4712">Buka timetable kelas</a>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 4px; border-top: 1px solid #e8d4a8; padding-top: 10px">
+              <span style="font-size: 15px; line-height: 22px; color: #6d4712">1 kelas hari ini terisi melebihi kapasitas.</span>
+              <a href="#lebih-kapasitas" style="font-size: 15px; font-weight: 500; color: #6d4712">Lihat kelas 18.00</a>
+            </div>
+          </section>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

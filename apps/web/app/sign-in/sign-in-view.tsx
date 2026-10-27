@@ -63,7 +63,10 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
       className="ed-scope grid min-h-svh grid-cols-1 lg:grid-cols-[minmax(0,1.1fr)_minmax(460px,0.9fr)] bg-ed-cream text-ed-ink"
       id="main-content"
     >
-      <a className="skip-link" href="#auth-form">
+      <a
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:px-4 focus:py-2.5 focus:bg-ed-forest focus:text-white focus:text-xs focus:font-bold focus:uppercase focus:tracking-wider focus:shadow-lg focus:outline-none focus:rounded-none"
+        href="#auth-form"
+      >
         Langsung ke formulir masuk
       </a>
 
@@ -115,21 +118,21 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
 
       {/* Right Form Panel */}
       <section
-        className="grid min-w-0 place-items-center p-6 sm:p-12 lg:p-16"
+        className="flex flex-col items-center justify-center w-full min-w-0 p-3 sm:p-8 lg:p-16"
         aria-labelledby="sign-in-title"
       >
         <div
-          className="w-full max-w-[480px] rounded-none border border-ed-line bg-white p-6 sm:p-10 shadow-none"
+          className="w-full max-w-[480px] min-w-0 rounded-none border border-ed-line bg-white p-4 sm:p-8 lg:p-10 shadow-none"
           id="auth-form"
         >
           {/* Header Top */}
-          <div className="mb-8 flex items-center justify-between gap-4 border-b border-ed-line pb-5">
-            <BrandMark className="w-36 sm:w-40" priority />
+          <div className="mb-6 sm:mb-8 flex items-center justify-between gap-2 sm:gap-3 border-b border-ed-line pb-4 sm:pb-5">
+            <BrandMark className="w-28 sm:w-40 shrink-0" priority />
             <Link
-              className="inline-flex min-h-[44px] items-center gap-2 rounded-none px-3 text-xs font-bold uppercase tracking-wider text-ed-forest hover:bg-ed-tint transition-colors no-underline"
+              className="inline-flex min-h-[40px] sm:min-h-[44px] shrink-0 items-center gap-1.5 sm:gap-2 rounded-none px-2.5 sm:px-3 text-xs font-bold uppercase tracking-wider text-ed-forest hover:bg-ed-tint transition-colors no-underline"
               href="/"
             >
-              <ArrowLeft className="size-3.5" />
+              <ArrowLeft className="size-3.5 shrink-0" />
               <span>Ke beranda</span>
             </Link>
           </div>

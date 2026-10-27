@@ -6,7 +6,7 @@ import { useAppFeedback } from '../../components/app-feedback';
 import { Button, IconButton } from '../../components/actions';
 import { controlClassName } from '../../components/forms';
 import { browserIdentityClient, type IdentityClient } from '@/api-clients/identity-client';
-import { Skeleton } from '../../ui';
+import { PageHeader, Skeleton } from '../../ui';
 import { useSessionContext } from '../../session-context';
 import { useTrackedRouter } from '../../components/app-loading';
 
@@ -56,15 +56,14 @@ export function SecurityView({ client = browserIdentityClient }: { client?: Iden
   return (
     <main className="mx-auto max-w-3xl space-y-6" aria-labelledby="security-title">
       {redirectTo && <PasswordChangeRedirect target={redirectTo} />}
-      <header>
-        <p className="text-xs font-bold uppercase tracking-[0.16em] text-dd-forest">Akun</p>
-        <h1 id="security-title" className="mt-2 text-2xl font-semibold sm:text-3xl">
-          Keamanan akun
-        </h1>
-        <p className="mt-2 text-sm leading-6 text-dd-muted">
-          Perbarui password untuk melindungi akses akun dan seluruh transaksi Anda.
-        </p>
-      </header>
+      <PageHeader
+        eyebrow="Akun"
+        title="Keamanan Akun"
+        description="Perbarui password untuk melindungi akses akun dan seluruh transaksi Anda."
+        titleId="security-title"
+        backHref="/account/profile"
+        backLabel="Kembali ke Profil"
+      />
 
       {status?.passwordChangeRequired && (
         <section className="rounded-dd-xl border border-dd-warning/30 bg-dd-warning-soft p-5 text-sm text-dd-warning">

@@ -50,15 +50,16 @@ vi.mock('@/api-clients/order-client', async (importOriginal) => {
 
 import { browserOrderClient } from '@/api-clients/order-client';
 
-describe('CheckoutView verification gate', () => {
+describe('CheckoutView verification gate (Tiket T-01)', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
     mockSearchParams.clear();
     mockSearchParams.set('package', 'package-reformer-10');
     mockSearchParams.set('branch', 'branch-1');
+    mockSession.session.identityVerificationStatus = 'ACTION_REQUIRED';
   });
 
-  it('renders verification gate when backend returns CUSTOMER_VERIFICATION_REQUIRED', async () => {
+  it('renders verification gate with polite non-jargon copy when backend returns CUSTOMER_VERIFICATION_REQUIRED', async () => {
     vi.mocked(browserOrderClient.checkout).mockRejectedValueOnce(
       new OrderClientError('CUSTOMER_VERIFICATION_REQUIRED'),
     );
@@ -69,15 +70,19 @@ describe('CheckoutView verification gate', () => {
       </AppFeedbackProvider>,
     );
 
-    expect(await screen.findByRole('heading', { name: 'Verifikasi KTP Diperlukan' })).toBeVisible();
+    expect(await screen.findByRole('heading', { name: 'Pembelian paket belum bisa diproses' })).toBeVisible();
     expect(
-      screen.getByText(/Lengkapi verifikasi KTP terlebih dahulu untuk dapat membeli paket sesi Pilates/),
+      screen.getByText('Identitas kamu belum diverifikasi. Isi data verifikasi dulu, sekitar 2 menit.'),
     ).toBeVisible();
-    
-    const verificationBtn = screen.getByRole('link', { name: 'Lengkapi Verifikasi KTP' });
+
+    const verificationBtn = screen.getByRole('link', { name: 'Isi data verifikasi' });
     expect(verificationBtn).toBeVisible();
     expect(verificationBtn.getAttribute('href')).toContain('/account/verification?returnTo=');
     expect(verificationBtn.getAttribute('href')).toContain('package%3Dpackage-reformer-10');
+
+    const backBtn = screen.getByRole('link', { name: 'Kembali ke paket' });
+    expect(backBtn).toBeVisible();
+    expect(backBtn.getAttribute('href')).toBe('/packages');
   });
 
   it('renders pending status verification gate when customer verification is PENDING', async () => {
@@ -92,13 +97,48 @@ describe('CheckoutView verification gate', () => {
       </AppFeedbackProvider>,
     );
 
-    expect(await screen.findByRole('heading', { name: 'Verifikasi KTP Sedang Diproses' })).toBeVisible();
+    expect(await screen.findByRole('heading', { name: 'Verifikasi identitas sedang diproses' })).toBeVisible();
     expect(
-      screen.getByText(/Dokumen KTP Anda sedang dalam proses peninjauan oleh tim Daily Dose/),
+      screen.getByText('Data kamu sedang diperiksa tim studio. Kami kabari lewat WhatsApp kalau sudah selesai.'),
     ).toBeVisible();
 
-    const checkStatusBtn = screen.getByRole('link', { name: 'Lihat Status Verifikasi' });
+    const checkStatusBtn = screen.getByRole('link', { name: 'Lihat status verifikasi' });
     expect(checkStatusBtn).toBeVisible();
     expect(checkStatusBtn.getAttribute('href')).toContain('/account/verification?returnTo=');
+  });
+
+  it('renders verification gate even if packageId query parameter is omitted', async () => {
+    mockSearchParams.clear();
+    mockSession.session.identityVerificationStatus = 'ACTION_REQUIRED';
+
+    render(
+      <AppFeedbackProvider>
+        <CheckoutView />
+      </AppFeedbackProvider>,
+    );
+
+    expect(await screen.findByRole('heading', { name: 'Pembelian paket belum bisa diproses' })).toBeVisible();
+    const verificationBtn = screen.getByRole('link', { name: 'Isi data verifikasi' });
+    expect(verificationBtn).toBeVisible();
+    expect(verificationBtn.getAttribute('href')).toContain('returnTo=%2Fpackages');
+  });
+
+  it('never leaks raw technical error codes in user facing error alert', async () => {
+    mockSession.session.identityVerificationStatus = 'APPROVED';
+    vi.mocked(browserOrderClient.checkout).mockRejectedValueOnce(
+      new OrderClientError('UNMAPPED_INTERNAL_EXCEPTION_CODE'),
+    );
+
+    render(
+      <AppFeedbackProvider>
+        <CheckoutView />
+      </AppFeedbackProvider>,
+    );
+
+    expect(await screen.findByRole('heading', { name: 'Paket belum tersedia' })).toBeVisible();
+    expect(screen.queryByText(/UNMAPPED_INTERNAL_EXCEPTION_CODE/)).toBeNull();
+    expect(
+      screen.getByText('Layanan pesanan belum dapat memproses permintaan. Silakan coba kembali.'),
+    ).toBeVisible();
   });
 });

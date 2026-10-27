@@ -22,6 +22,7 @@ import {
 import { EmptyState, Feedback, Skeleton, StatusBadge } from '../ui';
 import { AdminPageHeader } from '../components/admin/admin-page-header';
 import { useSessionContext } from '../session-context';
+import { isInstructorOnlySession } from '@/lib/session-audience';
 import { CreatePanel, DetailPanel, type CreateTemplate } from './class-slot-panels';
 import { LifecycleDialog } from '../components/admin/lifecycle-dialog';
 import { classStatusTone, statusLabels, timezoneLabel } from './class-slot-presenters';
@@ -72,12 +73,13 @@ export function ClassSlotView({
   );
   const authorityKey = sessionContext?.session?.id ?? 'test';
   const capabilities = capabilitiesOverride ?? sessionContext?.session?.capabilities ?? [];
+  const isInstructor = isInstructorOnlySession(sessionContext?.session);
   const canRead = capabilities.includes('class-slot:read');
-  const canManage = capabilities.includes('class-slot:manage');
-  const canManageAttendance = capabilities.includes('attendance:manage');
+  const canManage = !isInstructor && capabilities.includes('class-slot:manage');
+  const canManageAttendance = !isInstructor && capabilities.includes('attendance:manage');
   const canCompleteClass = canManage || capabilities.includes('attendance:self');
   const canReadBookings = capabilities.includes('booking:read');
-  const canViewAllBranches = capabilities.includes('branch:all');
+  const canViewAllBranches = !isInstructor && capabilities.includes('branch:all');
   const globalMode = !branch && canViewAllBranches;
   const canOperate = Boolean(branch && canManage);
   const canOperateAttendance = Boolean(branch && canManageAttendance);
@@ -347,18 +349,22 @@ export function ClassSlotView({
   return (
     <section className="space-y-6" aria-labelledby="classes-title">
       <AdminPageHeader
-        title="Timetable kelas mingguan"
+        title={isInstructor ? 'Jadwal kelas saya' : 'Timetable kelas mingguan'}
         titleId="classes-title"
         description={
-          globalMode
-            ? 'Pantau jadwal seluruh cabang. Anda dapat membuat kelas langsung dengan memilih cabang studio tujuan pada formulir.'
-            : 'Kelola draft, instruktur, publish, dan pembatalan pada waktu lokal cabang.'
+          isInstructor
+            ? 'Lihat jadwal sesi kelas yang ditugaskan kepada Anda pada waktu lokal studio.'
+            : globalMode
+              ? 'Pantau jadwal seluruh cabang. Anda dapat membuat kelas langsung dengan memilih cabang studio tujuan pada formulir.'
+              : 'Kelola draft, instruktur, publish, dan pembatalan pada waktu lokal cabang.'
         }
         actions={
           <>
-            <StatusBadge tone={canOperate ? 'success' : 'neutral'}>
-              {canOperate ? 'Dapat mengelola' : 'Hanya lihat'}
-            </StatusBadge>
+            {!isInstructor && (
+              <StatusBadge tone={canOperate ? 'success' : 'neutral'}>
+                {canOperate ? 'Dapat mengelola' : 'Hanya lihat'}
+              </StatusBadge>
+            )}
             {!globalMode && (
               <StatusBadge tone="neutral">Zona waktu {branch?.timezone}</StatusBadge>
             )}
@@ -419,7 +425,7 @@ export function ClassSlotView({
             </strong>
           </div>
           <div className="shrink-0 w-full sm:w-auto flex flex-col sm:flex-row items-center gap-2">
-            {canManageAttendance && (
+            {!isInstructor && canManageAttendance && (
               <ButtonLink
                 variant="secondary"
                 size="sm"
@@ -433,18 +439,20 @@ export function ClassSlotView({
                 <span>Layar Kiosk Studio</span>
               </ButtonLink>
             )}
-            <Button
-              className="w-full sm:w-auto min-h-[40px] sm:min-h-0"
-              disabled={!canCreateSlot}
-              title={
-                !canManage
-                  ? 'Akses membuat kelas memerlukan izin class-slot:manage'
-                  : undefined
-              }
-              onClick={() => openPanel({ kind: 'create' })}
-            >
-              Buat kelas
-            </Button>
+            {!isInstructor && (
+              <Button
+                className="w-full sm:w-auto min-h-[40px] sm:min-h-0"
+                disabled={!canCreateSlot}
+                title={
+                  !canManage
+                    ? 'Akses membuat kelas memerlukan izin class-slot:manage'
+                    : undefined
+                }
+                onClick={() => openPanel({ kind: 'create' })}
+              >
+                Buat kelas
+              </Button>
+            )}
           </div>
         </div>
 

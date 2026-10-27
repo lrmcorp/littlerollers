@@ -10,6 +10,7 @@ describe('PublicFooter', () => {
       'href',
       '/locations',
     );
+    expect(screen.queryByRole('link', { name: /Layar Kiosk Studio/i })).not.toBeInTheDocument();
     expect(screen.getByText(/Dapatkan kabar terbaru/)).toBeInTheDocument();
     expect(view.container.querySelector('footer')).not.toHaveClass('ed-scope');
     expect((await axe(view.container)).violations).toHaveLength(0);

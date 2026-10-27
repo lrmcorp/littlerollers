@@ -7,7 +7,8 @@
     "node": ">=24 <25"
   },
   "scripts": {
-    "ports:clean": "node -e \"['32120','32121'].forEach(p=>{try{const pids=require('child_process').execSync('lsof -ti:'+p).toString().trim();if(pids)pids.split(/\\s+/).forEach(pid=>{if(pid)process.kill(Number(pid),'SIGKILL')})}catch{}})\"",
+    "ports:clean": "node -e \"['32120','32121'].forEach(p=>{try{const pids=require('child_process').execSync('lsof -ti:'+p).toString().trim();if(pids)pids.split(/\\s+/).forEach(pid=>{if(pid)process.kill(Number(pid),'SIGKILL')})}catch{}}); try{require('child_process').execSync('pkill -f ms-playwright-go 2>/dev/null')}catch{}\"",
+    "cleanup:zombies": "node -e \"try{require('child_process').execSync('pkill -f ms-playwright-go 2>/dev/null')}catch{}\"",
     "predev": "pnpm ports:clean",
     "bootstrap": "pnpm install && pnpm db:generate && pnpm build",
     "build": "turbo run build",

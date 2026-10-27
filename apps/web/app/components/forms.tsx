@@ -84,6 +84,7 @@ export function FormField({
   error,
   required,
   className = '',
+  labelClassName = '',
   variant,
   children,
 }: {
@@ -93,6 +94,7 @@ export function FormField({
   error?: ReactNode;
   required?: boolean;
   className?: string;
+  labelClassName?: string;
   variant?: FieldVariant;
   children: ReactNode;
 }) {
@@ -100,7 +102,12 @@ export function FormField({
     <div className={`grid min-w-0 gap-1.5 ${className}`}>
       <label
         htmlFor={htmlFor}
-        className={`text-sm font-semibold ${variant === 'editorial' ? 'text-ed-ink' : 'text-dd-ink'}`}
+        className={
+          labelClassName ||
+          (variant === 'editorial'
+            ? 'text-xs font-bold uppercase tracking-wider text-ed-ink'
+            : 'text-sm font-semibold text-dd-ink')
+        }
       >
         {label}
         {required && (
@@ -124,6 +131,7 @@ type SharedFieldProps = {
   trailingIcon?: ReactNode;
   compact?: boolean;
   wrapperClassName?: string;
+  labelClassName?: string;
   /** `editorial` untuk halaman publik; bawaan mengikuti gaya panel admin. */
   variant?: FieldVariant;
 };
@@ -140,6 +148,7 @@ export const TextInput = forwardRef<
     trailingIcon,
     compact,
     wrapperClassName,
+    labelClassName,
     variant,
     className = '',
     id: providedId,
@@ -181,6 +190,7 @@ export const TextInput = forwardRef<
       error={error}
       required={required}
       className={wrapperClassName}
+      labelClassName={labelClassName}
       variant={variant}
     >
       {input}

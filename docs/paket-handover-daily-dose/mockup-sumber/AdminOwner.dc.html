@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Yang perlu ditindak, owner</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Poppins:wght@500;600&display=swap">
+<style>
+body { margin: 0; font-family: "DM Sans", system-ui, sans-serif; }
+button, a { font-family: inherit; }
+table { border-collapse: collapse; width: 100%; }
+th { text-align: left; padding: 10px 16px; background: #f6f4ee; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; color: #607069; text-transform: uppercase; border-bottom: 1px solid #827c6a; }
+td { padding: 14px 16px; border-bottom: 1px solid #827c6a; font-size: 15px; color: #17231e; }
+.num { text-align: right; font-variant-numeric: tabular-nums; }
+</style>
+</helmet>
+
+<div style="width: 1280px; height: 1000px; box-sizing: border-box; background: #f4f2ec; display: flex; flex-direction: column; overflow: hidden">
+
+  <header style="background: #ffffff; border-bottom: 1px solid #827c6a; padding: 14px 24px; flex-shrink: 0; display: flex; flex-direction: column; gap: 4px">
+    <h1 style="margin: 0; font-family: Poppins, sans-serif; font-weight: 600; font-size: 22px; color: #17231e">Yang perlu ditindak minggu ini</h1>
+    <span style="font-size: 15px; color: #607069">27 Sep sampai 26 Okt 2026, dibandingkan 28 Agu sampai 26 Sep 2026. Data sampai 26 Okt 2026, 08.05.</span>
+  </header>
+
+  <div style="flex: 1; overflow: hidden; padding: 20px 24px; display: flex; flex-direction: column; gap: 20px">
+
+    <section style="background: #ffffff; border: 1px solid #827c6a; border-radius: 14px; overflow: hidden">
+
+      <div style="display: flex; align-items: center; gap: 20px; padding: 16px 20px; border-bottom: 1px solid #827c6a; background: #faeceb">
+        <span style="flex: 1; font-size: 17px; line-height: 24px; color: #7d2f2b"><strong style="font-weight: 600">Tidak ada kelas terjadwal di kelima cabang sejak 9 Oktober 2026.</strong> Pelanggan tidak bisa memesan apa pun selama 17 hari.</span>
+        <button type="button" style="min-height: 44px; padding: 0 18px; background: #9b3d38; color: #ffffff; border: none; border-radius: 10px; font-size: 15px; font-weight: 500; cursor: pointer; white-space: nowrap">Buka jadwal ke depan</button>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 20px; padding: 16px 20px; border-bottom: 1px solid #827c6a">
+        <span style="flex: 1; font-size: 17px; line-height: 24px; color: #17231e">895 bukti transfer menunggu lebih dari 24 jam, nilai dalam filter Rp 29.236.540.917. Tertua dikirim 2 Oktober.</span>
+        <button type="button" style="min-height: 44px; padding: 0 18px; background: #ffffff; color: #396552; border: 1.5px solid #827c6a; border-radius: 10px; font-size: 15px; font-weight: 500; cursor: pointer; white-space: nowrap">Lihat antrean Finance</button>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 20px; padding: 16px 20px; border-bottom: 1px solid #827c6a">
+        <span style="flex: 1; font-size: 17px; line-height: 24px; color: #17231e">4.560 verifikasi identitas dalam antrean, belum ada yang diperiksa.</span>
+        <button type="button" style="min-height: 44px; padding: 0 18px; background: #ffffff; color: #396552; border: 1.5px solid #827c6a; border-radius: 10px; font-size: 15px; font-weight: 500; cursor: pointer; white-space: nowrap">Buka antrean verifikasi</button>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 20px; padding: 16px 20px; border-bottom: 1px solid #827c6a">
+        <span style="flex: 1; font-size: 17px; line-height: 24px; color: #17231e">15 kelas terisi melebihi kapasitas, contohnya 6 dari 4 dan 5 dari 2.</span>
+        <button type="button" style="min-height: 44px; padding: 0 18px; background: #ffffff; color: #396552; border: 1.5px solid #827c6a; border-radius: 10px; font-size: 15px; font-weight: 500; cursor: pointer; white-space: nowrap">Lihat kelas lebih kapasitas</button>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 20px; padding: 16px 20px">
+        <span style="flex: 1; font-size: 17px; line-height: 24px; color: #17231e">Honor instruktur tercatat Rp 0, sehingga laba sama dengan omzet dan margin terbaca 100 persen. Angka laba belum bisa dipakai.</span>
+        <button type="button" style="min-height: 44px; padding: 0 18px; background: #ffffff; color: #396552; border: 1.5px solid #827c6a; border-radius: 10px; font-size: 15px; font-weight: 500; cursor: pointer; white-space: nowrap">Buka honor instruktur</button>
+      </div>
+
+    </section>
+
+    <section style="background: #ffffff; border: 1px solid #827c6a; border-radius: 14px; overflow: hidden">
+      <h2 style="margin: 0; padding: 16px 20px 12px; font-family: Poppins, sans-serif; font-weight: 600; font-size: 18px; color: #17231e">Cabang mana yang perlu perhatian lebih dulu?</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Cabang</th>
+            <th class="num">Omzet periode ini</th>
+            <th class="num">Beda vs periode lalu</th>
+            <th class="num">Okupansi</th>
+            <th class="num">Kelas 7 hari ke depan</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Muara Karang<br><span style="font-size: 13px; color: #607069">Pluit, Jakarta Utara</span></td>
+            <td class="num">Rp 99.827.862</td>
+            <td class="num" style="color: #246144">naik 18%</td>
+            <td class="num">37,0%</td>
+            <td class="num" style="color: #9b3d38; font-weight: 600">0</td>
+          </tr>
+          <tr>
+            <td>Green Garden<br><span style="font-size: 13px; color: #607069">Kedoya, Jakarta Barat</span></td>
+            <td class="num">Rp 62.342.387</td>
+            <td class="num" style="color: #246144">naik 9%</td>
+            <td class="num">20,5%</td>
+            <td class="num" style="color: #9b3d38; font-weight: 600">0</td>
+          </tr>
+          <tr>
+            <td>Graha Family<br><span style="font-size: 13px; color: #607069">Surabaya Barat</span></td>
+            <td class="num">Rp 35.816.245</td>
+            <td class="num" style="color: #9b3d38">turun 4%</td>
+            <td class="num">7,4%</td>
+            <td class="num" style="color: #9b3d38; font-weight: 600">0</td>
+          </tr>
+          <tr>
+            <td>Orange Groves PIK 2<br><span style="font-size: 13px; color: #607069">Kosambi, Tangerang</span></td>
+            <td class="num">Rp 22.276.037</td>
+            <td class="num" style="color: #246144">naik 12%</td>
+            <td class="num">57,8%</td>
+            <td class="num" style="color: #9b3d38; font-weight: 600">0</td>
+          </tr>
+          <tr>
+            <td>Untar Kampus 2<br><span style="font-size: 13px; color: #607069">Tanjung Duren, Jakarta Barat</span></td>
+            <td class="num">Rp 19.001.957</td>
+            <td class="num" style="color: #246144">naik 6%</td>
+            <td class="num">40,5%</td>
+            <td class="num" style="color: #9b3d38; font-weight: 600">0</td>
+          </tr>
+        </tbody>
+      </table>
+      <p style="margin: 0; padding: 12px 20px 16px; font-size: 15px; line-height: 22px; color: #607069">Kolom kelas 7 hari ke depan bernilai nol di semua cabang. Itu masalah terbesar pada tabel ini, bukan selisih omzet.</p>
+    </section>
+
+    <section style="flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 20px">
+
+      <div style="background: #ffffff; border: 1px solid #827c6a; border-radius: 14px; padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; min-height: 0">
+        <h2 style="margin: 0; font-family: Poppins, sans-serif; font-weight: 600; font-size: 18px; color: #17231e">Hari mana omzet turun dalam 30 hari terakhir?</h2>
+        <div style="flex: 1; min-height: 0; display: flex; align-items: flex-end; gap: 4px; border-bottom: 1px solid #827c6a; padding-bottom: 2px">
+          <sc-for list="{{bars}}" as="b" hint-placeholder-count="30">
+            <span style="{{b.style}}"></span>
+          </sc-for>
+        </div>
+        <div style="display: flex; justify-content: space-between">
+          <span style="font-size: 13px; color: #607069">27 Sep 2026</span>
+          <span style="font-size: 13px; color: #607069">9 Okt, jadwal berhenti</span>
+          <span style="font-size: 13px; color: #607069">26 Okt 2026</span>
+        </div>
+        <span style="font-size: 14px; line-height: 20px; color: #607069">Profit tidak digambar selama honor instruktur masih Rp 0, karena garisnya akan sama persis dengan omzet.</span>
+      </div>
+
+      <div style="background: #ffffff; border: 1px solid #827c6a; border-radius: 14px; padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; min-height: 0">
+        <h2 style="margin: 0; font-family: Poppins, sans-serif; font-weight: 600; font-size: 18px; color: #17231e">Paket apa yang paling banyak menghasilkan omzet?</h2>
+        <div style="display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid #827c6a; padding-bottom: 10px">
+          <span style="font-size: 15px; color: #17231e">20 Sessions Private Class, 2 terjual</span>
+          <span style="font-size: 15px; font-weight: 500; color: #17231e; white-space: nowrap">Rp 20,7 jt</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid #827c6a; padding-bottom: 10px">
+          <span style="font-size: 15px; color: #17231e">Early Bird 2027, 2 terjual</span>
+          <span style="font-size: 15px; font-weight: 500; color: #17231e; white-space: nowrap">Rp 20,7 jt</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; gap: 12px">
+          <span style="font-size: 15px; color: #17231e">Flash Sale 10.10, 18 terjual</span>
+          <span style="font-size: 15px; font-weight: 500; color: #17231e; white-space: nowrap">Rp 15,3 jt</span>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1000}}'>
+// Daily revenue bars. The drop after day 13 is the 9 October point where
+// classes stopped being scheduled, which is the finding this chart supports.
+class Component extends DCLogic {
+  renderVals() {
+    const daily = [62, 71, 48, 55, 83, 90, 66, 74, 59, 88, 95, 70, 64, 22, 14, 9, 12, 7, 5, 8, 6, 4, 7, 3, 5, 4, 2, 3, 2, 1];
+    return {
+      bars: daily.map((v, i) => ({
+        style: 'flex: 1; min-width: 0; height: ' + Math.max(v, 2) + '%; border-radius: 2px 2px 0 0; background: '
+          + (i >= 13 ? '#c79a9a' : '#396552') + ';'
+      }))
+    };
+  }
+}
+</script>
+</body>
+</html>

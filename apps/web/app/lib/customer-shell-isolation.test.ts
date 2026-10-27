@@ -66,9 +66,9 @@ describe('Customer & Member Shell Isolation and Workspace Button Protection', ()
     expect(internalStaffRoles.has('SUPER_OWNER')).toBe(true);
   });
 
-  it('guarantees customer default destination is public/catalog, never admin workspace', () => {
-    expect(defaultSessionDestination(memberCustomerSession)).toBe('/classes#schedule');
-    expect(defaultSessionDestination(memberOnlySession)).toBe('/classes#schedule');
+  it('guarantees customer default destination is member home (/account), never admin workspace', () => {
+    expect(defaultSessionDestination(memberCustomerSession)).toBe('/account');
+    expect(defaultSessionDestination(memberOnlySession)).toBe('/account');
     expect(defaultSessionDestination(staffAdminSession)).toBe('/workspace');
   });
 

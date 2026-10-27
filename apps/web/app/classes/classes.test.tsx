@@ -26,6 +26,7 @@ vi.mock('@/api-clients/lifecycle-client', async (importOriginal) => {
 
 // Keep operational fixtures relative to execution time so the seven-day agenda remains relevant.
 const now = new Date();
+now.setHours(10, 0, 0, 0);
 const slot = {
   id: 'slot-1',
   branchId: 'branch-1',

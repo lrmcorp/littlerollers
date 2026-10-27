@@ -472,10 +472,19 @@ export function orderError(error: unknown) {
 }
 
 export function orderErrorDetails(error: unknown) {
-  const code = error instanceof Error ? error.message : '';
+  const code =
+    error instanceof OrderClientError
+      ? error.code
+      : error instanceof Error
+        ? ((error as any).code as string | undefined) || error.message
+        : typeof (error as any)?.code === 'string'
+          ? (error as any).code
+          : '';
   const labels: Record<string, string> = {
-    CUSTOMER_VERIFICATION_REQUIRED: 'Lengkapi verifikasi KTP terlebih dahulu untuk membeli paket.',
-    IDENTITY_VERIFICATION_REQUIRED: 'Selesaikan verifikasi identitas sebelum membuat pesanan.',
+    CUSTOMER_VERIFICATION_REQUIRED:
+      'Identitas kamu belum diverifikasi. Isi data verifikasi dulu, sekitar 2 menit.',
+    IDENTITY_VERIFICATION_REQUIRED:
+      'Identitas kamu belum diverifikasi. Isi data verifikasi dulu, sekitar 2 menit.',
     PAYMENT_ACCOUNT_UNAVAILABLE: 'Rekening pembayaran cabang belum tersedia.',
     PAYMENT_UNIQUE_CODE_UNAVAILABLE:
       'Kode pembayaran sedang penuh. Tunggu beberapa saat lalu buat pesanan kembali.',

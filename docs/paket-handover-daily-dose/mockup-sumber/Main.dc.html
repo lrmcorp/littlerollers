@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Beranda Member</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Poppins:wght@500;600&display=swap">
+<style>
+body { margin: 0; font-family: "DM Sans", system-ui, sans-serif; }
+a { color: #396552; }
+a:hover { color: #24483a; }
+button, a { font-family: inherit; }
+</style>
+</helmet>
+
+<div style="width: 390px; height: 1080px; box-sizing: border-box; background: #f3f6f4; display: flex; flex-direction: column; overflow: hidden">
+
+  <header style="background: #ffffff; border-bottom: 1px solid #768b84; padding: 16px 20px 14px; display: flex; flex-direction: column; gap: 4px">
+    <h1 style="margin: 0; font-family: Poppins, sans-serif; font-weight: 600; font-size: 20px; line-height: 26px; color: #17231e">Halo, [nama member]</h1>
+    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap">
+      <span style="font-size: 15px; line-height: 22px; color: #607069">Studio utama: Daily Dose Muara Karang</span>
+      <a href="#ganti-studio" style="font-size: 15px; line-height: 22px; font-weight: 500; text-decoration: underline; padding: 11px 0; display: inline-block">Ganti studio</a>
+    </div>
+  </header>
+
+  <div style="flex: 1; overflow: hidden; padding: 20px 20px 0; display: flex; flex-direction: column; gap: 20px">
+
+    <section style="background: #e8f3f8; border-left: 4px solid #27607c; border-radius: 12px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px">
+      <h2 style="margin: 0; font-family: Poppins, sans-serif; font-weight: 600; font-size: 18px; line-height: 24px; color: #1d4b62">Identitas kamu belum diverifikasi</h2>
+      <p style="margin: 0; font-size: 16px; line-height: 24px; color: #1d4b62">Verifikasi diperlukan sebelum kamu bisa membeli paket dan booking kelas. Satu halaman, sekitar 2 menit.</p>
+      <a href="Verifikasi.dc.html" style="align-self: flex-start; background: #27607c; color: #ffffff; text-decoration: none; font-size: 16px; font-weight: 500; line-height: 20px; padding: 14px 20px; border-radius: 12px; min-height: 48px; box-sizing: border-box; display: flex; align-items: center">Isi data verifikasi</a>
+    </section>
+
+    <section style="background: #ffffff; border: 1px solid #768b84; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 12px">
+      <span style="font-size: 13px; font-weight: 700; letter-spacing: 0.06em; line-height: 18px; color: #607069">BOOKING TERDEKAT</span>
+      <h2 style="margin: 0; font-family: Poppins, sans-serif; font-weight: 600; font-size: 22px; line-height: 28px; color: #17231e">Private Group</h2>
+      <div style="display: flex; flex-direction: column; gap: 2px">
+        <span style="font-size: 17px; line-height: 26px; color: #17231e">Selasa, 27 Okt 2026</span>
+        <span style="font-size: 17px; line-height: 26px; color: #17231e">08.00 sampai 08.50 WIB</span>
+        <span style="font-size: 15px; line-height: 22px; color: #607069">Instruktur Clara, Daily Dose Muara Karang</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 12px; margin-top: 4px">
+        <button type="button" style="flex: 1; background: #396552; color: #ffffff; border: none; border-radius: 12px; min-height: 52px; font-size: 17px; font-weight: 500; cursor: pointer">Lihat QR Pass</button>
+        <button type="button" style="background: none; border: none; color: #9b3d38; font-size: 16px; font-weight: 500; text-decoration: underline; min-height: 52px; padding: 0 8px; cursor: pointer">Batalkan</button>
+      </div>
+    </section>
+
+    <section style="display: flex; flex-direction: column; gap: 12px">
+      <h2 style="margin: 0; font-family: Poppins, sans-serif; font-weight: 600; font-size: 20px; line-height: 26px; color: #17231e">Kelas minggu ini di Muara Karang</h2>
+
+      <a href="Konfirmasi.dc.html" style="text-decoration: none; background: #ffffff; border: 1px solid #768b84; border-radius: 16px; padding: 16px 18px; display: flex; align-items: center; gap: 16px; min-height: 88px; box-sizing: border-box">
+        <span style="font-family: Poppins, sans-serif; font-weight: 600; font-size: 20px; line-height: 26px; color: #17231e; width: 64px">09.00</span>
+        <span style="flex: 1; display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: 17px; line-height: 24px; font-weight: 500; color: #17231e">Private Group</span>
+          <span style="font-size: 15px; line-height: 22px; color: #607069">Clara</span>
+          <span style="font-size: 15px; line-height: 22px; color: #246144; font-weight: 500">Sisa 3 slot</span>
+        </span>
+      </a>
+
+      <a href="Konfirmasi.dc.html" style="text-decoration: none; background: #ffffff; border: 1px solid #768b84; border-radius: 16px; padding: 16px 18px; display: flex; align-items: center; gap: 16px; min-height: 88px; box-sizing: border-box">
+        <span style="font-family: Poppins, sans-serif; font-weight: 600; font-size: 20px; line-height: 26px; color: #17231e; width: 64px">17.00</span>
+        <span style="flex: 1; display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: 17px; line-height: 24px; font-weight: 500; color: #17231e">Private Group</span>
+          <span style="font-size: 15px; line-height: 22px; color: #607069">Yuniati</span>
+          <span style="font-size: 15px; line-height: 22px; color: #246144; font-weight: 500">Sisa 2 slot</span>
+        </span>
+      </a>
+
+      <div style="background: #f8faf9; border: 1px solid #768b84; border-radius: 16px; padding: 16px 18px; display: flex; align-items: center; gap: 16px; min-height: 88px; box-sizing: border-box">
+        <span style="font-family: Poppins, sans-serif; font-weight: 600; font-size: 20px; line-height: 26px; color: #607069; width: 64px">18.00</span>
+        <span style="flex: 1; display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: 17px; line-height: 24px; font-weight: 500; color: #607069">Private Group</span>
+          <span style="font-size: 15px; line-height: 22px; color: #607069">Yuniati</span>
+          <span style="font-size: 15px; line-height: 22px; color: #8a5b17; font-weight: 500">Penuh, 0 slot</span>
+        </span>
+      </div>
+
+      <a href="Jadwal.dc.html" style="font-size: 16px; font-weight: 500; line-height: 20px; padding: 14px 0; display: inline-block">Lihat semua jadwal</a>
+    </section>
+
+  </div>
+
+  <nav aria-label="Navigasi utama" style="background: #ffffff; border-top: 1px solid #768b84; height: 68px; display: flex; align-items: stretch; flex-shrink: 0">
+    <a href="Main.dc.html" aria-current="page" style="flex: 1; text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #396552; border-top: 3px solid #396552">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"></path><path d="M5 9.5V21h14V9.5"></path></svg>
+      <span style="font-size: 12px; font-weight: 500">Beranda</span>
+    </a>
+    <a href="Jadwal.dc.html" style="flex: 1; text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #607069">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M3 10h18M8 3v4M16 3v4"></path></svg>
+      <span style="font-size: 12px; font-weight: 500">Jadwal</span>
+    </a>
+    <a href="#booking-saya" style="flex: 1; text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #607069">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 7 9 18l-5-5"></path></svg>
+      <span style="font-size: 12px; font-weight: 500">Booking</span>
+    </a>
+    <a href="#paket" style="flex: 1; text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #607069">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8 12 3 3 8v8l9 5 9-5z"></path><path d="M3 8l9 5 9-5"></path></svg>
+      <span style="font-size: 12px; font-weight: 500">Paket</span>
+    </a>
+    <a href="#akun" style="flex: 1; text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #607069">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"></path></svg>
+      <span style="font-size: 12px; font-weight: 500">Akun</span>
+    </a>
+  </nav>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

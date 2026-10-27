@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { NotificationsView } from './notifications-view';
 
 export const metadata: Metadata = {
-  title: 'Notifikasi — DailyDose',
+  title: 'Notifikasi',
   description: 'Semua notifikasi dan pembaruan penting untuk akun Anda.',
 };
 

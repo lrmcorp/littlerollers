@@ -21,7 +21,12 @@ export interface WebSession {
   branchIds: string[];
   capabilities: string[];
   globalCapabilities?: string[];
-  identityVerificationStatus?: 'NOT_REQUIRED' | 'PENDING' | 'ACTION_REQUIRED' | 'APPROVED';
+  identityVerificationStatus?:
+    | 'NOT_REQUIRED'
+    | 'PENDING'
+    | 'ACTION_REQUIRED'
+    | 'APPROVED'
+    | 'REJECTED';
   sessionExpiresAt: Date;
   branches: SessionBranch[];
   preferredBranch?: PreferredStudio | null;
@@ -57,10 +62,11 @@ async function sessionFetch<T>(path: string, init?: RequestInit): Promise<T> {
 export function hasSessionHint(): boolean {
   if (typeof window === 'undefined') return false;
   try {
-    return (
-      localStorage.getItem('dd_session_hint') === '1' ||
-      sessionStorage.getItem('dd_session_hint') === '1'
-    );
+    const fromLocal =
+      typeof localStorage !== 'undefined' && localStorage.getItem('dd_session_hint') === '1';
+    const fromSession =
+      typeof sessionStorage !== 'undefined' && sessionStorage.getItem('dd_session_hint') === '1';
+    return Boolean(fromLocal || fromSession);
   } catch {
     return false;
   }
@@ -69,16 +75,20 @@ export function hasSessionHint(): boolean {
 export function setSessionHint(): void {
   if (typeof window === 'undefined') return;
   try {
-    localStorage.setItem('dd_session_hint', '1');
-    sessionStorage.setItem('dd_session_hint', '1');
+    if (typeof localStorage !== 'undefined') localStorage.setItem('dd_session_hint', '1');
+  } catch {}
+  try {
+    if (typeof sessionStorage !== 'undefined') sessionStorage.setItem('dd_session_hint', '1');
   } catch {}
 }
 
 export function clearSessionHint(): void {
   if (typeof window === 'undefined') return;
   try {
-    localStorage.removeItem('dd_session_hint');
-    sessionStorage.removeItem('dd_session_hint');
+    if (typeof localStorage !== 'undefined') localStorage.removeItem('dd_session_hint');
+  } catch {}
+  try {
+    if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem('dd_session_hint');
   } catch {}
 }
 

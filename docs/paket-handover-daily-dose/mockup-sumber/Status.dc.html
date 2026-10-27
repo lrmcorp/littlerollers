@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Status kosong, memuat, dan error</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Poppins:wght@500;600&display=swap">
+<style>
+body { margin: 0; font-family: "DM Sans", system-ui, sans-serif; }
+button { font-family: inherit; }
+</style>
+</helmet>
+
+<div style="width: 390px; height: 1240px; box-sizing: border-box; background: #f3f6f4; padding: 20px; display: flex; flex-direction: column; gap: 18px; overflow: hidden">
+
+  <h1 style="margin: 0; font-family: Poppins, sans-serif; font-weight: 600; font-size: 20px; line-height: 26px; color: #17231e">Status wajib di tiap layar data</h1>
+  <p style="margin: 0; font-size: 16px; line-height: 24px; color: #607069">Setiap status menyebut penyebabnya dan satu aksi berikutnya. Tulisan "Tidak ada data" tidak dipakai karena tidak memberi tahu apa pun.</p>
+
+  <section style="background: #ffffff; border: 1px solid #768b84; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 10px">
+    <span style="font-size: 13px; font-weight: 700; letter-spacing: 0.06em; color: #607069">KOSONG, BELUM PUNYA PAKET</span>
+    <h2 style="margin: 0; font-family: Poppins, sans-serif; font-weight: 600; font-size: 18px; line-height: 24px; color: #17231e">Belum ada paket aktif</h2>
+    <p style="margin: 0; font-size: 16px; line-height: 24px; color: #607069">Kamu perlu paket sesi sebelum bisa booking kelas.</p>
+    <button type="button" style="align-self: flex-start; min-height: 48px; background: #396552; color: #ffffff; border: none; border-radius: 12px; padding: 0 20px; font-size: 16px; font-weight: 500; cursor: pointer">Lihat pilihan paket</button>
+  </section>
+
+  <section style="background: #ffffff; border: 1px solid #768b84; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 10px">
+    <span style="font-size: 13px; font-weight: 700; letter-spacing: 0.06em; color: #607069">KOSONG, TANGGAL TANPA KELAS</span>
+    <h2 style="margin: 0; font-family: Poppins, sans-serif; font-weight: 600; font-size: 18px; line-height: 24px; color: #17231e">Tidak ada kelas pada Rabu, 28 Okt 2026</h2>
+    <p style="margin: 0; font-size: 16px; line-height: 24px; color: #607069">Studio Muara Karang belum membuka kelas di tanggal ini.</p>
+    <button type="button" style="align-self: flex-start; min-height: 48px; background: #ffffff; color: #396552; border: 1.5px solid #768b84; border-radius: 12px; padding: 0 20px; font-size: 16px; font-weight: 500; cursor: pointer">Lihat tanggal berikutnya</button>
+  </section>
+
+  <section style="background: #ffffff; border: 1px solid #768b84; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 12px">
+    <span style="font-size: 13px; font-weight: 700; letter-spacing: 0.06em; color: #607069">SEDANG MEMUAT</span>
+    <p style="margin: 0; font-size: 16px; line-height: 24px; color: #607069">Memuat jadwal Muara Karang...</p>
+    <div style="height: 76px; background: #f3f6f4; border-radius: 12px"></div>
+    <div style="height: 76px; background: #f3f6f4; border-radius: 12px"></div>
+    <span style="font-size: 15px; line-height: 22px; color: #607069">Kerangka abu tanpa animasi berulang, sesuai dial MOTION 1.</span>
+  </section>
+
+  <section style="background: #faeceb; border-left: 4px solid #9b3d38; border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 10px">
+    <span style="font-size: 13px; font-weight: 700; letter-spacing: 0.06em; color: #7d2f2b">ERROR KONEKSI</span>
+    <h2 style="margin: 0; font-family: Poppins, sans-serif; font-weight: 600; font-size: 18px; line-height: 24px; color: #7d2f2b">Jadwal gagal dimuat</h2>
+    <p style="margin: 0; font-size: 16px; line-height: 24px; color: #7d2f2b">Koneksi internet terputus saat mengambil data.</p>
+    <button type="button" style="align-self: flex-start; min-height: 48px; background: #ffffff; color: #9b3d38; border: 1.5px solid #9b3d38; border-radius: 12px; padding: 0 20px; font-size: 16px; font-weight: 500; cursor: pointer">Coba muat ulang</button>
+  </section>
+
+  <section style="background: #e8f3f8; border-left: 4px solid #27607c; border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 10px">
+    <span style="font-size: 13px; font-weight: 700; letter-spacing: 0.06em; color: #1d4b62">DITOLAK KARENA VERIFIKASI</span>
+    <h2 style="margin: 0; font-family: Poppins, sans-serif; font-weight: 600; font-size: 18px; line-height: 24px; color: #1d4b62">Pembelian paket belum bisa diproses</h2>
+    <p style="margin: 0; font-size: 16px; line-height: 24px; color: #1d4b62">Identitas kamu belum diverifikasi. Isi data verifikasi dulu, sekitar 2 menit.</p>
+    <button type="button" style="align-self: flex-start; min-height: 48px; background: #27607c; color: #ffffff; border: none; border-radius: 12px; padding: 0 20px; font-size: 16px; font-weight: 500; cursor: pointer">Isi data verifikasi</button>
+    <span style="font-size: 15px; line-height: 22px; color: #1d4b62">Menggantikan pesan lama "Paket belum tersedia. Layanan pesanan belum dapat memproses permintaan."</span>
+  </section>
+
+  <section style="background: #e6f4ec; border-left: 4px solid #246144; border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 10px">
+    <span style="font-size: 13px; font-weight: 700; letter-spacing: 0.06em; color: #1b4a34">BOOKING BERHASIL</span>
+    <h2 style="margin: 0; font-family: Poppins, sans-serif; font-weight: 600; font-size: 18px; line-height: 24px; color: #1b4a34">Booking berhasil</h2>
+    <p style="margin: 0; font-size: 16px; line-height: 24px; color: #1b4a34">Private Group, Selasa 27 Okt 2026, 09.00 sampai 09.50 WIB di Muara Karang.</p>
+    <div style="display: flex; gap: 12px; flex-wrap: wrap">
+      <button type="button" style="min-height: 48px; background: #246144; color: #ffffff; border: none; border-radius: 12px; padding: 0 20px; font-size: 16px; font-weight: 500; cursor: pointer">Lihat QR Pass</button>
+      <button type="button" style="min-height: 48px; background: #ffffff; color: #1b4a34; border: 1.5px solid #246144; border-radius: 12px; padding: 0 20px; font-size: 16px; font-weight: 500; cursor: pointer">Tutup</button>
+    </div>
+  </section>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1240}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Aturan warna panel admin</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Poppins:wght@500;600&display=swap">
+<style>
+body { margin: 0; font-family: "DM Sans", system-ui, sans-serif; }
+table { border-collapse: collapse; width: 100%; }
+th { text-align: left; padding: 9px 12px; background: #f6f4ee; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; color: #607069; text-transform: uppercase; border-bottom: 1px solid #827c6a; }
+td { padding: 11px 12px; border-bottom: 1px solid #827c6a; font-size: 14px; color: #17231e; vertical-align: middle; }
+code { font-family: ui-monospace, Menlo, monospace; font-size: 13px }
+</style>
+</helmet>
+
+<div style="width: 880px; height: 1720px; box-sizing: border-box; background: #f4f2ec; padding: 24px; display: flex; flex-direction: column; gap: 18px; overflow: hidden">
+
+  <div style="display: flex; flex-direction: column; gap: 4px">
+    <h1 style="margin: 0; font-family: Poppins, sans-serif; font-weight: 600; font-size: 24px; color: #17231e">Kenapa panel admin terasa terlalu hijau</h1>
+    <span style="font-size: 16px; line-height: 23px; color: #607069">Diukur pada panel yang berjalan sekarang, lebar 1440 px.</span>
+  </div>
+
+  <section style="flex-shrink: 0; background: #ffffff; border: 1px solid #827c6a; border-radius: 14px; padding: 18px 20px; display: flex; flex-direction: column; gap: 14px">
+    <span style="font-size: 17px; line-height: 25px; color: #17231e">Sidebar <code>#17352a</code> menutup <strong style="font-weight: 600">18 persen layar</strong> dan tidak pernah hilang. Warna aksen berhenti berfungsi sebagai aksen begitu dipakai seluas itu: mata tidak punya tempat beristirahat, dan tombol hijau di tengah halaman kehilangan daya tariknya karena warnanya sudah ada di mana-mana.</span>
+
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px">
+
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <span style="font-size: 13px; font-weight: 700; letter-spacing: 0.06em; color: #7d2f2b">SEKARANG</span>
+        <div style="height: 190px; border: 1px solid #827c6a; border-radius: 10px; overflow: hidden; display: flex">
+          <div style="width: 72px; background: #17352a; padding: 10px 8px; display: flex; flex-direction: column; gap: 6px">
+            <div style="height: 7px; background: #5c7f6e; border-radius: 2px"></div>
+            <div style="height: 7px; width: 80%; background: #3c6251; border-radius: 2px"></div>
+            <div style="height: 7px; width: 80%; background: #3c6251; border-radius: 2px"></div>
+            <div style="height: 7px; width: 80%; background: #3c6251; border-radius: 2px"></div>
+          </div>
+          <div style="flex: 1; background: #f4f2ec; padding: 10px; display: flex; flex-direction: column; gap: 7px">
+            <div style="height: 22px; background: #ffffff; border: 1px solid #c9c3b2; border-radius: 4px"></div>
+            <div style="height: 40px; background: #ffffff; border: 1px solid #c9c3b2; border-radius: 4px"></div>
+            <div style="height: 26px; width: 58%; background: #396552; border-radius: 4px"></div>
+          </div>
+        </div>
+        <span style="font-size: 14px; line-height: 20px; color: #607069">Hijau gelap 18 persen, ditambah tombol hijau. Tombol tidak lagi menonjol.</span>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <span style="font-size: 13px; font-weight: 700; letter-spacing: 0.06em; color: #246144">USULAN</span>
+        <div style="height: 190px; border: 1px solid #827c6a; border-radius: 10px; overflow: hidden; display: flex">
+          <div style="width: 72px; background: #ebe8e0; border-right: 1px solid #827c6a; padding: 10px 8px; display: flex; flex-direction: column; gap: 6px">
+            <div style="height: 7px; background: #5f6b63; border-radius: 2px"></div>
+            <div style="height: 14px; background: #ffffff; border-left: 3px solid #396552; border-radius: 0 3px 3px 0"></div>
+            <div style="height: 7px; width: 80%; background: #b4afa1; border-radius: 2px"></div>
+            <div style="height: 7px; width: 80%; background: #b4afa1; border-radius: 2px"></div>
+          </div>
+          <div style="flex: 1; background: #f4f2ec; padding: 10px; display: flex; flex-direction: column; gap: 7px">
+            <div style="height: 22px; background: #ffffff; border: 1px solid #827c6a; border-radius: 4px"></div>
+            <div style="height: 40px; background: #ffffff; border: 1px solid #827c6a; border-radius: 4px"></div>
+            <div style="height: 26px; width: 58%; background: #396552; border-radius: 4px"></div>
+          </div>
+        </div>
+        <span style="font-size: 14px; line-height: 20px; color: #607069">Hijau turun ke sekitar 3 persen: tombol utama dan penanda halaman aktif. Tombol kembali menonjol.</span>
+      </div>
+
+    </div>
+  </section>
+
+  <section style="flex-shrink: 0; background: #ffffff; border: 1px solid #827c6a; border-radius: 14px; overflow: hidden">
+    <h2 style="margin: 0; padding: 16px 20px 12px; font-family: Poppins, sans-serif; font-weight: 600; font-size: 18px; color: #17231e">Token panel admin, kontras terukur</h2>
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 44px"></th>
+          <th>Token</th>
+          <th>Dipakai untuk</th>
+          <th style="width: 180px">Kontras</th>
+        </tr>
+      </thead>
+      <tbody>
+        <sc-for list="{{tokens}}" as="t" hint-placeholder-count="7">
+          <tr>
+            <td><span style="{{t.swatch}}"></span></td>
+            <td><code>{{t.hex}}</code></td>
+            <td>{{t.use}}</td>
+            <td>{{t.ratio}}</td>
+          </tr>
+        </sc-for>
+      </tbody>
+    </table>
+  </section>
+
+  <section style="flex-shrink: 0; background: #ffffff; border: 1px solid #827c6a; border-radius: 14px; padding: 18px 20px; display: flex; flex-direction: column; gap: 12px">
+    <h2 style="margin: 0; font-family: Poppins, sans-serif; font-weight: 600; font-size: 18px; color: #17231e">Aturan pakainya</h2>
+
+    <div style="display: flex; gap: 12px">
+      <span style="flex-shrink: 0; width: 22px; height: 22px; border-radius: 11px; background: #396552; color: #ffffff; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center">1</span>
+      <span style="font-size: 16px; line-height: 23px; color: #17231e">Hijau <code>#396552</code> hanya untuk tombol aksi utama dan penanda halaman aktif. Satu tombol hijau per area kerja, tidak lebih.</span>
+    </div>
+    <div style="display: flex; gap: 12px">
+      <span style="flex-shrink: 0; width: 22px; height: 22px; border-radius: 11px; background: #396552; color: #ffffff; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center">2</span>
+      <span style="font-size: 16px; line-height: 23px; color: #17231e">Permukaan besar netral: sidebar, bidang kerja, kartu. Tidak ada blok hijau yang lebih besar dari sebuah tombol.</span>
+    </div>
+    <div style="display: flex; gap: 12px">
+      <span style="flex-shrink: 0; width: 22px; height: 22px; border-radius: 11px; background: #396552; color: #ffffff; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center">3</span>
+      <span style="font-size: 16px; line-height: 23px; color: #17231e">Merah dan kuning hanya untuk hal yang perlu ditindak, bukan untuk hiasan status. Kalau semuanya berwarna, tidak ada yang mendesak.</span>
+    </div>
+    <div style="display: flex; gap: 12px">
+      <span style="flex-shrink: 0; width: 22px; height: 22px; border-radius: 11px; background: #396552; color: #ffffff; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center">4</span>
+      <span style="font-size: 16px; line-height: 23px; color: #17231e">Warna tidak boleh jadi satu satunya penanda. Setiap baris berwarna juga punya teks yang menyebutkan masalahnya.</span>
+    </div>
+
+    <span style="font-size: 15px; line-height: 22px; color: #607069; border-top: 1px solid #827c6a; padding-top: 12px">Dua token lama dibuang karena gagal kontras untuk batas komponen: <code>#d5dfda</code> hanya 1,36:1 dan <code>#aabbb3</code> hanya 2,01:1 terhadap putih. Batas komponen butuh minimal 3:1.</span>
+  </section>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":880,"height":1720}}'>
+// Ratios measured with the antislop contrast checker, not estimated.
+class Component extends DCLogic {
+  renderVals() {
+    const rows = [
+      ['#f4f2ec', 'Bidang kerja', 'latar'],
+      ['#ebe8e0', 'Sidebar dan kepala tabel', 'latar'],
+      ['#ffffff', 'Kartu dan baris isi', 'latar'],
+      ['#17231e', 'Teks utama', '13,2:1 di sidebar, 14,5:1 di bidang kerja'],
+      ['#5f6b63', 'Label kelompok menu', '4,55:1 di sidebar'],
+      ['#607069', 'Teks pendukung', '4,67:1 di bidang kerja'],
+      ['#827c6a', 'Semua garis dan batas', '3,40:1 sampai 4,17:1'],
+      ['#396552', 'Tombol utama, menu aktif', '5,43:1 di sidebar'],
+      ['#9b3d38', 'Perlu ditindak sekarang', '6,73:1 di putih'],
+      ['#8a5b17', 'Menunggu terlalu lama', '5,85:1 di putih']
+    ];
+
+    return {
+      tokens: rows.map(([hex, use, ratio]) => ({
+        hex,
+        use,
+        ratio,
+        swatch: 'display: block; width: 30px; height: 30px; border-radius: 6px; border: 1px solid #827c6a; background: ' + hex + ';'
+      }))
+    };
+  }
+}
+</script>
+</body>
+</html>

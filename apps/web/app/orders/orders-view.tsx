@@ -20,6 +20,8 @@ import { EmptyState, Feedback, PageHeader, Skeleton, StatusBadge } from '../ui';
 import { Pagination } from '../components/admin/admin-ui';
 import { ADMIN_PAGE_SIZE } from '../lib/pagination';
 import { formatRupiah } from '../lib/formatters';
+import { useSessionContext } from '../session-context';
+import { VerificationStatusBanner } from '../components/verification-status-banner';
 
 const emptySummary: CustomerOrderSummary = {
   total: 0,
@@ -64,6 +66,7 @@ export function OrdersView() {
   const router = useTrackedRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const session = useSessionContext()?.session;
   const status = searchParams.get('status') ?? '';
   const q = searchParams.get('q') ?? '';
   const from = searchParams.get('from') ?? '';
@@ -111,11 +114,18 @@ export function OrdersView() {
         eyebrow="Portal Member"
         title="Pesanan Saya"
         description="Pantau pembayaran, pemeriksaan bukti, aktivasi paket, dan riwayat setiap pesanan."
+        backHref="/account"
+        backLabel="Kembali ke Beranda"
         context={
           <ButtonLink href="/packages" leadingIcon={<PackagePlus className="size-4" />}>
             Beli paket
           </ButtonLink>
         }
+      />
+
+      <VerificationStatusBanner
+        status={session?.identityVerificationStatus}
+        returnTo="/orders"
       />
 
       <section

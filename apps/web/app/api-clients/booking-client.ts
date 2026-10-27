@@ -1112,6 +1112,8 @@ export type KioskSlotItem = {
     distanceMeters: number | null;
     isWithinGeofence: boolean;
   } | null;
+  capacity?: number;
+  bookedCount?: number;
   qrPayload: string | null;
   token: string | null;
 };

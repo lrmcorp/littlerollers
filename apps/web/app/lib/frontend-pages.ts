@@ -48,7 +48,7 @@ export const frontendPages: FrontendPageDefinition[] = [
     branchScope: 'topbar',
     accent: 'brand',
     icon: 'layout-dashboard',
-    roleRelevance: ['SUPER_OWNER', 'OWNER', 'ADMIN', 'MANAGER', 'FINANCE'],
+    roleRelevance: ['SUPER_OWNER', 'OWNER', 'ADMIN', 'MANAGER', 'FINANCE', 'INSTRUCTOR'],
   },
   {
     href: '/workspace/classes',

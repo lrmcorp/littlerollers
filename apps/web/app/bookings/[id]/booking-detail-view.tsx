@@ -18,7 +18,7 @@ import { Button, ButtonLink } from '../../components/actions';
 import { SearchSelect, SelectInput } from '../../components/forms';
 import { useSessionContext } from '../../session-context';
 import { isCustomerOnlySession } from '@/lib/session-audience';
-import { Skeleton } from '../../ui';
+import { PageHeader, Skeleton } from '../../ui';
 
 const statusLabels: Record<string, string> = {
   BOOKED: 'Terjadwal',
@@ -261,24 +261,14 @@ export function BookingDetailView({
 
   return (
     <main className="space-y-6" aria-labelledby="booking-detail-title">
-      <header>
-        <Link
-          href="/bookings"
-          className="inline-flex items-center gap-2 text-sm font-semibold text-ed-forest hover:text-ed-green no-underline"
-        >
-          <ArrowLeft className="size-4" />
-          Booking Saya
-        </Link>
-        <p className="mt-5 text-xs font-bold uppercase tracking-[0.18em] text-ed-green">
-          Detail booking
-        </p>
-        <h1 id="booking-detail-title" className="font-serif mt-2 text-2xl font-normal tracking-tight text-ed-ink sm:text-3xl">
-          {booking.classSlot?.classType.name ?? 'Kelas Daily Dose'}
-        </h1>
-        <p className="mt-2 text-sm text-ed-muted">
-          {statusLabels[booking.status] ?? 'Status booking'} · Booking •{booking.id.slice(-8)}
-        </p>
-      </header>
+      <PageHeader
+        eyebrow="Detail booking"
+        title={booking.classSlot?.classType.name ?? 'Kelas Daily Dose'}
+        description={`${statusLabels[booking.status] ?? 'Status booking'} · Booking •${booking.id.slice(-8)}`}
+        titleId="booking-detail-title"
+        backHref="/bookings"
+        backLabel="Kembali ke Booking Saya"
+      />
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <article className="rounded-none border border-ed-line bg-white p-5 shadow-none">
           <CalendarDays className="size-6 text-ed-forest" />

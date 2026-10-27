@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import { AuthPageShell } from '../components/auth/auth-page-shell';
 import { Button } from '../components/actions';
-import { FieldError, FormField, TextInput, controlClassName } from '../components/forms';
+import { FieldError, FormField, TextInput, editorialControlClassName } from '../components/forms';
 import { Feedback } from '../ui';
 import { verificationClient } from '@/api-clients/identity-verification-client';
 import { browserIdentityClient } from '@/api-clients/identity-client';
@@ -78,11 +78,12 @@ function PasswordField({
       label={label}
       htmlFor={id}
       required
+      variant="editorial"
       error={error ? <span id={errorId(name)}>{error}</span> : undefined}
     >
       <div className="relative flex items-center">
         <input
-          className={`${controlClassName} pr-12`}
+          className={`${editorialControlClassName} min-h-12 pr-12`}
           id={id}
           name={name}
           type={visible ? 'text' : 'password'}
@@ -100,7 +101,7 @@ function PasswordField({
         />
         <button
           type="button"
-          className="absolute right-2 flex size-9 items-center justify-center rounded-dd-sm text-dd-muted hover:text-dd-ink transition focus-visible:outline-2 focus-visible:outline-dd-forest"
+          className="absolute right-2 flex size-9 items-center justify-center rounded-none text-ed-muted hover:text-ed-ink transition focus-visible:outline-2 focus-visible:outline-ed-forest"
           aria-label={`${visible ? 'Sembunyikan' : 'Tampilkan'} ${label.toLowerCase()}`}
           aria-pressed={visible}
           disabled={disabled}
@@ -176,6 +177,7 @@ function UploadField({
       label={label}
       htmlFor={id}
       className="space-y-1.5"
+      variant="editorial"
       error={error ? <span id={errorId(name)}>{error}</span> : undefined}
     >
       <input
@@ -322,11 +324,33 @@ export function RegisterView() {
     <AuthPageShell
       eyebrow="Registrasi customer"
       title="Buat akun Daily Dose"
-      description="Akun Anda langsung aktif setelah mendaftar. Untuk memesan kelas, lengkapi verifikasi identitas (KTP dan selfie) lalu pilih paket sesi."
+      description="Verifikasi KTP dan identitas diri baru diminta nanti saat pembelian paket pertama. Buat akun sekarang cukup dalam 1 menit."
       compactMobileVisual
       visualSrc="/images/public/landing/register-illustration.webp"
       loginLabel="Masuk"
     >
+      {/* Kotak Callout Khusus Member Lama Studio (Spesifikasi 5.9 / Tiket T-09) */}
+      <div className="mb-6 rounded-none border border-ed-line bg-ed-tint/60 p-4 text-xs leading-relaxed text-ed-ink">
+        <div className="flex items-start gap-3">
+          <UserCheck className="size-5 shrink-0 text-ed-forest mt-0.5" />
+          <div className="space-y-1">
+            <strong className="block font-semibold text-ed-ink">
+              Sudah pernah latihan di studio?
+            </strong>
+            <p className="text-ed-muted">
+              Akun kamu mungkin sudah dibuatkan staf. Masuk pakai nomor WhatsApp yang kamu berikan ke studio.
+            </p>
+            <Link
+              href="/sign-in"
+              className="inline-flex items-center gap-1 font-bold text-ed-forest hover:text-ed-green hover:underline pt-0.5"
+            >
+              <span>Masuk dengan nomor WhatsApp</span>
+              <span>&rarr;</span>
+            </Link>
+          </div>
+        </div>
+      </div>
+
       {googleEnabled && (
         <div className="mb-6 space-y-4">
           <div className="rounded-none border border-ed-line bg-ed-tint/30 p-4 shadow-none">
@@ -388,18 +412,18 @@ export function RegisterView() {
         }}
       >
         {/* Info Pendaftaran Cepat */}
-        <div className="flex items-center justify-between rounded-none border border-ed-line bg-ed-tint/50 p-3 text-xs">
-          <div className="flex items-center gap-2 text-ed-forest font-semibold">
-            <User className="size-4 text-ed-green" />
-            <span>Pendaftaran Akun Baru</span>
+        <div className="flex items-center justify-between gap-2 rounded-none border border-ed-line bg-ed-tint/50 p-2.5 sm:p-3 text-xs">
+          <div className="flex items-center gap-2 text-ed-forest font-semibold min-w-0">
+            <User className="size-4 shrink-0 text-ed-green" />
+            <span className="truncate">Pendaftaran Akun Baru</span>
           </div>
-          <span className="rounded-none border border-ed-line bg-white px-2.5 py-0.5 font-bold text-ed-forest text-[11px] uppercase tracking-wider">
+          <span className="shrink-0 whitespace-nowrap rounded-none border border-ed-line bg-white px-2.5 py-0.5 font-bold text-ed-forest text-[10px] sm:text-[11px] uppercase tracking-wider">
             Cepat &amp; Praktis
           </span>
         </div>
 
         {/* Section 1: Data Diri & Kontak */}
-        <div className="space-y-4 rounded-none border border-ed-line bg-white p-5">
+        <div className="space-y-4 rounded-none border border-ed-line bg-white p-4 sm:p-5">
           <div className="flex items-center gap-2 border-b border-ed-line pb-2 text-xs font-bold uppercase tracking-[0.12em] text-ed-forest">
             <User className="size-3.5 text-ed-green" /> 1. Data Diri &amp; Kontak
           </div>
@@ -407,6 +431,7 @@ export function RegisterView() {
             id="register-display-name"
             label="Nama lengkap"
             name="displayName"
+            variant="editorial"
             autoComplete="name"
             maxLength={160}
             placeholder="Contoh: Nadia Putri"
@@ -425,6 +450,7 @@ export function RegisterView() {
             id="register-phone"
             label="Nomor WhatsApp"
             name="phone"
+            variant="editorial"
             type="tel"
             inputMode="tel"
             autoComplete="tel"
@@ -440,6 +466,7 @@ export function RegisterView() {
             id="register-email"
             label="Email"
             name="email"
+            variant="editorial"
             type="email"
             inputMode="email"
             autoComplete="email"
@@ -455,7 +482,7 @@ export function RegisterView() {
         </div>
 
         {/* Section 2: Keamanan Akun */}
-        <div className="space-y-4 rounded-none border border-ed-line bg-white p-5">
+        <div className="space-y-4 rounded-none border border-ed-line bg-white p-4 sm:p-5">
           <div className="flex items-center gap-2 border-b border-ed-line pb-2 text-xs font-bold uppercase tracking-[0.12em] text-ed-forest">
             <Lock className="size-3.5 text-ed-green" /> 2. Keamanan Akun
           </div>
@@ -473,24 +500,32 @@ export function RegisterView() {
             id="register-confirmation"
             label="Ulangi password"
             name="confirmation"
-            placeholder="Masukkan ulang password"
+            placeholder="Ulangi password"
             error={errors.confirmation}
             disabled={loading}
             onBlur={handleTextBlur('confirmation')}
             onChange={handleTextChange('confirmation')}
           />
+          <div className="pt-1 text-[11px] text-ed-muted">
+            <span>Tidak ingin mengingat password? Anda bisa </span>
+            <Link href="/sign-in" className="font-semibold text-ed-forest hover:underline">
+              masuk dengan nomor WhatsApp
+            </Link>
+            <span> di halaman masuk.</span>
+          </div>
         </div>
 
         {/* Section 3: Verifikasi Identitas (Opsional) */}
         <div
           id="register-section-identity"
-          className="space-y-4 rounded-none border border-ed-line bg-white p-5 shadow-none"
+          className="space-y-4 rounded-none border border-ed-line bg-white p-4 sm:p-5 shadow-none"
         >
-          <div className="flex items-center justify-between border-b border-ed-line pb-2">
-            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.12em] text-ed-forest">
-              <ShieldCheck className="size-3.5 text-ed-green" /> 3. Dokumen Identitas (Opsional — Bisa Nanti)
+          <div className="flex items-center justify-between gap-2 border-b border-ed-line pb-2">
+            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.08em] sm:tracking-[0.12em] text-ed-forest min-w-0">
+              <ShieldCheck className="size-3.5 shrink-0 text-ed-green" />
+              <span className="truncate">3. Dokumen Identitas (Opsional)</span>
             </div>
-            <span className="rounded-none border border-ed-line bg-ed-tint px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-ed-muted">
+            <span className="shrink-0 whitespace-nowrap rounded-none border border-ed-line bg-ed-tint px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-ed-muted">
               Bisa Dilewati
             </span>
           </div>
@@ -533,18 +568,17 @@ export function RegisterView() {
         >
           <ShieldCheck className="size-5 shrink-0 text-ed-green mt-0.5" />
           <span>
-            Selfie dan foto KTP hanya digunakan untuk verifikasi identitas, disimpan secara privat,
-            dan hanya dapat diakses oleh tim yang berwenang.
+            Data pendaftaran dan dokumen identitas Anda disimpan secara privat, aman, dan hanya digunakan untuk verifikasi akun serta layanan keanggotaan studio Daily Dose.
           </span>
         </div>
 
         <div className="space-y-1.5 pt-1">
           <label
-            className="flex items-start gap-3 text-xs leading-5 text-dd-ink cursor-pointer select-none"
+            className="flex items-start gap-3 text-xs leading-5 text-ed-ink cursor-pointer select-none"
             htmlFor="register-consent"
           >
             <input
-              className="mt-0.5 size-4 shrink-0 rounded border-dd-line text-dd-forest focus:ring-dd-forest accent-dd-forest"
+              className="mt-0.5 size-4 shrink-0 rounded-none border-ed-line text-ed-forest focus:ring-ed-forest accent-ed-forest"
               id="register-consent"
               name="consent"
               type="checkbox"
@@ -564,7 +598,7 @@ export function RegisterView() {
               }}
             />
             <span className="font-medium">
-              Saya menyetujui pemrosesan selfie dan KTP untuk verifikasi identitas.
+              Saya menyetujui Syarat &amp; Ketentuan Layanan, Kebijakan Privasi Daily Dose, serta pemrosesan data identitas untuk verifikasi akun keanggotaan.
             </span>
           </label>
           {errors.consent && <FieldError id={errorId('consent')}>{errors.consent}</FieldError>}

@@ -16,6 +16,7 @@
   --color-dd-ink: #20231f;
   --color-dd-muted: #667069;
   --color-dd-line: #d8ddd8;
+  --color-dd-border-interactive: #768b84;
   --color-dd-sage: #91a99a;
 
   --color-dd-canvas: #f4f2ec;
@@ -54,6 +55,7 @@
   --color-ed-ink: #18392c;
   --color-ed-muted: #4f6255;
   --color-ed-line: #bdcabc;
+  --color-ed-border-ui: #768b84;
   --color-ed-tint: #e9eee6;
   --color-ed-mint: #d2e6cf;
   --color-ed-mist: #e2ebe1;
@@ -105,6 +107,14 @@
 
 @utility animate-fade-in {
   animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@utility border-ui {
+  border-color: #768b84;
+}
+
+@utility border-interactive {
+  border-color: #768b84;
 }
 
 /* ---------------------------------------------------------------------------
