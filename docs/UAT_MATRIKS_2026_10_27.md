@@ -57,12 +57,51 @@ Rincian dan temuan ada di `paket-handover-daily-dose/03-BACKLOG-TIKET.md`. Ringk
 | Booking (T-05) | Lembar, klik ganda, booking ganda, kelas penuh, dua orang berebut kursi terakhir | OK, 1 cacat pesan galat diperbaiki |
 | Staf jadwal (T-18, T-20) | Salin minggu, jadwal rutin, isi-susulan kehadiran, batas 2 jam | OK |
 
-## 3. Belum dijalankan
+## 3. Pembatasan akses menurut peran (dijalankan lewat API dengan login tiap peran)
+
+Akun uji disetel ke password di `docs/AKUN_TESTING_RESMI.md` lewat rute reset Super Owner (`direct-password-reset`, tercatat di audit):
+`finance@`, `finance.mk@`, `owner.gg@`, `owner.sby@`, `manager.gg@`, `admin.gg@`, `coach.sarah@` (semua `@dailydose.test`).
+Cara uji: 403 berarti ditolak; kode lain (200, 400, 404, 422) berarti lolos otorisasi. Probe tulis memakai isi yang sengaja tidak valid
+sehingga tidak ada data yang berubah. Acuan harapan: matriks di `docs/FITUR_MODUL_DAN_FLOW_PER_ROLE.md`.
+
+| Probe | SO | Owner GG | Owner SBY | Manager | Finance | Admin | Instruktur |
+|---|---|---|---|---|---|---|---|
+| Daftar pengguna | 200 | 200 | 200 | 200 | 403 | 200 | 403 |
+| Reset password langsung | 422 | 403 | 403 | 403 | 403 | 403 | 403 |
+| Antrean verifikasi KTP | 200 | 403 | 403 | 403 | 403 | 403 | 403 |
+| Baca timetable GG | 200 | 200 | 403 | 200 | 403 | 200 | 200 |
+| Buat kelas | 400 | 403 | 403 | 400 | 403 | 400 | 403 |
+| Antrean pembayaran | 200 | 403 | 403 | 200 | 200 | 200 | 403 |
+| Setujui pembayaran | 404 | 403 | 403 | 404 | 404 | **404** | 403 |
+| Laporan omset GG / SBY | 200 / 200 | 200 / 403 | 403 / 200 | 403 / 403 | 200 / 200 | 403 / 403 | 403 / 403 |
+| Laporan honor instruktur GG | 200 | 200 | 403 | 403 | 200 | 403 | 403 |
+| Catat biaya lain | 400 | 403 | 403 | 403 | 400 | 403 | 403 |
+| Daftar voucher / buat voucher | 200 / 400 | 200 / 403 | 200 / 403 | 403 / 403 | 200 / 400 | 403 / 403 | 403 / 403 |
+| Daftar booking staf GG | 200 | 200 | 404 | 200 | 403 | 200 | 200 |
+| Daftar pelanggan | 200 | 403 | 403 | 200 | 403 | 200 | 403 |
+| Picu otomasi kuota H-24 | 201 | 403 | 403 | **403** | 403 | **403** | 403 |
+| Manajemen notifikasi (baca) | 200 | 403 | 403 | 403 | 403 | 403 | 403 |
+| Konten publik (baca / tulis) | 200 / 422 | 403 / 403 | 403 / 403 | 403 / 403 | 403 / 403 | 403 / 403 | 403 / 403 |
+| Ketersediaan mengajar saya | 403 | 403 | 403 | 403 | 403 | 403 | 200 |
+
+Isolasi antar cabang berjalan: Owner Green Garden ditolak untuk laporan Surabaya, Owner Surabaya ditolak untuk timetable dan booking Green Garden.
+Probe verifikasi 422 (tanpa 403) pada baris Super Owner berarti lolos otorisasi lalu ditolak validasi.
+
+### Temuan yang butuh keputusan (belum diubah)
+
+| ID | Temuan | Pilihan |
+|---|---|---|
+| R-1 | **Admin (front desk) dan Manager bisa memutus pembayaran** karena memegang kapabilitas lama `purchase:decide` yang diterima `access.review()`. Matriks dan teks di halaman antrean ("keputusan hanya Finance, Manager, Super Admin") menyebut Admin hanya meninjau. Admin juga memegang `purchase:record` (mencatat penjualan), jadi satu peran bisa mencatat lalu menyetujui; pemisahan tugas di layanan hanya menolak bila pencatat dan pemutus orang yang sama. | Cabut `purchase:decide` dari ADMIN (rekomendasi), atau ubah dokumen dan teks halaman |
+| R-2 | **Daftar pengguna menampilkan akun pelanggan (16 dari 20 baris) dan akun Super Owner (dengan email)** kepada Admin, Manager, dan Owner cabang. Kode menyebut `user:read` dibutuhkan agar form jadwal bisa memilih instruktur. Matriks menyebut Admin tidak boleh dan Owner/Manager hanya membaca staf cabang. | Batasi daftar untuk peran ini ke staf cabang (tanpa pelanggan dan Super Owner), atau beri Admin hanya daftar instruktur |
+| R-3 | **Picu manual otomasi kuota H-24 hanya untuk Super Owner**, sedangkan matriks menyebut Manager dan Admin juga boleh. | Beri kapabilitas ke Manager/Admin, atau perbarui matriks |
+| R-4 | Urutan pemeriksaan penulisan konten publik: jenis konten divalidasi sebelum izin, jadi peran tanpa izin dapat menebak jenis yang didukung (tidak ada data yang berubah). | Pindahkan pemeriksaan izin ke depan (kecil) |
+
+## 4. Belum dijalankan
 
 | Area | Alasan atau catatan |
 |---|---|
-| Pembatasan akses menurut peran (Owner, Manager, Finance, Admin, Instruktur) | Butuh login masing-masing. Password yang tercatat di `docs/AKUN_TESTING_RESMI.md` untuk Finance ditolak API (401); akun lain belum dicoba. Perlu password yang benar atau reset lewat alur resmi aplikasi. |
-| Peran Instruktur: ketersediaan, QR presensi, hari ini | Menunggu akun instruktur |
+| Alur sungguhan per peran di UI (bukan hanya otorisasi API): Owner, Manager, Admin, Instruktur | Akun sudah siap; tinggal dijalankan di browser |
+| Peran Instruktur: ketersediaan, QR presensi, hari ini | Akun `coach.sarah@dailydose.test` sudah siap |
 | Kasus dukungan, penyesuaian sesi, reschedule | Belum |
 | Konten publik, manajemen notifikasi, operasi (evaluasi kuota H-24), audit, kesehatan sistem | Belum |
 | Presensi kiosk (PIN cabang, QR bergantian) dan pemindaian QR instruktur | Butuh perangkat |
