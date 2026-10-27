@@ -52,3 +52,30 @@ export function attendanceWindow(slot: ClassSlot, now: Date): { open: boolean; r
     return { open: false, reason: 'Lewat 2 jam setelah kelas selesai. Ajukan penyesuaian sesi ke Manager.' };
   return { open: true };
 }
+
+/**
+ * Label untuk kartu kelas berikutnya: "Mulai X menit lagi" bila dimulai dalam 60 menit,
+ * atau "Berikutnya".
+ */
+export function nextClassLabel(slot: ClassSlot | null, now: Date): string {
+  if (!slot) return 'Berikutnya';
+  const diffMinutes = Math.round((slot.startAt.getTime() - now.getTime()) / 60_000);
+  if (diffMinutes > 0 && diffMinutes <= 60) {
+    return `Mulai ${diffMinutes} menit lagi`;
+  }
+  return 'Berikutnya';
+}
+
+/** Format waktu kehadiran, contoh "07.54". */
+export function formatAttendanceTime(date: Date | string, timezone = 'Asia/Jakarta'): string {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  if (Number.isNaN(d.getTime())) return '';
+  return new Intl.DateTimeFormat('id-ID', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZone: timezone,
+  })
+    .format(d)
+    .replace(':', '.');
+}

@@ -466,7 +466,7 @@ export function Modal({
               variant="ghost"
               onClick={() => void requestClose()}
               disabled={busy}
-              className="size-10 rounded-full border-dd-line bg-white text-dd-muted"
+              className="size-11 min-h-[44px] min-w-[44px] rounded-full border border-dd-border-interactive bg-white text-dd-muted hover:border-dd-forest"
             >
               <X className="size-4" />
             </IconButton>
@@ -569,7 +569,7 @@ function ToastItem({ toast, onDismiss }: { toast: Stored<AppToast>; onDismiss(id
           variant="ghost"
           size="sm"
           onClick={() => onDismiss(toast.id)}
-          className="size-8 text-current"
+          className="size-11 min-h-[44px] min-w-[44px] text-current"
         >
           <X className="size-4" />
         </IconButton>

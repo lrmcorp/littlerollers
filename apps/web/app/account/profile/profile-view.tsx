@@ -206,7 +206,7 @@ export function ProfileView() {
             <div>
               <span className="flex items-center justify-between text-xs font-semibold text-dd-forest uppercase tracking-wider">
                 <span>Email Akun</span>
-                <span className="flex items-center gap-1 text-[11px] font-normal text-dd-muted">
+                <span className="flex items-center gap-1 text-[13px] font-normal text-dd-muted">
                   <Lock className="size-3" /> Terverifikasi
                 </span>
               </span>
@@ -224,11 +224,11 @@ export function ProfileView() {
               <span className="flex items-center justify-between text-xs font-semibold text-dd-forest uppercase tracking-wider">
                 <span>Nomor WhatsApp</span>
                 {profile.phoneMasked ? (
-                  <span className="flex items-center gap-1 text-[11px] font-normal text-dd-muted">
+                  <span className="flex items-center gap-1 text-[13px] font-normal text-dd-muted">
                     <Lock className="size-3" /> Terverifikasi
                   </span>
                 ) : (
-                  <span className="flex items-center gap-1 text-[11px] font-semibold text-dd-warning">
+                  <span className="flex items-center gap-1 text-[13px] font-semibold text-dd-warning">
                     Belum terdaftar
                   </span>
                 )}
@@ -242,7 +242,7 @@ export function ProfileView() {
                 />
               </div>
               {!profile.phoneMasked && (
-                <p className="mt-1.5 text-[11px] text-dd-warning font-medium">
+                <p className="mt-1.5 text-[13px] text-dd-warning font-medium">
                   Nomor WhatsApp digunakan untuk pengiriman e-tiket QR check-in studio.
                 </p>
               )}
@@ -307,7 +307,7 @@ export function ProfileView() {
             <strong className="text-sm font-semibold text-dd-ink">
               {profile.preferredBranch?.name ?? 'Muara Karang, Jakarta Utara'}
             </strong>
-            <span className="text-[11px] font-medium text-dd-forest bg-white px-2 py-0.5 rounded border border-dd-line">
+            <span className="text-[13px] font-medium text-dd-forest bg-white px-2 py-0.5 rounded border border-dd-line">
               Aktif
             </span>
           </div>
@@ -341,7 +341,7 @@ export function ProfileView() {
           <div className="flex items-center justify-between">
             <CreditCard className="size-5 text-dd-forest group-hover:scale-105 transition-transform" />
             {badges.actionableOrdersCount > 0 ? (
-              <span className="rounded-full bg-dd-brass px-2 py-0.5 text-[10px] font-bold text-white shadow-xs">
+              <span className="rounded-full bg-dd-brass px-2 py-0.5 text-[13px] font-bold text-white shadow-xs">
                 {badges.actionableOrdersCount} perlu tindakan
               </span>
             ) : (

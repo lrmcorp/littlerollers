@@ -38,7 +38,7 @@ export function ForgotPasswordView({
         <label className="grid gap-2 text-sm font-bold">
           Email
           <input
-            className="min-h-[50px] rounded-none border border-ed-line bg-white px-4 text-sm text-ed-ink outline-none transition-colors focus:border-ed-forest focus:ring-1 focus:ring-ed-forest"
+            className="min-h-[50px] rounded-none border border-ed-border-ui bg-white px-4 text-sm text-ed-ink transition-colors focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#24483a]"
             name="email"
             type="email"
             autoComplete="email"
@@ -47,7 +47,7 @@ export function ForgotPasswordView({
           />
         </label>
         <button
-          className="min-h-[50px] rounded-none bg-dd-forest px-5 font-bold text-white transition-colors hover:bg-ed-deep disabled:bg-ed-line disabled:text-ed-muted"
+          className="min-h-[50px] rounded-none bg-dd-forest px-5 font-bold text-white transition-colors hover:bg-ed-deep focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#24483a] disabled:bg-ed-line disabled:text-ed-muted"
           disabled={status === 'loading'}
         >
           {status === 'loading' ? 'Mengirim…' : 'Kirim tautan reset'}

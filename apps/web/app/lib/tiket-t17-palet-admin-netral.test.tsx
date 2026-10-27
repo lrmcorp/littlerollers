@@ -49,7 +49,7 @@ describe('Tiket T-17: Ganti Palet Panel Admin ke Netral', () => {
       // Label kelompok menu
       expect(css).toContain('--color-admin-group: #5f6b63;');
       // Teks pendukung
-      expect(css).toContain('--color-dd-muted: #607069;');
+      expect(css).toContain('--color-dd-muted: #566660;');
       // Garis dan batas panel admin
       expect(css).toContain('--color-dd-line: #827c6a;');
       // Aksen hijau untuk tombol dan menu aktif
@@ -88,8 +88,8 @@ describe('Tiket T-17: Ganti Palet Panel Admin ke Netral', () => {
       expect(ratio).toBeGreaterThanOrEqual(4.5);
     });
 
-    it('memastikan teks pendukung #607069 pada bidang kerja #f4f2ec lolos rasio kontras WCAG AA (>= 4.5:1)', () => {
-      const ratio = getContrastRatio('#607069', '#f4f2ec');
+    it('memastikan teks pendukung #566660 pada bidang kerja #f4f2ec lolos rasio kontras WCAG AA (>= 4.5:1)', () => {
+      const ratio = getContrastRatio('#566660', '#f4f2ec');
       expect(ratio).toBeGreaterThanOrEqual(4.5);
     });
 

@@ -33,6 +33,7 @@ import { PublicFooter } from '../components/public/public-footer';
 import { PublicHeader } from '../components/public/public-header';
 import { useSessionContext } from '../session-context';
 import { isCustomerOnlySession } from '@/lib/session-audience';
+import { formatStudioName, formatTanggalHuman } from '@/lib/system-dictionary';
 
 function dayKey(value: string, timezone: string) {
   return new Intl.DateTimeFormat('en-CA', {
@@ -287,6 +288,14 @@ export function PublicClassesView({
   };
 
   const branch = branches.find((item) => item.id === branchId);
+  const activeStudio =
+    branch ??
+    (sessionContext?.activeBranch ? { ...sessionContext.activeBranch } : undefined) ??
+    (session?.preferredBranch ? { ...session.preferredBranch } : undefined) ??
+    (session?.branches?.[0] ? { ...session.branches[0] } : undefined);
+  const activeStudioName = activeStudio
+    ? formatStudioName(activeStudio.code || activeStudio.name, 'full')
+    : 'studio Daily Dose';
   const classTypes = useMemo(
     () => [...new Map(slots.map((slot) => [slot.classType.id, slot.classType])).values()],
     [slots],
@@ -562,25 +571,35 @@ export function PublicClassesView({
         <div className="mt-5">
           {status === 'loading' ? (
             <div
-              className="rounded-dd-xl border border-dd-line bg-white p-10 text-center shadow-dd-card"
+              className="rounded-dd-xl border border-dd-line bg-white p-6 sm:p-8 shadow-dd-card space-y-4"
               role="status"
+              aria-label={`Memuat jadwal ${activeStudioName}...`}
             >
-              <div className="inline-block size-6 animate-spin rounded-full border-2 border-dd-forest border-t-transparent mb-2" />
-              <p className="text-sm font-medium text-dd-muted">Memuat jadwal kelas…</p>
+              <p className="text-sm font-medium text-dd-muted">
+                Memuat jadwal {activeStudioName}…
+              </p>
+              {/* Kerangka abu tanpa animasi berulang */}
+              <div className="space-y-3 pt-1">
+                <div className="h-16 rounded-dd-lg bg-dd-surface-muted border border-dd-line/60" />
+                <div className="h-16 rounded-dd-lg bg-dd-surface-muted border border-dd-line/60" />
+                <div className="h-16 rounded-dd-lg bg-dd-surface-muted border border-dd-line/60" />
+              </div>
             </div>
           ) : status === 'error' ? (
             <div
               className="rounded-dd-xl border border-red-900/20 bg-red-50 p-8 text-center text-red-900 shadow-dd-card"
               role="alert"
             >
-              <strong className="text-xl font-bold">Jadwal sedang tidak tersedia</strong>
-              <p className="mt-2 text-sm text-red-800">{message}</p>
+              <strong className="text-xl font-bold">Jadwal gagal dimuat</strong>
+              <p className="mt-2 text-sm text-red-800">
+                {message || 'Jadwal gagal dimuat. Koneksi internet terputus saat mengambil data.'}
+              </p>
               <button
-                className="mt-4 inline-flex min-h-[44px] items-center justify-center rounded-dd-md bg-white px-4 py-2 text-sm font-bold text-red-900 border border-red-300 shadow-xs hover:bg-red-100"
+                className="mt-4 inline-flex min-h-[44px] items-center justify-center rounded-dd-md bg-white px-4 py-2 text-sm font-bold text-red-900 border border-red-300 shadow-xs hover:bg-red-100 cursor-pointer"
                 type="button"
                 onClick={() => void retryCatalog()}
               >
-                Coba lagi
+                Coba muat ulang
               </button>
             </div>
           ) : !branchId ? (
@@ -608,12 +627,31 @@ export function PublicClassesView({
           ) : visible.length === 0 ? (
             <div className="rounded-dd-xl border border-dd-line bg-white p-6 sm:p-8 text-center shadow-dd-card">
               <strong className="text-lg font-bold text-dd-ink">
-                Belum ada kelas pada filter ini
+                {day
+                  ? `Tidak ada kelas pada ${formatTanggalHuman(new Date(`${day}T12:00:00Z`), { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`
+                  : 'Belum ada kelas pada filter ini'}
               </strong>
               <p className="mt-1 text-sm text-dd-muted">
-                Ubah tanggal atau tipe kelas untuk melihat pilihan lain.
+                {day
+                  ? `Studio ${branches.find((b) => b.id === branchId)?.name ?? 'Daily Dose'} belum membuka kelas di tanggal ini.`
+                  : 'Ubah tanggal atau tipe kelas untuk melihat pilihan lain.'}
               </p>
               <div className="mt-4 flex flex-wrap justify-center gap-3">
+                {day && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const currentDate = new Date(`${day}T12:00:00Z`);
+                      currentDate.setDate(currentDate.getDate() + 1);
+                      const nextDay = currentDate.toISOString().slice(0, 10);
+                      setDay(nextDay);
+                      updateQuery({ date: nextDay });
+                    }}
+                    className="min-h-[44px] rounded-dd-md border border-dd-border-interactive bg-dd-forest px-4 py-2 text-sm font-bold text-white hover:bg-dd-forest-hover cursor-pointer"
+                  >
+                    Lihat tanggal berikutnya
+                  </button>
+                )}
                 {day && (
                   <button
                     type="button"
@@ -729,7 +767,7 @@ export function PublicClassesView({
                                 </span>
                               ) : !actionable ? (
                                 <span
-                                  className="inline-flex min-h-[44px] w-full sm:w-auto items-center justify-center rounded-dd-md border border-dd-line bg-dd-surface-muted px-4 py-2 text-xs font-bold text-dd-muted pointer-events-none opacity-50 cursor-not-allowed"
+                                  className="inline-flex min-h-[48px] w-full sm:w-auto items-center justify-center rounded-dd-md border border-dd-border-interactive bg-[#f8faf9] px-4 py-2 text-xs font-bold text-dd-muted pointer-events-none cursor-not-allowed"
                                   aria-disabled="true"
                                 >
                                   Pemesanan ditutup
@@ -754,10 +792,10 @@ export function PublicClassesView({
                                       setIsBookingSheetOpen(true);
                                     }
                                   }}
-                                  className={`inline-flex min-h-[44px] w-full sm:w-auto items-center justify-center rounded-dd-md px-5 py-2.5 text-sm font-bold shadow-xs transition cursor-pointer ${
+                                  className={`inline-flex min-h-[48px] w-full sm:w-auto items-center justify-center rounded-dd-md px-5 py-2.5 text-sm font-bold shadow-xs transition cursor-pointer focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#24483a] ${
                                     isCustomer && !matchingPkg
-                                      ? 'border border-dd-border-interactive bg-white text-dd-forest hover:bg-dd-forest-soft'
-                                      : 'bg-dd-forest text-white hover:bg-dd-forest-hover'
+                                      ? 'border-[1.5px] border-dd-border-interactive bg-white text-dd-forest hover:bg-dd-surface-muted'
+                                      : 'bg-dd-forest text-white hover:bg-dd-forest-dark'
                                   }`}
                                 >
                                   {isStaff

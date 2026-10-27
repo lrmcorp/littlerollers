@@ -270,7 +270,7 @@ export function ClassDetailView({
                       key={`${pkg.id}:${pkg.branch.id}`}
                     >
                       <div>
-                        <span className="inline-block rounded-none border border-ed-green/30 bg-ed-tint px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-ed-forest">
+                        <span className="inline-block rounded-none border border-ed-green/30 bg-ed-tint px-2.5 py-0.5 text-[13px] font-bold uppercase tracking-wider text-ed-forest">
                           {pkg.branch.name}
                         </span>
                         <h3 className="mt-3 text-xl font-bold text-ed-ink">{pkg.name}</h3>
@@ -344,7 +344,7 @@ export function ClassDetailView({
                             }).format(sStart)}
                           </span>
                           <span
-                            className={`rounded-none border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                            className={`rounded-none border px-2 py-0.5 text-[13px] font-bold uppercase tracking-wider ${
                               schedule.available < 1
                                 ? 'border-red-900/30 bg-red-50 text-red-900'
                                 : schedule.available <= 2

@@ -229,7 +229,7 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
                       href={href}
                       aria-current={!mobileOpen && selected ? 'page' : undefined}
                       aria-label={item.label}
-                      className={`inline-flex min-h-10 items-center gap-1.5 rounded-dd-md px-3 text-xs font-semibold no-underline xl:text-sm ${
+                      className={`inline-flex min-h-11 items-center gap-1.5 rounded-dd-md px-3 text-xs font-semibold no-underline xl:text-sm ${
                         selected
                           ? 'bg-dd-forest text-white shadow-dd-soft'
                           : 'text-dd-muted hover:bg-dd-surface-muted hover:text-dd-forest'
@@ -256,7 +256,7 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
                 <button
                   type="button"
                   onClick={() => studioPreference?.openStudioPreference()}
-                  className="hidden min-h-9 max-w-44 items-center gap-1.5 truncate rounded-full border border-dd-line/80 bg-white px-2.5 py-1 text-xs font-semibold text-dd-ink shadow-2xs hover:border-dd-forest/40 md:flex sm:max-w-48 sm:rounded-dd-md sm:px-3 sm:py-2"
+                  className="hidden min-h-11 max-w-44 items-center gap-1.5 truncate rounded-full border border-dd-line/80 bg-white px-2.5 py-1 text-xs font-semibold text-dd-ink shadow-2xs hover:border-dd-forest/40 md:flex sm:max-w-48 sm:rounded-dd-md sm:px-3 sm:py-2"
                 >
                   <MapPin className="size-3.5 shrink-0 text-dd-forest" aria-hidden="true" />
                   <span className="truncate">{session.preferredBranch.name}</span>
@@ -326,7 +326,7 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
                           href={item.href}
                           onClick={() => setProfileOpen(false)}
                           aria-label={item.label}
-                          className="flex min-h-10 items-center gap-2 rounded-dd-md px-3 text-sm font-semibold text-dd-ink no-underline hover:bg-dd-surface-muted"
+                          className="flex min-h-11 items-center gap-2 rounded-dd-md px-3 text-sm font-semibold text-dd-ink no-underline hover:bg-dd-surface-muted"
                         >
                           <Icon className="size-4" aria-hidden="true" />
                           <span className="flex-1">{item.label}</span>
@@ -339,7 +339,7 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
                         setProfileOpen(false);
                         studioPreference?.openStudioPreference();
                       }}
-                      className="flex min-h-10 w-full items-center gap-2 rounded-dd-md border-0 bg-transparent px-3 text-left text-sm font-semibold text-dd-ink hover:bg-dd-surface-muted"
+                      className="flex min-h-11 w-full items-center gap-2 rounded-dd-md border-0 bg-transparent px-3 text-left text-sm font-semibold text-dd-ink hover:bg-dd-surface-muted"
                     >
                       <MapPin className="size-4" aria-hidden="true" />
                       Ganti studio
@@ -348,14 +348,14 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
                       <Link
                         href="/"
                         onClick={() => setProfileOpen(false)}
-                        className="flex min-h-10 items-center gap-2 rounded-dd-md px-3 text-sm font-semibold text-dd-ink no-underline hover:bg-dd-surface-muted"
+                        className="flex min-h-11 items-center gap-2 rounded-dd-md px-3 text-sm font-semibold text-dd-ink no-underline hover:bg-dd-surface-muted"
                       >
                         <House className="size-4" aria-hidden="true" />
                         Kunjungi situs utama
                       </Link>
                     </div>
                     <button
-                      className="mt-1 flex min-h-10 w-full items-center rounded-dd-md border-0 bg-transparent px-3 text-sm font-semibold text-dd-danger hover:bg-dd-danger-soft"
+                      className="mt-1 flex min-h-11 w-full items-center rounded-dd-md border-0 bg-transparent px-3 text-sm font-semibold text-dd-danger hover:bg-dd-danger-soft"
                       onClick={() => void context?.logout()}
                     >
                       Keluar
@@ -369,7 +369,7 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
             <button
               type="button"
               onClick={() => studioPreference?.openStudioPreference()}
-              className="flex min-h-9 w-full items-center gap-1.5 rounded-none border-x-0 border-b-0 border-t border-dd-line bg-transparent px-4 py-2 text-left text-xs text-dd-muted sm:px-6 xl:hidden"
+              className="flex min-h-11 w-full items-center gap-1.5 rounded-none border-x-0 border-b-0 border-t border-dd-line bg-transparent px-4 py-2 text-left text-xs text-dd-muted sm:px-6 xl:hidden"
             >
               <MapPin className="size-3.5 shrink-0 text-dd-forest" aria-hidden="true" />
               Studio aktif:{' '}
@@ -435,7 +435,7 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
                   </span>
                 ) : (
                   <>
-                    <Link href="/workspace" className="font-semibold text-dd-forest no-underline">
+                    <Link href="/workspace" className="inline-flex min-h-11 items-center font-semibold text-dd-forest no-underline">
                       Workspace
                     </Link>
                     {currentPage && !accountPageLabelForPath(pathname) && (
@@ -481,7 +481,7 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
                   setNotificationOpen(false);
                   setCommandOpen(true);
                 }}
-                className="flex min-h-10 w-full max-w-sm items-center justify-start gap-2 rounded-dd-md border border-dd-line bg-dd-surface-muted px-3 text-sm font-medium text-dd-muted"
+                className="flex min-h-11 w-full max-w-sm items-center justify-start gap-2 rounded-dd-md border border-dd-line bg-dd-surface-muted px-3 text-sm font-medium text-dd-muted"
               >
                 <Search className="size-4 shrink-0" />
                 <span className="truncate">Cari halaman…</span>
@@ -609,7 +609,7 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
                       Keamanan akun
                     </Link>
                     <button
-                      className="mt-1 flex min-h-10 w-full items-center rounded-dd-md border-0 bg-transparent px-3 text-sm font-semibold text-dd-danger hover:bg-dd-danger-soft"
+                      className="mt-1 flex min-h-11 w-full items-center rounded-dd-md border-0 bg-transparent px-3 text-sm font-semibold text-dd-danger hover:bg-dd-danger-soft"
                       onClick={() => void context?.logout()}
                     >
                       Keluar

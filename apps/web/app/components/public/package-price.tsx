@@ -33,7 +33,7 @@ export function PackagePrice({
           >
             {formatRupiah(priceRp)}
           </del>
-          <span className="rounded-none border border-ed-green/30 bg-ed-mist px-2 py-0.5 text-[10px] font-bold tracking-wider uppercase text-ed-green">
+          <span className="rounded-none border border-ed-green/30 bg-ed-mist px-2 py-0.5 text-[13px] font-bold tracking-wider uppercase text-ed-green">
             {promotion?.label}
           </span>
         </div>

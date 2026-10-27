@@ -179,14 +179,22 @@ export function CustomerPackagesView() {
                       ? `Kedaluwarsa pada ${new Date(item.expiryAt).toLocaleDateString('id-ID')}`
                       : `Berlaku sampai ${new Date(item.expiryAt).toLocaleDateString('id-ID')}`}
                   </p>
-                  {!expired && item.status === 'ACTIVE' && (
+                  {!expired && item.status === 'ACTIVE' ? (
                     <ButtonLink
                       className="mt-5"
                       href={`/classes?branch=${encodeURIComponent(item.branchId)}#schedule`}
                     >
                       Booking kelas
                     </ButtonLink>
-                  )}
+                  ) : expired ? (
+                    <ButtonLink
+                      variant="secondary"
+                      className="mt-5"
+                      href="/packages"
+                    >
+                      Beli paket baru
+                    </ButtonLink>
+                  ) : null}
                 </article>
               );
             })}
@@ -194,7 +202,11 @@ export function CustomerPackagesView() {
           <Pagination
             hasPrevious={cursorHistory.length > 0 && !loading}
             hasNext={Boolean(nextCursor) && !loading}
-            totalLabel={`${displayedItems.length.toLocaleString('id-ID')} dari ${total.toLocaleString('id-ID')} paket`}
+            totalLabel={
+              total <= displayedItems.length
+                ? `${displayedItems.length.toLocaleString('id-ID')} paket`
+                : `${displayedItems.length.toLocaleString('id-ID')} dari ${total.toLocaleString('id-ID')} paket`
+            }
             currentPage={cursorHistory.length + 1}
             onPrevious={() => {
               const previous = cursorHistory.at(-1) ?? '';

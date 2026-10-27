@@ -134,7 +134,7 @@ function DefaultPublicFooter() {
           {/* Nav Link Columns */}
           {footerLinks.map((group) => (
             <div key={group.label}>
-              <h3 className="mb-3 text-[11px] font-bold uppercase tracking-[0.14em] text-white/50">
+              <h3 className="mb-3 text-[13px] font-bold uppercase tracking-[0.14em] text-white/50">
                 {group.label}
               </h3>
               <ul className="space-y-2.5 list-none m-0 p-0">

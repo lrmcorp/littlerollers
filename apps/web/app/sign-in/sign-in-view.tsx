@@ -173,7 +173,7 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
               <div className="relative flex items-center">
                 <input
                   aria-label="Email atau Nomor WhatsApp"
-                  className="w-full min-h-12 rounded-none border border-ed-line bg-white px-4 py-2.5 text-sm text-ed-ink outline-none transition-colors focus:border-ed-forest focus:ring-1 focus:ring-ed-forest"
+                  className="w-full min-h-12 rounded-none border border-ed-border-ui bg-white px-4 py-2.5 text-sm text-ed-ink transition-colors focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#24483a]"
                   name="email"
                   type="text"
                   autoComplete="username"
@@ -187,7 +187,7 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
               <span>Password</span>
               <div className="relative flex items-center">
                 <input
-                  className="w-full min-h-12 rounded-none border border-ed-line bg-white px-4 pr-24 py-2.5 text-sm text-ed-ink outline-none transition-colors focus:border-ed-forest focus:ring-1 focus:ring-ed-forest"
+                  className="w-full min-h-12 rounded-none border border-ed-border-ui bg-white px-4 pr-24 py-2.5 text-sm text-ed-ink transition-colors focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#24483a]"
                   name="password"
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="current-password"
@@ -198,7 +198,7 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
                 />
                 <button
                   aria-pressed={showPassword}
-                  className="absolute right-2 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-ed-forest hover:text-ed-deep transition-colors"
+                  className="absolute right-2 inline-flex min-h-[44px] items-center px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-ed-forest hover:text-ed-deep transition-colors focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#24483a]"
                   type="button"
                   onClick={() => setShowPassword((value) => !value)}
                 >

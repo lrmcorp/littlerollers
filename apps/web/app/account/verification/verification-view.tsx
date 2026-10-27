@@ -553,12 +553,12 @@ function KycSubmissionForm({ onSubmitted }: { onSubmitted: () => Promise<void> }
           <Link
             href="/account"
             aria-label="Kembali ke Beranda"
-            className="inline-flex size-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-dd-md border border-dd-border-interactive bg-white text-dd-forest shadow-xs transition hover:bg-dd-surface-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-dd-forest"
+            className="inline-flex size-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-dd-md border border-dd-border-interactive bg-white text-dd-forest shadow-xs transition hover:bg-dd-surface-muted focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#24483a]"
           >
             <ChevronLeft className="size-5" aria-hidden="true" />
           </Link>
           <div>
-            <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-dd-brass-dark">
+            <span className="text-[13px] font-bold uppercase tracking-[0.2em] text-dd-brass-dark">
               Verifikasi Identitas KTP
             </span>
             <h1 className="mt-2 text-2xl font-bold tracking-tight text-dd-ink sm:text-3xl">
@@ -591,7 +591,7 @@ function KycSubmissionForm({ onSubmitted }: { onSubmitted: () => Promise<void> }
               onChange={(e) => setNik(e.target.value.replace(/\D/g, '').slice(0, 16))}
               placeholder="Masukkan 16 digit NIK di KTP"
               required
-              className="mt-1.5 w-full rounded-dd-md border border-dd-line bg-white px-3.5 py-2.5 text-sm text-dd-ink transition focus:border-dd-forest focus:outline-none focus:ring-1 focus:ring-dd-forest"
+              className="mt-1.5 w-full min-h-[44px] rounded-dd-md border border-dd-border-interactive bg-white px-3.5 py-2.5 text-sm text-dd-ink transition focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#24483a]"
             />
           </div>
 
@@ -607,7 +607,7 @@ function KycSubmissionForm({ onSubmitted }: { onSubmitted: () => Promise<void> }
               onChange={(e) => setAddress(e.target.value)}
               placeholder="Contoh: Jl. Nama Jalan No. XX, RT/RW, Kelurahan, Kecamatan, Kota"
               required
-              className="mt-1.5 w-full rounded-dd-md border border-dd-line bg-white px-3.5 py-2.5 text-sm text-dd-ink transition focus:border-dd-forest focus:outline-none focus:ring-1 focus:ring-dd-forest"
+              className="mt-1.5 w-full min-h-[44px] rounded-dd-md border border-dd-border-interactive bg-white px-3.5 py-2.5 text-sm text-dd-ink transition focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#24483a]"
             />
           </div>
 
@@ -616,7 +616,7 @@ function KycSubmissionForm({ onSubmitted }: { onSubmitted: () => Promise<void> }
               <label htmlFor="ktp" className="block text-xs font-bold uppercase tracking-wider text-dd-forest">
                 Unggah Foto KTP
               </label>
-              <p className="mt-1 text-[11px] text-dd-muted">
+              <p className="mt-1 text-[13px] text-dd-muted">
                 Foto e-KTP jelas, tanpa pantulan cahaya (maks. 8 MB)
               </p>
               <input
@@ -639,7 +639,7 @@ function KycSubmissionForm({ onSubmitted }: { onSubmitted: () => Promise<void> }
               <label htmlFor="selfie" className="block text-xs font-bold uppercase tracking-wider text-dd-forest">
                 Unggah Foto Selfie
               </label>
-              <p className="mt-1 text-[11px] text-dd-muted">
+              <p className="mt-1 text-[13px] text-dd-muted">
                 Wajah terlihat jelas dan pencahayaan terang (maks. 8 MB)
               </p>
               <input
@@ -689,12 +689,12 @@ function KycSubmissionForm({ onSubmitted }: { onSubmitted: () => Promise<void> }
               <Link
                 href="/account"
                 aria-label="Kembali ke Beranda"
-                className="inline-flex size-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-dd-md border border-dd-border-interactive bg-white text-dd-forest shadow-xs transition hover:bg-dd-surface-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-dd-forest"
+                className="inline-flex size-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-dd-md border border-dd-border-interactive bg-white text-dd-forest shadow-xs transition hover:bg-dd-surface-muted focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#24483a]"
               >
                 <ChevronLeft className="size-5" aria-hidden="true" />
               </Link>
               <div>
-                <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-dd-brass-dark">
+                <span className="text-[13px] font-bold uppercase tracking-[0.2em] text-dd-brass-dark">
                   {copy.eyebrow}
                 </span>
                 <h1 className="mt-3 max-w-2xl text-3xl font-bold tracking-tight text-dd-ink sm:text-4xl">
@@ -766,7 +766,7 @@ function KycSubmissionForm({ onSubmitted }: { onSubmitted: () => Promise<void> }
       <section aria-labelledby="documents-title">
         <div className="mb-4 flex items-end justify-between gap-4">
           <div>
-            <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-dd-muted">
+            <span className="text-[13px] font-bold uppercase tracking-[0.18em] text-dd-muted">
               Dokumen
             </span>
             <h2 id="documents-title" className="mt-1 text-xl font-bold">

@@ -1069,7 +1069,7 @@ export function BookingView({
                 pelanggan, buka scanner dan pastikan cabang operasional sudah dipilih.
               </p>
               <Link
-                className="mt-4 inline-flex min-h-10 items-center rounded-dd-md border border-dd-forest bg-dd-forest px-4 text-sm font-bold text-white no-underline"
+                className="mt-4 inline-flex min-h-11 items-center rounded-dd-md border border-dd-forest bg-dd-forest px-4 text-sm font-bold text-white no-underline"
                 href="/check-in-scanner"
               >
                 Buka scanner check-in
@@ -1296,7 +1296,7 @@ export function BookingView({
                   return (
                     <div className="flex items-center justify-end gap-1.5">
                       <Link
-                        className="inline-flex min-h-9 items-center rounded-dd-md border border-dd-line px-3 text-xs font-semibold text-dd-forest no-underline hover:bg-dd-surface-muted"
+                        className="inline-flex min-h-11 items-center rounded-dd-md border border-dd-line px-3 text-xs font-semibold text-dd-forest no-underline hover:bg-dd-surface-muted"
                         href={`/workspace/bookings/${booking.id}?returnTo=${encodeURIComponent('/workspace/bookings')}`}
                       >
                         Lihat detail
@@ -1372,7 +1372,7 @@ export function BookingView({
                 )}
                 <div className="flex flex-wrap items-center gap-1.5 pt-1">
                   <Link
-                    className="inline-flex min-h-9 items-center justify-center rounded-dd-md border border-dd-line px-3 text-xs font-semibold text-dd-forest no-underline"
+                    className="inline-flex min-h-11 items-center justify-center rounded-dd-md border border-dd-line px-3 text-xs font-semibold text-dd-forest no-underline"
                     href={`/workspace/bookings/${booking.id}?returnTo=${encodeURIComponent('/workspace/bookings')}`}
                   >
                     Lihat detail

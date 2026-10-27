@@ -271,7 +271,7 @@ export function BranchDetailView({ id }: { id: string }) {
               {branch.publicProfile.amenities?.length ? (
                 <div className="flex flex-wrap gap-1.5 pt-1">
                   {branch.publicProfile.amenities.map((a) => (
-                    <span key={a} className="rounded bg-dd-forest/10 px-2 py-0.5 text-[11px] font-medium text-dd-forest">
+                    <span key={a} className="rounded bg-dd-forest/10 px-2 py-0.5 text-[13px] font-medium text-dd-forest">
                       {a}
                     </span>
                   ))}

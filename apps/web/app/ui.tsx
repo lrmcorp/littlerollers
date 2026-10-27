@@ -30,7 +30,7 @@ export function PageHeader({
           <Link
             href={backHref}
             aria-label={backLabel}
-            className="inline-flex size-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-dd-md border border-dd-border-interactive bg-white text-dd-forest shadow-xs transition hover:bg-dd-surface-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-dd-forest"
+            className="inline-flex size-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-dd-md border border-dd-border-interactive bg-white text-dd-forest shadow-xs transition hover:bg-dd-surface-muted focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#24483a]"
           >
             <ChevronLeft className="size-5" aria-hidden="true" />
           </Link>
@@ -39,7 +39,7 @@ export function PageHeader({
             type="button"
             onClick={onBack}
             aria-label={backLabel}
-            className="inline-flex size-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-dd-md border border-dd-border-interactive bg-white text-dd-forest shadow-xs transition hover:bg-dd-surface-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-dd-forest"
+            className="inline-flex size-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-dd-md border border-dd-border-interactive bg-white text-dd-forest shadow-xs transition hover:bg-dd-surface-muted focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#24483a]"
           >
             <ChevronLeft className="size-5" aria-hidden="true" />
           </button>
@@ -147,7 +147,7 @@ export function Feedback({
           setVisible(false);
           onDismiss?.();
         }}
-        className="ml-2 -mr-1 -mt-1 p-1 rounded-dd-sm text-current opacity-60 hover:opacity-100 hover:bg-black/5 transition cursor-pointer"
+        className="ml-2 -mr-1 -mt-1 inline-flex size-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-dd-sm text-current opacity-70 hover:opacity-100 hover:bg-black/5 transition cursor-pointer focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#24483a]"
         aria-label="Tutup pemberitahuan"
       >
         <X className="size-4" />
@@ -189,9 +189,9 @@ export function Skeleton({ label = 'Memuat konten' }: { label?: string }) {
       role="status"
       aria-label={label}
     >
-      <span className="h-5 w-4/5 animate-pulse rounded bg-dd-surface-muted" />
-      <span className="h-5 animate-pulse rounded bg-dd-surface-muted" />
-      <span className="h-5 w-2/5 animate-pulse rounded bg-dd-surface-muted" />
+      <span className="h-5 w-4/5 rounded bg-dd-surface-muted" />
+      <span className="h-5 rounded bg-dd-surface-muted" />
+      <span className="h-5 w-2/5 rounded bg-dd-surface-muted" />
     </div>
   );
 }

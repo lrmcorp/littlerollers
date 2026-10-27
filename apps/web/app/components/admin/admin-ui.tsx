@@ -72,14 +72,14 @@ export function StatCard({
       <div className="mt-3 flex items-end justify-between gap-3">
         {loading ? (
           <div
-            className="h-8 w-24 animate-pulse rounded bg-dd-line/60"
+            className="h-8 w-24 rounded bg-dd-line/60"
             aria-label="Memuat nilai..."
           />
         ) : (
           <strong className="text-2xl font-semibold tracking-tight text-dd-ink">{value}</strong>
         )}
         {loading ? (
-          <div className="h-4 w-12 animate-pulse rounded bg-dd-line/40" />
+          <div className="h-4 w-12 rounded bg-dd-line/40" />
         ) : (
           change != null && (
             <span
@@ -91,7 +91,7 @@ export function StatCard({
         )}
       </div>
       {loading ? (
-        helper ? <div className="mt-2 h-4 w-32 animate-pulse rounded bg-dd-line/30" /> : null
+        helper ? <div className="mt-2 h-4 w-32 rounded bg-dd-line/30" /> : null
       ) : (
         helper && <p className="mt-2 text-sm text-dd-muted">{helper}</p>
       )}
@@ -446,12 +446,21 @@ export function Pagination({
       // Label sudah berbentuk "X dari Y paket": jangan dirangkai ulang agar tidak menjadi "dari 20 dari 20".
       if (!/ditampilkan/.test(displayLabel)) displayLabel = `Menampilkan ${displayLabel}`;
     } else {
-      const startItem = totalItems === 0 ? 0 : Math.min((currentPage - 1) * pageSize + 1, totalItems);
-      const endItem = Math.min(currentPage * pageSize, totalItems);
       const suffix = displayLabel.replace(/^\d+[\s.,]?\d*\s*/, '').trim();
       const entity = suffix || 'data';
-      displayLabel = `Menampilkan ${startItem.toLocaleString('id-ID')}–${endItem.toLocaleString('id-ID')} dari ${totalItems.toLocaleString('id-ID')} ${entity}`;
+      if (totalItems <= pageSize) {
+        displayLabel = `Menampilkan ${totalItems.toLocaleString('id-ID')} ${entity}`;
+      } else {
+        const startItem = totalItems === 0 ? 0 : Math.min((currentPage - 1) * pageSize + 1, totalItems);
+        const endItem = Math.min(currentPage * pageSize, totalItems);
+        displayLabel = `Menampilkan ${startItem.toLocaleString('id-ID')}–${endItem.toLocaleString('id-ID')} dari ${totalItems.toLocaleString('id-ID')} ${entity}`;
+      }
     }
+  }
+
+  // Cegah tampilan janggal "dari 0" bila data summary belum sinkron
+  if (displayLabel) {
+    displayLabel = displayLabel.replace(/\s+dari\s+0\s+/g, ' ');
   }
 
   const showPagePrefix =
@@ -566,7 +575,7 @@ export function AdminSkeleton({ rows = 3 }: { rows?: number }) {
       className="grid gap-3 rounded-dd-lg border border-dd-line bg-white p-5"
     >
       {Array.from({ length: rows }, (_, index) => (
-        <div key={index} className="h-12 animate-pulse rounded-dd-md bg-dd-surface-muted" />
+        <div key={index} className="h-12 rounded-dd-md bg-dd-surface-muted" />
       ))}
       <span className="sr-only">Memuat data</span>
     </div>

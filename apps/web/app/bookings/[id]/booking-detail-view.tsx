@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, CalendarDays, Download, ExternalLink, MapPin, QrCode, User, Users } from 'lucide-react';
+import { ArrowLeft, CalendarDays, CalendarX, CheckCircle, Download, ExternalLink, MapPin, QrCode, User, Users } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import QRCode from 'qrcode';
 import {
@@ -279,6 +279,9 @@ export function BookingDetailView({
                   weekday: 'short',
                   day: 'numeric',
                   month: 'short',
+                  ...(booking.classSlot.startAt.getFullYear() !== new Date().getFullYear() || booking.status !== 'BOOKED'
+                    ? { year: 'numeric' }
+                    : {}),
                   hour: '2-digit',
                   minute: '2-digit',
                   timeZone: booking.classSlot.timezone,
@@ -305,15 +308,33 @@ export function BookingDetailView({
           </p>
         </article>
 
-        <article className="rounded-none border border-ed-line bg-white p-5 shadow-none">
-          <Users className="size-6 text-ed-forest" />
-          <h2 className="mt-4 text-xs font-semibold uppercase tracking-wider text-ed-muted">Kapasitas Slot</h2>
-          <p className="font-serif mt-1 text-sm font-normal text-ed-ink leading-relaxed">
-            {booking.classSlot?.capacity
-              ? `${booking.classSlot.bookedCount ?? 1}/${booking.classSlot.capacity} terisi (${Math.max(0, booking.classSlot.capacity - (booking.classSlot.bookedCount ?? 1))} sisa tempat)`
-              : 'Tersedia'}
-          </p>
-        </article>
+        {booking.status === 'CANCELLED' ? (
+          <article className="rounded-none border border-ed-line bg-white p-5 shadow-none">
+            <CalendarX className="size-6 text-rose-800" />
+            <h2 className="mt-4 text-xs font-semibold uppercase tracking-wider text-rose-800">Status Booking</h2>
+            <p className="font-serif mt-1 text-sm font-normal text-ed-ink leading-relaxed">
+              Booking dibatalkan
+            </p>
+          </article>
+        ) : booking.status === 'ATTENDED' ? (
+          <article className="rounded-none border border-ed-line bg-white p-5 shadow-none">
+            <CheckCircle className="size-6 text-ed-green" />
+            <h2 className="mt-4 text-xs font-semibold uppercase tracking-wider text-ed-muted">Status Kehadiran</h2>
+            <p className="font-serif mt-1 text-sm font-normal text-ed-ink leading-relaxed">
+              Selesai dihadiri
+            </p>
+          </article>
+        ) : (
+          <article className="rounded-none border border-ed-line bg-white p-5 shadow-none">
+            <Users className="size-6 text-ed-forest" />
+            <h2 className="mt-4 text-xs font-semibold uppercase tracking-wider text-ed-muted">Kapasitas Slot</h2>
+            <p className="font-serif mt-1 text-sm font-normal text-ed-ink leading-relaxed">
+              {booking.classSlot?.capacity
+                ? `${booking.classSlot.bookedCount ?? 1}/${booking.classSlot.capacity} terisi (${Math.max(0, booking.classSlot.capacity - (booking.classSlot.bookedCount ?? 1))} sisa tempat)`
+                : 'Tersedia'}
+            </p>
+          </article>
+        )}
       </section>
       {booking.attendance && (
         <AlertBanner

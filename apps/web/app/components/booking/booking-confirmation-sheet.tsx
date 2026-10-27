@@ -216,7 +216,7 @@ export function BookingConfirmationSheet({
                 Booking berhasil
               </h2>
               <p className="mt-1 text-sm text-dd-muted">
-                Sesi latihan Anda telah terkonfirmasi. Satu kuota sesi telah dipotong dari paket.
+                Booking berhasil. {slot.classType.name}, {formatFullDate(slot.startAt, slot.timezone)}, {formatTimeAndDuration(slot.startAt, slot.endAt, slot.timezone)} di {studioName ?? 'Studio Utama'}.
               </p>
             </div>
 
@@ -333,7 +333,7 @@ export function BookingConfirmationSheet({
             {/* Header: Nama kelas 24 px & Tombol X */}
             <div className="flex items-start justify-between gap-4 pb-2 border-b border-dd-line/60">
               <div>
-                <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-dd-forest">
+                <span className="text-[13px] font-bold uppercase tracking-[0.2em] text-dd-forest">
                   Konfirmasi Booking
                 </span>
                 <h2
@@ -411,7 +411,7 @@ export function BookingConfirmationSheet({
 
             {/* Kotak #e8f0ec berisi nama paket dan sisa sesi setelah booking */}
             <div className="rounded-dd-md border border-dd-forest/20 bg-[#e8f0ec] p-4 space-y-2">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-dd-forest">
+              <span className="text-[13px] font-bold uppercase tracking-wider text-dd-forest">
                 Paket yang Digunakan
               </span>
 

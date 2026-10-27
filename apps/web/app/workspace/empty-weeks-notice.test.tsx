@@ -32,6 +32,7 @@ describe('EmptyWeeksNotice', () => {
     render(<EmptyWeeksNotice branchId="b1" timezone="Asia/Jakarta" client={client} initialNow={now} />);
     const alert = await screen.findByRole('alert');
     expect(alert).toHaveTextContent(/2 minggu dalam empat minggu ke depan belum punya kelas/);
+    expect(within(alert).getByRole('link', { name: 'Isi pakai jadwal rutin' })).toHaveAttribute('href', '/workspace/classes/rutin');
     expect(within(alert).getByRole('link', { name: 'Isi pakai salin jadwal' })).toHaveAttribute('href', '/workspace/classes/salin');
     expect(screen.getAllByText(/: Kosong/)).toHaveLength(2);
     expect(screen.getByText(/2 kelas/)).toBeVisible();

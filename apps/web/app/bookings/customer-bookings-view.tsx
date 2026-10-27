@@ -206,17 +206,29 @@ export function CustomerBookingsView({
                       </strong>
                     </div>
 
-                    {timeline === 'UPCOMING' && (
+                    {item.status === 'CANCELLED' ? (
                       <div>
                         <span className="block text-[11px] uppercase tracking-[0.14em] font-semibold text-ed-green">
-                          Ketersediaan Slot
+                          Status Booking
                         </span>
-                        <strong className="mt-0.5 block text-xs font-semibold text-ed-ink">
-                          {item.classSlot?.capacity
-                            ? `${item.classSlot.bookedCount ?? 1}/${item.classSlot.capacity} terisi (${availablePlaces ?? 0} sisa tempat)`
-                            : 'Tersedia'}
+                        <strong className="mt-0.5 block text-xs font-semibold text-rose-800">
+                          Booking dibatalkan
                         </strong>
                       </div>
+                    ) : (
+                      timeline === 'UPCOMING' &&
+                      item.status === 'BOOKED' && (
+                        <div>
+                          <span className="block text-[11px] uppercase tracking-[0.14em] font-semibold text-ed-green">
+                            Ketersediaan Slot
+                          </span>
+                          <strong className="mt-0.5 block text-xs font-semibold text-ed-ink">
+                            {item.classSlot?.capacity
+                              ? `${item.classSlot.bookedCount ?? 1}/${item.classSlot.capacity} terisi (${availablePlaces ?? 0} sisa tempat)`
+                              : 'Tersedia'}
+                          </strong>
+                        </div>
+                      )
                     )}
                   </div>
 
@@ -225,7 +237,7 @@ export function CustomerBookingsView({
                       Paket: <strong className="font-medium text-ed-ink">{item.package?.name ?? 'Paket Customer'}</strong>
                     </span>
                     <span className="inline-flex items-center gap-1 font-semibold text-ed-forest group-hover:text-ed-green shrink-0">
-                      <span>{timeline === 'HISTORY' ? 'Lihat detail' : 'Lihat detail & QR Pass'}</span>
+                      <span>{timeline === 'UPCOMING' && item.status === 'BOOKED' ? 'Lihat detail & QR Pass' : 'Lihat detail'}</span>
                       <ArrowRight className="size-3.5" />
                     </span>
                   </div>
@@ -237,7 +249,11 @@ export function CustomerBookingsView({
             <Pagination
               hasPrevious={cursorHistory.length > 0 && !loading}
               hasNext={Boolean(nextCursor) && !loading}
-              totalLabel={`${items.length.toLocaleString('id-ID')} dari ${total.toLocaleString('id-ID')} booking`}
+              totalLabel={
+                total <= items.length
+                  ? `${items.length.toLocaleString('id-ID')} booking`
+                  : `${items.length.toLocaleString('id-ID')} dari ${total.toLocaleString('id-ID')} booking`
+              }
               currentPage={cursorHistory.length + 1}
               onPrevious={() => {
                 const previous = cursorHistory.at(-1) ?? '';

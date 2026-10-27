@@ -32,6 +32,7 @@ import { InstructorTodayView } from './workspace/instructor-today-view';
 import type { ClassSlotClient } from '@/api-clients/class-slot-client';
 import type { BookingClient } from '@/api-clients/booking-client';
 import type { AvailabilityClient } from '@/api-clients/availability-client';
+import { EmptyWeeksNotice } from './workspace/empty-weeks-notice';
 
 const number = new Intl.NumberFormat('id-ID');
 const compact = new Intl.NumberFormat('id-ID', { notation: 'compact', maximumFractionDigits: 1 });
@@ -217,6 +218,11 @@ export function Dashboard({
   const activeBranch = context?.activeBranch;
   const branchId = context?.activeBranchId ?? '';
   const shortcuts = useMemo(() => (session ? shortcutPagesFor(session) : []), [session]);
+  const canManageClasses = Boolean(
+    typeof context?.hasCapability === 'function'
+      ? context.hasCapability('class-slot:manage')
+      : session?.capabilities?.includes('class-slot:manage') || session?.roles?.includes('SUPER_OWNER'),
+  );
 
   const load = useCallback(async () => {
     if (!session) return;
@@ -329,6 +335,34 @@ export function Dashboard({
           </time>
         )}
       </div>
+
+      {/* Peringatan minggu kosong 4 minggu ke depan untuk owner / staf operasional */}
+      {activeBranch ? (
+        <EmptyWeeksNotice
+          branchId={activeBranch.id}
+          timezone={activeBranch.timezone}
+          client={slotClient}
+          canFill={canManageClasses}
+        />
+      ) : (
+        session.branches.length > 0 && (
+          <div className="space-y-4">
+            {session.branches.map((b) => (
+              <div key={b.id} className="space-y-1.5">
+                <span className="text-xs font-bold uppercase tracking-wider text-dd-muted">
+                  Jadwal Cabang: {b.name}
+                </span>
+                <EmptyWeeksNotice
+                  branchId={b.id}
+                  timezone={b.timezone}
+                  client={slotClient}
+                  canFill={canManageClasses}
+                />
+              </div>
+            ))}
+          </div>
+        )
+      )}
 
       {!activeBranch &&
         session.branches.length > 0 &&

@@ -96,6 +96,7 @@ describe('customer packages actions', () => {
     expect(screen.getByText('Hangus')).toBeVisible();
     expect(screen.getByText('Kedaluwarsa')).toBeVisible();
     expect(screen.queryByRole('link', { name: 'Booking kelas' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Beli paket baru' })).toHaveAttribute('href', '/packages');
     expect(screen.queryByText('Paket Reformer Aktif')).not.toBeInTheDocument();
   });
 });

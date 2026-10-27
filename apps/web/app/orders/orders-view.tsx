@@ -140,13 +140,13 @@ export function OrdersView() {
               key={card.key}
               aria-pressed={selected}
               onClick={() => updateFilters({ status: card.status })}
-              className={`min-w-[115px] shrink-0 rounded-none border p-3 text-left transition-colors cursor-pointer lg:min-w-0 ${
+              className={`min-w-[115px] min-h-[44px] shrink-0 rounded-none border p-3 text-left transition-colors cursor-pointer focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#24483a] lg:min-w-0 ${
                 selected
                   ? 'border-ed-forest bg-ed-forest text-white shadow-none'
-                  : 'border-ed-line bg-white text-ed-ink hover:border-ed-forest/60 hover:bg-ed-tint/30'
+                  : 'border-ed-border-ui bg-white text-ed-ink hover:border-ed-forest hover:bg-ed-tint/30'
               }`}
             >
-              <span className={`block text-[11px] font-semibold uppercase tracking-wider ${selected ? 'text-white/70' : 'text-ed-muted'}`}>
+              <span className={`block text-[13px] font-semibold uppercase tracking-wider ${selected ? 'text-white/80' : 'text-ed-muted'}`}>
                 {card.label}
               </span>
               <strong className="mt-1 block font-serif text-2xl font-normal">{summary[card.key]}</strong>
@@ -278,7 +278,11 @@ export function OrdersView() {
             pageSize={ADMIN_PAGE_SIZE}
             hasPrevious={cursorHistory.length > 0}
             hasNext={Boolean(data.page.hasMore && data.page.nextCursor)}
-            totalLabel={`${data.items.length.toLocaleString('id-ID')} dari ${effectiveTotal.toLocaleString('id-ID')} pesanan`}
+            totalLabel={
+              effectiveTotal <= data.items.length
+                ? `${data.items.length.toLocaleString('id-ID')} pesanan`
+                : `${data.items.length.toLocaleString('id-ID')} dari ${effectiveTotal.toLocaleString('id-ID')} pesanan`
+            }
             onPrevious={() => {
               const previous = cursorHistory.at(-1) ?? '';
               setCursorHistory((current) => current.slice(0, -1));

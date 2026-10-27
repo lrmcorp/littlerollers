@@ -139,7 +139,7 @@ export function CustomerNavigation({
             ['Akun', CUSTOMER_ACCOUNT_NAVIGATION],
           ].map(([group, items]) => (
             <div key={group as string}>
-              <p className="mb-2 px-3 text-[11px] font-bold uppercase tracking-wider text-dd-forest/80">
+              <p className="mb-2 px-3 text-[13px] font-bold uppercase tracking-wider text-dd-forest/80">
                 {group as string}
               </p>
               <div className="space-y-1">
@@ -172,12 +172,12 @@ export function CustomerNavigation({
                       <Icon className="size-[18px] shrink-0" aria-hidden="true" />
                       <span className="min-w-0 flex-1">{item.label}</span>
                       {showOrderBadge && (
-                        <span className="rounded-full bg-dd-brass px-2 py-0.5 text-[10px] font-bold text-white shadow-xs">
+                        <span className="rounded-full bg-dd-brass px-2 py-0.5 text-[13px] font-bold text-white shadow-xs">
                           {badges.actionableOrdersCount}
                         </span>
                       )}
                       {showBookingBadge && (
-                        <span className="rounded-full bg-dd-forest px-2 py-0.5 text-[10px] font-bold text-white shadow-xs">
+                        <span className="rounded-full bg-dd-forest px-2 py-0.5 text-[13px] font-bold text-white shadow-xs">
                           {badges.upcomingBookingsCount}
                         </span>
                       )}

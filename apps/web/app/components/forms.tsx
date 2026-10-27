@@ -15,7 +15,7 @@ import {
 } from 'react';
 
 export const controlClassName =
-  'min-h-11 w-full rounded-dd-md border border-dd-line bg-white px-3 py-2 font-sans text-sm text-dd-ink shadow-sm outline-none transition placeholder:text-dd-muted/75 hover:border-dd-forest/40 focus:border-dd-forest focus:ring-2 focus:ring-dd-forest/15 disabled:cursor-not-allowed disabled:bg-dd-surface-muted disabled:text-dd-muted aria-[invalid=true]:border-dd-danger aria-[invalid=true]:ring-2 aria-[invalid=true]:ring-dd-danger/20';
+  'min-h-[44px] w-full rounded-dd-md border border-dd-border-interactive bg-white px-3 py-2 font-sans text-sm text-dd-ink shadow-xs transition placeholder:text-dd-muted/75 hover:border-dd-forest focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#24483a] disabled:cursor-not-allowed disabled:bg-dd-surface-muted disabled:text-dd-muted aria-[invalid=true]:border-dd-danger aria-[invalid=true]:ring-2 aria-[invalid=true]:ring-dd-danger/20';
 
 /** Chevron kustom agar `<select>` bawaan terlihat sama dengan `SearchSelect`. */
 const selectChevronClassName =
@@ -28,12 +28,12 @@ export type FieldVariant = 'default' | 'editorial';
  * input teks/tanggal di halaman itu. Tinggi dasar 48px; `compact` 44px.
  */
 export const editorialControlClassName =
-  'w-full rounded-none border border-ed-line bg-white px-4 py-2 font-sans text-sm text-ed-ink shadow-none outline-none transition placeholder:text-ed-muted hover:border-ed-green/40 focus:border-ed-green focus:ring-2 focus:ring-ed-green/15 disabled:cursor-not-allowed disabled:bg-ed-tint disabled:text-ed-muted aria-[invalid=true]:border-dd-danger aria-[invalid=true]:ring-2 aria-[invalid=true]:ring-dd-danger/20';
+  'w-full min-h-[48px] rounded-none border border-ed-border-ui bg-white px-4 py-2 font-sans text-sm text-ed-ink shadow-none transition placeholder:text-ed-muted hover:border-ed-green focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#24483a] disabled:cursor-not-allowed disabled:bg-ed-tint disabled:text-ed-muted aria-[invalid=true]:border-dd-danger aria-[invalid=true]:ring-2 aria-[invalid=true]:ring-dd-danger/20';
 
 const controlFor = (variant: FieldVariant | undefined, compact?: boolean) =>
   variant === 'editorial'
-    ? `${editorialControlClassName} ${compact ? 'min-h-11 py-1.5' : 'min-h-12'}`
-    : `${controlClassName} ${compact ? 'min-h-10 py-1.5' : ''}`;
+    ? `${editorialControlClassName} ${compact ? 'min-h-[44px] py-1.5' : 'min-h-[48px]'}`
+    : `${controlClassName} ${compact ? 'min-h-[44px] py-1.5' : ''}`;
 
 export function CheckboxInput({
   label,
@@ -46,12 +46,12 @@ export function CheckboxInput({
 }) {
   return (
     <label
-      className={`flex items-start gap-3 rounded-dd-sm border border-dd-line p-3 ${className}`}
+      className={`flex items-start gap-3 rounded-dd-sm border border-dd-border-interactive min-h-[44px] p-3 ${className}`}
     >
       <input
         {...props}
         type="checkbox"
-        className="mt-0.5 size-4 shrink-0 accent-dd-forest focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-dd-forest"
+        className="mt-0.5 size-4 shrink-0 accent-dd-forest focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#24483a]"
       />
       <span className="grid gap-0.5 text-sm">
         <span className="font-medium text-dd-ink">{label}</span>
@@ -556,7 +556,7 @@ export function SearchSelect({
                   role="option"
                   aria-selected={option.id === currentValue}
                   disabled={option.disabled}
-                  className={`flex w-full items-start gap-3 border-0 px-3 py-2.5 text-left disabled:cursor-not-allowed disabled:opacity-45 ${editorial ? 'rounded-none' : 'rounded-dd-sm'} ${index === activeIndex ? (editorial ? 'bg-ed-tint' : 'bg-dd-surface-muted') : editorial ? 'bg-transparent hover:bg-ed-tint' : 'bg-transparent hover:bg-dd-surface-muted'}`}
+                  className={`flex w-full min-h-[44px] items-start gap-3 border-0 px-3 py-2.5 text-left disabled:cursor-not-allowed disabled:opacity-45 ${editorial ? 'rounded-none' : 'rounded-dd-sm'} ${index === activeIndex ? (editorial ? 'bg-ed-tint' : 'bg-dd-surface-muted') : editorial ? 'bg-transparent hover:bg-ed-tint' : 'bg-transparent hover:bg-dd-surface-muted'}`}
                   onMouseEnter={() => setActiveIndex(index)}
                   onClick={() => commit(option)}
                 >
@@ -848,13 +848,13 @@ export function RadioCard({
 }: InputHTMLAttributes<HTMLInputElement> & { label: string; description?: ReactNode }) {
   return (
     <label
-      className={`flex cursor-pointer gap-3 rounded-dd-md border border-dd-line bg-white p-4 transition hover:border-dd-forest has-[:checked]:border-dd-forest has-[:checked]:ring-2 has-[:checked]:ring-dd-forest/15 ${className}`}
+      className={`flex min-h-[44px] cursor-pointer gap-3 rounded-dd-md border border-dd-border-interactive bg-white p-4 transition hover:border-dd-forest has-[:checked]:border-dd-forest has-[:checked]:ring-2 has-[:checked]:ring-dd-forest/15 ${className}`}
     >
       <input
         {...props}
         aria-label={props['aria-label'] ?? label}
         type="radio"
-        className="mt-1 size-4 accent-dd-forest"
+        className="mt-1 size-4 accent-dd-forest focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#24483a]"
       />
       <span>
         <strong className="block text-sm text-dd-ink">{label}</strong>

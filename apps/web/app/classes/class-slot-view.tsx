@@ -30,6 +30,7 @@ import { SearchSelect, SelectInput } from '../components/forms';
 import { Button, ButtonLink } from '../components/actions';
 import { Drawer, useAppFeedback } from '../components/app-feedback';
 import { browserBookingClient, type BookingClient } from '@/api-clients/booking-client';
+import { EmptyWeeksNotice } from '../workspace/empty-weeks-notice';
 
 type Panel = { kind: 'create'; template?: CreateTemplate } | { kind: 'detail'; slot: ClassSlot } | null;
 type BranchOption = { id: string; code?: string; name: string; timezone: string };
@@ -296,12 +297,12 @@ export function ClassSlotView({
     return (
       <button
         type="button"
-        className={`w-full text-left rounded-xl border p-3 shadow-xs transition-all duration-200 flex flex-col gap-1.5 focus-visible:ring-2 focus-visible:ring-dd-forest cursor-pointer hover:shadow-md ${
+        className={`w-full text-left rounded-xl border p-3 shadow-xs transition-all duration-200 flex flex-col gap-1.5 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#24483a] cursor-pointer hover:shadow-md ${
           isCancelled
             ? 'border-dd-danger/30 bg-dd-danger-soft/40 text-dd-danger opacity-80'
             : isDraft
               ? 'border-dd-warning/30 bg-dd-warning-soft/30 hover:border-dd-warning'
-              : 'border-dd-line/80 bg-white hover:border-dd-forest/60'
+              : 'border-dd-border-interactive bg-white hover:border-dd-forest'
         }`}
         key={slot.id}
         onClick={() => openPanel({ kind: 'detail', slot })}
@@ -377,6 +378,15 @@ export function ClassSlotView({
           Anda sedang melihat seluruh cabang. Klik tombol &ldquo;Buat kelas&rdquo; untuk menjadwalkan
           kelas di cabang pilihan Anda, atau pilih cabang spesifik untuk fokus operasional.
         </Feedback>
+      )}
+
+      {branch && !isInstructor && (
+        <EmptyWeeksNotice
+          branchId={branch.id}
+          timezone={branch.timezone}
+          client={client}
+          canFill={canOperate}
+        />
       )}
 
       {/* Toolbar & Filter Panel */}
@@ -581,10 +591,10 @@ export function ClassSlotView({
               <button
                 type="button"
                 onClick={() => setSelectedMobileDay('ALL')}
-                className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
+                className={`shrink-0 rounded-full min-h-[44px] inline-flex items-center px-3.5 py-1.5 text-xs font-semibold transition focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#24483a] ${
                   selectedMobileDay === 'ALL'
                     ? 'bg-dd-forest text-white shadow-xs'
-                    : 'bg-dd-surface-muted text-dd-muted hover:text-dd-ink border border-dd-line/60'
+                    : 'bg-dd-surface-muted text-dd-muted hover:text-dd-ink border border-dd-border-interactive'
                 }`}
               >
                 Semua ({visible.length})
@@ -600,10 +610,10 @@ export function ClassSlotView({
                     key={day}
                     type="button"
                     onClick={() => setSelectedMobileDay(day)}
-                    className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition flex items-center gap-1.5 ${
+                    className={`shrink-0 rounded-full min-h-[44px] px-3 py-1.5 text-xs font-semibold transition inline-flex items-center gap-1.5 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#24483a] ${
                       isSelected
                         ? 'bg-dd-forest text-white shadow-xs'
-                        : 'bg-dd-surface-muted text-dd-muted hover:text-dd-ink border border-dd-line/60'
+                        : 'bg-dd-surface-muted text-dd-muted hover:text-dd-ink border border-dd-border-interactive'
                     }`}
                   >
                     {isToday && (

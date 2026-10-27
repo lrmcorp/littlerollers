@@ -492,7 +492,7 @@ export function PublicPackagesView({
           <section className="mt-5 space-y-3 rounded-dd-md border border-dd-line/70 bg-white p-3.5 sm:p-4" aria-label="Filter dan pengurutan paket">
             {/* Baris Tab Tipe Kelas */}
             <div>
-              <span className="block text-[11px] font-bold uppercase tracking-wider text-dd-forest mb-2">
+              <span className="block text-[13px] font-bold uppercase tracking-wider text-dd-forest mb-2">
                 Tipe Kelas
               </span>
               <div
@@ -913,11 +913,11 @@ function PackageCard({
       <div>
         {/* Badges Bar: Class Type & TERMURAH PER SESI */}
         <div className="flex min-h-7 flex-wrap items-center justify-between gap-2">
-          <span className="inline-flex items-center rounded-dd-sm border border-dd-forest/20 bg-[#e8f0ec] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-dd-forest">
+          <span className="inline-flex items-center rounded-dd-sm border border-dd-forest/20 bg-[#e8f0ec] px-2.5 py-0.5 text-[13px] font-bold uppercase tracking-wider text-dd-forest">
             {item.classType.name}
           </span>
           {isCheapest && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-dd-forest px-2.5 py-0.5 text-[10px] font-bold tracking-wider text-white uppercase">
+            <span className="inline-flex items-center gap-1 rounded-full bg-dd-forest px-2.5 py-0.5 text-[13px] font-bold tracking-wider text-white uppercase">
               TERMURAH PER SESI
             </span>
           )}

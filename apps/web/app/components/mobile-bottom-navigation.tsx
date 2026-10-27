@@ -236,7 +236,7 @@ export function MobileBottomNavigation({
               key={tab.href}
               href={tab.href}
               aria-current={active ? 'page' : undefined}
-              className={`flex flex-col items-center justify-center min-h-[48px] py-1 px-1 rounded-dd-md text-[11px] font-semibold transition-all select-none ${
+              className={`flex flex-col items-center justify-center min-h-[48px] py-1 px-1 rounded-dd-md text-[13px] font-semibold transition-all select-none focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#24483a] ${
                 active
                   ? 'text-dd-forest font-bold bg-dd-forest/8'
                   : 'text-dd-muted hover:text-dd-forest hover:bg-dd-surface-muted/60'
@@ -250,7 +250,7 @@ export function MobileBottomNavigation({
                 {tab.badge > 0 ? (
                   <span
                     aria-label={`${tab.badge} antrean`}
-                    className={`absolute -top-1.5 -right-2.5 grid min-h-4 min-w-4 place-items-center rounded-full px-1 text-[9px] font-bold text-white leading-none shadow-xs ${tab.badgeColor}`}
+                    className={`absolute -top-1.5 -right-2.5 grid min-h-4 min-w-4 place-items-center rounded-full px-1 text-[13px] font-bold text-white leading-none shadow-xs ${tab.badgeColor}`}
                   >
                     {tab.badge > 99 ? '99+' : tab.badge}
                   </span>
@@ -268,7 +268,7 @@ export function MobileBottomNavigation({
           type="button"
           onClick={onOpenMenu}
           aria-label="Buka semua menu navigasi"
-          className="flex flex-col items-center justify-center min-h-[48px] py-1 px-1 rounded-dd-md text-[11px] font-semibold text-dd-muted hover:text-dd-forest hover:bg-dd-surface-muted/60 transition-all select-none"
+          className="flex flex-col items-center justify-center min-h-[48px] py-1 px-1 rounded-dd-md text-[13px] font-semibold text-dd-muted hover:text-dd-forest hover:bg-dd-surface-muted/60 transition-all select-none focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#24483a]"
         >
           <div className="relative shrink-0 mb-0.5">
             <Menu className="size-5 stroke-[1.8]" aria-hidden="true" />

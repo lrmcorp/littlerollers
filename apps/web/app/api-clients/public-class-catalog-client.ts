@@ -58,5 +58,6 @@ export function publicCatalogFailure(error: unknown) {
   if (status === 404) return 'Studio tidak tersedia.';
   if (status === 422) return 'Rentang tanggal tidak valid.';
   if (status === 503) return 'Jadwal sedang tidak tersedia. Silakan coba kembali.';
-  return 'Jadwal belum dapat dimuat. Periksa koneksi lalu coba lagi.';
+  return 'Jadwal gagal dimuat. Koneksi internet terputus saat mengambil data.';
 }
+

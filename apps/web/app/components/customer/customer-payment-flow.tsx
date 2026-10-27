@@ -240,7 +240,7 @@ export function CustomerPaymentFlow({
                     : 'text-ed-muted bg-ed-tint/30'
               }`}
             >
-              <span className="grid size-5 shrink-0 place-items-center rounded-none border border-current font-serif text-[11px]">
+              <span className="grid size-5 shrink-0 place-items-center rounded-none border border-current font-serif text-[13px]">
                 {complete ? <Check className="size-3.5" /> : number}
               </span>
               <span className="tracking-tight">{label}</span>
@@ -542,7 +542,7 @@ export function CustomerPaymentFlow({
                   <div className="flex flex-col items-center justify-center rounded-none border-2 border-dashed border-ed-line bg-ed-tint/20 p-4 sm:p-5">
                     <div className="flex flex-col items-center rounded-none border border-ed-line bg-white p-4 shadow-none">
                       <QrisSvgPattern />
-                      <div className="mt-3 flex items-center gap-1.5 text-[11px] font-semibold text-ed-forest">
+                      <div className="mt-3 flex items-center gap-1.5 text-[13px] font-semibold text-ed-forest">
                         <CheckCircle2 className="size-3.5 text-ed-forest" />
                         <span>Nominal Otomatis Terdeteksi</span>
                       </div>
@@ -550,7 +550,7 @@ export function CustomerPaymentFlow({
 
                     <div className="mt-4 flex w-full items-center justify-between rounded-none border border-ed-line bg-white p-3">
                       <div>
-                        <span className="text-[11px] font-semibold uppercase tracking-wider text-ed-muted">
+                        <span className="text-[13px] font-semibold uppercase tracking-wider text-ed-muted">
                           Nominal Pembayaran
                         </span>
                         <strong className="block font-sans text-lg font-semibold text-ed-forest">

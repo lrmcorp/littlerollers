@@ -110,7 +110,7 @@ export function AppNavigation({
   }, []);
 
   const linkClass = (active: boolean) =>
-    `group flex min-h-10 items-center gap-3 px-3 py-2 text-sm font-semibold transition ${
+    `group flex min-h-11 items-center gap-3 px-3 py-2 text-sm font-semibold transition ${
       active
         ? 'bg-white text-dd-ink border-l-[3px] border-l-dd-forest shadow-xs font-bold'
         : 'text-dd-ink border-l-[3px] border-l-transparent hover:bg-black/5 hover:text-dd-ink'

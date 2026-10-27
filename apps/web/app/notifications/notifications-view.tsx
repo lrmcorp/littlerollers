@@ -343,12 +343,12 @@ export function NotificationsView() {
                     {/* Category badge + time */}
                     <div className="mb-1.5 flex items-center gap-2">
                       <span
-                        className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${catColor}`}
+                        className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[13px] font-semibold ${catColor}`}
                       >
                         {catIcon}
                         {catLabel}
                       </span>
-                      <time className="ml-auto text-[11px] text-dd-muted" dateTime={item.createdAt}>
+                      <time className="ml-auto text-[13px] text-dd-muted" dateTime={item.createdAt}>
                         {formatRelativeTime(item.createdAt)}
                       </time>
                       {isUnread && (

@@ -16,7 +16,7 @@ const variantClasses: Record<ButtonVariant, string> = {
   primary:
     'border-dd-forest bg-dd-forest text-white shadow-dd-soft hover:-translate-y-px hover:bg-dd-forest-dark',
   secondary:
-    'border-dd-forest/25 bg-white text-dd-forest shadow-sm hover:border-dd-forest/45 hover:bg-dd-surface-muted',
+    'border-[1.5px] border-dd-forest/25 border-dd-border-interactive bg-white text-dd-forest shadow-xs hover:border-dd-forest hover:bg-dd-surface-muted',
   ghost:
     'border-transparent bg-transparent text-dd-forest hover:bg-dd-surface-muted hover:text-dd-forest-dark',
   danger:
@@ -25,9 +25,9 @@ const variantClasses: Record<ButtonVariant, string> = {
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
-  sm: 'min-h-10 px-3.5 text-xs',
-  md: 'min-h-11 px-5 text-sm',
-  lg: 'min-h-12 px-6 text-sm sm:text-base',
+  sm: 'min-h-10 min-h-[44px] px-3.5 text-xs',
+  md: 'min-h-11 min-h-[44px] px-5 text-sm',
+  lg: 'min-h-12 min-h-[48px] px-6 text-sm sm:text-base',
 };
 
 export function actionClasses({
@@ -43,7 +43,7 @@ export function actionClasses({
 }) {
   return [
     'inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-dd-md border font-semibold no-underline transition duration-150',
-    'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-dd-forest',
+    'focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#24483a]',
     'disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transform-none motion-reduce:transition-none',
     variantClasses[variant],
     sizeClasses[size],

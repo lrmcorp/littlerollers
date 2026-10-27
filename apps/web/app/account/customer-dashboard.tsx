@@ -165,7 +165,16 @@ export function CustomerDashboard() {
       />
 
       {/* Kartu Booking Terdekat di Paling Atas (Tiket T-08 / Spesifikasi 5.8) */}
-      {nearestBooking ? (
+      {loading ? (
+        <section
+          aria-label="Memuat booking terdekat"
+          className="rounded-none border border-ed-line bg-white p-5 sm:p-6"
+        >
+          <div className="h-5 w-32 rounded bg-ed-tint/60" />
+          <div className="mt-3 h-7 w-48 rounded bg-ed-tint/40" />
+          <div className="mt-2 h-4 w-64 rounded bg-ed-tint/30" />
+        </section>
+      ) : nearestBooking ? (
         <section
           aria-label="Booking terdekat"
           className="rounded-none border-2 border-ed-forest bg-white p-5 shadow-none sm:p-6"
@@ -173,8 +182,8 @@ export function CustomerDashboard() {
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="space-y-1.5">
               <div className="flex items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 border border-ed-line bg-ed-tint px-2 py-0.5 text-[11px] font-bold tracking-wider text-ed-forest uppercase">
-                  <span className="size-1.5 rounded-full bg-ed-forest animate-pulse" />
+                <span className="inline-flex items-center gap-1.5 border border-ed-line bg-ed-tint px-2 py-0.5 text-[13px] font-bold tracking-wider text-ed-forest uppercase">
+                  <span className="size-1.5 rounded-full bg-ed-forest" />
                   Jadwal Terdekat
                 </span>
                 <span className="text-xs text-ed-muted">
@@ -229,25 +238,29 @@ export function CustomerDashboard() {
         <MetricCard
           icon={CalendarDays}
           label="Booking mendatang"
-          value={String(overview?.upcomingBookings.length ?? 0)}
+          value={overview ? String(overview.upcomingBookings.length) : undefined}
+          loading={loading || !overview}
           href="/bookings"
         />
         <MetricCard
           icon={PackageCheck}
           label="Paket aktif"
-          value={String(overview?.packages.length ?? 0)}
+          value={overview ? String(overview.packages.length) : undefined}
+          loading={loading || !overview}
           href="/account/packages"
         />
         <MetricCard
           icon={CreditCard}
           label="Pesanan aktif"
-          value={String(overview?.actionableOrders.length ?? 0)}
+          value={overview ? String(overview.actionableOrders.length) : undefined}
+          loading={loading || !overview}
           href="/orders"
         />
         <MetricCard
           icon={Bell}
           label="Notifikasi belum dibaca"
-          value={String(overview?.unreadNotifications ?? 0)}
+          value={overview ? String(overview.unreadNotifications) : undefined}
+          loading={loading || !overview}
           href="/account"
         />
       </section>
@@ -271,14 +284,19 @@ export function CustomerDashboard() {
               </div>
               <div className="flex items-center gap-3">
                 <time className="font-serif text-right text-sm font-normal text-ed-forest">
-                  {new Date(booking.startAt).toLocaleString('id-ID', {
-                    weekday: 'short',
-                    day: 'numeric',
-                    month: 'short',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    timeZone: booking.timezone,
-                  })}
+                  {(() => {
+                    const date = new Date(booking.startAt);
+                    const showYear = date.getFullYear() !== new Date().getFullYear();
+                    return date.toLocaleString('id-ID', {
+                      weekday: 'short',
+                      day: 'numeric',
+                      month: 'short',
+                      ...(showYear ? { year: 'numeric' } : {}),
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      timeZone: booking.timezone,
+                    });
+                  })()}
                 </time>
                 <Link
                   href={`/check-in-pass?bookingId=${encodeURIComponent(booking.id)}&class=${encodeURIComponent(booking.className)}&branch=${encodeURIComponent(booking.branchName)}&start=${encodeURIComponent(booking.startAt)}&end=${encodeURIComponent(booking.endAt)}&tz=${encodeURIComponent(booking.timezone)}`}
@@ -349,22 +367,32 @@ function MetricCard({
   icon: Icon,
   label,
   value,
+  loading = false,
   href,
 }: {
   icon: typeof CalendarDays;
   label: string;
-  value: string;
+  value?: string;
+  loading?: boolean;
   href: string;
 }) {
   return (
     <Link
       href={href}
       className="group rounded-none border border-ed-line bg-white p-5 text-ed-ink no-underline shadow-none transition-colors hover:border-ed-forest hover:bg-ed-tint/20"
+      aria-busy={loading}
     >
       <span className="grid size-10 place-items-center rounded-none border border-ed-line bg-ed-tint text-ed-forest">
         <Icon className="size-5" />
       </span>
-      <strong className="mt-4 block font-serif text-3xl font-normal tracking-tight text-ed-ink">{value}</strong>
+      {loading ? (
+        <span
+          className="mt-4 block h-9 w-16 rounded bg-ed-tint/60"
+          aria-label={`Memuat ${label}...`}
+        />
+      ) : (
+        <strong className="mt-4 block font-serif text-3xl font-normal tracking-tight text-ed-ink">{value}</strong>
+      )}
       <span className="mt-1 block text-xs font-medium uppercase tracking-wider text-ed-muted">{label}</span>
     </Link>
   );

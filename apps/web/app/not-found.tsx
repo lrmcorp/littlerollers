@@ -27,27 +27,27 @@ export default function NotFound() {
         <div className="grid gap-3 sm:grid-cols-2 pt-2 text-left">
           <Link
             href="/classes"
-            className="flex items-center gap-3 rounded-dd-lg border border-dd-line/80 bg-dd-surface p-3.5 no-underline transition hover:border-dd-forest hover:bg-dd-forest/5"
+            className="flex min-h-[44px] items-center gap-3 rounded-dd-lg border border-dd-border-interactive bg-dd-surface p-3.5 no-underline transition hover:border-dd-forest hover:bg-dd-forest/5 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#24483a]"
           >
             <div className="grid size-9 place-items-center rounded-full bg-dd-forest/10 text-dd-forest shrink-0">
               <Calendar className="size-4" />
             </div>
             <div>
               <p className="text-xs font-bold text-dd-ink">Jadwal Kelas</p>
-              <p className="text-[11px] text-dd-muted">Cek jadwal 14 hari studio</p>
+              <p className="text-[13px] text-dd-muted">Cek jadwal 14 hari studio</p>
             </div>
           </Link>
 
           <Link
             href="/packages"
-            className="flex items-center gap-3 rounded-dd-lg border border-dd-line/80 bg-dd-surface p-3.5 no-underline transition hover:border-dd-forest hover:bg-dd-forest/5"
+            className="flex min-h-[44px] items-center gap-3 rounded-dd-lg border border-dd-border-interactive bg-dd-surface p-3.5 no-underline transition hover:border-dd-forest hover:bg-dd-forest/5 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#24483a]"
           >
             <div className="grid size-9 place-items-center rounded-full bg-dd-forest/10 text-dd-forest shrink-0">
               <Sparkles className="size-4" />
             </div>
             <div>
               <p className="text-xs font-bold text-dd-ink">Paket &amp; Harga</p>
-              <p className="text-[11px] text-dd-muted">Pilihan sesi reformer &amp; privat</p>
+              <p className="text-[13px] text-dd-muted">Pilihan sesi reformer &amp; privat</p>
             </div>
           </Link>
         </div>

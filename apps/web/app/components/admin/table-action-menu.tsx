@@ -23,14 +23,12 @@ export function TableActionMenu({
   label = 'Pilihan tindakan',
   ariaLabel,
   align = 'right',
-  size = 'md',
   disabled = false,
 }: {
   items: ActionMenuItem[];
   label?: string;
   ariaLabel?: string;
   align?: 'left' | 'right';
-  size?: 'sm' | 'md';
   disabled?: boolean;
 }) {
   const [open, setOpen] = useState(false);
@@ -65,7 +63,8 @@ export function TableActionMenu({
 
   if (visibleItems.length === 0) return null;
 
-  const btnSizeClass = size === 'sm' ? 'size-8 min-h-8' : 'size-9 min-h-9';
+  // Target sentuh minimal 44 x 44 px (T-15).
+  const btnSizeClass = 'size-11 min-h-11';
 
   return (
     <div

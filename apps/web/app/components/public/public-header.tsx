@@ -53,12 +53,12 @@ const headerStyles = {
     accountPanel:
       'absolute right-0 mt-2 grid w-56 gap-1 rounded-dd-lg border border-dd-line bg-white p-2 shadow-dd-float',
     menuItem:
-      'flex min-h-10 items-center rounded-dd-md px-3 py-2 text-sm font-semibold text-dd-ink no-underline hover:bg-dd-surface-muted',
+      'flex min-h-11 items-center rounded-dd-md px-3 py-2 text-sm font-semibold text-dd-ink no-underline hover:bg-dd-surface-muted',
     menuButton:
-      'flex min-h-10 items-center rounded-dd-md border-0 bg-transparent px-3 text-left text-sm font-semibold text-dd-ink hover:bg-dd-surface-muted',
+      'flex min-h-11 items-center rounded-dd-md border-0 bg-transparent px-3 text-left text-sm font-semibold text-dd-ink hover:bg-dd-surface-muted',
     menuDivider: 'mt-1 border-t border-dd-line pt-1',
     menuLogout:
-      'flex min-h-10 w-full items-center rounded-dd-md border-0 bg-transparent px-3 text-left text-sm font-semibold text-dd-danger hover:bg-dd-danger-soft',
+      'flex min-h-11 w-full items-center rounded-dd-md border-0 bg-transparent px-3 text-left text-sm font-semibold text-dd-danger hover:bg-dd-danger-soft',
     register:
       'hidden min-h-11 items-center justify-center rounded-dd-sm border border-dd-forest/40 bg-white px-3 text-sm font-bold text-dd-forest no-underline hover:border-dd-forest sm:inline-flex',
     primary:

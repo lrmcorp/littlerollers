@@ -154,7 +154,7 @@ export function NotificationCenter({
       >
         <Bell className="size-[18px]" aria-hidden="true" />
         {unread > 0 && (
-          <span className="absolute -right-1 -top-1 grid min-h-5 min-w-5 place-items-center rounded-full bg-dd-danger px-1 text-[10px] font-bold text-white">
+          <span className="absolute -right-1 -top-1 grid min-h-5 min-w-5 place-items-center rounded-full bg-dd-danger px-1 text-[13px] font-bold text-white">
             {unread > 99 ? '99+' : unread}
           </span>
         )}
@@ -243,7 +243,7 @@ export function NotificationCenter({
                 <span className="min-w-0">
                   <strong className="block text-sm">{item.title}</strong>
                   <span className="mt-1 block text-xs leading-5 text-dd-muted">{item.message}</span>
-                  <time className="mt-1 block text-[11px] text-dd-muted" dateTime={item.createdAt}>
+                  <time className="mt-1 block text-[13px] text-dd-muted" dateTime={item.createdAt}>
                     {new Intl.DateTimeFormat('id-ID', {
                       dateStyle: 'medium',
                       timeStyle: 'short',

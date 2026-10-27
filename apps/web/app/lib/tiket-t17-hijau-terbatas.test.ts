@@ -41,6 +41,20 @@ describe('T-17: palet admin netral, hijau terbatas', () => {
     expect(contrast('#285740', '#ebe8e0')).toBeGreaterThanOrEqual(5);
   });
 
+  it('teks pendukung tetap terbaca (4.5:1) di atas permukaan redup yang dipakai tab, chip, dan header tabel', () => {
+    const css = fs.readFileSync(path.join(appDir, 'tailwind.css'), 'utf8');
+    const token = (name: string) => css.match(new RegExp(`--color-${name}:\\s*(#[0-9a-f]{6});`, 'i'))![1]!;
+    expect(contrast(token('dd-muted'), token('dd-surface-muted'))).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(token('dd-muted'), token('dd-canvas'))).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('garis fokus global 3 px #24483a berlaku walau komponen memakai outline-none', () => {
+    const css = fs.readFileSync(path.join(appDir, 'globals.css'), 'utf8');
+    const rule = css.match(/:focus-visible\s*\{([^}]*)\}/)![1]!;
+    expect(rule).toContain('outline: 3px solid #24483a');
+    expect(rule).toContain('outline-offset: 2px');
+  });
+
   it('lencana jumlah antrean di menu admin tidak memakai hijau', () => {
     const nav = fs.readFileSync(path.join(appDir, 'app-navigation.tsx'), 'utf8');
     expect(nav).not.toMatch(/rounded-full bg-dd-forest/);

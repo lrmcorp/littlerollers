@@ -207,7 +207,7 @@ function UploadField({
       >
         <div className="flex items-center gap-3">
           <label
-            className="inline-flex cursor-pointer items-center gap-2 rounded-none bg-white px-4 py-2 text-xs font-bold uppercase tracking-wider text-ed-forest border border-ed-line hover:bg-ed-tint transition-colors"
+            className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-none bg-white px-4 py-2 text-xs font-bold uppercase tracking-wider text-ed-forest border border-ed-border-ui hover:bg-ed-tint transition-colors focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#24483a]"
             htmlFor={id}
           >
             <UploadCloud className="size-4" />
@@ -218,7 +218,7 @@ function UploadField({
               type="button"
               disabled={disabled}
               onClick={onRemove}
-              className="inline-flex items-center gap-1.5 rounded-none border border-red-200 bg-white px-3 py-2 text-xs font-bold uppercase tracking-wider text-red-700 hover:bg-red-50 transition-colors"
+              className="inline-flex min-h-[44px] items-center gap-1.5 rounded-none border border-red-300 bg-white px-3 py-2 text-xs font-bold uppercase tracking-wider text-red-700 hover:bg-red-50 transition-colors focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#24483a]"
             >
               <X className="size-3.5" />
               Hapus
@@ -417,7 +417,7 @@ export function RegisterView() {
             <User className="size-4 shrink-0 text-ed-green" />
             <span className="truncate">Pendaftaran Akun Baru</span>
           </div>
-          <span className="shrink-0 whitespace-nowrap rounded-none border border-ed-line bg-white px-2.5 py-0.5 font-bold text-ed-forest text-[10px] sm:text-[11px] uppercase tracking-wider">
+          <span className="shrink-0 whitespace-nowrap rounded-none border border-ed-line bg-white px-2.5 py-0.5 font-bold text-ed-forest text-[13px] uppercase tracking-wider">
             Cepat &amp; Praktis
           </span>
         </div>
@@ -525,7 +525,7 @@ export function RegisterView() {
               <ShieldCheck className="size-3.5 shrink-0 text-ed-green" />
               <span className="truncate">3. Dokumen Identitas (Opsional)</span>
             </div>
-            <span className="shrink-0 whitespace-nowrap rounded-none border border-ed-line bg-ed-tint px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-ed-muted">
+            <span className="shrink-0 whitespace-nowrap rounded-none border border-ed-line bg-ed-tint px-2 py-0.5 text-[13px] font-bold uppercase tracking-wider text-ed-muted">
               Bisa Dilewati
             </span>
           </div>
@@ -574,11 +574,11 @@ export function RegisterView() {
 
         <div className="space-y-1.5 pt-1">
           <label
-            className="flex items-start gap-3 text-xs leading-5 text-ed-ink cursor-pointer select-none"
+            className="flex min-h-[44px] items-start gap-3 text-xs leading-5 text-ed-ink cursor-pointer select-none"
             htmlFor="register-consent"
           >
             <input
-              className="mt-0.5 size-4 shrink-0 rounded-none border-ed-line text-ed-forest focus:ring-ed-forest accent-ed-forest"
+              className="mt-0.5 size-4 shrink-0 rounded-none border-ed-border-ui text-ed-forest focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#24483a] accent-ed-forest"
               id="register-consent"
               name="consent"
               type="checkbox"
