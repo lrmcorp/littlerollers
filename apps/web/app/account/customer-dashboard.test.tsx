@@ -235,4 +235,49 @@ describe('customer dashboard (Tiket T-02)', () => {
     ).toBeVisible();
     expect(screen.getByRole('link', { name: 'Lihat jadwal kelas' })).toBeVisible();
   });
+  describe('tujuan tombol "Booking kelas"', () => {
+    const stubOverview = (packages: unknown[]) =>
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue({
+          ok: true,
+          json: async () => ({
+            generatedAt: '2026-07-28T00:00:00.000Z',
+            upcomingBookings: [],
+            packages,
+            actionableOrders: [],
+            verification: { status: 'APPROVED', documents: [] },
+            unreadNotifications: 0,
+          }),
+        }),
+      );
+
+    it('tanpa paket aktif membuka jadwal studio utama', async () => {
+      (session as Record<string, unknown>).preferredBranch = { id: 'branch-mk', name: 'Muara Karang' };
+      stubOverview([]);
+      render(<CustomerDashboard />);
+      await screen.findByRole('heading', { name: 'Halo, Nadia Customer' });
+      expect(screen.getByRole('link', { name: 'Booking kelas' })).toHaveAttribute(
+        'href',
+        '/classes?branch=branch-mk',
+      );
+    });
+
+    it('dengan paket aktif membuka jadwal tanpa memaksa studio utama (halaman jadwal memilih studio paket)', async () => {
+      (session as Record<string, unknown>).preferredBranch = { id: 'branch-mk', name: 'Muara Karang' };
+      stubOverview([
+        {
+          id: 'cp-1',
+          packageName: 'Paket Green Garden',
+          classTypeName: 'Group',
+          branchName: 'Green Garden',
+          expiryAt: '2026-12-20T00:00:00.000Z',
+          available: 5,
+        },
+      ]);
+      render(<CustomerDashboard />);
+      await screen.findByRole('heading', { name: 'Halo, Nadia Customer' });
+      expect(screen.getByRole('link', { name: 'Booking kelas' })).toHaveAttribute('href', '/classes');
+    });
+  });
 });

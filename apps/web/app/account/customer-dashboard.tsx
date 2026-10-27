@@ -124,9 +124,12 @@ export function CustomerDashboard() {
     session.preferredBranch?.id ??
     session.branches?.[0]?.id ??
     '';
-  const bookingHref = activeBranchId
-    ? `/classes?branch=${encodeURIComponent(activeBranchId)}`
-    : '/classes';
+  // Member dengan paket aktif dibiarkan memilih studio di halaman jadwal: halaman itu membuka studio paketnya
+  // bila studio utamanya tidak punya paket yang cocok. Tanpa paket, jadwal studio utama yang dibuka.
+  const bookingHref =
+    activeBranchId && !overview?.packages.length
+      ? `/classes?branch=${encodeURIComponent(activeBranchId)}`
+      : '/classes';
 
   const nearestBooking = overview?.upcomingBookings?.[0];
 

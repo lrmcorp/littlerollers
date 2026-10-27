@@ -47,6 +47,7 @@ export function NotificationCenter({
   const root = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const stoppedByAuthError = useRef(false);
+  const lastRefreshAt = useRef(0);
 
   const context = useSessionContext();
   const isAuthenticated = context
@@ -55,6 +56,7 @@ export function NotificationCenter({
 
   const refresh = useCallback(async () => {
     if (!isAuthenticated || stoppedByAuthError.current) return;
+    lastRefreshAt.current = Date.now();
     setStatus('loading');
     try {
       const [page, count] = await Promise.all([client.list({ limit: 12 }), client.unreadCount()]);
@@ -88,7 +90,9 @@ export function NotificationCenter({
       void refresh();
     }, 60_000);
     const visible = () => {
-      if (document.visibilityState === 'visible' && !stoppedByAuthError.current) {
+      // Fokus beruntun (pindah tab, klik jendela) tidak perlu memuat ulang berkali-kali.
+      const recentlyRefreshed = Date.now() - lastRefreshAt.current < 5_000;
+      if (document.visibilityState === 'visible' && !stoppedByAuthError.current && !recentlyRefreshed) {
         void refresh();
       }
     };

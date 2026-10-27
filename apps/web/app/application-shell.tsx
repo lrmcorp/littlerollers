@@ -372,7 +372,7 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
               className="flex min-h-11 w-full items-center gap-1.5 rounded-none border-x-0 border-b-0 border-t border-dd-line bg-transparent px-4 py-2 text-left text-xs text-dd-muted sm:px-6 xl:hidden"
             >
               <MapPin className="size-3.5 shrink-0 text-dd-forest" aria-hidden="true" />
-              Studio aktif:{' '}
+              Studio utama:{' '}
               <strong className="truncate text-dd-ink">{session.preferredBranch.name}</strong>
               <span className="ml-auto font-semibold text-dd-forest">Ganti</span>
             </button>

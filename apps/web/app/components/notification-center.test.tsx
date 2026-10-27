@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { NotificationClient, UserNotification } from '@/api-clients/notification-client';
@@ -40,6 +40,21 @@ describe('NotificationCenter', () => {
   beforeEach(() => {
     mockSessionContext.mockReturnValue(null);
   });
+  it('does not reload on every focus event within a few seconds', async () => {
+    const api = client();
+    render(<NotificationCenter client={api} />);
+    await screen.findByRole('button', { name: /Notifikasi/ });
+    expect(api.list).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      window.dispatchEvent(new Event('focus'));
+      document.dispatchEvent(new Event('visibilitychange'));
+      window.dispatchEvent(new Event('focus'));
+    });
+    expect(api.list).toHaveBeenCalledTimes(1);
+    expect(api.unreadCount).toHaveBeenCalledTimes(1);
+  });
+
   it('loads current notifications when opened and marks one item read', async () => {
     const notification = { ...item('notification-1'), href: null };
     const api = client({
