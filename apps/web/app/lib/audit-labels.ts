@@ -70,6 +70,7 @@ const auditActionLabels: Record<string, string> = {
   'public_content.duplicated': 'Konten publik disalin jadi draf',
   'public_content.published': 'Konten publik diterbitkan',
   'public_content.updated': 'Konten publik diubah',
+  'kiosk.pin_rotated': 'PIN kiosk cabang dibuat atau diganti',
   'public_content.archived': 'Konten publik diarsipkan',
   'notification_template.draft_created': 'Draf template notifikasi dibuat',
   'notification_template.draft_updated': 'Draf template notifikasi diubah',

@@ -304,6 +304,18 @@ export const frontendPages: FrontendPageDefinition[] = [
     icon: 'building',
   },
   {
+    href: '/workspace/kiosk-pin',
+    label: 'PIN Kiosk Studio',
+    shortLabel: 'PIN Kiosk',
+    description: 'Buat PIN 6 digit per cabang untuk membuka tablet kiosk presensi.',
+    group: 'Pengaturan & Sistem',
+    capabilities: ['branch:manage'],
+    priority: 31,
+    branchScope: 'global',
+    accent: 'brand',
+    icon: 'tablet',
+  },
+  {
     href: '/instructors',
     label: 'Manajemen Instruktur',
     shortLabel: 'Instruktur',

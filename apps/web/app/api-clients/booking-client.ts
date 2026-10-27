@@ -1089,10 +1089,6 @@ export type KioskBranchItem = {
   name: string;
   address: string | null;
   timezone: string;
-  latitude: number | null;
-  longitude: number | null;
-  hasGeofence: boolean;
-  geofenceRadiusMeters: number;
 };
 
 export type KioskSlotItem = {
@@ -1128,7 +1124,20 @@ export async function getKioskBranches(): Promise<{ items: KioskBranchItem[] }> 
   return apiFetch<{ items: KioskBranchItem[] }>('/api/v1/check-ins/kiosk/branches');
 }
 
-export async function getKioskDisplay(branchCode: string): Promise<KioskDisplayData> {
-  return apiFetch<KioskDisplayData>(`/api/v1/check-ins/kiosk/${encodeURIComponent(branchCode)}`);
+/** Buka kunci tablet dengan PIN cabang; hasilnya token yang disimpan tablet dan dikirim pada tiap pemuatan layar. */
+export async function unlockKiosk(
+  branchCode: string,
+  pin: string,
+): Promise<{ token: string; expiresAt: string }> {
+  return apiFetch<{ token: string; expiresAt: string }>(
+    `/api/v1/check-ins/kiosk/${encodeURIComponent(branchCode)}/unlock`,
+    { method: 'POST', body: JSON.stringify({ pin }) },
+  );
+}
+
+export async function getKioskDisplay(branchCode: string, token: string): Promise<KioskDisplayData> {
+  return apiFetch<KioskDisplayData>(`/api/v1/check-ins/kiosk/${encodeURIComponent(branchCode)}`, {
+    headers: { 'x-kiosk-token': token },
+  });
 }
 

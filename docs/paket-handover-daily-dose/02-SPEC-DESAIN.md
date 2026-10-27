@@ -381,10 +381,14 @@ pass. Di bawahnya keterangan masa berlaku kode, lalu tombol
 
 Sekarang form daftar punya tiga bagian dan meminta KTP di awal.
 
-Perbaikan: tiga kolom saja (nama lengkap, nomor WhatsApp, password),
-ditambah jalur `Masuk dengan kode WhatsApp` untuk member yang tidak mau
-mengingat password. Verifikasi KTP diminta nanti, saat pembelian paket
-pertama, dan itu disebutkan jelas di bawah judul.
+Perbaikan: tiga kolom saja (nama lengkap, nomor WhatsApp, password).
+Verifikasi KTP diminta nanti, saat pembelian paket pertama, dan itu
+disebutkan jelas di bawah judul.
+
+Keputusan pemilik (27 Okt 2026): **login dengan kode WhatsApp tidak
+dikerjakan.** Login tetap memakai email atau nomor WhatsApp dengan
+password, dan lupa password lewat tautan reset. Penyedia pengiriman
+WhatsApp belum ada, dan rute OTP sudah dicabut dari API.
 
 Satu kotak tambahan untuk member lama: "Sudah pernah latihan di studio?
 Akun kamu mungkin sudah dibuatkan staf. Masuk pakai nomor WhatsApp yang
@@ -405,10 +409,18 @@ Kanan bawah: daftar presensi hari ini dengan jam scan.
 Baris penutup: "Presensi hanya tercatat jika instruktur terdaftar di sesi
 ini dan berada di area studio."
 
-Keputusan keamanan yang perlu diambil pemilik: halaman kiosk sekarang
-terbuka publik tanpa login dan ditautkan di footer situs, dengan URL yang
-mudah ditebak. Saran: lepas tautannya dari footer, beri kode akses atau
-pasangkan ke perangkat tertentu, dan putar QR secara berkala.
+Keputusan pemilik (27 Okt 2026): **PIN per cabang, diperiksa server.**
+- Staf membuat PIN 6 digit di menu `PIN Kiosk` (`/workspace/kiosk-pin`).
+  PIN hanya tampil sekali dan tidak disimpan dalam bentuk asli.
+- Tablet memasukkan PIN sekali; server menjawab token 30 hari yang
+  disimpan tablet. Mengganti PIN langsung mematikan semua token lama.
+- Tanpa token yang sah, halaman data kiosk menjawab 401 dan tidak berisi
+  apa pun. Percobaan PIN dibatasi 6 kali per tablet dan 30 kali per cabang
+  setiap 15 menit.
+- Koordinat studio, radius geofence, dan hitungan jarak tidak pernah
+  dikirim ke halaman kiosk atau daftar cabang publik.
+- QR berganti tiap 60 detik (berlaku sekitar 120 detik), seperti
+  sebelumnya.
 
 ---
 
@@ -499,9 +511,9 @@ satu aksi berikutnya.
     nominal dan nomor rekening dari layar.
 19. Peran instruktur tidak melihat aksi administrasi: tombol yang pasti
     gagal menghapus kepercayaan pada aplikasi.
-20. Login dengan kode WhatsApp ditawarkan berdampingan dengan password:
-    member usia 45 sampai 55 sering lupa password, tetapi memaksa OTP juga
-    menyulitkan yang sudah terbiasa.
+20. ~~Login dengan kode WhatsApp~~ keluar dari lingkup (keputusan pemilik
+    27 Okt 2026): penyedia WhatsApp belum ada dan rute OTP sudah dicabut.
+    Lupa password ditangani lewat tautan reset yang sudah ada.
 
 ---
 
@@ -578,8 +590,12 @@ Panel admin dipakai berjam-jam tiap hari, layar member hanya beberapa menit.
   ditulis sebagai pertanyaan itu. Contoh: "Hari mana omzet turun dalam 30
   hari terakhir?"
 - **Tidak ada tombol setujui banyak sekaligus** pada layar yang menentukan
-  uang masuk atau siapa yang boleh masuk studio. Satu berkas satu keputusan,
-  dengan pembatalan 10 detik.
+  uang masuk atau siapa yang boleh masuk studio. Satu berkas satu keputusan.
+  Setelah menekan setujui atau tolak, keputusan **baru dikirim ke server
+  setelah 10 detik**; tombol `Batalkan` hanya bekerja sebelum itu. Setelah
+  terkirim, keputusan tidak bisa dibalik: persetujuan pembayaran menulis
+  buku besar yang tidak bisa diubah, dan dokumen identitas yang disetujui
+  terkunci permanen.
 
 ### 10.5 Enam layar admin
 
@@ -588,7 +604,7 @@ Panel admin dipakai berjam-jam tiap hari, layar member hanya beberapa menit.
 | 13 | Aturan warna | Papan acuan, bukan layar. Dipakai developer saat menerapkan palet |
 | 14 | Front desk, Hari Ini | Kelas berjalan dan kelas berikutnya di atas, daftar hadir di tengah, tiga tombol besar di kanan. Tanpa kartu statistik |
 | 15 | Timetable kelas | Salin minggu dan jadwal rutin. Mengubah 39 kelas jadi satu kali isi form |
-| 16 | Finance, bukti transfer | Nominal paket dan nominal bukti disandingkan sebagai elemen utama, selisih ditulis dengan kata. Tombol setujui baru aktif setelah gambar bukti dibuka |
+| 16 | Finance, bukti transfer | Nominal paket dan nominal bukti disandingkan sebagai elemen utama, selisih ditulis dengan kata. Tombol setujui baru aktif setelah gambar bukti dibuka, lalu keputusan ditunda 10 detik sebelum terkirim |
 | 17 | Antrean verifikasi | Mode cepat, satu berkas satu layar, pintasan papan ketik S, U, T, L, dan Z untuk batal |
 | 18 | Owner | Daftar "yang perlu ditindak" lebih dulu, baru tabel cabang. Kolom kelas 7 hari ke depan bernilai nol di semua cabang |
 

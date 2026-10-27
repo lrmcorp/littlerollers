@@ -79,6 +79,6 @@ import { RoleAliasMigrationService } from './role-alias-migration.service';
     },
     AuthGuard,
   ],
-  exports: [IdentityService, PolicyService, AuthGuard, RolesGuard, PRIVATE_FILE_STORAGE],
+  exports: [IdentityService, PolicyService, RateLimitService, AuthGuard, RolesGuard, PRIVATE_FILE_STORAGE],
 })
 export class IdentityModule {}

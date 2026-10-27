@@ -210,6 +210,14 @@ Perbaikan yang disarankan: beri kode akses atau pasangkan ke perangkat studio,
 dan berhenti mengirim koordinat dan radius geofence ke halaman publik (cukup
 nama studio dan QR).
 
+**Status (27 Okt 2026): diperbaiki di repositori.** Keputusan pemilik: PIN per
+cabang yang diperiksa server. Data kiosk menjawab 401 tanpa token tablet,
+token didapat dengan PIN 6 digit (dibuat staf di `/workspace/kiosk-pin`,
+percobaan dibatasi, mengganti PIN mencabut semua token), dan koordinat serta
+radius geofence tidak lagi dikirim ke halaman publik. PIN lama di sisi browser
+(nilai bawaan `123456`) dihapus karena hanya dicek di browser. Berlaku setelah
+dideploy.
+
 Ini keputusan pemilik, bukan hanya pekerjaan teknis.
 
 ### B-09. Data uji bercampur data produksi

@@ -30,10 +30,6 @@ describe('Tiket T-13: Hapus kode sistem dari tampilan pengguna', () => {
             name: 'Daily Dose Green Garden',
             address: 'Jl. Green Garden Blok A No. 1',
             timezone: 'Asia/Jakarta',
-            latitude: -6.1666,
-            longitude: 106.7666,
-            hasGeofence: true,
-            geofenceRadiusMeters: 50,
           },
           {
             id: 'branch-2',
@@ -41,10 +37,6 @@ describe('Tiket T-13: Hapus kode sistem dari tampilan pengguna', () => {
             name: 'Daily Dose Muara Karang',
             address: 'Jl. Muara Karang Blok B No. 2',
             timezone: 'Asia/Jakarta',
-            latitude: -6.1166,
-            longitude: 106.7833,
-            hasGeofence: false,
-            geofenceRadiusMeters: 50,
           },
         ],
       });

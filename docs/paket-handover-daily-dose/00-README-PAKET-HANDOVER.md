@@ -78,11 +78,11 @@ dijawab.
 
 | Keputusan | Menahan | Pertanyaannya |
 |---|---|---|
-| Keamanan layar kiosk | T-12, B-08 | Halaman kiosk terbuka publik tanpa login, ditautkan di footer, URL mudah ditebak, berisi QR presensi dan alamat studio. Lepas tautan, beri kode akses, atau pasangkan ke perangkat? |
+| ~~Keamanan layar kiosk~~ | T-12, B-08 | **Diputuskan 27 Okt 2026: PIN per cabang yang diperiksa server. Sudah dikerjakan.** |
 | Verifikasi KTP member lama | T-02, R-03 | Member yang sudah bertahun-tahun berlatih tetap wajib unggah KTP, atau cukup diverifikasi front desk saat datang? |
 | Cakupan cabang superadmin | R-01 | Halaman admin kini berawal pada satu cabang, bukan semua cabang. Disengaja atau perlu dikembalikan? |
 | Rekening pembayaran | T-07 | Nama bank, nomor rekening, dan nama pemilik rekening untuk halaman bayar |
-| Login kode WhatsApp | T-09 | Mau diadakan? Kalau ya, penyedia pengirimannya apa? |
+| ~~Login kode WhatsApp~~ | T-09 | **Diputuskan 27 Okt 2026: tidak dikerjakan.** Login tetap password. |
 | Penyedia WhatsApp | B-06 | Pengingat dan pembatalan otomatis sekarang hanya dicatat, tidak terkirim |
 | Teks hukum | T-09 | Syarat dan Ketentuan serta Kebijakan Privasi versi final |
 | Daftar tunggu kelas penuh | T-04 | Fiturnya ada atau tidak? |

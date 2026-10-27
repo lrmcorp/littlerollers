@@ -19,39 +19,44 @@ import {
 } from 'lucide-react';
 import {
   getKioskDisplay as defaultGetKioskDisplay,
+  unlockKiosk as defaultUnlockKiosk,
   type KioskDisplayData,
   type KioskSlotItem,
 } from '../../api-clients/booking-client';
+import { ApiError } from '../../lib/api-client';
 import { Button } from '../../components/actions';
 import { Skeleton } from '../../ui';
 
-const DEFAULT_KIOSK_PIN = process.env.NEXT_PUBLIC_KIOSK_PIN || '123456';
 const ROTATION_SECONDS = 60;
 
 interface KioskViewProps {
   branchCode: string;
   client?: {
-    getKioskDisplay: (code: string) => Promise<KioskDisplayData>;
+    getKioskDisplay: (code: string, token: string) => Promise<KioskDisplayData>;
+    unlockKiosk: (code: string, pin: string) => Promise<{ token: string; expiresAt: string }>;
   };
-  initialAuthorized?: boolean;
+  /** Hanya untuk tes: anggap tablet sudah punya token. */
+  initialToken?: string | null;
 }
 
 export function KioskView({
   branchCode,
-  client = { getKioskDisplay: defaultGetKioskDisplay },
-  initialAuthorized,
+  client = { getKioskDisplay: defaultGetKioskDisplay, unlockKiosk: defaultUnlockKiosk },
+  initialToken,
 }: KioskViewProps) {
   const normalizedBranch = branchCode.toLowerCase();
-  const storageKey = `dd_kiosk_authorized_${normalizedBranch}`;
+  const storageKey = `dd_kiosk_token_${normalizedBranch}`;
 
-  // Otorisasi PIN Studio
-  const [isAuthorized, setIsAuthorized] = useState<boolean>(() => {
-    if (initialAuthorized !== undefined) return initialAuthorized;
+  // Token tablet dari server (didapat setelah PIN cabang benar). PIN dan keputusan akses ada di server.
+  const [token, setToken] = useState<string | null>(() => {
+    if (initialToken !== undefined) return initialToken;
     if (typeof window !== 'undefined' && window.localStorage) {
-      return window.localStorage.getItem(storageKey) === 'true';
+      return window.localStorage.getItem(storageKey);
     }
-    return false;
+    return null;
   });
+  const isAuthorized = Boolean(token);
+  const [unlocking, setUnlocking] = useState(false);
 
   const [pinInput, setPinInput] = useState('');
   const [pinError, setPinError] = useState<string | null>(null);
@@ -80,7 +85,7 @@ export function KioskView({
   const load = useCallback(async () => {
     try {
       setError(null);
-      const res = await client.getKioskDisplay(branchCode);
+      const res = await client.getKioskDisplay(branchCode, token ?? '');
       setData(res);
       setLastRefreshedAt(new Date());
       setSecondsLeft(ROTATION_SECONDS);
@@ -91,12 +96,19 @@ export function KioskView({
         const openSlot = res.slots.find((s) => s.window === 'OPEN') ?? res.slots[0];
         return openSlot?.id ?? null;
       });
-    } catch {
+    } catch (cause) {
+      if (cause instanceof ApiError && cause.status === 401) {
+        // PIN cabang diganti atau token kedaluwarsa: kembali ke layar PIN.
+        if (typeof window !== 'undefined' && window.localStorage) window.localStorage.removeItem(storageKey);
+        setToken(null);
+        setPinError('Akses tablet berakhir atau PIN cabang diganti. Masukkan PIN terbaru.');
+        return;
+      }
       setError('Layar Kiosk belum dapat memuat jadwal cabang ini. Periksa kode cabang atau koneksi studio.');
     } finally {
       setLoading(false);
     }
-  }, [branchCode, client]);
+  }, [branchCode, client, token, storageKey]);
 
   // Initial load saat sudah terotorisasi
   useEffect(() => {
@@ -163,22 +175,44 @@ export function KioskView({
     if (typeof window !== 'undefined' && window.localStorage) {
       window.localStorage.removeItem(storageKey);
     }
-    setIsAuthorized(false);
+    setToken(null);
+    setData(null);
     setPinInput('');
     setPinError(null);
   };
 
+  const unlockMessage = (cause: unknown) => {
+    const status = cause instanceof ApiError ? cause.status : 0;
+    const code = (cause as { data?: { error?: { code?: string } } })?.data?.error?.code;
+    if (code === 'KIOSK_NOT_CONFIGURED')
+      return 'PIN kiosk cabang ini belum dibuat. Minta admin membuatnya di menu PIN Kiosk.';
+    if (status === 429) return 'Terlalu banyak percobaan. Tunggu 15 menit lalu coba lagi.';
+    if (status === 403) return 'PIN salah. Masukkan 6 digit PIN kiosk cabang ini.';
+    return 'PIN belum dapat diperiksa. Periksa koneksi studio lalu coba lagi.';
+  };
+
+  const submitPin = async (pin: string) => {
+    if (pin.length !== 6 || unlocking) return;
+    setUnlocking(true);
+    setPinError(null);
+    try {
+      const result = await client.unlockKiosk(branchCode, pin);
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.setItem(storageKey, result.token);
+      }
+      setLoading(true);
+      setToken(result.token);
+      setPinInput('');
+    } catch (cause) {
+      setPinError(unlockMessage(cause));
+    } finally {
+      setUnlocking(false);
+    }
+  };
+
   const handlePinSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (pinInput.trim() === DEFAULT_KIOSK_PIN) {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        window.localStorage.setItem(storageKey, 'true');
-      }
-      setIsAuthorized(true);
-      setPinError(null);
-    } else {
-      setPinError('PIN otorisasi studio salah. Masukkan 6 digit PIN resmi cabang.');
-    }
+    void submitPin(pinInput.trim());
   };
 
   const handleKeypadPress = (key: string) => {
@@ -191,12 +225,7 @@ export function KioskView({
       const nextPin = pinInput + key;
       setPinInput(nextPin);
       setPinError(null);
-      if (nextPin.length === 6 && nextPin === DEFAULT_KIOSK_PIN) {
-        if (typeof window !== 'undefined' && window.localStorage) {
-          window.localStorage.setItem(storageKey, 'true');
-        }
-        setIsAuthorized(true);
-      }
+      if (nextPin.length === 6) void submitPin(nextPin);
     }
   };
 
@@ -281,8 +310,8 @@ export function KioskView({
               ))}
             </div>
 
-            <Button type="submit" className="w-full mt-2">
-              Aktifkan Layar Kiosk
+            <Button type="submit" className="w-full mt-2" disabled={unlocking || pinInput.length !== 6}>
+              {unlocking ? 'Memeriksa PIN…' : 'Aktifkan Layar Kiosk'}
             </Button>
           </form>
 
@@ -355,16 +384,6 @@ export function KioskView({
 
         {/* Live Clock, Geofence Badge & Control Actions */}
         <div className="flex items-center gap-3 sm:gap-4">
-          {/* Badge Radius Geofence */}
-          <div className="hidden rounded-xl border border-dd-line bg-dd-surface px-3 py-1.5 text-xs text-dd-forest font-medium md:flex md:items-center md:gap-2 shadow-sm">
-            <Navigation className="size-3.5 text-dd-forest shrink-0" />
-            <span className="font-semibold">
-              {branch.hasGeofence
-                ? `Radius Geofence: ${branch.geofenceRadiusMeters}m dari studio`
-                : 'Lokasi cabang: Terverifikasi'}
-            </span>
-          </div>
-
           {/* Jam Digital Terbaca Jelas */}
           <div className="text-right">
             <div className="text-2xl font-black font-mono tracking-tight text-dd-ink">
@@ -540,16 +559,6 @@ export function KioskView({
                       )}
                     </div>
 
-                    {/* Badge Geofence Lokasi Studio */}
-                    <div className="rounded-xl border border-dd-line bg-dd-surface p-3 text-xs text-dd-muted flex items-center justify-center gap-2">
-                      <Navigation className="size-4 text-dd-forest shrink-0" />
-                      <span>
-                        Radius Geofence:{' '}
-                        <strong className="text-dd-ink">
-                          {branch.geofenceRadiusMeters ?? 100}m dari studio
-                        </strong>
-                      </span>
-                    </div>
                   </div>
                 )}
               </div>

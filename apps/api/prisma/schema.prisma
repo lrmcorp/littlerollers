@@ -178,6 +178,9 @@ model Cabang {
   latitude            Decimal? @db.Decimal(10, 7)
   longitude           Decimal? @db.Decimal(10, 7)
   geofenceRadiusMeters Int     @default(100)
+  /// HMAC dari PIN 6 digit tablet kiosk; kosong = kiosk cabang ini terkunci. PIN asli tidak pernah disimpan.
+  kioskPinHash        String?  @map("kiosk_pin_hash") @db.VarChar(64)
+  kioskPinUpdatedAt   DateTime? @map("kiosk_pin_updated_at")
   active              Boolean  @default(true) @map("isActive")
   /// Diisi saat diarsipkan: disembunyikan dari daftar kerja, riwayat tetap utuh. Beda dari sekadar nonaktif.
   archivedAt          DateTime?

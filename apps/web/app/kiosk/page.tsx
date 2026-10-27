@@ -102,9 +102,7 @@ export default function KioskPortalPage() {
                   <div className="mt-6 flex items-center justify-between border-t border-dd-line pt-3 text-xs text-dd-muted">
                     <span className="flex items-center gap-1.5 font-medium">
                       <Navigation className="size-3.5 text-dd-forest" />
-                      {b.hasGeofence
-                        ? `Geofence: ${b.geofenceRadiusMeters}m`
-                        : 'Lokasi cabang: Aktif'}
+                      Tablet presensi studio
                     </span>
                     <span className="flex items-center gap-1 font-bold text-dd-forest group-hover:translate-x-1 transition">
                       Buka Kiosk <ChevronRight className="size-4" />

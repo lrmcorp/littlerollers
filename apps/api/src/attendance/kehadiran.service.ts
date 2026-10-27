@@ -953,12 +953,10 @@ export class AttendanceService {
         name: true,
         address: true,
         timezone: true,
-        latitude: true,
-        longitude: true,
-        geofenceRadiusMeters: true,
       },
       orderBy: { name: 'asc' },
     });
+    // Koordinat dan radius geofence tidak pernah dikirim ke halaman publik: itu pengaman presensi instruktur.
     return {
       items: branches.map((b) => ({
         id: b.id,
@@ -966,10 +964,6 @@ export class AttendanceService {
         name: b.name,
         address: b.address,
         timezone: b.timezone,
-        latitude: b.latitude ? Number(b.latitude) : null,
-        longitude: b.longitude ? Number(b.longitude) : null,
-        hasGeofence: Boolean(b.latitude !== null && b.longitude !== null),
-        geofenceRadiusMeters: b.geofenceRadiusMeters ?? 100,
       })),
     };
   }
@@ -990,9 +984,6 @@ export class AttendanceService {
         name: true,
         address: true,
         timezone: true,
-        latitude: true,
-        longitude: true,
-        geofenceRadiusMeters: true,
       },
     });
 
@@ -1102,10 +1093,6 @@ export class AttendanceService {
         name: branch.name,
         address: branch.address,
         timezone: branch.timezone,
-        latitude: branch.latitude ? Number(branch.latitude) : null,
-        longitude: branch.longitude ? Number(branch.longitude) : null,
-        hasGeofence: Boolean(branch.latitude !== null && branch.longitude !== null),
-        geofenceRadiusMeters: branch.geofenceRadiusMeters ?? 100,
       },
       serverTime: now.toISOString(),
       slots: kioskSlots,

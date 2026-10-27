@@ -222,16 +222,18 @@ Yang dikerjakan:
 - Presensi hanya sah kalau instruktur terdaftar di sesi itu, berada dalam
   radius cabang, dan waktunya dalam jendela jam kelas.
 
-Keputusan yang perlu diambil pemilik sebelum tiket ini dikerjakan:
-halaman kiosk sekarang terbuka publik tanpa login, ditautkan di footer
-situs, dengan URL yang mudah ditebak. Pilihan: lepas tautan dari footer,
-beri kode akses, atau pasangkan ke perangkat tertentu.
+Keputusan pemilik (27 Okt 2026): PIN per cabang yang diperiksa server.
+**Bagian keamanan sudah dikerjakan** di repositori: PIN dibuat staf di
+`/workspace/kiosk-pin`, tablet membuka kunci dengan PIN lalu memakai token,
+data kiosk menjawab 401 tanpa token, dan koordinat serta radius geofence
+tidak lagi dikirim ke halaman publik. QR sudah berganti tiap 60 detik.
+Yang tersisa di tiket ini hanya tata letak mendatar.
 
 Selesai jika:
 - Jam, kelas berikutnya, dan QR terbaca dari jarak 2 meter.
 - QR hasil tangkapan layar tidak bisa dipakai setelah masa berlakunya
   habis.
-- Keputusan keamanan sudah diambil dan diterapkan.
+- (Sudah selesai) PIN cabang diperiksa server dan koordinat tidak terbuka.
 
 ---
 
@@ -304,7 +306,7 @@ Butuh keputusan atau data dari pemilik dulu:
    pengingat dan pembatalan otomatis sekarang hanya dicatat di log.
 3. Teks Syarat dan Ketentuan serta Kebijakan Privasi versi final.
 4. Nama bank, nomor rekening, dan nama pemilik rekening untuk halaman bayar.
-5. Login dengan kode WhatsApp. Penyedia pengiriman belum ditentukan.
+5. ~~Login dengan kode WhatsApp~~ (dikeluarkan dari lingkup, keputusan pemilik 27 Okt 2026).
 6. Tampilan tablet dan desktop. Pengujian baru dilakukan pada 375 px.
 7. Apakah member lama tetap wajib verifikasi KTP, atau cukup diverifikasi
    front desk saat datang ke studio.
@@ -397,8 +399,10 @@ Selesai jika:
 - Tiga keputusan: setujui dan aktifkan paket, minta perbaikan bukti, tolak
   pembayaran.
 - Tombol setujui tidak aktif sebelum gambar bukti dibuka.
-- Setelah diputuskan, antrean langsung pindah ke bukti berikutnya, dengan
-  pembatalan 10 detik.
+- Setelah diputuskan, antrean langsung pindah ke bukti berikutnya.
+  Keputusan baru dikirim ke server setelah 10 detik; `Batalkan` hanya
+  bekerja sebelum terkirim. Setelah terkirim tidak ada pembalikan
+  (buku besar pembelian tidak bisa diubah).
 - Tidak ada tombol setujui banyak sekaligus.
 
 Selesai jika:
@@ -410,7 +414,9 @@ Selesai jika:
 - Satu berkas satu layar: foto identitas besar di kiri, nama dan tanggal
   lahir pada akun di kanan.
 - Pintasan papan ketik: S setujui, U minta foto ulang, T tolak, L lewati,
-  Z batalkan keputusan terakhir dalam 10 detik.
+  Z batalkan keputusan terakhir selama masih dalam tahan 10 detik sebelum
+  terkirim. Persetujuan yang sudah terkirim terkunci permanen dan tidak bisa
+  dibalik.
 - Yang dilewati masuk daftar `Perlu dilihat ulang`, tidak hilang.
 - Tulis di layar bahwa nomor identitas tidak perlu dibaca atau dicatat.
 - Penghitung sisa antrean terlihat terus.
