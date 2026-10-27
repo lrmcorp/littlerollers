@@ -66,7 +66,7 @@ export function StatCard({
   return (
     <Panel className="relative overflow-hidden p-5" aria-busy={loading}>
       <span
-        className={`absolute inset-x-0 top-0 h-0.5 ${tone === 'warning' ? 'bg-dd-brass' : tone === 'danger' ? 'bg-dd-danger' : 'bg-dd-forest'}`}
+        className={`absolute inset-x-0 top-0 h-0.5 ${tone === 'warning' ? 'bg-dd-brass' : tone === 'danger' ? 'bg-dd-danger' : 'bg-dd-line'}`}
       />
       <p className="text-xs font-bold uppercase tracking-[0.14em] text-dd-muted">{label}</p>
       <div className="mt-3 flex items-end justify-between gap-3">

@@ -52,7 +52,7 @@ export function AppNavigation({
     .find(
       (item) =>
         pathname === item.href ||
-        (item.href !== '/workspace' && pathname.startsWith(`${item.href}/`)),
+        (item.href !== '/workspace' && Boolean(pathname?.startsWith(`${item.href}/`))),
     )?.href;
   const [mobileViewport, setMobileViewport] = useState<boolean | null>(null);
   const [advancedOpen, setAdvancedOpen] = useState(false);
@@ -89,7 +89,7 @@ export function AppNavigation({
   const navigationRef = useRef<HTMLElement>(null);
   const mobileVisible = mobilePhase === 'open';
   const mobileClosed = mobileViewport === true && !mobileRendered;
-  const navClass = `fixed inset-y-0 left-0 z-50 flex w-[min(320px,88vw)] flex-col border-r border-white/10 bg-dd-sidebar text-white shadow-dd-float transition-transform duration-[220ms] ease-out motion-reduce:transform-none motion-reduce:duration-75 lg:sticky lg:top-0 lg:h-dvh lg:translate-x-0 lg:visible lg:pointer-events-auto ${mobileVisible ? 'translate-x-0 visible' : '-translate-x-full'} ${mobileRendered ? 'pointer-events-auto' : 'invisible pointer-events-none'} ${!customerOnly && collapsed ? 'lg:w-[84px]' : 'lg:w-[264px]'}`;
+  const navClass = `fixed inset-y-0 left-0 z-50 flex w-[min(320px,88vw)] flex-col border-r border-dd-line bg-dd-sidebar text-dd-ink shadow-dd-float transition-transform duration-[220ms] ease-out motion-reduce:transform-none motion-reduce:duration-75 lg:sticky lg:top-0 lg:h-dvh lg:translate-x-0 lg:visible lg:pointer-events-auto ${mobileVisible ? 'translate-x-0 visible' : '-translate-x-full'} ${mobileRendered ? 'pointer-events-auto' : 'invisible pointer-events-none'} ${!customerOnly && collapsed ? 'lg:w-[84px]' : 'lg:w-[264px]'}`;
 
   useOverlayInteraction({
     open: mobileOpen,
@@ -110,14 +110,18 @@ export function AppNavigation({
   }, []);
 
   const linkClass = (active: boolean) =>
-    `group flex min-h-10 items-center gap-3 rounded-dd-md px-3 py-2 text-sm font-semibold transition ${active ? 'bg-white text-dd-sidebar shadow-sm' : 'text-white/72 hover:bg-white/8 hover:text-white'}`;
+    `group flex min-h-10 items-center gap-3 px-3 py-2 text-sm font-semibold transition ${
+      active
+        ? 'bg-white text-dd-ink border-l-[3px] border-l-dd-forest shadow-xs font-bold'
+        : 'text-dd-ink border-l-[3px] border-l-transparent hover:bg-black/5 hover:text-dd-ink'
+    }`;
 
   return (
     <>
       {mobileRendered && (
         <div
           aria-hidden="true"
-          className={`fixed inset-0 z-40 bg-dd-sidebar/55 transition-opacity duration-[160ms] ease-out motion-reduce:duration-75 lg:hidden ${mobileVisible ? 'opacity-100' : 'opacity-0'}`}
+          className={`fixed inset-0 z-40 bg-black/40 transition-opacity duration-[160ms] ease-out motion-reduce:duration-75 lg:hidden ${mobileVisible ? 'opacity-100' : 'opacity-0'}`}
           onMouseDown={() => onClose?.()}
         />
       )}
@@ -133,18 +137,18 @@ export function AppNavigation({
         data-overlay-phase={mobileRendered ? mobilePhase : undefined}
       >
         <div
-          className={`flex min-h-24 items-center border-b border-white/10 pl-[max(1.25rem,env(safe-area-inset-left))] pr-5 pt-[env(safe-area-inset-top)] ${collapsed ? 'lg:justify-center lg:px-2 lg:pt-0' : 'justify-between'}`}
+          className={`flex min-h-24 items-center border-b border-dd-line/60 pl-[max(1.25rem,env(safe-area-inset-left))] pr-5 pt-[env(safe-area-inset-top)] ${collapsed ? 'lg:justify-center lg:px-2 lg:pt-0' : 'justify-between'}`}
         >
           <div className={collapsed ? 'lg:w-10 lg:overflow-hidden' : ''}>
             <BrandMark
               ariaLabel={`Daily Dose Pilates — ${customerOnly ? 'Dashboard Saya' : 'Dashboard'}`}
-              tone="light"
+              tone="default"
               className="h-auto w-[166px]"
               href={customerOnly ? '/account' : '/workspace'}
               priority
             />
             {!collapsed && !customerOnly && (
-              <span className="mt-1 block text-[10px] font-bold uppercase tracking-[0.24em] text-white/48">
+              <span className="mt-1 block text-[13px] font-bold uppercase tracking-[0.24em] text-[#5f6b63]">
                 {instructorOnly ? 'Area instruktur' : 'Studio operations'}
               </span>
             )}
@@ -154,26 +158,26 @@ export function AppNavigation({
               label="Tutup navigasi"
               variant="ghost"
               onClick={onClose}
-              className="rounded-full border-white/15 bg-transparent text-white hover:bg-white/10 hover:text-white lg:hidden"
+              className="rounded-full border-dd-line bg-transparent text-dd-ink hover:bg-black/5 lg:hidden"
             >
               <X className="size-4" />
             </IconButton>
           }
         </div>
         {!collapsed && !customerOnly && (
-          <div className="border-b border-white/10 px-4 py-2.5 bg-white/[0.03]">
+          <div className="border-b border-dd-line/60 px-4 py-2.5 bg-black/[0.02]">
             <div className="flex items-center gap-2 text-xs">
-              <MapPin className="size-3.5 shrink-0 text-dd-brass" aria-hidden="true" />
+              <MapPin className="size-3.5 shrink-0 text-dd-forest" aria-hidden="true" />
               <div className="min-w-0 flex-1">
-                <span className="block text-[10px] font-bold uppercase tracking-wider text-white/50">
+                <span className="block text-[13px] font-bold uppercase tracking-wider text-[#5f6b63]">
                   Studio Aktif
                 </span>
-                <span className="block truncate font-semibold text-white">
+                <span className="block truncate font-semibold text-dd-ink">
                   {context?.activeBranch ? `Studio ${context.activeBranch.name}` : 'Semua Cabang'}
                 </span>
               </div>
               {(session?.branches ?? []).length > 1 && (
-                <span className="rounded bg-white/10 px-1.5 py-0.5 text-[10px] font-medium text-white/60">
+                <span className="rounded bg-black/5 px-1.5 py-0.5 text-[13px] font-medium text-dd-muted">
                   {(session?.branches ?? []).length} cabang
                 </span>
               )}
@@ -185,14 +189,14 @@ export function AppNavigation({
             <section className="space-y-1" aria-labelledby="nav-customer">
               <h2
                 id="nav-customer"
-                className="px-3 pb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-white/44"
+                className="px-3 pb-2 text-[13px] font-bold uppercase tracking-[0.18em] text-[#5f6b63]"
               >
                 Akun Saya
               </h2>
               {customerLinks.map((item) => {
                 const active =
                   pathname === item.href ||
-                  (item.href !== '/account' && pathname.startsWith(`${item.href}/`));
+                  (item.href !== '/account' && Boolean(pathname?.startsWith(`${item.href}/`)));
                 const Icon = item.icon;
                 return (
                   <Link
@@ -228,7 +232,7 @@ export function AppNavigation({
                     {!collapsed && (
                       <h2
                         id={`nav-${group}`}
-                        className="px-3 pb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-white/44"
+                        className="px-3 pb-2 text-[13px] font-bold uppercase tracking-[0.2em] text-[#5f6b63]"
                       >
                         {group}
                       </h2>
@@ -267,11 +271,11 @@ export function AppNavigation({
                               )}
                           </div>
                           {!collapsed && <span className="truncate">{displayLabel}</span>}
-                          {!collapsed && item.maturity === 'preview' && <PreviewTag tone="dark" />}
+                          {!collapsed && item.maturity === 'preview' && <PreviewTag tone="light" />}
                           {!collapsed &&
                             item.queueBadgeSource &&
                             (queueCounts[item.queueBadgeSource] ?? 0) > 0 && (
-                              <span className="ml-auto rounded-full bg-dd-brass px-2 py-0.5 text-[10px] font-bold text-dd-sidebar">
+                              <span className="ml-auto rounded-full bg-dd-brass px-2 py-0.5 text-[13px] font-bold text-white">
                                 {queueCounts[item.queueBadgeSource]}
                               </span>
                             )}
@@ -283,12 +287,12 @@ export function AppNavigation({
               })}
 
               {advancedPages.length > 0 && (
-                <section className="pt-3 border-t border-white/10 space-y-1" aria-label="Alat dan sistem lanjutan">
+                <section className="pt-3 border-t border-dd-line/60 space-y-1" aria-label="Alat dan sistem lanjutan">
                   {!collapsed ? (
                     <button
                       type="button"
                       onClick={() => setAdvancedOpen((prev) => !prev)}
-                      className="flex w-full items-center justify-between px-3 py-2 text-[10px] font-bold uppercase tracking-[0.2em] text-white/44 hover:text-white/80 transition"
+                      className="flex min-h-[44px] w-full items-center justify-between px-3 py-2 text-[13px] font-bold uppercase tracking-[0.2em] text-[#5f6b63] hover:text-dd-ink transition cursor-pointer"
                       aria-expanded={showAdvanced}
                     >
                       <span className="flex items-center gap-2">
@@ -300,7 +304,7 @@ export function AppNavigation({
                       />
                     </button>
                   ) : (
-                    <div className="my-1 border-t border-white/10" />
+                    <div className="my-1 border-t border-dd-line/60" />
                   )}
 
                   {(collapsed || showAdvanced) && (
@@ -316,7 +320,7 @@ export function AppNavigation({
                             title={
                               collapsed
                                 ? `${item.shortLabel}${item.queueBadgeSource && (queueCounts[item.queueBadgeSource] ?? 0) > 0 ? ` (${queueCounts[item.queueBadgeSource]})` : ''}`
-                                : undefined
+                              : undefined
                             }
                             onClick={onClose}
                             className={linkClass(active)}
@@ -333,11 +337,11 @@ export function AppNavigation({
                                 )}
                             </div>
                             {!collapsed && <span className="truncate">{item.shortLabel}</span>}
-                            {!collapsed && item.maturity === 'preview' && <PreviewTag tone="dark" />}
+                            {!collapsed && item.maturity === 'preview' && <PreviewTag tone="light" />}
                             {!collapsed &&
                               item.queueBadgeSource &&
                               (queueCounts[item.queueBadgeSource] ?? 0) > 0 && (
-                                <span className="ml-auto rounded-full bg-dd-brass px-2 py-0.5 text-[10px] font-bold text-dd-sidebar">
+                                <span className="ml-auto rounded-full bg-dd-brass px-2 py-0.5 text-[13px] font-bold text-white">
                                   {queueCounts[item.queueBadgeSource]}
                                 </span>
                               )}
@@ -352,17 +356,17 @@ export function AppNavigation({
           )}
         </div>
         {!customerOnly && (
-          <div className="border-t border-white/10 p-3">
+          <div className="border-t border-dd-line/60 p-3">
             <button
               type="button"
               onClick={onCollapse}
-              className="hidden min-h-10 w-full items-center gap-3 rounded-dd-md border-0 bg-white/6 px-3 text-sm text-white/72 hover:bg-white/10 lg:flex"
+              className="hidden min-h-[44px] w-full items-center gap-3 rounded-dd-md border border-dd-line/60 bg-white/70 px-3 text-sm font-semibold text-dd-ink hover:bg-white lg:flex cursor-pointer transition-colors"
             >
               <ChevronLeft className={`size-4 transition ${collapsed ? 'rotate-180' : ''}`} />
               {!collapsed && 'Ciutkan sidebar'}
             </button>
             {!collapsed && (
-              <p className="mt-3 px-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/38">
+              <p className="mt-3 px-3 text-[13px] font-semibold uppercase tracking-[0.12em] text-dd-muted">
                 Akses berbasis hak akses
               </p>
             )}

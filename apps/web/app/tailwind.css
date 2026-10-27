@@ -4,37 +4,45 @@
   --font-sans: var(--font-ui), 'Poppins', ui-sans-serif, system-ui, sans-serif;
   --font-serif: var(--font-sans);
 
-  --text-2xs: 0.625rem;
-  --text-2xs--line-height: 0.875rem;
-  --text-xs-sub: 0.6875rem;
-  --text-xs-sub--line-height: 1rem;
+  --text-2xs: 0.8125rem;
+  --text-2xs--line-height: 1.125rem;
+  --text-xs-sub: 0.8125rem;
+  --text-xs-sub--line-height: 1.125rem;
+  --text-xs: 0.8125rem;
+  --text-xs--line-height: 1.125rem;
+  --text-sm: 0.9375rem;
+  --text-sm--line-height: 1.375rem;
+  --text-base: 1.0625rem;
+  --text-base--line-height: 1.625rem;
 
   --color-dd-forest: #285740;
   --color-dd-forest-dark: #173d2d;
-  --color-dd-cream: #f8f5ef;
-  --color-dd-paper: #fbf9f4;
-  --color-dd-ink: #20231f;
-  --color-dd-muted: #667069;
-  --color-dd-line: #d8ddd8;
+  --color-dd-cream: #f4f2ec;
+  --color-dd-paper: #ffffff;
+  --color-dd-ink: #17231e;
+  --color-dd-muted: #607069;
+  --color-dd-line: #827c6a;
   --color-dd-border-interactive: #768b84;
   --color-dd-sage: #91a99a;
 
   --color-dd-canvas: #f4f2ec;
-  --color-dd-surface: #fffefa;
-  --color-dd-surface-muted: #f8f6f0;
-  --color-dd-sidebar: #17352a;
-  --color-dd-sidebar-soft: #21483a;
-  --color-dd-brass: #a78345;
-  --color-dd-brass-dark: #76501d;
+  --color-dd-surface: #ffffff;
+  --color-dd-surface-muted: #ebe8e0;
+  --color-dd-sidebar: #ebe8e0;
+  --color-dd-sidebar-soft: #e2dfd7;
+  --color-dd-brass: #8a5b17;
+  --color-dd-brass-dark: #6e4610;
   --color-dd-brass-soft: #eee4d1;
-  --color-dd-success: #287151;
-  --color-dd-success-soft: #e7f3ec;
-  --color-dd-warning: #9a6821;
-  --color-dd-warning-soft: #fbf0d8;
-  --color-dd-danger: #a4433f;
-  --color-dd-danger-soft: #f9e9e7;
+  --color-dd-success: #246144;
+  --color-dd-success-soft: #e6f4ec;
+  --color-dd-warning: #8a5b17;
+  --color-dd-warning-soft: #fff4da;
+  --color-dd-danger: #9b3d38;
+  --color-dd-danger-soft: #faeceb;
   --color-dd-info: #35677b;
   --color-dd-info-soft: #e7f0f3;
+  --color-admin-group: #5f6b63;
+  --color-admin-line: #827c6a;
 
   --radius-dd-sm: 0.5rem;
   --radius-dd-md: 0.75rem;
@@ -78,12 +86,30 @@
     overflow-x: clip;
     background: var(--color-dd-cream);
     color: var(--color-dd-ink);
+    font-size: 17px;
+    line-height: 26px;
   }
 
-  :where(button, a, input, select, textarea):focus-visible {
-    outline: 2px solid var(--color-dd-brass);
-    outline-offset: 3px;
+  :where(button, a, input, select, textarea, [tabindex="0"], [role="button"]):focus-visible {
+    outline: 3px solid #24483a;
+    outline-offset: 2px;
   }
+}
+
+@utility text-body {
+  font-size: 17px;
+  line-height: 26px;
+}
+
+@utility text-sub {
+  font-size: 15px;
+  line-height: 22px;
+}
+
+@utility text-caption {
+  font-size: 13px;
+  line-height: 18px;
+  letter-spacing: 0.06em;
 }
 
 @utility no-scrollbar {
