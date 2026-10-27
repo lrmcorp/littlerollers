@@ -184,4 +184,32 @@ describe('customer verification view', () => {
     await waitFor(() => expect(navigation.replace).toHaveBeenCalledWith(continuation));
     expect(sessionStorage.getItem('dd_verification_return_to')).toBeNull();
   });
+  it('keeps what a new member typed and picked in the first submission form when the page polls for status', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      // Akun baru: belum ada dokumen, jadi formulir pengiriman pertama yang tampil.
+      vi.mocked(verificationClient.mine).mockImplementation(async () => ({
+        status: 'ACTION_REQUIRED' as never,
+        documents: [],
+      }));
+      renderVerification();
+
+      const nik = await screen.findByLabelText(/Nomor Induk Kependudukan/i);
+      fireEvent.change(nik, { target: { value: '3174010101010002' } });
+      const ktp = document.getElementById('ktp') as HTMLInputElement;
+      const file = new File(['ktp'], 'ktp-uji.png', { type: 'image/png' });
+      await userEvent.setup({ advanceTimers: vi.advanceTimersByTime }).upload(ktp, file);
+      const callsBefore = vi.mocked(verificationClient.mine).mock.calls.length;
+
+      // Polling status tiap 20 detik tidak boleh membongkar formulir (bug: komponen dideklarasikan di dalam VerificationView).
+      await vi.advanceTimersByTimeAsync(41_000);
+      expect(vi.mocked(verificationClient.mine).mock.calls.length).toBeGreaterThan(callsBefore);
+
+      expect(screen.getByLabelText(/Nomor Induk Kependudukan/i)).toBe(nik);
+      expect(nik).toHaveValue('3174010101010002');
+      expect((document.getElementById('ktp') as HTMLInputElement).files?.[0]?.name).toBe('ktp-uji.png');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

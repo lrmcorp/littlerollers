@@ -14,6 +14,7 @@ import {
 import { Feedback } from '../ui';
 import { useSessionContext } from '../session-context';
 import { useHydrated } from '../lib/use-hydrated';
+import { useReturnTo } from '../lib/return-to';
 import { BrandMark } from '../components/public/brand-mark';
 import { GoogleIdentityButton } from '../components/auth/google-identity-button';
 
@@ -39,6 +40,7 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
   // Sebelum hidrasi, submit native akan menaruh email dan password di URL; tahan sampai handler aktif.
   const hydrated = useHydrated();
   const sessionContext = useSessionContext();
+  const { withReturnTo } = useReturnTo();
   const googleEnabled = Boolean(process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID);
 
   const complete = useCallback(async () => {
@@ -242,7 +244,7 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
           <div className="mt-6 border-t border-ed-line pt-4 text-center space-y-2">
             <p className="text-xs text-ed-muted">
               Belum punya akun?{' '}
-              <Link className="font-bold text-ed-forest hover:underline" href="/register">
+              <Link className="font-bold text-ed-forest hover:underline" href={withReturnTo('/register')}>
                 Daftar akun baru
               </Link>
             </p>

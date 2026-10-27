@@ -403,112 +403,7 @@ function ReplacementDialog({
   );
 }
 
-export function VerificationView() {
-  const [summary, setSummary] = useState<VerificationSummary | null>(null);
-  const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading');
-  const [replacement, setReplacement] = useState<VerificationDocument | null>(null);
-  const [viewing, setViewing] = useState<VerificationDocument | null>(null);
-  const [highlightedKind, setHighlightedKind] = useState<DocumentKind | null>(null);
-  const session = useSessionContext();
-  const router = useTrackedRouter();
-  const feedback = useAppFeedback();
-  const approvedHandled = useRef(false);
-  const invalidContinuation = useRef(false);
-
-  useEffect(() => {
-    const query = new URLSearchParams(window.location.search);
-    const requestedReturnTo = query.get('returnTo');
-    if (requestedReturnTo) {
-      const remembered = rememberVerificationContinuation(requestedReturnTo);
-      invalidContinuation.current = !remembered;
-      if (!remembered)
-        feedback.showToast({
-          id: 'invalid-verification-continuation',
-          tone: 'warning',
-          title: 'Tujuan lanjutan tidak valid',
-          message: 'Setelah verifikasi selesai, Anda akan diarahkan ke halaman paket.',
-        });
-    }
-    setHighlightedKind(verificationDocumentTarget(query.get('document')));
-  }, [feedback]);
-
-  const load = async (quiet = false) => {
-    if (!quiet) setState('loading');
-    try {
-      const next = await verificationClient.mine();
-      setSummary(next);
-      setState('ready');
-      if (next.status === 'APPROVED' && !approvedHandled.current) {
-        approvedHandled.current = true;
-        const refreshed = await session?.refresh({ quiet: true });
-        const continuation = storedVerificationContinuation();
-        if (continuation && refreshed?.identityVerificationStatus === 'APPROVED') {
-          clearVerificationContinuation();
-          feedback.showToast({
-            id: 'verification-approved',
-            tone: 'success',
-            title: 'Verifikasi selesai',
-            message: 'Mengarahkan Anda kembali ke aktivitas sebelumnya.',
-          });
-          router.replace(continuation);
-        } else if (invalidContinuation.current) {
-          clearVerificationContinuation();
-          router.replace('/packages');
-        }
-      }
-    } catch {
-      if (!quiet) setState('error');
-    }
-  };
-
-  useEffect(() => void load(), []);
-  useEffect(() => {
-    if (!summary || summary.status === 'APPROVED') return;
-    const timer = window.setInterval(() => void load(true), 20_000);
-    return () => window.clearInterval(timer);
-  }, [summary?.status]);
-
-  useEffect(() => {
-    if (!highlightedKind || state !== 'ready') return;
-    const card = document.getElementById(`verification-document-${highlightedKind}`);
-    if (!card) return;
-    card.scrollIntoView?.({ block: 'center', behavior: 'smooth' });
-    card.focus({ preventScroll: true });
-    const timer = window.setTimeout(() => setHighlightedKind(null), 4_000);
-    return () => window.clearTimeout(timer);
-  }, [highlightedKind, state, summary]);
-
-  const progress = useMemo(() => {
-    if (summary?.status === 'APPROVED') return 3;
-    if (summary) return 2;
-    return 1;
-  }, [summary]);
-
-  if (state === 'loading' && !summary)
-    return (
-      <div aria-label="Memuat status verifikasi" className="animate-pulse space-y-5">
-        <div className="h-52 rounded-dd-xl bg-dd-surface-muted" />
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="h-60 rounded-dd-xl bg-dd-surface-muted" />
-          <div className="h-60 rounded-dd-xl bg-dd-surface-muted" />
-        </div>
-      </div>
-    );
-
-  if (state === 'error' && !summary)
-    return (
-      <section className="mx-auto max-w-xl rounded-dd-xl border border-dd-danger/20 bg-white p-8 text-center shadow-dd-card">
-        <RefreshCw className="mx-auto size-9 text-dd-danger" />
-        <h1 className="mt-4 text-2xl font-bold">Status verifikasi belum dapat dimuat</h1>
-        <p className="mt-2 text-sm leading-6 text-dd-muted">
-          Layanan mungkin sedang tidak tersedia atau sesi Anda telah berakhir.
-        </p>
-        <Button type="button" onClick={() => void load()} className="mt-5">
-          Coba lagi
-        </Button>
-      </section>
-    );
-
+/** Dideklarasikan di tingkat modul: bila ditulis di dalam VerificationView, formulir dipasang ulang pada setiap render dan isiannya hilang. */
 function KycSubmissionForm({ onSubmitted }: { onSubmitted: () => Promise<void> }) {
   const [nik, setNik] = useState('');
   const [address, setAddress] = useState('');
@@ -674,6 +569,112 @@ function KycSubmissionForm({ onSubmitted }: { onSubmitted: () => Promise<void> }
     </div>
   );
 }
+
+export function VerificationView() {
+  const [summary, setSummary] = useState<VerificationSummary | null>(null);
+  const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [replacement, setReplacement] = useState<VerificationDocument | null>(null);
+  const [viewing, setViewing] = useState<VerificationDocument | null>(null);
+  const [highlightedKind, setHighlightedKind] = useState<DocumentKind | null>(null);
+  const session = useSessionContext();
+  const router = useTrackedRouter();
+  const feedback = useAppFeedback();
+  const approvedHandled = useRef(false);
+  const invalidContinuation = useRef(false);
+
+  useEffect(() => {
+    const query = new URLSearchParams(window.location.search);
+    const requestedReturnTo = query.get('returnTo');
+    if (requestedReturnTo) {
+      const remembered = rememberVerificationContinuation(requestedReturnTo);
+      invalidContinuation.current = !remembered;
+      if (!remembered)
+        feedback.showToast({
+          id: 'invalid-verification-continuation',
+          tone: 'warning',
+          title: 'Tujuan lanjutan tidak valid',
+          message: 'Setelah verifikasi selesai, Anda akan diarahkan ke halaman paket.',
+        });
+    }
+    setHighlightedKind(verificationDocumentTarget(query.get('document')));
+  }, [feedback]);
+
+  const load = async (quiet = false) => {
+    if (!quiet) setState('loading');
+    try {
+      const next = await verificationClient.mine();
+      setSummary(next);
+      setState('ready');
+      if (next.status === 'APPROVED' && !approvedHandled.current) {
+        approvedHandled.current = true;
+        const refreshed = await session?.refresh({ quiet: true });
+        const continuation = storedVerificationContinuation();
+        if (continuation && refreshed?.identityVerificationStatus === 'APPROVED') {
+          clearVerificationContinuation();
+          feedback.showToast({
+            id: 'verification-approved',
+            tone: 'success',
+            title: 'Verifikasi selesai',
+            message: 'Mengarahkan Anda kembali ke aktivitas sebelumnya.',
+          });
+          router.replace(continuation);
+        } else if (invalidContinuation.current) {
+          clearVerificationContinuation();
+          router.replace('/packages');
+        }
+      }
+    } catch {
+      if (!quiet) setState('error');
+    }
+  };
+
+  useEffect(() => void load(), []);
+  useEffect(() => {
+    if (!summary || summary.status === 'APPROVED') return;
+    const timer = window.setInterval(() => void load(true), 20_000);
+    return () => window.clearInterval(timer);
+  }, [summary?.status]);
+
+  useEffect(() => {
+    if (!highlightedKind || state !== 'ready') return;
+    const card = document.getElementById(`verification-document-${highlightedKind}`);
+    if (!card) return;
+    card.scrollIntoView?.({ block: 'center', behavior: 'smooth' });
+    card.focus({ preventScroll: true });
+    const timer = window.setTimeout(() => setHighlightedKind(null), 4_000);
+    return () => window.clearTimeout(timer);
+  }, [highlightedKind, state, summary]);
+
+  const progress = useMemo(() => {
+    if (summary?.status === 'APPROVED') return 3;
+    if (summary) return 2;
+    return 1;
+  }, [summary]);
+
+  if (state === 'loading' && !summary)
+    return (
+      <div aria-label="Memuat status verifikasi" className="animate-pulse space-y-5">
+        <div className="h-52 rounded-dd-xl bg-dd-surface-muted" />
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="h-60 rounded-dd-xl bg-dd-surface-muted" />
+          <div className="h-60 rounded-dd-xl bg-dd-surface-muted" />
+        </div>
+      </div>
+    );
+
+  if (state === 'error' && !summary)
+    return (
+      <section className="mx-auto max-w-xl rounded-dd-xl border border-dd-danger/20 bg-white p-8 text-center shadow-dd-card">
+        <RefreshCw className="mx-auto size-9 text-dd-danger" />
+        <h1 className="mt-4 text-2xl font-bold">Status verifikasi belum dapat dimuat</h1>
+        <p className="mt-2 text-sm leading-6 text-dd-muted">
+          Layanan mungkin sedang tidak tersedia atau sesi Anda telah berakhir.
+        </p>
+        <Button type="button" onClick={() => void load()} className="mt-5">
+          Coba lagi
+        </Button>
+      </section>
+    );
 
   if (!summary?.documents.length)
     return <KycSubmissionForm onSubmitted={load} />;

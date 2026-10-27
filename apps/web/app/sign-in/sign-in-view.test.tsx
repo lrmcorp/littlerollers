@@ -91,4 +91,26 @@ describe('SignInView (Poin 15)', () => {
       expect(screen.getByText('Email/nomor WhatsApp atau password tidak valid.')).toBeVisible();
     });
   });
+  it('keeps the booking destination when a new member goes to register', async () => {
+    window.history.replaceState({}, '', '/sign-in?returnTo=%2Fbookings%2Fnew%3Fslot%3Dslot-1');
+    render(<SignInView client={createMockClient()} />);
+    await waitFor(() =>
+      expect(screen.getByRole('link', { name: /Daftar akun baru/i })).toHaveAttribute(
+        'href',
+        '/register?returnTo=%2Fbookings%2Fnew%3Fslot%3Dslot-1',
+      ),
+    );
+    window.history.replaceState({}, '', '/');
+  });
+
+  it('does not forward an external or protocol-relative destination to register', async () => {
+    window.history.replaceState({}, '', '/sign-in?returnTo=https%3A%2F%2Fevil.example%2F');
+    const { unmount } = render(<SignInView client={createMockClient()} />);
+    expect(screen.getByRole('link', { name: /Daftar akun baru/i })).toHaveAttribute('href', '/register');
+    unmount();
+    window.history.replaceState({}, '', '/sign-in?returnTo=%2F%2Fevil.example');
+    render(<SignInView client={createMockClient()} />);
+    expect(screen.getByRole('link', { name: /Daftar akun baru/i })).toHaveAttribute('href', '/register');
+    window.history.replaceState({}, '', '/');
+  });
 });

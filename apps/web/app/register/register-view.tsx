@@ -10,6 +10,7 @@ import { Feedback } from '../ui';
 import { verificationClient } from '@/api-clients/identity-verification-client';
 import { browserIdentityClient } from '@/api-clients/identity-client';
 import { useSessionContext } from '../session-context';
+import { useReturnTo } from '../lib/return-to';
 import { GoogleIdentityButton } from '../components/auth/google-identity-button';
 import {
   type RegisterErrors,
@@ -110,6 +111,7 @@ export function RegisterView() {
   const [errors, setErrors] = useState<RegisterErrors>({});
   const formRef = useRef<HTMLFormElement>(null);
   const session = useSessionContext();
+  const { withReturnTo } = useReturnTo();
   const loading = state === 'loading';
   const googleEnabled = Boolean(process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID);
 
@@ -156,6 +158,7 @@ export function RegisterView() {
       compactMobileVisual
       visualSrc="/images/public/landing/register-illustration.webp"
       loginLabel="Masuk"
+      loginHref={withReturnTo('/sign-in')}
     >
       {/* Kotak Callout Khusus Member Lama Studio (Spesifikasi 5.9 / Tiket T-09) */}
       <div className="mb-6 rounded-none border border-ed-line bg-ed-tint/60 p-4 text-xs leading-relaxed text-ed-ink">
@@ -169,7 +172,7 @@ export function RegisterView() {
               Akun kamu mungkin sudah dibuatkan staf. Masuk pakai nomor WhatsApp yang kamu berikan ke studio.
             </p>
             <Link
-              href="/sign-in"
+              href={withReturnTo('/sign-in')}
               className="inline-flex items-center gap-1 font-bold text-ed-forest hover:text-ed-green hover:underline pt-0.5"
             >
               <span>Masuk dengan nomor WhatsApp</span>
@@ -379,7 +382,7 @@ export function RegisterView() {
               <div className="rounded-none bg-ed-tint/50 p-3 text-center text-xs text-ed-ink border border-ed-line">
                 <span>Sudah memiliki akun? </span>
                 <Link
-                  href="/sign-in"
+                  href={withReturnTo('/sign-in')}
                   className="font-bold text-ed-forest hover:underline"
                 >
                   Masuk ke Akun Sekarang &rarr;

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
 import { describe, expect, it, vi } from 'vitest';
@@ -157,5 +157,19 @@ describe('customer self-registration', () => {
     expect(
       screen.queryByText('Anda wajib menyetujui Syarat & Ketentuan serta Kebijakan Privasi Daily Dose.'),
     ).not.toBeInTheDocument();
+  });
+  it('keeps the booking destination on the links back to sign in', async () => {
+    window.history.replaceState({}, '', '/register?returnTo=%2Fbookings%2Fnew%3Fslot%3Dslot-1');
+    render(<RegisterView />);
+    const expected = '/sign-in?returnTo=%2Fbookings%2Fnew%3Fslot%3Dslot-1';
+    await waitFor(() =>
+      expect(screen.getAllByRole('link', { name: /Masuk/i }).map((a) => a.getAttribute('href'))).toContain(
+        expected,
+      ),
+    );
+    for (const link of screen.getAllByRole('link', { name: /^Masuk/i })) {
+      expect(link.getAttribute('href')).toBe(expected);
+    }
+    window.history.replaceState({}, '', '/');
   });
 });
