@@ -4,6 +4,7 @@ import {
   deriveVoucherStatus,
   normalizeVoucherCode,
   paginateVouchers,
+  voucherNumberIssues,
 } from './voucher.service';
 
 describe('voucher business rules', () => {
@@ -295,6 +296,34 @@ describe('checkVoucherApplicability - strict negative boundary tests', () => {
         discountValue: 1_000_000,
       }),
     ).toBe(200_000);
+  });
+});
+
+describe('voucher number validation', () => {
+  const base = { discountType: 'NOMINAL' as const };
+
+  it('accepts a sensible fixed or percentage voucher', () => {
+    expect(voucherNumberIssues({ ...base, discountValue: 50_000, minSpendRp: 0, quota: 50 })).toEqual([]);
+    expect(
+      voucherNumberIssues({ discountType: 'PERCENTAGE', discountValue: 100, maxDiscountRp: 200_000, quota: 1 }),
+    ).toEqual([]);
+  });
+
+  it.each([
+    [{ discountType: 'PERCENTAGE' as const, discountValue: 150 }, 'discountValue', 'PERCENT_MAX_100'],
+    [{ ...base, discountValue: -1 }, 'discountValue', 'POSITIVE_INTEGER'],
+    [{ ...base, discountValue: 0 }, 'discountValue', 'POSITIVE_INTEGER'],
+    [{ ...base, discountValue: 1000.5 }, 'discountValue', 'POSITIVE_INTEGER'],
+    [{ ...base, minSpendRp: -10 }, 'minimumPurchaseRp', 'NON_NEGATIVE_INTEGER'],
+    [{ ...base, maxDiscountRp: -5 }, 'maxDiscountRp', 'POSITIVE_INTEGER'],
+    [{ ...base, quota: 0 }, 'totalUsageLimit', 'POSITIVE_INTEGER'],
+    [{ ...base, validUntil: new Date('bukan tanggal') }, 'activeUntil', 'INVALID_DATE'],
+  ])('flags %j', (input, field, issue) => {
+    expect(voucherNumberIssues(input)).toContainEqual({ field, issue });
+  });
+
+  it('only checks the fields that were sent', () => {
+    expect(voucherNumberIssues({ ...base })).toEqual([]);
   });
 });
 

@@ -126,6 +126,38 @@ export function paginateVouchers<
   };
 }
 
+export type VoucherNumberIssue = { field: string; issue: string };
+
+/**
+ * Angka voucher yang masuk akal: potongan bulat > 0 (persen paling banyak 100), minimum belanja >= 0,
+ * batas potongan dan kuota bilangan bulat > 0, dan tanggal berakhir yang terbaca. Hanya kolom yang dikirim yang diperiksa.
+ */
+export function voucherNumberIssues(input: {
+  discountType: 'PERCENTAGE' | 'NOMINAL';
+  discountValue?: number;
+  minSpendRp?: number;
+  maxDiscountRp?: number | null;
+  quota?: number;
+  validUntil?: Date | null;
+}): VoucherNumberIssue[] {
+  const issues: VoucherNumberIssue[] = [];
+  const wholeAbove = (value: number, min: number) => Number.isInteger(value) && value >= min;
+  if (input.discountValue !== undefined) {
+    if (!wholeAbove(input.discountValue, 1)) issues.push({ field: 'discountValue', issue: 'POSITIVE_INTEGER' });
+    else if (input.discountType === 'PERCENTAGE' && input.discountValue > 100)
+      issues.push({ field: 'discountValue', issue: 'PERCENT_MAX_100' });
+  }
+  if (input.minSpendRp !== undefined && !wholeAbove(input.minSpendRp, 0))
+    issues.push({ field: 'minimumPurchaseRp', issue: 'NON_NEGATIVE_INTEGER' });
+  if (input.maxDiscountRp != null && !wholeAbove(input.maxDiscountRp, 1))
+    issues.push({ field: 'maxDiscountRp', issue: 'POSITIVE_INTEGER' });
+  if (input.quota !== undefined && !wholeAbove(input.quota, 1))
+    issues.push({ field: 'totalUsageLimit', issue: 'POSITIVE_INTEGER' });
+  if (input.validUntil instanceof Date && Number.isNaN(input.validUntil.getTime()))
+    issues.push({ field: 'activeUntil', issue: 'INVALID_DATE' });
+  return issues;
+}
+
 export function normalizeVoucherCode(code: string) {
   return (code ?? '').trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '');
 }
@@ -359,6 +391,16 @@ export class VoucherService {
         const maxDiscountRp = input.maxDiscountRp ? Number(input.maxDiscountRp) : null;
         const quota = Number(input.totalUsageLimit ?? 100);
         const validUntil = input.activeUntil ? new Date(input.activeUntil) : null;
+        const issues = voucherNumberIssues({
+          discountType,
+          discountValue,
+          minSpendRp,
+          maxDiscountRp,
+          quota,
+          validUntil,
+        });
+        if (issues.length)
+          throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, false, issues);
 
         const created = await tx.voucher.create({
           data: {
@@ -411,6 +453,31 @@ export class VoucherService {
       async (tx) => {
         const voucher = await tx.voucher.findUnique({ where: { id } });
         if (!voucher) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+
+        const effectiveType: 'PERCENTAGE' | 'NOMINAL' =
+          input.discountType !== undefined
+            ? input.discountType === 'PERCENTAGE'
+              ? 'PERCENTAGE'
+              : 'NOMINAL'
+            : isPercentageVoucherType(voucher.discountType)
+              ? 'PERCENTAGE'
+              : 'NOMINAL';
+        const issues = voucherNumberIssues({
+          discountType: effectiveType,
+          discountValue:
+            input.discountValue !== undefined
+              ? Number(input.discountValue)
+              : input.discountType !== undefined
+                ? voucher.discountValue
+                : undefined,
+          minSpendRp:
+            input.minimumPurchaseRp !== undefined ? Number(input.minimumPurchaseRp) : undefined,
+          maxDiscountRp: input.maxDiscountRp ? Number(input.maxDiscountRp) : null,
+          quota: input.totalUsageLimit !== undefined ? Number(input.totalUsageLimit) : undefined,
+          validUntil: input.activeUntil ? new Date(input.activeUntil) : undefined,
+        });
+        if (issues.length)
+          throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, false, issues);
 
         const updated = await tx.voucher.update({
           where: { id },

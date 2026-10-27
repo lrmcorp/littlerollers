@@ -388,14 +388,28 @@ export class FinanceService {
       throw new ApiProblem('INVALID_AMOUNT', HttpStatus.BAD_REQUEST);
     }
     const incurredOn = this.costDay(input);
+    // Aturan yang sama dengan updateOtherCost: keterangan 1-2000 karakter, kategori kode huruf besar.
+    const description = String(input.description ?? '').trim();
+    if (description.length < 1 || description.length > 2000)
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, false, [
+        { field: 'description', issue: 'INVALID' },
+      ]);
+    const category = (input.categoryCode ?? input.category)?.trim().toUpperCase() || 'OTHER';
+    if (!/^[A-Z][A-Z0-9_]{1,63}$/u.test(category))
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, false, [
+        { field: 'category', issue: 'INVALID' },
+      ]);
+    // Cabang yang tidak ada (Super Owner lolos pemeriksaan akses cabang) harus berupa 404, bukan galat basis data.
+    const branch = await this.db.cabang.findUnique({ where: { id: input.branchId }, select: { id: true } });
+    if (!branch) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
 
     const created = await this.db.otherCost.create({
       data: {
         branchId: input.branchId,
         period: incurredOn.toISOString().slice(0, 7),
         incurredOn,
-        category: (input.categoryCode ?? input.category)?.trim().toUpperCase() || 'OTHER',
-        description: input.description,
+        category,
+        description,
         amountRp: input.amountRp,
         createdById: principal.userId,
       },

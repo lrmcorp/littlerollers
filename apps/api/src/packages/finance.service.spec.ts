@@ -448,3 +448,48 @@ describe('finance reports take a free date range (from/until)', () => {
   });
 });
 
+describe('FinanceService.createOtherCost validation', () => {
+  const input = {
+    branchId: branchA,
+    incurredOn: '2026-10-20',
+    amountRp: 150_000,
+    description: 'Handuk studio',
+  };
+  const build = (branchExists = true) => {
+    const { service, db, audit } = setup();
+    const create = jest.fn().mockImplementation(({ data }) => Promise.resolve({ id: id(900), ...data }));
+    (db as unknown as { otherCost: unknown }).otherCost = { create };
+    (db.cabang.findUnique as jest.Mock).mockResolvedValue(branchExists ? { id: branchA } : null);
+    return { service, create, audit };
+  };
+
+  it('stores a trimmed description and an upper-case category', async () => {
+    const { service, create } = build();
+    await service.createOtherCost(finance, { ...input, description: '  Handuk studio  ', categoryCode: 'laundry' });
+    expect(create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ description: 'Handuk studio', category: 'LAUNDRY' }),
+    });
+  });
+
+  it.each(['', '   ', 'x'.repeat(2001)])('rejects a description of %j', async (description) => {
+    const { service, create } = build();
+    await expect(service.createOtherCost(finance, { ...input, description })).rejects.toMatchObject({
+      status: 422,
+    });
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it('rejects a malformed category', async () => {
+    const { service, create } = build();
+    await expect(
+      service.createOtherCost(finance, { ...input, categoryCode: 'bad category!' }),
+    ).rejects.toMatchObject({ status: 422 });
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it('answers 404 for a branch that does not exist instead of a database error', async () => {
+    const { service, create } = build(false);
+    await expect(service.createOtherCost(superOwner, input)).rejects.toMatchObject({ status: 404 });
+    expect(create).not.toHaveBeenCalled();
+  });
+});

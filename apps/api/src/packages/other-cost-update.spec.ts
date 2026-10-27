@@ -31,6 +31,7 @@ function setup() {
       create: jest.fn().mockImplementation(async ({ data }) => ({ id: costId, ...data })),
       delete: jest.fn().mockResolvedValue({}),
     },
+    cabang: { findUnique: jest.fn().mockResolvedValue({ id: branchA }) },
   };
   const audit = { catat: jest.fn().mockResolvedValue(undefined) };
   const service = new FinanceService(db as never, new PolicyService(), audit as never);
