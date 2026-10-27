@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -730,6 +730,22 @@ describe('payment decision safeguards', () => {
     expect(image.style.transform).toBe('rotate(90deg) scale(1.5)');
     await user.click(screen.getByRole('button', { name: 'Atur ulang' }));
     expect(image.style.transform).toBe('rotate(0deg) scale(1)');
+  });
+
+  it('only allows approving after the proof image is actually on screen', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: vi.fn().mockReturnValue('blob:proof') });
+    Object.defineProperty(URL, 'revokeObjectURL', { configurable: true, value: vi.fn() });
+    renderDetail(reviewFake());
+    const approve = await screen.findByRole('button', { name: 'Setujui pembayaran' });
+    expect(approve).toBeDisabled();
+    await user.click(screen.getByRole('button', { name: 'Preview bukti' }));
+    const image = await screen.findByRole('img', { name: /Bukti pembayaran Pelanggan Synthetic/ });
+    expect(approve).toBeDisabled();
+    fireEvent.error(image);
+    expect(approve).toBeDisabled();
+    fireEvent.load(image);
+    expect(approve).toBeEnabled();
   });
 
   it('holds the decision for 10 seconds and sends nothing if the officer cancels', async () => {

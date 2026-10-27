@@ -247,6 +247,8 @@ export class IdentityReviewQueryService {
         user: {
           id: user.id,
           displayName: user.displayName,
+          // Nama yang diisi pelanggan pada form verifikasi, untuk dicocokkan dengan nama pada KTP.
+          profileName: user.profile?.fullName ?? null,
           phoneMasked: maskPhone(user.phone),
           status: user.status,
         },

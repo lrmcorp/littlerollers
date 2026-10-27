@@ -41,7 +41,7 @@ export const scanLabels: Record<DocumentScanStatus, string> = {
   ERROR: 'Pemindaian bermasalah',
 };
 
-const reasonLabels = {
+export const reasonLabels = {
   BLURRY: 'Foto buram',
   GLARE: 'Pantulan cahaya berlebihan',
   CROPPED: 'Dokumen terpotong',

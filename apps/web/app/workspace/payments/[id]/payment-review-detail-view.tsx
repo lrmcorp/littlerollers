@@ -122,6 +122,9 @@ export function PaymentReviewDetailView({
   const [previewUrl, setPreviewUrl] = useState('');
   const [previewType, setPreviewType] = useState('');
   const [previewLoading, setPreviewLoading] = useState(false);
+  /** Gambar bukti benar-benar tampil di layar; persetujuan hanya boleh setelah itu. */
+  const [proofImageShown, setProofImageShown] = useState(false);
+  const isImagePreview = previewType.startsWith('image/');
   const [usageLoading, setUsageLoading] = useState(false);
   const [usageCursor, setUsageCursor] = useState<string>();
   const [usageCursorHistory, setUsageCursorHistory] = useState<string[]>([]);
@@ -159,6 +162,7 @@ export function PaymentReviewDetailView({
       const blob = await client.loadProof(proof.id);
       if (previewUrl) URL.revokeObjectURL(previewUrl);
       setPreviewType(blob.type || proof.mimeType);
+      setProofImageShown(false);
       setPreviewUrl(URL.createObjectURL(blob));
     } catch (cause) {
       setError(purchaseFailure(cause));
@@ -219,7 +223,8 @@ export function PaymentReviewDetailView({
     );
     const separationOfDutiesBlocked = !isSuper && (isRecorder || isSelfCustomer);
     const proofRequiresReview = Boolean(purchase?.paymentProof);
-    const proofNotYetViewed = proofRequiresReview && (!previewUrl || previewLoading);
+    const proofNotYetViewed =
+      proofRequiresReview && (!previewUrl || previewLoading || (isImagePreview && !proofImageShown));
     const isPending =
       purchase?.status === 'PENDING' || purchase?.status === 'WAITING_VERIFICATION';
     if (!purchase || !canDecide || !isPending || separationOfDutiesBlocked) return;
@@ -562,6 +567,8 @@ export function PaymentReviewDetailView({
               <ProofImageViewer
                 src={previewUrl}
                 alt={`Bukti pembayaran ${purchase.customer.displayName}`}
+                onLoad={() => setProofImageShown(true)}
+                onError={() => setProofImageShown(false)}
               />
             ) : previewUrl && previewType === 'application/pdf' ? (
               <object
@@ -809,7 +816,8 @@ export function PaymentReviewDetailView({
               );
               const separationOfDutiesBlocked = !isSuper && (isRecorder || isSelfCustomer);
               const proofRequiresReview = Boolean(purchase.paymentProof);
-              const proofNotYetViewed = proofRequiresReview && (!previewUrl || previewLoading);
+              const proofNotYetViewed =
+      proofRequiresReview && (!previewUrl || previewLoading || (isImagePreview && !proofImageShown));
               return (
                 <div className="mt-5 space-y-4">
                   {delayed.pending && (

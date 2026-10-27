@@ -15,7 +15,7 @@ import {
 import { StatusBadge } from '../ui';
 import { AdminPageHeader } from '../components/admin/admin-page-header';
 import { useSessionContext } from '../session-context';
-import { Button } from '../components/actions';
+import { Button, ButtonLink } from '../components/actions';
 import {
   AdminPageState,
   AdminSkeleton,
@@ -354,6 +354,11 @@ export function IdentityReviewView({
           badges={<StatusBadge tone="success">Hak akses terverifikasi</StatusBadge>}
           actions={
             <>
+              {canDecide && (
+                <ButtonLink href="/identity-verifications/cepat" variant="secondary">
+                  Mode cepat
+                </ButtonLink>
+              )}
               <Button
                 variant="secondary"
                 disabled={loading}

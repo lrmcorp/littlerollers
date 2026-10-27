@@ -7,7 +7,18 @@ import { Button } from '../../../components/actions';
 const ZOOM_STEPS = [1, 1.5, 2, 3] as const;
 
 /** Gambar bukti transfer dengan tinggi minimal 420 px, perbesar, dan putar, supaya angka kecil terbaca. */
-export function ProofImageViewer({ src, alt }: { src: string; alt: string }) {
+export function ProofImageViewer({
+  src,
+  alt,
+  onLoad,
+  onError,
+}: {
+  src: string;
+  alt: string;
+  /** Dipanggil saat gambar benar-benar tampil di layar (bukan hanya selesai diunduh). */
+  onLoad?: () => void;
+  onError?: () => void;
+}) {
   const [zoomIndex, setZoomIndex] = useState(0);
   const [rotation, setRotation] = useState(0);
   const zoom = ZOOM_STEPS[zoomIndex]!;
@@ -61,6 +72,8 @@ export function ProofImageViewer({ src, alt }: { src: string; alt: string }) {
         <img
           src={src}
           alt={alt}
+          onLoad={onLoad}
+          onError={onError}
           className="mx-auto h-auto max-w-full origin-center"
           style={{ transform: `rotate(${rotation}deg) scale(${zoom})`, transition: 'none' }}
         />
