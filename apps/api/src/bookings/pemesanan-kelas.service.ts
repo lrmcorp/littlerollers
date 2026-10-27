@@ -122,7 +122,19 @@ export class BookingsService {
     }
   }
 
-  bookingView(booking: any) {
+  /** Booking yang masih memesan satu sesi (BOOKED) per paket pelanggan; dasar "sisa sesi" yang tersedia. */
+  private async reservedByPackage(packageIds: Array<string | null | undefined>) {
+    const ids = [...new Set(packageIds.filter((id): id is string => Boolean(id)))];
+    if (ids.length === 0) return new Map<string, number>();
+    const groups = await this.db.pemesananKelas.groupBy({
+      by: ['customerPackageId'],
+      where: { customerPackageId: { in: ids }, status: 'BOOKED' },
+      _count: { _all: true },
+    });
+    return new Map(groups.map((group) => [group.customerPackageId, group._count._all]));
+  }
+
+  bookingView(booking: any, reservedByPackage?: Map<string, number>) {
     const slot = booking.classSlot;
     const pkg = booking.customerPackage?.package;
     const phone = booking.user?.phone;
@@ -183,6 +195,20 @@ export class BookingsService {
             name: pkg.name,
           }
         : undefined,
+      // Saldo paket pelanggan pada saat dibaca; hanya diisi oleh daftar dan detail booking.
+      sessionBalance:
+        reservedByPackage && booking.customerPackage
+          ? (() => {
+              const ledgerBalance = booking.customerPackage.remainingSessions as number;
+              const reserved = reservedByPackage.get(booking.customerPackageId) ?? 0;
+              return {
+                ledgerBalance,
+                reserved,
+                available:
+                  booking.customerPackage.status === 'FROZEN' ? 0 : Math.max(0, ledgerBalance - reserved),
+              };
+            })()
+          : undefined,
       attendance: booking.attendance
         ? {
             checkedInAt: booking.attendance.checkedInAt,
@@ -720,9 +746,10 @@ export class BookingsService {
     const hasNext = pageNumber ? pageNumber < totalPages : items.length > limit;
     const pageItems = pageNumber ? items : (items.length > limit ? items.slice(0, limit) : items);
     const nextCursor = hasNext ? (pageItems[pageItems.length - 1]?.id ?? null) : null;
+    const reserved = await this.reservedByPackage(pageItems.map((b: any) => b.customerPackageId));
 
     return {
-      items: pageItems.map((b) => this.bookingView(b)),
+      items: pageItems.map((b) => this.bookingView(b, reserved)),
       page: query.page != null
         ? {
             hasMore: hasNext,
@@ -778,7 +805,7 @@ export class BookingsService {
       throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
     if (!customerFlow) this.requireBranch(principal, booking.classSlot.branchId, 'booking:read');
 
-    return this.bookingView(booking);
+    return this.bookingView(booking, await this.reservedByPackage([booking.customerPackageId]));
   }
 
   async create(
