@@ -24,6 +24,7 @@ import {
   ShieldCheck,
   Handshake,
   TicketPercent,
+  CopyPlus,
   Tablet,
   Tv,
   UserCheck,
@@ -36,6 +37,7 @@ import {
 export const pageIcons: Record<string, LucideIcon> = {
   '/workspace': LayoutDashboard,
   '/workspace/classes': CalendarDays,
+  '/workspace/classes/salin': CopyPlus,
   '/workspace/availability': CalendarClock,
   '/workspace/bookings': BookOpenCheck,
   '/check-in-scanner': QrCode,

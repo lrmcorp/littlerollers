@@ -20,6 +20,7 @@ import {
   type DashboardQueueSummary,
 } from '../api-clients/dashboard-client';
 import { useSessionContext } from '../session-context';
+import { EmptyWeeksNotice } from './empty-weeks-notice';
 import { Button, ButtonLink } from '../components/actions';
 import { Modal, useAppFeedback } from '../components/app-feedback';
 import { Textarea } from '../components/forms';
@@ -275,6 +276,14 @@ export function FrontDeskTodayView({
           {formattedToday} · {branch.name}
         </p>
       </header>
+
+      <EmptyWeeksNotice
+        branchId={branch.id}
+        timezone={timezone}
+        client={client}
+        initialNow={initialNow}
+        canFill={Boolean(sessionContext?.hasCapability('class-slot:manage'))}
+      />
 
       {error && (
         <Feedback kind="error">

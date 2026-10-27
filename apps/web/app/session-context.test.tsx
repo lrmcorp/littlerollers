@@ -572,8 +572,24 @@ describe('capability-aware session shell', () => {
     ).toBe('/bookings/booking-1');
   });
 
-  it('renders a role-aware dashboard without exposing unavailable workspaces', async () => {
+  it('opens the front desk page, not the dashboard, for an Admin-only session', async () => {
     const client: SessionClient = { me: vi.fn().mockResolvedValue(adminSession), logout: vi.fn() };
+    render(
+      <AppFeedbackProvider>
+        <SessionProvider client={client}>
+          <Dashboard />
+        </SessionProvider>
+      </AppFeedbackProvider>,
+    );
+    expect(await screen.findByText('Pilih cabang aktif di bagian atas', { exact: false })).toBeVisible();
+    expect(screen.queryByRole('heading', { name: 'Selamat datang, Admin Jakarta' })).not.toBeInTheDocument();
+  });
+
+  it('renders a role-aware dashboard without exposing unavailable workspaces', async () => {
+    const client: SessionClient = {
+      me: vi.fn().mockResolvedValue({ ...adminSession, roles: ['MANAGER'] }),
+      logout: vi.fn(),
+    };
     render(
       <SessionProvider client={client}>
         <Dashboard />
