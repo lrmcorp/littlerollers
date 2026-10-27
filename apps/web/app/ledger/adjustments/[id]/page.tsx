@@ -1,4 +1,9 @@
+import type { Metadata } from 'next';
 import { SessionAdjustmentDetailView } from './session-adjustment-detail-view';
+
+export const metadata: Metadata = {
+  title: 'Detail Penyesuaian Sesi',
+};
 
 export default async function SessionAdjustmentDetailPage({
   params,

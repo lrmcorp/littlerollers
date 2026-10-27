@@ -1,4 +1,9 @@
+import type { Metadata } from 'next';
 import { InstructorDetailView } from './instructor-detail-view';
+
+export const metadata: Metadata = {
+  title: 'Detail Instruktur',
+};
 export default async function InstructorDetailPage({
   params,
 }: {

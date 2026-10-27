@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { GuideView } from './guide-view';
 
 export const metadata: Metadata = {
-  title: 'Panduan Penggunaan Aplikasi · Daily Dose Pilates',
+  title: 'Panduan Penggunaan Aplikasi',
   description:
     'Panduan mendaftar, membeli paket, memesan kelas, dan hadir di studio Daily Dose Pilates.',
 };

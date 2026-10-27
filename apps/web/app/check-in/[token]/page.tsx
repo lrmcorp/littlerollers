@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { CheckInLinkView } from './check-in-link-view';
 
 export const metadata: Metadata = {
-  title: 'Konfirmasi Kehadiran Kelas - Daily Dose Pilates',
+  title: 'Konfirmasi Kehadiran Kelas',
   robots: { index: false, follow: false },
   referrer: 'no-referrer',
 };

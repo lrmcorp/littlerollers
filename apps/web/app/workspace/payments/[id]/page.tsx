@@ -1,4 +1,9 @@
+import type { Metadata } from 'next';
 import { PaymentReviewDetailView } from './payment-review-detail-view';
+
+export const metadata: Metadata = {
+  title: 'Detail Pembayaran',
+};
 
 export default async function PaymentReviewDetailPage({
   params,

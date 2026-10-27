@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { KioskView } from './kiosk-view';
 
 export const metadata: Metadata = {
-  title: 'Layar Kiosk Studio & Presensi Instruktur - Daily Dose Pilates',
+  title: 'Layar Kiosk Studio & Presensi Instruktur',
   robots: { index: false, follow: false },
 };
 

@@ -1,7 +1,7 @@
 import { RemindersView } from './reminders-view';
 
 export const metadata = {
-  title: 'Otomasi & Pengingat WhatsApp | Daily Dose Pilates',
+  title: 'Pengingat WhatsApp',
   description: 'Monitoring sistem auto-cancel kelas H-24 dan antrean notifikasi WhatsApp berjenjang.',
 };
 

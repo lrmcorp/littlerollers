@@ -1,7 +1,7 @@
 import { AvailabilityView } from './availability-view';
 
 export const metadata = {
-  title: 'Ketersediaan Mengajar | Daily Dose Pilates',
+  title: 'Ketersediaan Mengajar',
   description: 'Ajukan dan lihat jam ketersediaan mengajar instruktur di cabang aktif.',
 };
 
