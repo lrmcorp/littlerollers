@@ -54,6 +54,69 @@ describe('browserClassSlotClient.discover', () => {
     expect(workspace.studios).toEqual([]);
   });
 
+  describe('instructor options', () => {
+    const assignment = (userId: string, displayName: string | null, overrides: Record<string, unknown> = {}) => ({
+      id: `a-${userId}`,
+      userId,
+      branchId: 'branch-1',
+      assignmentType: 'INSTRUCTOR',
+      status: 'ACTIVE',
+      activeFrom: '2020-01-01',
+      activeUntil: null,
+      user: displayName === null ? null : { displayName },
+      ...overrides,
+    });
+
+    const run = async (pages: Array<{ items: unknown[]; hasMore?: boolean }>) => {
+      const urls: string[] = [];
+      let served = 0;
+      vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+        const url = String(input);
+        urls.push(url);
+        if (url.includes('/class-slots?')) return jsonResponse({ items: [], page: { nextCursor: null } });
+        if (url.includes('/assignments?')) {
+          const page = pages[Math.min(served, pages.length - 1)]!;
+          served += 1;
+          return jsonResponse({ items: page.items, page: { hasMore: Boolean(page.hasMore), nextCursor: page.hasMore ? `c${served}` : null } });
+        }
+        return jsonResponse({ items: [] });
+      });
+      const workspace = await browserClassSlotClient.discover({
+        branchId: 'branch-1',
+        timezone: 'Asia/Jakarta',
+        from: new Date('2026-10-05T00:00:00.000Z'),
+        until: new Date('2026-10-11T23:59:59.000Z'),
+      });
+      return { workspace, urls };
+    };
+
+    it('lists only people with an active instructor assignment, not every user of the branch', async () => {
+      const { workspace, urls } = await run([
+        {
+          items: [
+            assignment('u-sarah', 'Sarah Jenkins'),
+            assignment('u-ended', 'Mantan Instruktur', { status: 'ENDED' }),
+            assignment('u-expired', 'Sudah Berakhir', { activeUntil: '2020-02-01' }),
+            assignment('u-future', 'Belum Mulai', { activeFrom: '2999-01-01' }),
+            assignment('u-other', 'Bukan Instruktur', { assignmentType: 'FRONT_DESK' }),
+            assignment('u-elsewhere', 'Cabang Lain', { branchId: 'branch-2' }),
+          ],
+        },
+      ]);
+      expect(workspace.instructors).toEqual([{ id: 'u-sarah', branchId: 'branch-1', displayName: 'Sarah Jenkins' }]);
+      expect(urls.some((url) => url.includes('/users?'))).toBe(false);
+      expect(urls.find((url) => url.includes('/assignments?'))).toMatch(/type=INSTRUCTOR.*status=ACTIVE|status=ACTIVE.*type=INSTRUCTOR/);
+    });
+
+    it('follows every page of assignments, trims names, sorts them and drops duplicates', async () => {
+      const { workspace } = await run([
+        { items: [assignment('u-b', 'Stephen '), assignment('u-a', 'Asri')], hasMore: true },
+        { items: [assignment('u-b', 'Stephen '), assignment('u-c', null)] },
+      ]);
+      expect(workspace.instructors.map((item) => item.displayName)).toEqual(['Asri', 'Instruktur u-c', 'Stephen']);
+    });
+  });
+
   it('still surfaces a failure when the primary /class-slots request itself fails', async () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(async () => forbidden());
 

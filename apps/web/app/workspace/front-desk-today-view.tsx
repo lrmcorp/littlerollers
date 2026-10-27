@@ -165,7 +165,9 @@ export function FrontDeskTodayView({
   const studioName = (slot: ClassSlot) =>
     workspace?.studios.find((studio) => studio.id === slot.studioId)?.name ?? branch?.name ?? 'Studio';
   const instructorName = (slot: ClassSlot) =>
-    workspace?.instructors.find((instructor) => instructor.id === slot.instructorUserId)?.displayName ?? 'Belum ada instruktur';
+    (slot as { instructor?: { displayName?: string | null } | null }).instructor?.displayName ??
+    workspace?.instructors.find((instructor) => instructor.id === slot.instructorUserId)?.displayName ??
+    'Belum ada instruktur';
   const time = (slot: ClassSlot) => `${formatBranchTime(slot.startAt, timezone)} – ${formatBranchTime(slot.endAt, timezone)}`;
 
   const window = selected ? attendanceWindow(selected, now) : { open: false };

@@ -175,6 +175,45 @@ const safeItems = async <T>(promise: Promise<{ items: T[] }>): Promise<{ items: 
   }
 };
 
+interface InstructorAssignment {
+  id: string;
+  userId: string;
+  branchId: string;
+  assignmentType: string;
+  status?: string;
+  activeFrom: string | Date;
+  activeUntil?: string | Date | null;
+  user?: { displayName?: string | null } | null;
+}
+
+const ASSIGNMENT_PAGE_LIMIT = 100;
+const ASSIGNMENT_MAX_PAGES = 5;
+
+/** Penugasan instruktur yang masih berlaku di satu cabang, semua halaman; gagal (mis. tanpa izin) menjadi daftar kosong. */
+async function fetchInstructorAssignments(branchId: string): Promise<{ items: InstructorAssignment[] }> {
+  const items: InstructorAssignment[] = [];
+  let cursor: string | null = null;
+  try {
+    for (let page = 0; page < ASSIGNMENT_MAX_PAGES; page += 1) {
+      const params = new URLSearchParams({
+        branchId,
+        type: 'INSTRUCTOR',
+        status: 'ACTIVE',
+        limit: String(ASSIGNMENT_PAGE_LIMIT),
+      });
+      if (cursor) params.set('cursor', cursor);
+      const result: { items: InstructorAssignment[]; page?: { hasMore?: boolean; nextCursor?: string | null } } =
+        await apiFetch(`/assignments?${params.toString()}`);
+      items.push(...(result.items ?? []));
+      cursor = result.page?.hasMore ? (result.page.nextCursor ?? null) : null;
+      if (!cursor) break;
+    }
+  } catch {
+    return { items };
+  }
+  return { items };
+}
+
 export const browserClassSlotClient: ClassSlotClient = {
   async discover(input) {
     const scopedBranches = input.branchId
@@ -196,29 +235,13 @@ export const browserClassSlotClient: ClassSlotClient = {
         ),
         Promise.all(
           scopedBranches.map(async (branch) => {
-            const [classTypes, users, assignments, studios] = await Promise.all([
+            const [classTypes, assignments, studios] = await Promise.all([
               safeItems(
                 apiFetch<{ items: Array<{ id: string; code: string; name: string; active?: boolean }> }>(
                   `/class-types?branchId=${encodeURIComponent(branch.id)}`,
                 ),
               ),
-              safeItems(
-                apiFetch<{ items: Array<{ id: string; displayName: string; status: string }> }>(
-                  `/users?branchId=${encodeURIComponent(branch.id)}`,
-                ),
-              ),
-              safeItems(
-                apiFetch<{
-                  items: Array<{
-                    id: string;
-                    userId: string;
-                    branchId: string;
-                    assignmentType: string;
-                    activeFrom: string | Date;
-                    activeUntil?: string | Date | null;
-                  }>;
-                }>(`/assignments?branchId=${encodeURIComponent(branch.id)}`),
-              ),
+              fetchInstructorAssignments(branch.id),
               safeItems(
                 apiFetch<{
                   items: Array<{
@@ -240,7 +263,7 @@ export const browserClassSlotClient: ClassSlotClient = {
                 }>(`/branches/${encodeURIComponent(branch.id)}/studios`),
               ),
             ]);
-            return { branch, classTypes, users, assignments, studios };
+            return { branch, classTypes, assignments, studios };
           }),
         ),
       ]),
@@ -264,28 +287,27 @@ export const browserClassSlotClient: ClassSlotClient = {
         .map(({ id, code, name }) => ({ id, code, name, branchId: branch.id })),
     );
 
-    const instructorOptions = branchWorkspaces.flatMap(({ branch, users, assignments }) => {
-      // 1. Instruktur langsung dari daftar penugasan resmi cabang (assignments menyertakan user.displayName)
-      const assignmentInstructors = (assignments.items ?? [])
-        .filter((a) => a.assignmentType === 'INSTRUCTOR' && a.branchId === branch.id)
+    // Hanya instruktur yang penugasannya berlaku hari ini di cabang itu; bukan seluruh pengguna cabang.
+    const today = branchDate(new Date());
+    const dayOf = (value: string | Date) => (typeof value === 'string' ? value.slice(0, 10) : branchDate(value));
+    const instructorOptions = branchWorkspaces.flatMap(({ branch, assignments }) => {
+      const options = (assignments.items ?? [])
+        .filter(
+          (a) =>
+            a.assignmentType === 'INSTRUCTOR' &&
+            a.branchId === branch.id &&
+            a.status !== 'ENDED' &&
+            dayOf(a.activeFrom) <= today &&
+            (!a.activeUntil || dayOf(a.activeUntil) >= today),
+        )
         .map((a) => ({
           id: a.userId,
           branchId: branch.id,
-          displayName:
-            (a as any).user?.displayName || (a as any).displayName || `Instructor ${a.userId.slice(0, 8)}`,
+          displayName: a.user?.displayName?.trim() || `Instruktur ${a.userId.slice(0, 8)}`,
         }));
-
-      // 2. Instruktur dari direktori users (jika ada)
-      const userInstructors = (users.items ?? [])
-        .filter((user) => user.status === 'ACTIVE')
-        .map((user) => ({
-          id: user.id,
-          branchId: branch.id,
-          displayName: user.displayName || (user as any).label || `Instructor ${user.id.slice(0, 8)}`,
-        }));
-
-      const combined = [...assignmentInstructors, ...userInstructors];
-      return [...new Map(combined.map((item) => [item.id, item])).values()];
+      return [...new Map(options.map((item) => [item.id, item])).values()].sort((x, y) =>
+        x.displayName.localeCompare(y.displayName, 'id'),
+      );
     });
 
     const parsedSlots = (slots.items ?? []).map((slot) => ({
