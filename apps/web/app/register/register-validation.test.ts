@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  MAX_IDENTITY_FILE_BYTES,
   normalizeRegistrationPhone,
   registrationRequestErrorMessage,
   type RegisterValues,
@@ -12,9 +11,6 @@ const validValues = (overrides: Partial<RegisterValues> = {}): RegisterValues =>
   phone: '0812 3456 7890',
   email: 'nadia@example.com',
   password: 'aman-sekali',
-  confirmation: 'aman-sekali',
-  selfie: new File(['selfie'], 'selfie.webp', { type: 'image/webp' }),
-  ktp: new File(['ktp'], 'ktp.png', { type: 'image/png' }),
   consent: true,
   ...overrides,
 });
@@ -37,7 +33,6 @@ describe('registration validation', () => {
           phone: 'bukan-nomor',
           email: 'email-salah',
           password: 'pendek',
-          confirmation: 'berbeda',
           consent: false,
         }),
       ),
@@ -46,39 +41,32 @@ describe('registration validation', () => {
       phone: 'Masukkan nomor WhatsApp yang valid (awalan 08 atau +62), misalnya 0812 3456 7890.',
       email: 'Masukkan alamat email yang valid.',
       password: 'Password minimal 8 karakter.',
-      confirmation: 'Konfirmasi password tidak sama.',
       consent: 'Anda wajib menyetujui Syarat & Ketentuan serta Kebijakan Privasi Daily Dose.',
     });
   });
 
-  it('accepts exactly 8,000,000 bytes and rejects a larger identity image', () => {
-    const atLimit = new File([new Uint8Array(MAX_IDENTITY_FILE_BYTES)], 'selfie.jpg', {
-      type: 'image/jpeg',
-    });
-    const overLimit = new File([new Uint8Array(MAX_IDENTITY_FILE_BYTES + 1)], 'ktp.png', {
-      type: 'image/png',
-    });
-    const errors = validateRegistration(validValues({ selfie: atLimit, ktp: overLimit }));
-    expect(errors.selfie).toBeUndefined();
-    expect(errors.ktp).toBe('Foto KTP maksimal berukuran 8 MB.');
+  it('rejects a WhatsApp number in the wrong format and names the correct format', () => {
+    for (const phone of ['12345', '0212345678', '+1 415 555 0100', 'bukan-nomor']) {
+      expect(validateRegistration(validValues({ phone })).phone).toBe(
+        'Masukkan nomor WhatsApp yang valid (awalan 08 atau +62), misalnya 0812 3456 7890.',
+      );
+    }
+    for (const phone of ['08123456789', '0812 3456 7890', '+6281234567890', '6281234567890']) {
+      expect(validateRegistration(validValues({ phone })).phone).toBeUndefined();
+    }
   });
 
-  it('rejects unsupported identity images when provided and accepts null', () => {
-    const errors = validateRegistration(
-      validValues({
-        selfie: new File(['selfie'], 'selfie.gif', { type: 'image/gif' }),
-        ktp: null,
-      }),
-    );
-    expect(errors.selfie).toBe('Foto selfie harus berformat JPG, PNG, atau WebP.');
-    expect(errors.ktp).toBeUndefined();
+  it('no longer validates identity photos or a password confirmation at registration', () => {
+    const errors = validateRegistration(validValues());
+    expect(Object.keys(errors)).toEqual([]);
+    expect(Object.keys(validValues())).not.toContain('selfie');
+    expect(Object.keys(validValues())).not.toContain('ktp');
+    expect(Object.keys(validValues())).not.toContain('confirmation');
   });
 
   it('maps conflict, validation and dependency failures to safe customer messages', () => {
     expect(registrationRequestErrorMessage(409)).toBe('Email atau nomor WhatsApp sudah digunakan.');
-    expect(registrationRequestErrorMessage(422)).toBe(
-      'Periksa kembali data dan format foto yang dipilih.',
-    );
+    expect(registrationRequestErrorMessage(422)).toBe('Periksa kembali data yang diisi.');
     expect(registrationRequestErrorMessage(503)).toBe(
       'Registrasi belum dapat diproses. Coba kembali.',
     );

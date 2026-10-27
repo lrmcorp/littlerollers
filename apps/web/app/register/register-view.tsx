@@ -1,26 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import {
-  useEffect,
-  useRef,
-  useState,
-  type ChangeEvent,
-  type FocusEvent,
-  type RefObject,
-} from 'react';
-import {
-  Eye,
-  EyeOff,
-  FileText,
-  Image as ImageIcon,
-  Lock,
-  ShieldCheck,
-  UploadCloud,
-  User,
-  UserCheck,
-  X,
-} from 'lucide-react';
+import { useRef, useState, type ChangeEvent, type FocusEvent } from 'react';
+import { Eye, EyeOff, Lock, ShieldCheck, User, UserCheck } from 'lucide-react';
 import { AuthPageShell } from '../components/auth/auth-page-shell';
 import { Button } from '../components/actions';
 import { FieldError, FormField, TextInput, editorialControlClassName } from '../components/forms';
@@ -43,9 +25,6 @@ const fieldOrder: RegisterFieldName[] = [
   'phone',
   'email',
   'password',
-  'confirmation',
-  'selfie',
-  'ktp',
   'consent',
 ];
 
@@ -65,7 +44,7 @@ function PasswordField({
 }: {
   id: string;
   label: string;
-  name: 'password' | 'confirmation';
+  name: 'password';
   placeholder: string;
   error?: string;
   disabled: boolean;
@@ -114,137 +93,13 @@ function PasswordField({
   );
 }
 
-function UploadPreview({ file, kind }: { file: File | null; kind: 'selfie' | 'ktp' }) {
-  const [previewUrl, setPreviewUrl] = useState('');
-  useEffect(() => {
-    if (!file) {
-      setPreviewUrl('');
-      return;
-    }
-    const url = URL.createObjectURL(file);
-    setPreviewUrl(url);
-    return () => URL.revokeObjectURL(url);
-  }, [file]);
-
-  if (!previewUrl || !file) return null;
-  return (
-    <figure className="mt-3 flex items-center gap-3.5 rounded-none border border-ed-line bg-ed-tint/50 p-3 shadow-none">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={previewUrl}
-        alt={`Pratinjau ${kind === 'selfie' ? 'foto selfie' : 'foto KTP'}`}
-        className="size-16 rounded-none object-cover border border-ed-line"
-      />
-      <figcaption className="flex flex-1 flex-col text-xs">
-        <strong className="truncate font-semibold text-ed-ink max-w-[220px]">{file.name}</strong>
-        <span className="text-ed-muted mt-0.5">
-          {(file.size / 1_000_000).toLocaleString('id-ID', { maximumFractionDigits: 1 })} MB
-        </span>
-      </figcaption>
-    </figure>
-  );
-}
-
-function UploadField({
-  id,
-  name,
-  label,
-  hint,
-  capture,
-  file,
-  inputRef,
-  error,
-  disabled,
-  onChange,
-  onRemove,
-}: {
-  id: string;
-  name: 'selfie' | 'ktp';
-  label: string;
-  hint: string;
-  capture: 'user' | 'environment';
-  file: File | null;
-  inputRef: RefObject<HTMLInputElement | null>;
-  error?: string;
-  disabled: boolean;
-  onChange(file: File | null): void;
-  onRemove(): void;
-}) {
-  const hintId = `${id}-hint`;
-  const describedBy = [hintId, error ? errorId(name) : ''].filter(Boolean).join(' ');
-  return (
-    <FormField
-      label={label}
-      htmlFor={id}
-      className="space-y-1.5"
-      variant="editorial"
-      error={error ? <span id={errorId(name)}>{error}</span> : undefined}
-    >
-      <input
-        ref={inputRef}
-        className="sr-only"
-        id={id}
-        aria-label={label}
-        aria-invalid={Boolean(error) || undefined}
-        aria-describedby={describedBy}
-        name={name}
-        type="file"
-        accept="image/jpeg,image/png,image/webp"
-        capture={capture}
-        disabled={disabled}
-        onChange={(event) => onChange(event.currentTarget.files?.[0] ?? null)}
-      />
-
-      {/* Upload Dropzone Container */}
-      <div
-        className={`relative flex flex-col items-center justify-center rounded-none border border-dashed p-4 text-center transition-colors ${
-          file
-            ? 'border-ed-forest bg-ed-tint'
-            : error
-              ? 'border-dd-danger bg-dd-danger-soft/20'
-              : 'border-ed-line bg-ed-tint/30 hover:border-ed-forest hover:bg-ed-tint/60'
-        }`}
-      >
-        <div className="flex items-center gap-3">
-          <label
-            className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-none bg-white px-4 py-2 text-xs font-bold uppercase tracking-wider text-ed-forest border border-ed-border-ui hover:bg-ed-tint transition-colors focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#24483a]"
-            htmlFor={id}
-          >
-            <UploadCloud className="size-4" />
-            {file ? 'Ganti foto' : 'Pilih foto'}
-          </label>
-          {file && (
-            <button
-              type="button"
-              disabled={disabled}
-              onClick={onRemove}
-              className="inline-flex min-h-[44px] items-center gap-1.5 rounded-none border border-red-300 bg-white px-3 py-2 text-xs font-bold uppercase tracking-wider text-red-700 hover:bg-red-50 transition-colors focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#24483a]"
-            >
-              <X className="size-3.5" />
-              Hapus
-            </button>
-          )}
-        </div>
-        <p id={hintId} className="mt-2 text-[11px] text-ed-muted m-0">
-          {hint}
-        </p>
-      </div>
-
-      <UploadPreview file={file} kind={name} />
-    </FormField>
-  );
-}
-
-function formValues(form: HTMLFormElement, selfie: File | null, ktp: File | null): RegisterValues {
+function formValues(form: HTMLFormElement): RegisterValues {
   const data = new FormData(form);
   return {
     displayName: String(data.get('displayName') ?? ''),
     phone: String(data.get('phone') ?? ''),
     email: String(data.get('email') ?? ''),
     password: String(data.get('password') ?? ''),
-    confirmation: String(data.get('confirmation') ?? ''),
-    selfie,
-    ktp,
     consent: data.get('consent') === 'true',
   };
 }
@@ -253,11 +108,7 @@ export function RegisterView() {
   const [state, setState] = useState<'idle' | 'loading' | 'error'>('idle');
   const [message, setMessage] = useState('');
   const [errors, setErrors] = useState<RegisterErrors>({});
-  const [selfie, setSelfie] = useState<File | null>(null);
-  const [ktp, setKtp] = useState<File | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
-  const selfieInputRef = useRef<HTMLInputElement>(null);
-  const ktpInputRef = useRef<HTMLInputElement>(null);
   const session = useSessionContext();
   const loading = state === 'loading';
   const googleEnabled = Boolean(process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID);
@@ -282,7 +133,7 @@ export function RegisterView() {
 
   const validateOne = (name: RegisterFieldName, form = formRef.current) => {
     if (!form) return;
-    const error = validateRegisterField(name, formValues(form, selfie, ktp));
+    const error = validateRegisterField(name, formValues(form));
     setErrors((current) => {
       const next = { ...current };
       if (error) next[name] = error;
@@ -295,29 +146,6 @@ export function RegisterView() {
   const handleTextChange = (name: RegisterFieldName) => () => {
     clearRequestError();
     if (errors[name]) validateOne(name);
-    if (name === 'password' && errors.confirmation) validateOne('confirmation');
-  };
-
-  const handleUpload = (name: 'selfie' | 'ktp', file: File | null) => {
-    clearRequestError();
-    if (name === 'selfie') setSelfie(file);
-    else setKtp(file);
-    const form = formRef.current;
-    if (!form) return;
-    const values = formValues(form, name === 'selfie' ? file : selfie, name === 'ktp' ? file : ktp);
-    const error = validateRegisterField(name, values);
-    setErrors((current) => {
-      const next = { ...current };
-      if (error) next[name] = error;
-      else delete next[name];
-      return next;
-    });
-  };
-
-  const removeUpload = (name: 'selfie' | 'ktp') => {
-    const input = name === 'selfie' ? selfieInputRef.current : ktpInputRef.current;
-    if (input) input.value = '';
-    handleUpload(name, null);
   };
 
   return (
@@ -379,7 +207,7 @@ export function RegisterView() {
         onSubmit={async (event) => {
           event.preventDefault();
           clearRequestError();
-          const values = formValues(event.currentTarget, selfie, ktp);
+          const values = formValues(event.currentTarget);
           const nextErrors = validateRegistration(values);
           setErrors(nextErrors);
           const firstInvalid = fieldOrder.find((field) => nextErrors[field]);
@@ -397,8 +225,6 @@ export function RegisterView() {
               email: values.email.trim(),
               password: values.password,
               consent: values.consent,
-              selfie: values.selfie,
-              ktp: values.ktp,
             });
             const searchParams = new URLSearchParams(window.location.search);
             const returnTo = searchParams.get('returnTo') || searchParams.get('returnUrl') || '/classes#schedule';
@@ -496,71 +322,9 @@ export function RegisterView() {
             onBlur={handleTextBlur('password')}
             onChange={handleTextChange('password')}
           />
-          <PasswordField
-            id="register-confirmation"
-            label="Ulangi password"
-            name="confirmation"
-            placeholder="Ulangi password"
-            error={errors.confirmation}
-            disabled={loading}
-            onBlur={handleTextBlur('confirmation')}
-            onChange={handleTextChange('confirmation')}
-          />
-          <div className="pt-1 text-[11px] text-ed-muted">
-            <span>Tidak ingin mengingat password? Anda bisa </span>
-            <Link href="/sign-in" className="font-semibold text-ed-forest hover:underline">
-              masuk dengan nomor WhatsApp
-            </Link>
-            <span> di halaman masuk.</span>
-          </div>
         </div>
 
-        {/* Section 3: Verifikasi Identitas (Opsional) */}
-        <div
-          id="register-section-identity"
-          className="space-y-4 rounded-none border border-ed-line bg-white p-4 sm:p-5 shadow-none"
-        >
-          <div className="flex items-center justify-between gap-2 border-b border-ed-line pb-2">
-            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.08em] sm:tracking-[0.12em] text-ed-forest min-w-0">
-              <ShieldCheck className="size-3.5 shrink-0 text-ed-green" />
-              <span className="truncate">3. Dokumen Identitas (Opsional)</span>
-            </div>
-            <span className="shrink-0 whitespace-nowrap rounded-none border border-ed-line bg-ed-tint px-2 py-0.5 text-[13px] font-bold uppercase tracking-wider text-ed-muted">
-              Bisa Dilewati
-            </span>
-          </div>
-          <div className="rounded-none bg-ed-tint/50 p-3 text-xs leading-relaxed text-ed-muted border border-ed-line">
-            Foto KTP dan foto selfie diperlukan saat verifikasi keanggotaan studio atau pembelian paket sesi pertama. Anda dapat mengunggahnya sekarang atau <strong>melewatinya untuk langsung mendaftar</strong>.
-          </div>
-          <UploadField
-            id="register-ktp"
-            name="ktp"
-            label="Foto KTP bagian depan"
-            hint="Seluruh sisi KTP terlihat jelas · JPG, PNG, atau WebP · maksimal 8 MB (Opsional)."
-            capture="environment"
-            file={ktp}
-            inputRef={ktpInputRef}
-            error={errors.ktp}
-            disabled={loading}
-            onChange={(file) => handleUpload('ktp', file)}
-            onRemove={() => removeUpload('ktp')}
-          />
-          <UploadField
-            id="register-selfie"
-            name="selfie"
-            label="Foto selfie"
-            hint="Wajah terlihat jelas · JPG, PNG, atau WebP · maksimal 8 MB (Opsional)."
-            capture="user"
-            file={selfie}
-            inputRef={selfieInputRef}
-            error={errors.selfie}
-            disabled={loading}
-            onChange={(file) => handleUpload('selfie', file)}
-            onRemove={() => removeUpload('selfie')}
-          />
-        </div>
-
-        {/* Section 4: Privacy Notice & Consent */}
+        {/* Section 3: Privacy Notice & Consent */}
         <div
           id="register-privacy-notice"
           className="flex items-start gap-3 rounded-none border border-ed-line bg-ed-tint/60 p-3.5 text-xs leading-relaxed text-ed-muted shadow-none"
@@ -568,7 +332,7 @@ export function RegisterView() {
         >
           <ShieldCheck className="size-5 shrink-0 text-ed-green mt-0.5" />
           <span>
-            Data pendaftaran dan dokumen identitas Anda disimpan secara privat, aman, dan hanya digunakan untuk verifikasi akun serta layanan keanggotaan studio Daily Dose.
+            Data pendaftaran Anda disimpan secara privat dan aman, dan hanya digunakan untuk layanan keanggotaan studio Daily Dose. Foto KTP baru diminta nanti saat pembelian paket pertama.
           </span>
         </div>
 
@@ -598,7 +362,7 @@ export function RegisterView() {
               }}
             />
             <span className="font-medium">
-              Saya menyetujui Syarat &amp; Ketentuan Layanan, Kebijakan Privasi Daily Dose, serta pemrosesan data identitas untuk verifikasi akun keanggotaan.
+              Saya menyetujui Syarat &amp; Ketentuan Layanan serta Kebijakan Privasi Daily Dose.
             </span>
           </label>
           {errors.consent && <FieldError id={errorId('consent')}>{errors.consent}</FieldError>}

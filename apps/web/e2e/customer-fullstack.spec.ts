@@ -78,11 +78,6 @@ test.describe.serial('@customer-fullstack lifecycle customer nyata', () => {
     await page.getByLabel('Nomor WhatsApp').fill(customerE2E.customer.phone);
     await page.getByLabel('Email', { exact: true }).fill(customerE2E.customer.email);
     await page.getByLabel('Password', { exact: true }).fill(customerE2E.customer.password);
-    await page.getByLabel('Ulangi password', { exact: true }).fill(customerE2E.customer.password);
-    await page.getByLabel('Foto selfie').setInputFiles(customerE2E.png('selfie-e2e.png'));
-    await page
-      .getByLabel('Foto KTP bagian depan')
-      .setInputFiles(customerE2E.png('ktp-depan-e2e.png'));
     await page.getByRole('checkbox').check();
     const registration = page.waitForResponse(
       (response) =>
@@ -103,6 +98,12 @@ test.describe.serial('@customer-fullstack lifecycle customer nyata', () => {
       await studioDialog.getByRole('button', { name: 'Simpan studio' }).click();
       await expect(studioDialog).toBeHidden();
     }
+    // T-09: KTP dan selfie tidak lagi diminta saat daftar; diunggah di halaman verifikasi.
+    await page.locator('#nik').fill('3174010101010001');
+    await page.locator('#address').fill('Jl. Contoh No. 1, Jakarta');
+    await page.locator('#ktp').setInputFiles(customerE2E.png('ktp-depan-e2e.png'));
+    await page.locator('#selfie').setInputFiles(customerE2E.png('selfie-e2e.png'));
+    await page.getByRole('button', { name: 'Kirim Dokumen Verifikasi' }).click();
     await expect(
       page.getByRole('heading', { name: 'Dokumen Anda sudah kami terima' }),
     ).toBeVisible();

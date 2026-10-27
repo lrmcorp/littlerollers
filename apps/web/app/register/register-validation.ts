@@ -1,17 +1,10 @@
-export const MAX_IDENTITY_FILE_BYTES = 8_000_000;
-export const IDENTITY_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const;
-
-export type RegisterFieldName =
-  'displayName' | 'phone' | 'email' | 'password' | 'confirmation' | 'selfie' | 'ktp' | 'consent';
+export type RegisterFieldName = 'displayName' | 'phone' | 'email' | 'password' | 'consent';
 
 export type RegisterValues = {
   displayName: string;
   phone: string;
   email: string;
   password: string;
-  confirmation: string;
-  selfie: File | null;
-  ktp: File | null;
   consent: boolean;
 };
 
@@ -25,14 +18,6 @@ export function normalizeRegistrationPhone(value: string): string {
   if (compact.startsWith('0')) return `+62${compact.slice(1)}`;
   if (compact.startsWith('62')) return `+${compact}`;
   return compact;
-}
-
-function validateIdentityFile(file: File | null, label: string): string | undefined {
-  if (!file || file.size === 0) return undefined;
-  if (!IDENTITY_IMAGE_TYPES.includes(file.type as (typeof IDENTITY_IMAGE_TYPES)[number]))
-    return `${label} harus berformat JPG, PNG, atau WebP.`;
-  if (file.size > MAX_IDENTITY_FILE_BYTES) return `${label} maksimal berukuran 8 MB.`;
-  return undefined;
 }
 
 export function validateRegisterField(
@@ -64,16 +49,6 @@ export function validateRegisterField(
       if (values.password.length < 8) return 'Password minimal 8 karakter.';
       if (values.password.length > 128) return 'Password maksimal 128 karakter.';
       return undefined;
-    case 'confirmation':
-      if (!values.confirmation) return 'Ulangi password wajib diisi.';
-      if (values.confirmation !== values.password) return 'Konfirmasi password tidak sama.';
-      return undefined;
-    case 'selfie':
-      if (!values.selfie) return undefined;
-      return validateIdentityFile(values.selfie, 'Foto selfie');
-    case 'ktp':
-      if (!values.ktp) return undefined;
-      return validateIdentityFile(values.ktp, 'Foto KTP');
     case 'consent':
       if (!values.consent)
         return 'Anda wajib menyetujui Syarat & Ketentuan serta Kebijakan Privasi Daily Dose.';
@@ -87,9 +62,6 @@ export function validateRegistration(values: RegisterValues): RegisterErrors {
     'phone',
     'email',
     'password',
-    'confirmation',
-    'selfie',
-    'ktp',
     'consent',
   ];
   return Object.fromEntries(
@@ -102,6 +74,6 @@ export function validateRegistration(values: RegisterValues): RegisterErrors {
 
 export function registrationRequestErrorMessage(status?: number): string {
   if (status === 409) return 'Email atau nomor WhatsApp sudah digunakan.';
-  if (status === 422) return 'Periksa kembali data dan format foto yang dipilih.';
+  if (status === 422) return 'Periksa kembali data yang diisi.';
   return 'Registrasi belum dapat diproses. Coba kembali.';
 }
