@@ -1,0 +1,11 @@
+{
+  "/favicon.ico/route": "app/favicon.ico/route.js",
+  "/workspace/payments/page": "app/workspace/payments/page.js",
+  "/workspace/payments/[id]/page": "app/workspace/payments/[id]/page.js",
+  "/workspace/packages/page": "app/workspace/packages/page.js",
+  "/workspace/packages/[id]/page": "app/workspace/packages/[id]/page.js",
+  "/workspace/vouchers/page": "app/workspace/vouchers/page.js",
+  "/finance/page": "app/finance/page.js",
+  "/workspace/branch-performance/page": "app/workspace/branch-performance/page.js",
+  "/workspace/branches/page": "app/workspace/branches/page.js"
+}

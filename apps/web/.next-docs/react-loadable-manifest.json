@@ -1,0 +1,15 @@
+{
+  "app/components/forms/location-map-picker.tsx -> leaflet": {
+    "id": "app/components/forms/location-map-picker.tsx -> leaflet",
+    "files": [
+      "static/chunks/_app-pages-browser_node_modules_pnpm_leaflet_1_9_4_node_modules_leaflet_dist_leaflet-src_js.js"
+    ]
+  },
+  "app/components/forms/location-map-picker.tsx -> leaflet/dist/leaflet.css": {
+    "id": "app/components/forms/location-map-picker.tsx -> leaflet/dist/leaflet.css",
+    "files": [
+      "static/css/_app-pages-browser_node_modules_pnpm_leaflet_1_9_4_node_modules_leaflet_dist_leaflet_css.css",
+      "static/chunks/_app-pages-browser_node_modules_pnpm_leaflet_1_9_4_node_modules_leaflet_dist_leaflet_css.js"
+    ]
+  }
+}
