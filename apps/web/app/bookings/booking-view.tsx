@@ -472,6 +472,30 @@ export function BookingView({
     }
   };
 
+  /** Buka dialog batal hanya bila API menyatakan bisa; setelah batas H-24 jalurnya Penyesuaian Sesi. */
+  const requestCancel = async (booking: CustomerBookingRecord) => {
+    setCancelError('');
+    if (client.cancellationOptions) {
+      try {
+        const options = await client.cancellationOptions(booking.id);
+        if (!options.canCancel) {
+          feedback.showToast({
+            tone: 'warning',
+            title: 'Booking ini tidak bisa dibatalkan dari sini',
+            message:
+              options.unavailableReason === 'CANCELLATION_CUTOFF_PASSED'
+                ? 'Batas H-24 sudah lewat. Gunakan Penyesuaian Sesi di menu Ledger sesi.'
+                : 'Status booking atau kelas sudah tidak memungkinkan pembatalan.',
+          });
+          return;
+        }
+      } catch {
+        // Tidak diketahui: dialog tetap dibuka dan server yang memutuskan dengan pesan yang jelas.
+      }
+    }
+    setCancelTarget(booking);
+  };
+
   const cancelBooking = async (reason: string) => {
     if (!cancelTarget || !client.cancelAsStaff) return;
     setBusy(true);
@@ -1248,10 +1272,7 @@ export function BookingView({
                             id: 'cancel',
                             label: 'Batalkan booking',
                             tone: 'danger' as const,
-                            onClick: () => {
-                              setCancelError('');
-                              setCancelTarget(booking);
-                            },
+                            onClick: () => void requestCancel(booking),
                           },
                         ]
                       : []),
@@ -1397,10 +1418,7 @@ export function BookingView({
                           id: 'cancel',
                           label: 'Batalkan booking',
                           tone: 'danger' as const,
-                          onClick: () => {
-                            setCancelError('');
-                            setCancelTarget(booking);
-                          },
+                          onClick: () => void requestCancel(booking),
                         },
                       ]}
                     />

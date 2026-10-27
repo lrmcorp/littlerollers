@@ -33,6 +33,7 @@ import { PackagePrice } from '../../components/public/package-price';
 import { accountClient, type PublicFaqPayload } from '@/api-clients/account-client';
 import { ClassFaqSection } from './class-faq-section';
 import { classLevelLabel } from '../../lib/class-level';
+import { formatTanggalSingkat } from '../../lib/formatters';
 
 export function ClassDetailView({
   slug,
@@ -336,12 +337,7 @@ export function ClassDetailView({
                         <div className="flex items-center justify-between gap-2">
                           <span className="inline-flex items-center gap-1.5 text-xs font-bold text-ed-green">
                             <CalendarDays className="size-4" />
-                            {new Intl.DateTimeFormat('id-ID', {
-                              weekday: 'short',
-                              day: 'numeric',
-                              month: 'short',
-                              timeZone: schedule.timezone,
-                            }).format(sStart)}
+                            {formatTanggalSingkat(sStart, { weekday: 'short', timeZone: schedule.timezone })}
                           </span>
                           <span
                             className={`rounded-none border px-2 py-0.5 text-[13px] font-bold uppercase tracking-wider ${

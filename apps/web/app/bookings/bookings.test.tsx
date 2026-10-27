@@ -201,6 +201,49 @@ describe('BookingView', () => {
     expect(await screen.findByText(/sesi pelanggan tidak terpotong/)).toBeVisible();
   });
 
+  it('does not open the cancel dialog when the API says the H-24 cutoff has passed, and points to Penyesuaian Sesi', async () => {
+    const withCustomer = { ...booking, customer: { id: customerId, displayName: 'Customer Synthetic' } };
+    const cancellationOptions = vi.fn().mockResolvedValue({
+      canCancel: false,
+      unavailableReason: 'CANCELLATION_CUTOFF_PASSED',
+      supportAction: 'USE_SESSION_ADJUSTMENT',
+      cutoffAt: '2027-01-01T00:00:00Z',
+    });
+    const cancelAsStaff = vi.fn();
+    const list = vi.fn().mockResolvedValue({ items: [withCustomer], nextCursor: null });
+    render(
+      <BookingView
+        client={client({ list, cancelAsStaff, cancellationOptions })}
+        activeBranchId={branchId}
+        access={{ canRead: true, canCreate: true, canReview: false, canDecide: false, canCancel: true }}
+      />,
+    );
+    const user = userEvent.setup();
+    await user.click((await screen.findAllByRole('button', { name: /Aksi booking/i }))[0]!);
+    await user.click(screen.getByRole('menuitem', { name: /Batalkan booking/i }));
+    expect(await screen.findByText(/Gunakan Penyesuaian Sesi/)).toBeVisible();
+    expect(cancellationOptions).toHaveBeenCalledWith(booking.id);
+    expect(screen.queryByRole('dialog', { name: /Batalkan booking pelanggan/ })).not.toBeInTheDocument();
+    expect(cancelAsStaff).not.toHaveBeenCalled();
+  });
+
+  it('opens the cancel dialog when the API allows it', async () => {
+    const withCustomer = { ...booking, customer: { id: customerId, displayName: 'Customer Synthetic' } };
+    const cancellationOptions = vi.fn().mockResolvedValue({ canCancel: true, unavailableReason: null, supportAction: null, cutoffAt: '2027-01-01T00:00:00Z' });
+    const list = vi.fn().mockResolvedValue({ items: [withCustomer], nextCursor: null });
+    render(
+      <BookingView
+        client={client({ list, cancelAsStaff: vi.fn(), cancellationOptions })}
+        activeBranchId={branchId}
+        access={{ canRead: true, canCreate: true, canReview: false, canDecide: false, canCancel: true }}
+      />,
+    );
+    const user = userEvent.setup();
+    await user.click((await screen.findAllByRole('button', { name: /Aksi booking/i }))[0]!);
+    await user.click(screen.getByRole('menuitem', { name: /Batalkan booking/i }));
+    expect(await screen.findByRole('dialog', { name: /Batalkan booking pelanggan/ })).toBeVisible();
+  });
+
   it('does not offer cancellation without the capability', async () => {
     const list = vi.fn().mockResolvedValue({ items: [booking], nextCursor: null });
     render(

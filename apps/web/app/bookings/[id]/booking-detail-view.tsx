@@ -80,6 +80,12 @@ export function BookingDetailView({
   const [qrPassUrl, setQrPassUrl] = useState<string | null>(null);
   const [qrLoading, setQrLoading] = useState(false);
   const [qrError, setQrError] = useState('');
+  // Hasil pemeriksaan API: bila `canCancel` false, tombol batalkan tidak ditawarkan. Null = belum diketahui.
+  const [cancelOptions, setCancelOptions] = useState<{
+    canCancel: boolean;
+    unavailableReason: string | null;
+    cutoffAt: string;
+  } | null>(null);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [cancelSubmitting, setCancelSubmitting] = useState(false);
   const [cancelError, setCancelError] = useState('');
@@ -155,6 +161,20 @@ export function BookingDetailView({
     }
   }, [canLoadReschedule, client, id]);
 
+  const loadCancelOptions = useCallback(
+    async (current: CustomerBookingRecord) => {
+      setCancelOptions(null);
+      if (current.status !== 'BOOKED' || current.attendance || !client.cancellationOptions) return;
+      try {
+        setCancelOptions(await client.cancellationOptions(current.id));
+      } catch {
+        // Tidak diketahui: tombol tetap ditawarkan dan server yang memutuskan dengan pesan yang jelas.
+        setCancelOptions(null);
+      }
+    },
+    [client],
+  );
+
   const loadQr = useCallback(
     async (currentBooking: CustomerBookingRecord) => {
       if (currentBooking.status !== 'BOOKED' || !client.issueCheckIn) return;
@@ -220,16 +240,17 @@ export function BookingDetailView({
     try {
       const bookingResult = await client.detail(id);
       setBooking(bookingResult);
-      await Promise.all([loadRescheduleOptions(), loadQr(bookingResult)]);
+      await Promise.all([loadRescheduleOptions(), loadQr(bookingResult), loadCancelOptions(bookingResult)]);
     } catch (cause) {
       setBooking(null);
       setOptions(null);
+      setCancelOptions(null);
       setRescheduleUnavailable(null);
       setDetailError(await bookingFailure(cause));
     } finally {
       setLoading(false);
     }
-  }, [client, id, loadQr, loadRescheduleOptions]);
+  }, [client, id, loadCancelOptions, loadQr, loadRescheduleOptions]);
 
   useEffect(() => {
     void load();
@@ -513,7 +534,7 @@ export function BookingDetailView({
                 Ajukan reschedule
               </Button>
             )}
-            {!showForm && !cancelDialogOpen && (
+            {!showForm && !cancelDialogOpen && cancelOptions?.canCancel !== false && (
               <Button
                 variant="danger"
                 onClick={() => {
@@ -525,6 +546,13 @@ export function BookingDetailView({
               </Button>
             )}
           </div>
+          {cancelOptions?.canCancel === false && options?.supportAction !== 'CONTACT_STUDIO' && (
+            <p className="mt-4 text-sm leading-relaxed text-ed-muted" role="note">
+              {cancelOptions.unavailableReason === 'CANCELLATION_CUTOFF_PASSED'
+                ? `Batas pembatalan mandiri (H-24) ditutup pada ${dateTime(new Date(cancelOptions.cutoffAt), booking.classSlot?.timezone ?? 'Asia/Jakarta')}. Hubungi studio bila Anda tidak dapat hadir.`
+                : 'Booking ini tidak dapat dibatalkan sendiri lagi. Hubungi studio bila Anda memerlukan bantuan.'}
+            </p>
+          )}
 
           {cancelDialogOpen && (
             <div className="mt-5 space-y-3 rounded-none border border-rose-200 bg-rose-50/70 p-4">

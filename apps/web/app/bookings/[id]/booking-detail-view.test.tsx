@@ -139,6 +139,54 @@ describe('BookingDetailView reschedule customer', () => {
     expect(screen.queryByRole('button', { name: 'Ajukan reschedule' })).not.toBeInTheDocument();
   });
 
+  describe('cancel button follows what the API allows (T-16)', () => {
+    const cutoff = {
+      canCancel: false,
+      unavailableReason: 'CANCELLATION_CUTOFF_PASSED',
+      supportAction: 'CONTACT_STUDIO',
+      cutoffAt: '2026-08-09T03:00:00Z',
+    };
+    const withCancelCheck = (result: unknown) => {
+      const client = makeClient(eligible);
+      client.cancellationOptions = result instanceof Error ? vi.fn().mockRejectedValue(result) : vi.fn().mockResolvedValue(result);
+      return client;
+    };
+
+    it('offers the button while cancelling is still possible', async () => {
+      const client = withCancelCheck({ ...cutoff, canCancel: true, unavailableReason: null, supportAction: null });
+      render(<BookingDetailView id={bookingId} client={client} />);
+      expect(await screen.findByRole('button', { name: 'Batalkan booking' })).toBeVisible();
+      expect(client.cancellationOptions).toHaveBeenCalledWith(bookingId);
+    });
+
+    it('hides the button after the cutoff and says why, with the time', async () => {
+      render(<BookingDetailView id={bookingId} client={withCancelCheck(cutoff)} />);
+      expect(await screen.findByRole('note')).toHaveTextContent(/Batas pembatalan mandiri \(H-24\) ditutup pada/);
+      expect(screen.getByRole('note')).toHaveTextContent(/Hubungi studio/);
+      expect(screen.queryByRole('button', { name: 'Batalkan booking' })).not.toBeInTheDocument();
+    });
+
+    it('does not repeat the explanation when the reschedule banner already gives it', async () => {
+      const client = withCancelCheck(cutoff);
+      vi.mocked(client.rescheduleOptions).mockResolvedValue({
+        ...eligible,
+        canRequest: false,
+        unavailableReason: 'RESCHEDULE_CUTOFF_PASSED',
+        supportAction: 'CONTACT_STUDIO',
+        targets: [],
+      });
+      render(<BookingDetailView id={bookingId} client={client} />);
+      expect(await screen.findByText('Batas reschedule telah lewat')).toBeVisible();
+      expect(screen.queryByRole('button', { name: 'Batalkan booking' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('note')).not.toBeInTheDocument();
+    });
+
+    it('keeps the button when the check itself fails, so the server still decides', async () => {
+      render(<BookingDetailView id={bookingId} client={withCancelCheck(new Error('offline'))} />);
+      expect(await screen.findByRole('button', { name: 'Batalkan booking' })).toBeVisible();
+    });
+  });
+
   it('keeps booking detail readable while reschedule policy is disabled', async () => {
     const client = makeClient(eligible);
     vi.mocked(client.rescheduleOptions).mockRejectedValue({ code: 'CONFIGURATION_REQUIRED' });

@@ -109,13 +109,16 @@ export function formatBranchTime(value: Date, timeZone: string) {
   }).format(value);
 }
 
-export function formatBranchDay(date: string, timeZone: string) {
+/** `Sen, 2 Nov`; ditambah tahun bila bukan tahun berjalan di zona waktu itu, supaya riwayat tahun lalu tidak terbaca sebagai minggu ini. */
+export function formatBranchDay(date: string, timeZone: string, now: Date = new Date()) {
   const instant = zonedLocalDateTime(date, '12:00', timeZone);
+  const showYear = Number(date.slice(0, 4)) !== Number(localDateKey(now, timeZone).slice(0, 4));
   return new Intl.DateTimeFormat('id-ID', {
     timeZone,
     weekday: 'short',
     day: 'numeric',
     month: 'short',
+    ...(showYear ? { year: 'numeric' } : {}),
   }).format(instant);
 }
 

@@ -58,3 +58,26 @@ export function formatPersentase(value: number | null | undefined): string {
   }
   return `${Math.round(value * 10) / 10}%`;
 }
+
+/**
+ * Tanggal pendek "2 Nov" (atau "Sen, 2 Nov" dengan `weekday`), ditambah tahun bila bukan tahun berjalan di
+ * zona waktu itu. Dipakai untuk daftar yang bisa memuat riwayat, supaya tahun lalu tidak terbaca sebagai minggu ini.
+ */
+export function formatTanggalSingkat(
+  value: Date | string | number | null | undefined,
+  options: { timeZone?: string; weekday?: 'short' | 'long'; month?: 'short' | 'long'; now?: Date } = {},
+): string {
+  if (!value) return '-';
+  const date = typeof value === 'object' ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return '-';
+  const { timeZone, weekday, month = 'short', now = new Date() } = options;
+  const yearOf = (instant: Date) =>
+    Number(new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric' }).format(instant));
+  return new Intl.DateTimeFormat('id-ID', {
+    timeZone,
+    ...(weekday ? { weekday } : {}),
+    day: 'numeric',
+    month,
+    ...(yearOf(date) !== yearOf(now) ? { year: 'numeric' } : {}),
+  }).format(date);
+}

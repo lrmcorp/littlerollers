@@ -48,7 +48,7 @@ import {
 import { OtherCostEditDialog } from './other-cost-edit-dialog';
 import { OtherCostForm } from './other-cost-form';
 import { formatDay, presetRange, RANGE_PRESETS, rangeProblem } from './report-range';
-import { formatRupiah } from '../lib/formatters';
+import { formatRupiah, formatTanggalSingkat } from '../lib/formatters';
 import { pageOffset } from '../lib/pagination';
 import { formatAnomalyType, formatSeverity, formatStudioName } from '../lib/system-dictionary';
 
@@ -800,7 +800,7 @@ export function FinanceView({
                           </div>
                           <div className="flex items-center justify-between text-[11px] text-dd-muted pt-1 border-t border-dd-line/40">
                             <span>
-                              {new Date(s.startAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} ·{' '}
+                              {formatTanggalSingkat(s.startAt)} ·{' '}
                               {new Date(s.startAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} -{' '}
                               {new Date(s.endAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} ({s.teachingHours} jam)
                             </span>

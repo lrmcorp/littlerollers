@@ -33,6 +33,7 @@ import { PublicFooter } from '../components/public/public-footer';
 import { PublicHeader } from '../components/public/public-header';
 import { useSessionContext } from '../session-context';
 import { isCustomerOnlySession } from '@/lib/session-audience';
+import { formatTanggalSingkat } from '@/lib/formatters';
 import { formatStudioName, formatTanggalHuman } from '@/lib/system-dictionary';
 
 function dayKey(value: string, timezone: string) {
@@ -45,12 +46,7 @@ function dayKey(value: string, timezone: string) {
 }
 
 function dateLabel(value: string, timezone: string) {
-  return new Intl.DateTimeFormat('id-ID', {
-    timeZone: timezone,
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-  }).format(new Date(value));
+  return formatTanggalSingkat(value, { timeZone: timezone, weekday: 'long', month: 'long' });
 }
 
 function timeLabel(value: string, timezone: string) {

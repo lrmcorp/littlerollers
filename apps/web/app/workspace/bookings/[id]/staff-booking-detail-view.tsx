@@ -88,6 +88,12 @@ export function StaffBookingDetailView({
 
   useEffect(() => void load(), [load]);
 
+  // API hanya menerbitkan QR untuk kelas PUBLISHED/CONFIRMED yang belum selesai.
+  const qrPossible = Boolean(
+    booking?.classSlot &&
+      ['PUBLISHED', 'CONFIRMED'].includes(booking.classSlot.status) &&
+      new Date(booking.classSlot.endAt).getTime() > Date.now(),
+  );
   const issueQr = async () => {
     if (!booking || !client.issueCheckIn || !canManageAttendance) return;
     setBusy(true);
@@ -253,7 +259,13 @@ export function StaffBookingDetailView({
               </dd>
             </div>
           </dl>
-          {booking.status === 'BOOKED' && context?.hasCapability('attendance:manage') && (
+          {booking.status === 'BOOKED' && context?.hasCapability('attendance:manage') && !qrPossible && (
+            <p className="mt-5 text-sm text-dd-muted" role="note">
+              Kelas ini sudah selesai atau tidak lagi berjalan, jadi QR check-in tidak bisa dibuat. Kehadiran susulan
+              dicatat dari halaman Hari ini, paling lambat 2 jam setelah kelas selesai.
+            </p>
+          )}
+          {booking.status === 'BOOKED' && context?.hasCapability('attendance:manage') && qrPossible && (
             <div className="mt-5 space-y-3">
               <Button
                 className="w-full"
