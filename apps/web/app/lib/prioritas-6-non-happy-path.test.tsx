@@ -103,7 +103,8 @@ describe('PRIORITAS 6 NON-HAPPY-PATH: Poin 26 — Boundary Conditions Pagination
       />,
     );
 
-    expect(screen.getByText('Menampilkan 0–0 dari 0 data')).toBeInTheDocument();
+    // T-16: tidak pernah menulis "dari 0"; satu halaman penuh cukup "Menampilkan N data".
+    expect(screen.getByText('Menampilkan 0–0 data')).toBeInTheDocument();
     expect((await axe(container)).violations).toHaveLength(0);
   });
 

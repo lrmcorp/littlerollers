@@ -274,7 +274,7 @@ export function StaffBookingDetailView({
                     &ldquo;{issue.message}&rdquo;
                   </p>
                   <a
-                    className="inline-flex w-full min-h-10 items-center justify-center gap-2 rounded-dd-md bg-[#25D366] px-4 text-sm font-bold text-white shadow-sm hover:bg-[#1EBE5D] no-underline transition-colors"
+                    className="inline-flex w-full min-h-11 items-center justify-center gap-2 rounded-dd-md bg-[#25D366] px-4 text-sm font-bold text-white shadow-sm hover:bg-[#1EBE5D] no-underline transition-colors"
                     href={issue.whatsappUrl}
                     target="_blank"
                     rel="noreferrer"

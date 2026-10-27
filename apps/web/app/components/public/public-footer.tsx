@@ -182,7 +182,7 @@ const socialLinks = [
 ] as const;
 
 const editorialLink =
-  'inline-flex min-h-11 items-center border-b border-transparent pb-1 text-[13px] sm:min-h-8 font-semibold text-white no-underline transition hover:border-white';
+  'inline-flex min-h-11 min-w-11 items-center border-b border-transparent pb-1 text-[13px] font-semibold text-white no-underline transition hover:border-white';
 
 /**
  * Footer varian "Editorial Calm": latar `ed-deep`, tanpa kartu/ikon bulat,

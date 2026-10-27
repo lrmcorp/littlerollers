@@ -73,13 +73,13 @@ export function EmptyWeeksNotice({
               <div className="flex flex-wrap items-center gap-2 pt-1.5">
                 <Link
                   href="/workspace/classes/rutin"
-                  className="inline-flex min-h-[38px] items-center justify-center rounded-dd-md bg-dd-forest px-3.5 py-1.5 text-xs font-bold text-white shadow-xs transition hover:bg-dd-forest-dark focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#24483a]"
+                  className="inline-flex min-h-11 items-center justify-center rounded-dd-md bg-dd-forest px-3.5 py-1.5 text-xs font-bold text-white shadow-xs transition hover:bg-dd-forest-dark focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#24483a]"
                 >
                   Isi pakai jadwal rutin
                 </Link>
                 <Link
                   href="/workspace/classes/salin"
-                  className="inline-flex min-h-[38px] items-center justify-center rounded-dd-md border border-dd-danger/40 bg-white px-3 py-1.5 text-xs font-semibold text-dd-danger underline hover:bg-dd-danger-soft transition focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-dd-danger"
+                  className="inline-flex min-h-11 items-center justify-center rounded-dd-md border border-dd-danger/40 bg-white px-3 py-1.5 text-xs font-semibold text-dd-danger underline hover:bg-dd-danger-soft transition focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-dd-danger"
                 >
                   Isi pakai salin jadwal
                 </Link>

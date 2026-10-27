@@ -158,7 +158,7 @@ export function Tabs({
           role="tab"
           aria-selected={item.value === value}
           onClick={() => onChange(item.value)}
-          className={`min-h-9 whitespace-nowrap rounded-dd-sm border-0 px-3 text-sm font-bold ${item.value === value ? 'bg-white text-dd-forest shadow-sm' : 'bg-transparent text-dd-muted hover:text-dd-ink'}`}
+          className={`min-h-11 whitespace-nowrap rounded-dd-sm border-0 px-3 text-sm font-bold ${item.value === value ? 'bg-white text-dd-forest shadow-sm' : 'bg-transparent text-dd-muted hover:text-dd-ink'}`}
         >
           {item.label}
           {item.count != null && (
@@ -516,7 +516,7 @@ export function Pagination({
                   aria-label={`Halaman ${item}`}
                   disabled={item === currentPage || !onPageChange}
                   onClick={() => onPageChange?.(item)}
-                  className={`size-8 sm:size-9 flex items-center justify-center rounded-lg text-xs sm:text-sm font-semibold transition ${
+                  className={`size-11 flex items-center justify-center rounded-lg text-xs sm:text-sm font-semibold transition ${
                     item === currentPage
                       ? 'bg-dd-forest text-white shadow-dd-soft pointer-events-none'
                       : 'text-dd-ink hover:bg-dd-surface-muted hover:text-dd-forest border border-transparent cursor-pointer'

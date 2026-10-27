@@ -282,7 +282,7 @@ export function NotificationCenter({
           <Link
             href="/notifications"
             onClick={() => setOpen(false)}
-            className="flex min-h-10 w-full items-center justify-center gap-1.5 border-t border-dd-line bg-dd-surface-muted/60 px-4 text-xs font-semibold text-dd-forest no-underline transition-colors hover:bg-dd-surface-muted"
+            className="flex min-h-11 w-full items-center justify-center gap-1.5 border-t border-dd-line bg-dd-surface-muted/60 px-4 text-xs font-semibold text-dd-forest no-underline transition-colors hover:bg-dd-surface-muted"
           >
             <span>Lihat semua notifikasi</span>
             <ArrowRight className="size-3.5" />

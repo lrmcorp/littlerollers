@@ -237,7 +237,7 @@ function PasswordField({
           label={`${shown ? 'Sembunyikan' : 'Tampilkan'} ${label.toLowerCase()}`}
           variant="ghost"
           onClick={onToggle}
-          className="absolute right-1 top-1/2 size-9 -translate-y-1/2 text-dd-muted"
+          className="absolute right-1 top-1/2 size-11 -translate-y-1/2 text-dd-muted"
         >
           {shown ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
         </IconButton>

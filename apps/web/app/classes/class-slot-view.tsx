@@ -443,7 +443,7 @@ export function ClassSlotView({
                 target="_blank"
                 rel="noopener noreferrer"
                 title="Buka Layar Kiosk Studio di tab baru untuk tablet meja resepsionis"
-                className="w-full sm:w-auto min-h-[40px] sm:min-h-0 inline-flex items-center gap-1.5"
+                className="w-full sm:w-auto min-h-11 inline-flex items-center gap-1.5"
               >
                 <Tv className="size-4 shrink-0" />
                 <span>Layar Kiosk Studio</span>
@@ -451,7 +451,7 @@ export function ClassSlotView({
             )}
             {!isInstructor && (
               <Button
-                className="w-full sm:w-auto min-h-[40px] sm:min-h-0"
+                className="w-full sm:w-auto min-h-11"
                 disabled={!canCreateSlot}
                 title={
                   !canManage

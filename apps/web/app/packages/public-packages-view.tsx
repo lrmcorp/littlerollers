@@ -508,7 +508,7 @@ export function PublicPackagesView({
                     setClassTypeId('');
                     syncCatalogQuery(branchId, '', searchQuery, priceRange, sessionRange, sortOption);
                   }}
-                  className={`inline-flex min-h-[40px] items-center rounded-dd-sm px-3.5 py-1.5 text-xs font-bold transition cursor-pointer ${
+                  className={`inline-flex min-h-[44px] items-center rounded-dd-sm px-3.5 py-1.5 text-xs font-bold transition cursor-pointer ${
                     !classTypeId
                       ? 'bg-dd-forest text-white shadow-xs'
                       : 'bg-dd-surface-muted text-dd-muted hover:text-dd-ink hover:bg-dd-surface-muted/80'
@@ -535,7 +535,7 @@ export function PublicPackagesView({
                           sortOption,
                         );
                       }}
-                      className={`inline-flex min-h-[40px] items-center rounded-dd-sm px-3.5 py-1.5 text-xs font-bold transition cursor-pointer ${
+                      className={`inline-flex min-h-[44px] items-center rounded-dd-sm px-3.5 py-1.5 text-xs font-bold transition cursor-pointer ${
                         isActive
                           ? 'bg-dd-forest text-white shadow-xs'
                           : 'bg-dd-surface-muted text-dd-muted hover:text-dd-ink hover:bg-dd-surface-muted/80'
@@ -572,7 +572,7 @@ export function PublicPackagesView({
                             opt.id,
                           );
                         }}
-                        className={`inline-flex min-h-[36px] items-center rounded-dd-sm px-3 py-1 text-xs font-semibold transition cursor-pointer ${
+                        className={`inline-flex min-h-[44px] items-center rounded-dd-sm px-3 py-1 text-xs font-semibold transition cursor-pointer ${
                           isSelected
                             ? 'border border-dd-forest bg-[#e8f0ec] text-dd-forest font-bold'
                             : 'border border-dd-line/60 bg-white text-dd-muted hover:text-dd-ink hover:border-dd-forest/30'
@@ -612,7 +612,7 @@ export function PublicPackagesView({
                     );
                   }}
                   placeholder="Cari nama paket…"
-                  className="min-h-[40px] w-full rounded-dd-sm border border-dd-line/80 bg-white pl-8 pr-7 text-xs text-dd-ink placeholder:text-dd-muted hover:border-dd-forest/40 focus:border-dd-forest focus:outline-hidden focus:ring-1 focus:ring-dd-forest/20 disabled:cursor-not-allowed disabled:bg-dd-surface-muted"
+                  className="min-h-[44px] w-full rounded-dd-sm border border-dd-border-interactive bg-white pl-8 pr-7 text-xs text-dd-ink placeholder:text-dd-muted hover:border-dd-forest/40 focus:border-dd-forest focus:outline-hidden focus:ring-1 focus:ring-dd-forest/20 disabled:cursor-not-allowed disabled:bg-dd-surface-muted"
                 />
                 {searchQuery && (
                   <button

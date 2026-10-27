@@ -112,7 +112,7 @@ export function CustomerBookingsView({
             type="button"
             role="tab"
             aria-selected={timeline === value}
-            className={`min-h-10 rounded-none px-4 text-sm font-semibold transition cursor-pointer ${
+            className={`min-h-11 rounded-none px-4 text-sm font-semibold transition cursor-pointer ${
               timeline === value
                 ? 'bg-ed-forest text-white'
                 : 'bg-transparent text-ed-muted hover:bg-ed-tint hover:text-ed-ink'

@@ -101,7 +101,7 @@ function PasswordField({
         />
         <button
           type="button"
-          className="absolute right-2 flex size-9 items-center justify-center rounded-none text-ed-muted hover:text-ed-ink transition focus-visible:outline-2 focus-visible:outline-ed-forest"
+          className="absolute right-2 flex size-11 items-center justify-center rounded-none text-ed-muted hover:text-ed-ink transition focus-visible:outline-2 focus-visible:outline-ed-forest"
           aria-label={`${visible ? 'Sembunyikan' : 'Tampilkan'} ${label.toLowerCase()}`}
           aria-pressed={visible}
           disabled={disabled}

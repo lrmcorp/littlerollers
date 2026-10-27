@@ -129,7 +129,7 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
           <div className="mb-6 sm:mb-8 flex items-center justify-between gap-2 sm:gap-3 border-b border-ed-line pb-4 sm:pb-5">
             <BrandMark className="w-28 sm:w-40 shrink-0" priority />
             <Link
-              className="inline-flex min-h-[40px] sm:min-h-[44px] shrink-0 items-center gap-1.5 sm:gap-2 rounded-none px-2.5 sm:px-3 text-xs font-bold uppercase tracking-wider text-ed-forest hover:bg-ed-tint transition-colors no-underline"
+              className="inline-flex min-h-[44px] shrink-0 items-center gap-1.5 sm:gap-2 rounded-none px-2.5 sm:px-3 text-xs font-bold uppercase tracking-wider text-ed-forest hover:bg-ed-tint transition-colors no-underline"
               href="/"
             >
               <ArrowLeft className="size-3.5 shrink-0" />

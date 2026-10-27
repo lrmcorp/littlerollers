@@ -300,7 +300,7 @@ export function CustomerDashboard() {
                 </time>
                 <Link
                   href={`/check-in-pass?bookingId=${encodeURIComponent(booking.id)}&class=${encodeURIComponent(booking.className)}&branch=${encodeURIComponent(booking.branchName)}&start=${encodeURIComponent(booking.startAt)}&end=${encodeURIComponent(booking.endAt)}&tz=${encodeURIComponent(booking.timezone)}`}
-                  className="inline-flex h-9 min-h-[36px] items-center gap-1 border border-ed-forest bg-white px-3 text-xs font-semibold text-ed-forest transition hover:bg-ed-forest hover:text-white"
+                  className="inline-flex h-11 min-h-[44px] items-center gap-1 border border-ed-forest bg-white px-3 text-xs font-semibold text-ed-forest transition hover:bg-ed-forest hover:text-white"
                 >
                   <QrCode className="size-3.5" />
                   <span>QR Pass</span>
