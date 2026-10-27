@@ -179,4 +179,22 @@ describe('customer self booking flow', () => {
     expect(navigation.replace).toHaveBeenCalledWith('/classes');
     expect(screen.queryByText('Pilih jadwal kelas terlebih dahulu')).not.toBeInTheDocument();
   });
+  it('labels the class by its real kind instead of an invented "Group Reformer"', async () => {
+    window.history.replaceState({}, '', `?slot=${options.slot.id}`);
+    const grouped = {
+      ...options,
+      slot: {
+        ...options.slot,
+        classType: { ...options.slot.classType, name: 'Group Class', modality: 'GROUP' },
+      },
+    } as CustomerBookingOptions;
+    render(
+      <AppFeedbackProvider>
+        <CustomerBookingFlow client={bookingClient(grouped)} />
+      </AppFeedbackProvider>,
+    );
+    expect(await screen.findByRole('heading', { name: 'Group Class' })).toBeVisible();
+    expect(screen.getByText('Kelas grup')).toBeVisible();
+    expect(screen.queryByText('Group Reformer')).toBeNull();
+  });
 });

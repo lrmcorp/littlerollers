@@ -149,6 +149,8 @@ export function PublicExperience({ children }: { children: ReactNode }) {
   };
 
   const dialogOpen = mandatory || chooserOpen;
+  // Tombol ada di footer dialog (di luar area gulir) supaya "Simpan studio" selalu terlihat di layar HP.
+  const showStudioActions = state !== 'loading' && !(state === 'error' && !config);
   return (
     <StudioPreferenceContext.Provider
       value={{
@@ -187,6 +189,33 @@ export function PublicExperience({ children }: { children: ReactNode }) {
         closeOnEscape={!mandatory}
         closeOnBackdrop={!mandatory}
         showCloseButton={!mandatory}
+        footer={showStudioActions ? (
+      <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+        {!mandatory && (
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={state === 'saving'}
+            onClick={() => setChooserOpen(false)}
+          >
+            Batal
+          </Button>
+        )}
+        <Button
+          type="button"
+          loading={state === 'saving'}
+          loadingLabel="Menyimpan studio…"
+          disabled={!selectedStudioId}
+          onClick={() => {
+            const studio = config?.branches.find((item) => item.id === selectedStudioId);
+            if (studio) void choose(studio);
+          }}
+        >
+          <MapPin className="size-4" aria-hidden="true" />
+          {customerOnly ? 'Simpan studio' : 'Lanjutkan ke WhatsApp'}
+        </Button>
+      </div>
+        ) : undefined}
       >
         {state === 'loading' ? (
           <p className="mt-5 animate-pulse rounded-none bg-ed-tint p-5 text-center">
@@ -212,36 +241,11 @@ export function PublicExperience({ children }: { children: ReactNode }) {
                   disabled={state === 'saving'}
                   onChange={() => setSelectedStudioId(studio.id)}
                   label={studio.name}
-                  description={`${formatTimezone(studio.timezone)} · Menjadi default untuk aktivitas baru`}
+                  description={formatTimezone(studio.timezone)}
                   className="min-h-16 items-center"
                 />
               ))}
             </fieldset>
-            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-              {!mandatory && (
-                <Button
-                  type="button"
-                  variant="secondary"
-                  disabled={state === 'saving'}
-                  onClick={() => setChooserOpen(false)}
-                >
-                  Batal
-                </Button>
-              )}
-              <Button
-                type="button"
-                loading={state === 'saving'}
-                loadingLabel="Menyimpan studio…"
-                disabled={!selectedStudioId}
-                onClick={() => {
-                  const studio = config?.branches.find((item) => item.id === selectedStudioId);
-                  if (studio) void choose(studio);
-                }}
-              >
-                <MapPin className="size-4" aria-hidden="true" />
-                {customerOnly ? 'Simpan studio' : 'Lanjutkan ke WhatsApp'}
-              </Button>
-            </div>
           </div>
         )}
         {state === 'error' && config && (

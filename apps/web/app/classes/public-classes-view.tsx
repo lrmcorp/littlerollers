@@ -58,6 +58,33 @@ function timeLabel(value: string, timezone: string) {
   }).format(new Date(value));
 }
 
+/** Kalimat banner jadwal menurut status verifikasi; `returnTo` membawa member kembali ke jadwal setelah selesai. */
+function verificationBannerFor(status: string | undefined, here: string) {
+  const to = `/account/verification?returnTo=${encodeURIComponent(here)}`;
+  switch (status) {
+    case 'PENDING':
+      return {
+        message: 'Dokumen verifikasi Anda sedang diperiksa tim studio. Anda bisa memesan kelas setelah disetujui.',
+        action: 'Cek status verifikasi',
+        href: '/account/verification',
+      };
+    case 'REJECTED':
+      return {
+        message: 'Verifikasi identitas Anda belum disetujui. Perbaiki dokumen untuk bisa memesan kelas.',
+        action: 'Perbaiki dokumen',
+        href: to,
+      };
+    case 'ACTION_REQUIRED':
+      return {
+        message: 'Lengkapi verifikasi identitas (KTP) dulu supaya bisa memesan kelas.',
+        action: 'Lengkapi verifikasi',
+        href: to,
+      };
+    default:
+      return null;
+  }
+}
+
 function durationLabel(startAt: string, endAt: string) {
   const minutes = Math.max(
     0,
@@ -96,6 +123,10 @@ export function PublicClassesView({
   const [bookingSlot, setBookingSlot] = useState<PublicClassSlot | null>(null);
   const [isBookingSheetOpen, setIsBookingSheetOpen] = useState(false);
   // classSlotId -> bookingId untuk booking aktif pelanggan, agar kartu kelas yang sudah dipesan tidak menawarkan booking lagi.
+  const verificationBanner = verificationBannerFor(
+    session?.identityVerificationStatus,
+    typeof window !== 'undefined' ? `${window.location.pathname}${window.location.search}` : '/classes',
+  );
   const [bookedBySlot, setBookedBySlot] = useState<Map<string, string>>(() => new Map());
 
   useEffect(() => {
@@ -416,25 +447,20 @@ export function PublicClassesView({
         </div>
 
         {/* Verifikasi Status Banner (jika login tapi belum disetujui) */}
-        {isCustomer &&
-          session?.identityVerificationStatus &&
-          session.identityVerificationStatus !== 'APPROVED' && (
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-dd-md border border-amber-800/30 bg-amber-50 p-4 text-xs sm:text-sm text-amber-900">
-              <div className="flex items-center gap-2.5">
-                <AlertCircle className="size-4 text-amber-800 shrink-0" />
-                <span>
-                  Verifikasi identitas (KTP) Anda sedang ditinjau atau perlu dilengkapi sebelum
-                  dapat reservasi mandiri.
-                </span>
-              </div>
-              <Link
-                href="/account/verification"
-                className="font-semibold text-amber-900 underline shrink-0 hover:text-dd-ink"
-              >
-                Cek Status Verifikasi →
-              </Link>
+        {isCustomer && verificationBanner && (
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-dd-md border border-amber-800/30 bg-amber-50 p-4 text-xs sm:text-sm text-amber-900">
+            <div className="flex items-center gap-2.5">
+              <AlertCircle className="size-4 text-amber-800 shrink-0" />
+              <span>{verificationBanner.message}</span>
             </div>
-          )}
+            <Link
+              href={verificationBanner.href}
+              className="font-semibold text-amber-900 underline shrink-0 hover:text-dd-ink"
+            >
+              {verificationBanner.action} →
+            </Link>
+          </div>
+        )}
 
         {/* Customer Active Package Bar */}
         {isCustomer && customerPackages.length > 0 && (

@@ -78,12 +78,14 @@ function ClassSessionDetailCard({
   durationMinutes: number;
 }) {
   const roomName = slot.room?.name || slot.studio?.name || 'Studio Utama';
+  // Label mengikuti jenis kelas yang dipesan, bukan nama alat yang tidak ada di datanya.
   const modalityLabel =
-    slot.classType.modality === 'GROUP'
-      ? 'Group Reformer'
-      : slot.classType.modality === 'PRIVATE'
-        ? 'Private Studio'
-        : 'Pilates Reformer';
+    {
+      GROUP: 'Kelas grup',
+      PRIVATE: 'Kelas private',
+      DUET: 'Kelas duet',
+      SEMI_PRIVATE: 'Kelas semi private',
+    }[slot.classType.modality ?? ''] ?? 'Kelas Pilates';
 
   return (
     <section className="rounded-dd-xl border border-dd-line bg-white p-5 sm:p-6 shadow-dd-card space-y-5">

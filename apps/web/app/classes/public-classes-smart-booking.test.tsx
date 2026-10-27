@@ -406,4 +406,60 @@ describe('Customer Smart Booking on Public Classes Catalog', () => {
       expect(screen.queryByRole('link', { name: 'Lanjutkan booking' })).not.toBeInTheDocument();
     });
   });
+  describe('banner verifikasi di jadwal', () => {
+    const emptyCatalog = (): PublicClassCatalogClient => ({
+      list: vi.fn().mockResolvedValue({
+        branches: [branchKemang],
+        range: { from: '2026-07-23T00:00:00.000Z', until: '2026-08-06T00:00:00.000Z' },
+        items: [],
+      }),
+    });
+    const noPackages = (): LedgerClient =>
+      ({
+        list: vi.fn().mockResolvedValue({ items: [], summary: {}, page: {} }),
+      }) as unknown as LedgerClient;
+
+    it.each([
+      [
+        'ACTION_REQUIRED',
+        'Lengkapi verifikasi identitas (KTP) dulu supaya bisa memesan kelas.',
+        'Lengkapi verifikasi',
+        /^\/account\/verification\?returnTo=%2F/,
+      ],
+      [
+        'PENDING',
+        'Dokumen verifikasi Anda sedang diperiksa tim studio. Anda bisa memesan kelas setelah disetujui.',
+        'Cek status verifikasi',
+        /^\/account\/verification$/,
+      ],
+      [
+        'REJECTED',
+        'Verifikasi identitas Anda belum disetujui. Perbaiki dokumen untuk bisa memesan kelas.',
+        'Perbaiki dokumen',
+        /^\/account\/verification\?returnTo=%2F/,
+      ],
+    ])('menjelaskan status %s dengan kalimat dan tautan yang sesuai', async (status, message, action, href) => {
+      session.identityVerificationStatus = status;
+      window.history.replaceState({}, '', '/classes?branch=branch-kemang&date=2026-07-25');
+      try {
+        render(<PublicClassesView client={emptyCatalog()} ledgerClient={noPackages()} />);
+        expect(await screen.findByText(message)).toBeVisible();
+        const link = screen.getByRole('link', { name: new RegExp(action) });
+        expect(link.getAttribute('href')).toMatch(href);
+        if (status !== 'PENDING') {
+          expect(decodeURIComponent(link.getAttribute('href') ?? '')).toContain(
+            '/classes?branch=branch-kemang&date=2026-07-25',
+          );
+        }
+      } finally {
+        session.identityVerificationStatus = 'APPROVED';
+      }
+    });
+
+    it('tidak menampilkan banner untuk akun yang sudah terverifikasi', async () => {
+      render(<PublicClassesView client={emptyCatalog()} ledgerClient={noPackages()} />);
+      await screen.findByText(/Jadwal kelas/i);
+      expect(screen.queryByText(/verifikasi identitas/i)).not.toBeInTheDocument();
+    });
+  });
 });
