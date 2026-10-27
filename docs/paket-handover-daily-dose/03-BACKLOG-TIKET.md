@@ -38,11 +38,11 @@ apa pun.
 | T-15 | Sebagian | Teks dasar 17 px di `tailwind.css`; utilitas `border-interactive` (#768b84) sudah ada | `outline-none` masih di 5 tempat tanpa pengganti fokus; belum semua batas interaktif memakai `border-interactive` |
 | T-16 | Sebagian | Tahun pada tanggal booking (`showYear`) ada | Paket kedaluwarsa, booking batal, dan penghitung pesanan belum |
 | T-17 | Belum ada jejak | Sidebar masih `--color-dd-sidebar #17352a` | Berkas yang dibutuhkan (`tailwind.css`, `admin-ui.tsx`) sedang diubah di IDE lain; kerjakan setelah itu |
-| T-18 | Belum ada jejak | Hanya ada "Duplikat sebagai draf" satu kelas | Lihat Penyesuaian: ukuran dipecah dua |
-| T-19 | Belum ada jejak | - | Bergantung T-18 |
-| T-20 | Belum ada jejak | `/workspace` untuk Admin masih ringkasan operasional | Lihat Penyesuaian: aturan H+2 dan reschedule |
-| T-21 | Belum ada jejak | Dialog setuju dengan nama dan nominal sudah ada | Lihat Penyesuaian: tiga keputusan sudah ada di API |
-| T-22 | Belum ada jejak | Antrean verifikasi punya setujui dan tolak | Lihat Penyesuaian: tidak ada "minta foto ulang" |
+| T-18 | Sebagian | T-18a selesai: halaman `/workspace/classes/salin` (rencana dulu: buat, sudah ada, bentrok ruang, bentrok instruktur, sudah lewat; hanya yang bisa dibuat yang dikirim) | T-18b (jadwal rutin) belum: butuh endpoint pembuatan massal, menunggu persetujuan API baru |
+| T-19 | Sebagian | Komponen `EmptyWeeksNotice` terpasang di halaman Hari ini, menghitung 4 minggu ke depan dan menaut ke halaman salin | Belum dipasang di timetable (`class-slot-view.tsx` sedang diubah di IDE lain) dan di dashboard Owner |
+| T-20 | Ada di kode | `/workspace` untuk sesi Admin saja membuka halaman Hari ini (jadwal, daftar hadir, isi-susulan dengan batas 2 jam) | Uji di browser dengan data cabang nyata |
+| T-21 | Ada di kode | Pembandingan nominal, bukti bisa diperbesar, keputusan ditunda 10 detik dengan tombol Batalkan; tombol setuju baru aktif setelah gambar bukti termuat | Uji di browser dengan bukti transfer sungguhan |
+| T-22 | Ada di kode | Mode cepat `/identity-verifications/cepat`: satu berkas per layar, pintasan keyboard, keputusan ditunda 10 detik | API hanya mengirim nama dan nama profil, tanpa tanggal lahir, jadi pembandingan itu belum bisa; uji dengan dokumen gambar asli |
 
 ---
 
@@ -91,12 +91,14 @@ token `brand` pada spesifikasi:
 - **Keputusan:** hijau tombol utama admin memakai `--color-dd-forest` yang ada
   (#285740, kontras 8,31:1 di putih) atau #396552 dari spesifikasi. Usulan:
   tetap #285740, supaya tidak ada dua hijau di satu aplikasi.
+  **Diputuskan 27 Oktober 2026: tetap #285740.**
 - Kriteria "hijau di bawah 5 persen layar" perlu cara ukur yang disepakati
   (hitung piksel pada tangkapan layar 1440 x 900).
 - **Keputusan:** spesifikasi 10.4 melarang kartu statistik hiasan, sedangkan
   dashboard Super Owner dan Owner kini menampilkan sekitar 12 kartu metrik
   (dashboard dua ringkasan, komit 9f97b8ee). Pilih: kartu dipertahankan
   karena memuat tombol tindakan, atau dipangkas ke yang bisa ditindaklanjuti.
+  **Diputuskan 27 Oktober 2026: kartu dipertahankan.** Font tetap Poppins.
 
 **T-18.** Aplikasi sudah punya "Duplikat sebagai draf (+1 minggu)" untuk satu
 kelas. Usulan memecah tiket:
@@ -107,7 +109,7 @@ kelas. Usulan memecah tiket:
 - **T-18b, jadwal rutin** (ukuran L): form hari, jam, studio, tipe, instruktur,
   rentang tanggal. Butuh endpoint pembuatan massal dengan laporan tabrakan,
   jadi perlu persetujuan API baru.
-- **Keputusan:** kerjakan T-18a dulu, atau langsung T-18b.
+- **Keputusan (27 Oktober 2026):** T-18a dulu; T-18b menunggu persetujuan API baru.
 
 **T-19.** Dihitung dari daftar kelas per rentang tanggal yang sudah ada;
 tidak butuh API baru. Bergantung T-18.
