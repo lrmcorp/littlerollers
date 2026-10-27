@@ -15,6 +15,10 @@ import { randomUUID } from 'crypto';
 
 const prisma = new PrismaClient();
 
+// Nama database sumber (v1) dan tujuan (v2). Tujuan selalu diambil dari DATABASE_URL supaya tidak bisa salah arah.
+const V1_DB = process.env.V1_DB ?? 'dailydose_v1';
+const V2_DB = decodeURIComponent(new URL(process.env.DATABASE_URL ?? 'mysql://x@localhost/').pathname.slice(1));
+
 // ============================================================================
 // CONSTANTS & MAPPINGS
 // ============================================================================
@@ -143,7 +147,7 @@ async function chunkInsert<T>(
 async function main() {
   console.log('╔══════════════════════════════════════════════════════════════════════════════╗');
   console.log('║   DAILY DOSE PILATES: MIGRASI PENUH V1 KE V2 (CLEAN SLATE & ZERO DUMMY)      ║');
-  console.log('║   Sumber: dailydose_v1  |  Target: dailydose_v2 (Struktur Skema Utuh)        ║');
+  console.log(`   Sumber: ${V1_DB}  |  Target: ${V2_DB}`);
   console.log('╚══════════════════════════════════════════════════════════════════════════════╝\n');
 
   const startTotal = Date.now();
@@ -151,7 +155,13 @@ async function main() {
   // --------------------------------------------------------------------------
   // STEP 0: PENGOSONGAN DATABASE V2 SECARA MENYELURUH (FRESH & ZERO DUMMY)
   // --------------------------------------------------------------------------
-  console.log('🧹 [STEP 0/9] Mengosongkan seluruh tabel di database dailydose_v2...');
+  // Pengaman: skrip ini mengosongkan tabel tujuan. Hanya jalan bila nama database tujuan disebut persis.
+  if (process.env.CONFIRM_TRUNCATE !== V2_DB) {
+    throw new Error(
+      `Menolak berjalan: skrip ini mengosongkan database "${V2_DB}". Jalankan dengan CONFIRM_TRUNCATE=${V2_DB} bila memang itu tujuannya.`,
+    );
+  }
+  console.log(`🧹 [STEP 0/9] Mengosongkan seluruh tabel di database ${V2_DB}...`);
   await prisma.$executeRawUnsafe('SET FOREIGN_KEY_CHECKS = 0;');
 
   const tablesToTruncate = [
@@ -200,7 +210,7 @@ async function main() {
     await prisma.$executeRawUnsafe(`TRUNCATE TABLE \`${tbl}\`;`);
   }
   await prisma.$executeRawUnsafe('SET FOREIGN_KEY_CHECKS = 1;');
-  console.log('   ✓ Database dailydose_v2 berhasil dikosongkan (100% fresh, 0 dummy data).\n');
+  console.log(`   ✓ Database ${V2_DB} berhasil dikosongkan.\n`);
 
   // --------------------------------------------------------------------------
   // STEP 1: MIGRASI FASILITAS (Cabang, Studio, Ruangan, Rekening Pembayaran)
@@ -288,7 +298,7 @@ async function main() {
   // Ambil studios langsung dari V1
   const v1Studios: any[] = await prisma.$queryRawUnsafe(`
     SELECT ls.id, ls.id_location, ls.nama, ls.equipment, ls.image
-    FROM dailydose_v1.location_studios ls
+    FROM ${V1_DB}.location_studios ls
     ORDER BY ls.id ASC;
   `);
 
@@ -328,7 +338,7 @@ async function main() {
   console.log('\n🧘 [STEP 2/9] Memigrasikan Master Jenis Kelas...');
   const v1Kelas: any[] = await prisma.$queryRawUnsafe(`
     SELECT k.id, k.nama_kelas, k.min_anggota, k.max_anggota, k.duration, k.is_active
-    FROM dailydose_v1.kelas k
+    FROM ${V1_DB}.kelas k
     ORDER BY k.id ASC;
   `);
 
@@ -362,14 +372,14 @@ async function main() {
   // --------------------------------------------------------------------------
   // STEP 3: MIGRASI PENGGUNA & PROFIL (9,339 Pengguna)
   // --------------------------------------------------------------------------
-  console.log('\n👤 [STEP 3/9] Memigrasikan 9.339 Pengguna & Profil dari dailydose_v1.users...');
+  console.log(`\n👤 [STEP 3/9] Memigrasikan Pengguna & Profil dari ${V1_DB}.users...`);
   const v1Users: any[] = await prisma.$queryRawUnsafe(`
     SELECT 
       u.*,
       r.name as role_name
-    FROM dailydose_v1.users u
-    LEFT JOIN dailydose_v1.model_has_roles mhr ON mhr.model_id = u.id
-    LEFT JOIN dailydose_v1.roles r ON r.id = mhr.role_id
+    FROM ${V1_DB}.users u
+    LEFT JOIN ${V1_DB}.model_has_roles mhr ON mhr.model_id = u.id
+    LEFT JOIN ${V1_DB}.roles r ON r.id = mhr.role_id
     ORDER BY u.id ASC;
   `);
 
@@ -423,7 +433,9 @@ async function main() {
       displayName: u.name || 'Member Daily Dose',
       passwordHash: u.password || null,
       role,
-      status: u.status === 0 ? UserStatus.INACTIVE : UserStatus.ACTIVE,
+      // `users.status` di v1 bukan penanda akun aktif (6.166 pengguna berstatus 0 aktif membeli dan booking).
+      // Hanya akun yang dihapus (soft delete) di v1 yang dinonaktifkan.
+      status: u.deleted_at ? UserStatus.INACTIVE : UserStatus.ACTIVE,
       rememberToken: u.remember_token || null,
       preferredBranchId: branchId,
       createdAt,
@@ -484,10 +496,10 @@ async function main() {
     SELECT 
       p.*,
       pl.id_location
-    FROM dailydose_v1.pakets p
+    FROM ${V1_DB}.pakets p
     LEFT JOIN (
       SELECT id_paket, MIN(id_location) as id_location
-      FROM dailydose_v1.paket_locations
+      FROM ${V1_DB}.paket_locations
       GROUP BY id_paket
     ) pl ON pl.id_paket = p.id
     ORDER BY p.id ASC;
@@ -522,7 +534,7 @@ async function main() {
 
   const v1Vouchers: any[] = await prisma.$queryRawUnsafe(`
     SELECT v.*
-    FROM dailydose_v1.vouchers v
+    FROM ${V1_DB}.vouchers v
     ORDER BY v.id ASC;
   `);
 
@@ -559,9 +571,9 @@ async function main() {
   console.log('\n💳 [STEP 5/9] Memigrasikan 15.142 Pesanan Pembelian & Bukti Pembayaran...');
   const v1Orders: any[] = await prisma.$queryRawUnsafe(`
     SELECT op.*
-    FROM dailydose_v1.order_pakets op
-    INNER JOIN dailydose_v1.pakets p ON p.id = op.id_paket
-    INNER JOIN dailydose_v1.users u ON u.id = op.id_user
+    FROM ${V1_DB}.order_pakets op
+    INNER JOIN ${V1_DB}.pakets p ON p.id = op.id_paket
+    INNER JOIN ${V1_DB}.users u ON u.id = op.id_user
     ORDER BY op.id ASC;
   `);
 
@@ -582,6 +594,8 @@ async function main() {
     if (op.status === 1) status = PurchaseStatus.PAID;
     else if (op.status === 2) status = PurchaseStatus.WAITING_VERIFICATION;
     else if (op.status === 3) status = PurchaseStatus.CANCELLED;
+    // Pesanan yang dihapus di v1 (soft delete) dibatalkan di v2: tidak masuk antrean verifikasi dan tidak dihitung omset.
+    if (op.deleted_at) status = PurchaseStatus.CANCELLED;
 
     const amount = Number(op.harga) || 0;
 
@@ -626,8 +640,12 @@ async function main() {
 
     let cpStatus = CustomerPackageStatus.ACTIVE;
     if (remainingSessions <= 0) cpStatus = CustomerPackageStatus.DEPLETED;
-    else if (validUntilDate < new Date()) cpStatus = CustomerPackageStatus.EXPIRED;
+    else if (validUntilDate < new Date() || status === PurchaseStatus.CANCELLED) cpStatus = CustomerPackageStatus.EXPIRED;
     else if (op.is_active === 0) cpStatus = CustomerPackageStatus.FROZEN;
+
+    // Pesanan yang masih menunggu verifikasi tidak dibuatkan paket: persetujuan Finance di v2 membuat paketnya
+    // (purchaseId unik), jadi paket yang sudah ada akan membuat persetujuan gagal atau paket ganda.
+    if (status === PurchaseStatus.WAITING_VERIFICATION || status === PurchaseStatus.PENDING) continue;
 
     customerPackagesToInsert.push({
       id: customerPackageUuid(opId),
@@ -676,14 +694,15 @@ async function main() {
     'PaketPelanggan'
   );
 
-  // Buat default package untuk user historis yang memiliki booking tanpa order
-  const usersWithBookingsNoOrders: any[] = await prisma.$queryRawUnsafe(`
+  // Paket pendamping untuk pengguna yang punya booking tetapi tidak punya paket sama sekali (tanpa pesanan, atau
+  // hanya pesanan yatim/menunggu/dibatalkan tanpa paket). Booking di v2 wajib terkait ke sebuah paket pelanggan.
+  const usersWithPackage = new Set(customerPackagesToInsert.map((cp) => cp.userId));
+  const usersWithBookings: any[] = await prisma.$queryRawUnsafe(`
     SELECT DISTINCT bk.id_user
-    FROM dailydose_v1.booking_kelas bk
-    JOIN dailydose_v1.users u ON u.id = bk.id_user
-    LEFT JOIN dailydose_v1.order_pakets op ON op.id_user = bk.id_user
-    WHERE op.id IS NULL;
+    FROM ${V1_DB}.booking_kelas bk
+    JOIN ${V1_DB}.users u ON u.id = bk.id_user;
   `);
+  const usersWithBookingsNoOrders = usersWithBookings.filter((row) => !usersWithPackage.has(userUuid(Number(row.id_user))));
 
   for (const row of usersWithBookingsNoOrders) {
     const uId = userUuid(Number(row.id_user));
@@ -712,7 +731,7 @@ async function main() {
   console.log('\n📅 [STEP 7/9] Memigrasikan 77.827 Jadwal Kelas & Penugasan Instruktur...');
   const v1Activities: any[] = await prisma.$queryRawUnsafe(`
     SELECT ka.*
-    FROM dailydose_v1.kelas_activities ka
+    FROM ${V1_DB}.kelas_activities ka
     ORDER BY ka.id ASC;
   `);
 
@@ -801,8 +820,8 @@ async function main() {
 
   const v1Bookings: any[] = await prisma.$queryRawUnsafe(`
     SELECT bk.*
-    FROM dailydose_v1.booking_kelas bk
-    INNER JOIN dailydose_v1.kelas_activities ka ON ka.id = bk.id_kelas_activity
+    FROM ${V1_DB}.booking_kelas bk
+    INNER JOIN ${V1_DB}.kelas_activities ka ON ka.id = bk.id_kelas_activity
     ORDER BY bk.id ASC;
   `);
 
@@ -884,16 +903,35 @@ async function main() {
   // --------------------------------------------------------------------------
   console.log('\n📊 [STEP 9/9] Mengagregasikan Booked Count per Slot Kelas...');
   await prisma.$executeRawUnsafe(`
-    UPDATE dailydose_v2.slot_kelas sk
+    UPDATE ${V2_DB}.slot_kelas sk
     JOIN (
       SELECT classSlotId, COUNT(*) as cnt
-      FROM dailydose_v2.pemesanan_kelas
+      FROM ${V2_DB}.pemesanan_kelas
       WHERE status IN ('BOOKED', 'ATTENDED')
       GROUP BY classSlotId
     ) b ON b.classSlotId = sk.id
     SET sk.bookedCount = b.cnt;
   `);
   console.log('   ✓ Booked count slot kelas berhasil disinkronkan.');
+
+  // --------------------------------------------------------------------------
+  // STEP 10: PELANGGAN LAMA DIANGGAP SUDAH DIKENAL STUDIO
+  // --------------------------------------------------------------------------
+  // v2 mewajibkan status verifikasi identitas untuk booking. Pelanggan yang pernah membayar paket atau pernah hadir
+  // di studio sudah dikenal staf, jadi diberi penanda yang sama dengan hasil persetujuan KTP (`KYC_APPROVED`).
+  // Pelanggan lain tetap harus verifikasi saat pertama booking atau membeli.
+  console.log('\n🪪 [STEP 10] Menandai pelanggan lama (pernah membayar atau hadir) sebagai terverifikasi...');
+  const kycMarked = await prisma.$executeRawUnsafe(`
+    UPDATE ${V2_DB}.profil_pengguna p
+    SET p.notes = CASE WHEN p.notes IS NULL OR p.notes = '' THEN 'KYC_APPROVED' ELSE CONCAT(p.notes, ' | KYC_APPROVED') END
+    WHERE (p.notes IS NULL OR p.notes NOT LIKE '%KYC_APPROVED%')
+      AND p.userId IN (
+        SELECT userId FROM ${V2_DB}.pembelian WHERE status = 'PAID'
+        UNION
+        SELECT userId FROM ${V2_DB}.pemesanan_kelas WHERE status = 'ATTENDED'
+      );
+  `);
+  console.log(`   ✓ ${kycMarked} pelanggan lama ditandai terverifikasi.`);
 
   const totalTime = ((Date.now() - startTotal) / 1000).toFixed(1);
   console.log('\n╔══════════════════════════════════════════════════════════════════════════════╗');
