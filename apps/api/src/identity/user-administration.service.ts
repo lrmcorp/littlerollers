@@ -13,6 +13,9 @@ import { buildPhoneSearchVariants } from './manajemen-pelanggan.service';
 import { canonicalRole } from './role-aliases';
 
 /** Halaman staf yang memakai pemilih user: penugasan, master, hak akses, audit. */
+/** Peran staf cabang yang boleh dilihat peran tanpa `user:admin` (tanpa Super Owner dan pelanggan). */
+export const BRANCH_STAFF_ROLES: Role[] = ['OWNER', 'MANAGER', 'FINANCE', 'ADMIN', 'INSTRUCTOR'];
+
 const USER_LOOKUP_CAPABILITIES = [
   'assignment:manage',
   'master:manage',
@@ -150,10 +153,17 @@ export class UserAdministrationService {
       }
     }
 
+    // Tanpa `user:admin`, daftar ini hanya berisi staf cabang: tanpa akun Super Owner dan tanpa pelanggan
+    // (pelanggan dikelola lewat Data Pelanggan dengan izin tersendiri).
+    const roleLimit: Prisma.UserWhereInput | undefined = principal.capabilities.includes('user:admin')
+      ? undefined
+      : { role: { in: BRANCH_STAFF_ROLES } };
+
     const q = filters.search?.trim();
     const phoneVariants = q ? buildPhoneSearchVariants(q) : [];
 
     const where: Prisma.UserWhereInput = {
+      ...(roleLimit ? { AND: [roleLimit] } : {}),
       ...(preferredBranchCondition ? { preferredBranchId: preferredBranchCondition } : {}),
       ...(filters.status ? { status: filters.status as UserStatus } : {}),
       ...(filters.role ? { role: filters.role as Role } : {}),
@@ -198,6 +208,12 @@ export class UserAdministrationService {
           role: filters.role
             ? (filters.role as any)
             : { not: 'CUSTOMER' },
+          ...(roleLimit
+            ? {
+                AND: [roleLimit],
+                ...(preferredBranchCondition ? { preferredBranchId: preferredBranchCondition } : {}),
+              }
+            : {}),
         },
         _count: { _all: true },
       }),
@@ -373,6 +389,9 @@ export class UserAdministrationService {
       include: { profile: true },
     });
     if (!user) throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+    // Sama dengan daftar pengguna: tanpa `user:admin`, hanya staf cabang yang bisa dibuka (bukan Super Owner atau pelanggan).
+    if (!principal.capabilities.includes('user:admin') && !BRANCH_STAFF_ROLES.includes(user.role))
+      throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
 
     const hasGlobalBranch = principal.capabilities.includes('branch:all');
     if (

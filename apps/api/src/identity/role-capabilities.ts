@@ -111,8 +111,8 @@ export const ROLE_CAPABILITIES: Record<ApplicationRole, readonly string[]> = {
     'customer:manage',
     'customer:credential:initialize',
     'payment:review',
+    // Front desk meninjau dan mencatat penjualan, tetapi tidak memutus pembayaran (`payment:decide`, `purchase:decide`).
     'purchase:review',
-    'purchase:decide',
     'customer-package:manage',
     'ledger:read',
     'ledger:adjust:read',

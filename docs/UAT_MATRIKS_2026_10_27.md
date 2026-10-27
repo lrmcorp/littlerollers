@@ -66,13 +66,13 @@ sehingga tidak ada data yang berubah. Acuan harapan: matriks di `docs/FITUR_MODU
 
 | Probe | SO | Owner GG | Owner SBY | Manager | Finance | Admin | Instruktur |
 |---|---|---|---|---|---|---|---|
-| Daftar pengguna | 200 | 200 | 200 | 200 | 403 | 200 | 403 |
+| Daftar pengguna | 200 | 200 (hanya staf, R-2) | 200 (hanya staf) | 200 (hanya staf) | 403 | 200 (hanya staf) | 403 |
 | Reset password langsung | 422 | 403 | 403 | 403 | 403 | 403 | 403 |
 | Antrean verifikasi KTP | 200 | 403 | 403 | 403 | 403 | 403 | 403 |
 | Baca timetable GG | 200 | 200 | 403 | 200 | 403 | 200 | 200 |
 | Buat kelas | 400 | 403 | 403 | 400 | 403 | 400 | 403 |
 | Antrean pembayaran | 200 | 403 | 403 | 200 | 200 | 200 | 403 |
-| Setujui pembayaran | 404 | 403 | 403 | 404 | 404 | **404** | 403 |
+| Setujui pembayaran | 404 | 403 | 403 | 404 | 404 | 403 (diperbaiki, R-1) | 403 |
 | Laporan omset GG / SBY | 200 / 200 | 200 / 403 | 403 / 200 | 403 / 403 | 200 / 200 | 403 / 403 | 403 / 403 |
 | Laporan honor instruktur GG | 200 | 200 | 403 | 403 | 200 | 403 | 403 |
 | Catat biaya lain | 400 | 403 | 403 | 403 | 400 | 403 | 403 |
@@ -87,14 +87,14 @@ sehingga tidak ada data yang berubah. Acuan harapan: matriks di `docs/FITUR_MODU
 Isolasi antar cabang berjalan: Owner Green Garden ditolak untuk laporan Surabaya, Owner Surabaya ditolak untuk timetable dan booking Green Garden.
 Probe verifikasi 422 (tanpa 403) pada baris Super Owner berarti lolos otorisasi lalu ditolak validasi.
 
-### Temuan yang butuh keputusan (belum diubah)
+### Temuan dan penyelesaiannya
 
-| ID | Temuan | Pilihan |
+| ID | Temuan | Status |
 |---|---|---|
-| R-1 | **Admin (front desk) dan Manager bisa memutus pembayaran** karena memegang kapabilitas lama `purchase:decide` yang diterima `access.review()`. Matriks dan teks di halaman antrean ("keputusan hanya Finance, Manager, Super Admin") menyebut Admin hanya meninjau. Admin juga memegang `purchase:record` (mencatat penjualan), jadi satu peran bisa mencatat lalu menyetujui; pemisahan tugas di layanan hanya menolak bila pencatat dan pemutus orang yang sama. | Cabut `purchase:decide` dari ADMIN (rekomendasi), atau ubah dokumen dan teks halaman |
-| R-2 | **Daftar pengguna menampilkan akun pelanggan (16 dari 20 baris) dan akun Super Owner (dengan email)** kepada Admin, Manager, dan Owner cabang. Kode menyebut `user:read` dibutuhkan agar form jadwal bisa memilih instruktur. Matriks menyebut Admin tidak boleh dan Owner/Manager hanya membaca staf cabang. | Batasi daftar untuk peran ini ke staf cabang (tanpa pelanggan dan Super Owner), atau beri Admin hanya daftar instruktur |
-| R-3 | **Picu manual otomasi kuota H-24 hanya untuk Super Owner**, sedangkan matriks menyebut Manager dan Admin juga boleh. | Beri kapabilitas ke Manager/Admin, atau perbarui matriks |
-| R-4 | Urutan pemeriksaan penulisan konten publik: jenis konten divalidasi sebelum izin, jadi peran tanpa izin dapat menebak jenis yang didukung (tidak ada data yang berubah). | Pindahkan pemeriksaan izin ke depan (kecil) |
+| R-1 | Admin (front desk) dan Manager bisa memutus pembayaran lewat kapabilitas lama `purchase:decide`; Admin juga bisa mencatat penjualan (`purchase:record`). | **Diperbaiki 27 Okt**: `purchase:decide` dicabut dari ADMIN. Manager, Finance, dan Super Owner tetap. Diuji langsung: Admin 403, lainnya lolos. |
+| R-2 | Daftar pengguna menampilkan pelanggan dan akun Super Owner (dengan email) kepada Admin, Manager, dan Owner cabang. | **Diperbaiki 27 Okt**: tanpa `user:admin` hanya staf cabang (Owner, Manager, Finance, Admin, Instruktur) yang tampil di daftar dan di hitungan ringkasan, dan `audience=CUSTOMER` kosong. Pemeriksaan tambahan menemukan detail akun (`GET /users/:id`) untuk Super Owner dan pelanggan juga terbuka; kini 404 untuk peran cabang. |
+| R-3 | Picu manual otomasi kuota H-24 hanya untuk Super Owner, sedangkan matriks menyebut Manager dan Admin juga boleh. | Menunggu keputusan: beri kapabilitas, atau ubah matriks |
+| R-4 | Urutan pemeriksaan penulisan konten publik: jenis konten divalidasi sebelum izin (tidak ada data yang berubah). | Belum, kecil |
 
 ## 4. Belum dijalankan
 
