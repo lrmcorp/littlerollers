@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { ClassSlot } from '../api-clients/class-slot-client';
-import { attendanceWindow, liveSlots, pickRunningAndNext } from './front-desk-today';
+import { attendanceWindow, liveSlots, pickLastEnded, pickRunningAndNext, slotPhase } from './front-desk-today';
 
 const at = (hour: number, minute = 0) => new Date(Date.UTC(2026, 9, 27, hour, minute));
 const slot = (id: string, start: Date, endHour: number, status = 'CONFIRMED') =>
@@ -25,6 +25,15 @@ describe('front desk today helpers', () => {
     });
     expect(pickRunningAndNext([morning, midday, evening], at(3))).toMatchObject({ running: null, next: { id: 'midday' } });
     expect(pickRunningAndNext([morning], at(23)).next).toBeNull();
+  });
+
+  it('picks the last class that ended, and labels each class as finished, running or not started', () => {
+    expect(pickLastEnded([morning, midday, evening], at(7))?.id).toBe('midday');
+    expect(pickLastEnded([morning, midday, evening], at(0))).toBeNull();
+    expect(pickLastEnded([morning, slot('x', at(3), 4, 'CANCELLED')], at(23))?.id).toBe('morning');
+    expect(slotPhase(midday, at(3))).toBe('Belum mulai');
+    expect(slotPhase(midday, at(4, 30))).toBe('Berjalan');
+    expect(slotPhase(midday, at(5))).toBe('Selesai');
   });
 
   it('allows manual attendance only for confirmed or completed classes within 2 hours of the end', () => {

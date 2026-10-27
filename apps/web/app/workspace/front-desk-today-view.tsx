@@ -30,7 +30,9 @@ import {
   ATTENDANCE_REASON_PRESETS,
   attendanceWindow,
   liveSlots,
+  pickLastEnded,
   pickRunningAndNext,
+  slotPhase,
 } from './front-desk-today';
 
 export interface FrontDeskTodayViewProps {
@@ -134,7 +136,8 @@ export function FrontDeskTodayView({
 
   const slots = useMemo(() => liveSlots(workspace?.slots ?? []), [workspace?.slots]);
   const { running, next } = useMemo(() => pickRunningAndNext(slots, now), [slots, now]);
-  const selected = slots.find((slot) => slot.id === selectedSlotId) ?? running ?? next ?? null;
+  const selected =
+    slots.find((slot) => slot.id === selectedSlotId) ?? running ?? next ?? pickLastEnded(slots, now);
 
   const loadAttendees = useCallback(async () => {
     if (!selected) {
@@ -311,6 +314,33 @@ export function FrontDeskTodayView({
               {classCard('Berjalan sekarang', running, 'Tidak ada kelas yang sedang berjalan.')}
               {classCard('Berikutnya', next, 'Tidak ada kelas lagi hari ini.')}
             </div>
+
+            <section aria-labelledby="all-classes-heading" className="space-y-3 rounded-dd-xl border border-dd-border-interactive bg-white p-5">
+              <h2 id="all-classes-heading" className="text-lg font-bold">
+                Semua kelas hari ini
+              </h2>
+              <ul className="m-0 grid list-none gap-2 p-0">
+                {slots.map((slot) => (
+                  <li key={slot.id}>
+                    <button
+                      type="button"
+                      aria-pressed={selected?.id === slot.id}
+                      onClick={() => setSelectedSlotId(slot.id)}
+                      className={`flex min-h-[44px] w-full flex-wrap items-center justify-between gap-2 rounded-dd-md border px-3 py-2 text-left text-sm font-semibold transition ${
+                        selected?.id === slot.id
+                          ? 'border-2 border-dd-forest bg-white text-dd-ink'
+                          : 'border-dd-border-interactive bg-white text-dd-ink hover:bg-dd-surface-muted'
+                      }`}
+                    >
+                      <span>
+                        {time(slot)} · {className(slot)}
+                      </span>
+                      <span className="text-dd-muted">{slotPhase(slot, now)}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </section>
 
             <section aria-labelledby="attendance-heading" className="space-y-3 rounded-dd-xl border border-dd-border-interactive bg-white p-5">
               <h2 id="attendance-heading" className="text-lg font-bold">

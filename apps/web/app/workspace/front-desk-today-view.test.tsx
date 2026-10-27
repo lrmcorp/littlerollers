@@ -124,6 +124,38 @@ describe('FrontDeskTodayView', () => {
     expect((await screen.findAllByText('Belum hadir')).length).toBeGreaterThan(0);
   });
 
+  it('lets staff open a class that already ended, to mark people present within 2 hours', async () => {
+    const user = userEvent.setup();
+    const ended = slot('ended', '2026-10-27T02:00:00Z', '2026-10-27T03:00:00Z'); // selesai 90 menit lalu
+    const old = slot('old', '2026-10-26T23:00:00Z', '2026-10-27T00:00:00Z'); // selesai 4,5 jam lalu
+    const next = slot('later', '2026-10-27T07:00:00Z', '2026-10-27T08:00:00Z', 'PUBLISHED');
+    const c = clients({ slots: workspace([old, ended, next]) });
+    renderDesk(c);
+
+    const all = await screen.findByRole('region', { name: 'Semua kelas hari ini' });
+    expect(within(all).getAllByRole('button').map((button) => button.textContent)).toEqual([
+      expect.stringContaining('Selesai'),
+      expect.stringContaining('Selesai'),
+      expect.stringContaining('Belum mulai'),
+    ]);
+
+    await user.click(within(all).getAllByRole('button')[1]!);
+    await waitFor(() => expect(c.bookingClient.list).toHaveBeenLastCalledWith(expect.objectContaining({ classSlotId: 'ended' })));
+    expect(await screen.findByRole('button', { name: 'Tandai hadir' })).toBeVisible();
+
+    await user.click(within(all).getAllByRole('button')[0]!);
+    await waitFor(() => expect(c.bookingClient.list).toHaveBeenLastCalledWith(expect.objectContaining({ classSlotId: 'old' })));
+    expect(await screen.findByRole('note')).toHaveTextContent(/Lewat 2 jam setelah kelas selesai/);
+    expect(screen.queryByRole('button', { name: 'Tandai hadir' })).toBeNull();
+  });
+
+  it('opens the last class that ended when nothing is running or coming up', async () => {
+    const c = clients({ slots: workspace([slot('ended', '2026-10-27T02:00:00Z', '2026-10-27T03:00:00Z')]) });
+    renderDesk(c);
+    await waitFor(() => expect(c.bookingClient.list).toHaveBeenCalledWith(expect.objectContaining({ classSlotId: 'ended' })));
+    expect(await screen.findByText('Pelanggan Satu')).toBeVisible();
+  });
+
   it('hides the mark button without the attendance permission', async () => {
     capabilities.list = ['class-slot:read', 'booking:read'];
     renderDesk(clients());

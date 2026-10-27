@@ -27,6 +27,20 @@ export function pickRunningAndNext(slots: readonly ClassSlot[], now: Date) {
   return { running, next };
 }
 
+/** Kelas terakhir yang sudah selesai sampai `now`; dipilih bila tidak ada kelas berjalan atau berikutnya. */
+export function pickLastEnded(slots: readonly ClassSlot[], now: Date): ClassSlot | null {
+  const ended = liveSlots(slots).filter((slot) => slot.endAt <= now);
+  return ended[ended.length - 1] ?? null;
+}
+
+export type SlotPhase = 'Selesai' | 'Berjalan' | 'Belum mulai';
+
+export function slotPhase(slot: ClassSlot, now: Date): SlotPhase {
+  if (slot.endAt <= now) return 'Selesai';
+  if (slot.startAt <= now) return 'Berjalan';
+  return 'Belum mulai';
+}
+
 /**
  * Apakah admin boleh mencatat kehadiran pelanggan kelas ini sekarang. API menolak bila kelas belum
  * dikonfirmasi (kuota minimum belum terpenuhi) atau sudah lewat 2 jam setelah selesai.
