@@ -38,7 +38,7 @@ apa pun.
 | T-15 | Sebagian | Teks dasar 17 px di `tailwind.css`; utilitas `border-interactive` (#768b84) sudah ada | `outline-none` masih di 5 tempat tanpa pengganti fokus; belum semua batas interaktif memakai `border-interactive` |
 | T-16 | Sebagian | Tahun pada tanggal booking (`showYear`) ada | Paket kedaluwarsa, booking batal, dan penghitung pesanan belum |
 | T-17 | Belum ada jejak | Sidebar masih `--color-dd-sidebar #17352a` | Berkas yang dibutuhkan (`tailwind.css`, `admin-ui.tsx`) sedang diubah di IDE lain; kerjakan setelah itu |
-| T-18 | Sebagian | T-18a selesai: halaman `/workspace/classes/salin` (rencana dulu: buat, sudah ada, bentrok ruang, bentrok instruktur, sudah lewat; hanya yang bisa dibuat yang dikirim) | T-18b (jadwal rutin) belum: butuh endpoint pembuatan massal, menunggu persetujuan API baru |
+| T-18 | Ada di kode | T-18a: `/workspace/classes/salin`. T-18b: `/workspace/classes/rutin` (hari Sen–Min, jam 24 jam dengan titik, durasi, tipe, studio, ruangan, instruktur, tanggal mulai dan akhir sampai 92 hari). Keduanya menampilkan rencana lebih dulu (buat, sudah ada, bentrok, sudah lewat) dan hanya membuat kelas baru | T-18b dibuat di web memakai API pembuatan kelas yang ada (3 permintaan bersamaan), tanpa endpoint massal: server tetap menolak bentrok ruang dan instruktur. Bila nanti terlalu lambat untuk jadwal besar, baru perlu endpoint massal. Uji pembuatan sungguhan di browser belum dilakukan |
 | T-19 | Sebagian | Komponen `EmptyWeeksNotice` terpasang di halaman Hari ini, menghitung 4 minggu ke depan dan menaut ke halaman salin | Belum dipasang di timetable (`class-slot-view.tsx` sedang diubah di IDE lain) dan di dashboard Owner |
 | T-20 | Ada di kode | `/workspace` untuk sesi Admin saja membuka halaman Hari ini (jadwal, daftar hadir, isi-susulan dengan batas 2 jam) | Uji di browser dengan data cabang nyata |
 | T-21 | Ada di kode | Pembandingan nominal, bukti bisa diperbesar, keputusan ditunda 10 detik dengan tombol Batalkan; tombol setuju baru aktif setelah gambar bukti termuat | Uji di browser dengan bukti transfer sungguhan |
@@ -109,7 +109,7 @@ kelas. Usulan memecah tiket:
 - **T-18b, jadwal rutin** (ukuran L): form hari, jam, studio, tipe, instruktur,
   rentang tanggal. Butuh endpoint pembuatan massal dengan laporan tabrakan,
   jadi perlu persetujuan API baru.
-- **Keputusan (27 Oktober 2026):** T-18a dulu; T-18b menunggu persetujuan API baru.
+- **Keputusan (27 Oktober 2026):** T-18a dulu, lalu T-18b. T-18b dikerjakan di web tanpa endpoint massal (lihat tabel status).
 
 **T-19.** Dihitung dari daftar kelas per rentang tanggal yang sudah ada;
 tidak butuh API baru. Bergantung T-18.

@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import type { ClassSlot } from '../api-clients/class-slot-client';
-import { countClassesByWeek, planWeekCopy, summarizeCopy } from './schedule-weeks';
+import {
+  countClassesByWeek,
+  MAX_RECURRING_DAYS,
+  planRecurring,
+  planWeekCopy,
+  summarizeCopy,
+  validateRecurring,
+  type RecurringTemplate,
+} from './schedule-weeks';
 
 const TZ = 'Asia/Jakarta';
 // Senin 26 Okt 2026 09.00 WIB = 02.00 UTC
@@ -68,5 +76,89 @@ describe('planWeekCopy', () => {
   it('plans four weeks without clashing with itself', () => {
     const all = [7, 14, 21, 28].flatMap((offset) => planWeekCopy(source, [], offset, now));
     expect(all.filter((item) => item.decision.kind === 'CREATE')).toHaveLength(8);
+  });
+});
+
+describe('planRecurring', () => {
+  // Senin 26 Okt 2026 sampai Minggu 8 Nov 2026 (dua minggu penuh), jam 09.00 WIB
+  const template: RecurringTemplate = {
+    days: [1, 3],
+    startTime: '09:00',
+    durationMinutes: 60,
+    classTypeId: 'type-1',
+    studioId: 'studio-1',
+    roomId: 'room-1',
+    instructorUserId: 'inst-1',
+    from: '2026-10-26',
+    until: '2026-11-08',
+  };
+
+  it('creates one class per chosen weekday between the two dates, at the branch local time', () => {
+    const plan = planRecurring(template, [], now, TZ);
+    expect(plan.map((item) => item.startAt.toISOString())).toEqual([
+      '2026-10-26T02:00:00.000Z',
+      '2026-10-28T02:00:00.000Z',
+      '2026-11-02T02:00:00.000Z',
+      '2026-11-04T02:00:00.000Z',
+    ]);
+    expect(plan.every((item) => item.decision.kind === 'CREATE')).toBe(true);
+    expect(plan[0]!.endAt.toISOString()).toBe('2026-10-26T03:00:00.000Z');
+  });
+
+  it('includes both end dates and treats Sunday as day 7', () => {
+    const plan = planRecurring({ ...template, days: [7], from: '2026-11-01', until: '2026-11-01' }, [], now, TZ);
+    expect(plan).toHaveLength(1);
+    expect(plan[0]!.startAt.toISOString()).toBe('2026-11-01T02:00:00.000Z');
+  });
+
+  it('never touches a class that already exists and reports clashes instead of creating them', () => {
+    const existing = [
+      slot('same', 0),
+      slot('room', 2, { classTypeId: 'type-2', instructorUserId: 'inst-9' }),
+      slot('teacher', 7, { studioId: 'studio-2', roomId: 'room-9' }),
+    ];
+    const plan = planRecurring(template, existing, now, TZ);
+    expect(plan.map((item) => item.decision.kind)).toEqual(['EXISTS', 'ROOM_CONFLICT', 'INSTRUCTOR_CONFLICT', 'CREATE']);
+    expect(summarizeCopy(plan as never)).toMatchObject({ create: 1, exists: 1, conflicts: 2 });
+  });
+
+  it('skips dates that are already in the past', () => {
+    const plan = planRecurring(template, [], monday(3), TZ);
+    expect(plan.map((item) => item.decision.kind)).toEqual(['PAST', 'PAST', 'CREATE', 'CREATE']);
+  });
+
+  it('plans three months of Monday, Wednesday and Friday classes in one go', () => {
+    const plan = planRecurring({ ...template, days: [1, 3, 5], from: '2026-10-26', until: '2027-01-24' }, [], now, TZ);
+    expect(plan).toHaveLength(39);
+  });
+});
+
+describe('validateRecurring', () => {
+  const ok: RecurringTemplate = {
+    days: [1],
+    startTime: '09:00',
+    durationMinutes: 60,
+    classTypeId: 'type-1',
+    studioId: 'studio-1',
+    from: '2026-10-26',
+    until: '2026-11-08',
+  };
+
+  it('accepts a complete form', () => {
+    expect(validateRecurring(ok)).toBeNull();
+  });
+
+  it('explains what is missing in plain words', () => {
+    expect(validateRecurring({ ...ok, days: [] })).toBe('Pilih paling sedikit satu hari.');
+    expect(validateRecurring({ ...ok, classTypeId: '' })).toBe('Pilih tipe kelas.');
+    expect(validateRecurring({ ...ok, studioId: '' })).toBe('Pilih studio.');
+    expect(validateRecurring({ ...ok, until: '2026-10-01' })).toBe('Tanggal akhir tidak boleh sebelum tanggal mulai.');
+    expect(validateRecurring({ ...ok, from: '' })).toBe('Isi tanggal mulai dan tanggal akhir.');
+  });
+
+  it('limits one fill to three months', () => {
+    expect(validateRecurring({ ...ok, until: '2027-01-24' })).toBeNull();
+    expect(MAX_RECURRING_DAYS).toBe(92);
+    expect(validateRecurring({ ...ok, until: '2027-02-01' })).toMatch(/tiga bulan/);
   });
 });

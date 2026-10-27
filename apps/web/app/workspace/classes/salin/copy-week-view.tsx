@@ -17,7 +17,7 @@ import { Feedback, Skeleton } from '../../../ui';
 import { formatBranchDay, formatBranchTime, localDateKey, shiftWeek, weekWindow } from '../../../lib/class-time';
 import { useSessionContext } from '../../../session-context';
 import { EmptyWeeksNotice } from '../../empty-weeks-notice';
-import { DECISION_LABEL, planWeekCopy, summarizeCopy, type PlannedCopy } from '../../schedule-weeks';
+import { DECISION_LABEL, planWeekCopy, runPool, summarizeCopy, type PlannedCopy } from '../../schedule-weeks';
 
 const CONCURRENCY = 3;
 
@@ -25,18 +25,6 @@ interface Preview {
   weeks: number;
   plan: PlannedCopy[];
   workspace: ClassWorkspace;
-}
-
-/** Jalankan `task` untuk setiap item dengan paling banyak `limit` yang berjalan bersamaan. */
-async function runPool<T>(items: readonly T[], limit: number, task: (item: T) => Promise<void>) {
-  let cursor = 0;
-  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
-    while (cursor < items.length) {
-      const item = items[cursor++]!;
-      await task(item);
-    }
-  });
-  await Promise.all(workers);
 }
 
 /**
@@ -156,9 +144,14 @@ export function CopyWeekView({
         titleId="copy-week-title"
         description={`Salin kelas minggu ini (${thisWeek.label}) ke minggu berikutnya. Kelas yang sudah ada tidak diubah.`}
         actions={
-          <Link href="/workspace/classes" className="inline-flex items-center gap-1.5 text-sm font-semibold text-dd-forest">
-            <ArrowLeft className="size-4" aria-hidden="true" /> Kembali ke timetable
-          </Link>
+          <div className="flex flex-wrap items-center gap-4">
+            <Link href="/workspace/classes/rutin" className="text-sm font-semibold text-dd-forest">
+              Jadwal rutin
+            </Link>
+            <Link href="/workspace/classes" className="inline-flex items-center gap-1.5 text-sm font-semibold text-dd-forest">
+              <ArrowLeft className="size-4" aria-hidden="true" /> Kembali ke timetable
+            </Link>
+          </div>
         }
       />
 
