@@ -21,6 +21,8 @@ import { LedgerController } from './ledger.controller';
 import { LedgerService } from './ledger.service';
 import { FinanceController } from './finance.controller';
 import { RetentionController } from './retention.controller';
+import { TargetController } from './target.controller';
+import { TargetService } from './target.service';
 import { RetentionService } from './retention.service';
 import { FinanceService } from './finance.service';
 
@@ -28,7 +30,13 @@ import { PaymentExpirationWorkerService } from './payment-expiration-worker';
 
 @Module({
   imports: [DatabaseModule, FoundationModule, IdentityModule],
-  controllers: [PackagesController, LedgerController, FinanceController, RetentionController],
+  controllers: [
+    PackagesController,
+    LedgerController,
+    FinanceController,
+    RetentionController,
+    TargetController,
+  ],
   providers: [
     CustomerOrderService,
     PackageAccessService,
@@ -44,6 +52,7 @@ import { PaymentExpirationWorkerService } from './payment-expiration-worker';
     LedgerService,
     FinanceService,
     RetentionService,
+    TargetService,
     PaymentExpirationWorkerService,
   ],
   exports: [LedgerService, FinanceService, PaymentExpirationWorkerService],

@@ -1150,7 +1150,10 @@ model TargetOmzet {
   branch Cabang? @relation(fields: [branchId], references: [id], onDelete: Cascade)
   setBy  User    @relation("TargetSetter", fields: [setById], references: [id], onDelete: Restrict)
 
-  @@unique([branchId, period])
+  // Tanpa @@unique([branchId, period]): MySQL menganggap tiap NULL berbeda, jadi batasan itu
+  // tidak akan pernah menjaga baris target gabungan (branchId null). Keunikan ditegakkan di
+  // TargetService lewat findFirst lalu update-atau-create.
+  @@index([branchId, period])
   @@index([period])
   @@map("target_omzet")
 }
