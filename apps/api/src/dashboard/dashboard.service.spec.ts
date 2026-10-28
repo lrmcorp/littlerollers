@@ -207,4 +207,24 @@ describe('DashboardService', () => {
     ).rejects.toMatchObject({ code: 'VALIDATION_ERROR', status: 422 });
     expect(db.pembelian.aggregate).not.toHaveBeenCalled();
   });
+
+  it('reuses in-memory cached customerOverview when ttlMs is specified', async () => {
+    const db = database();
+    const service = new DashboardService(db as never);
+    const p = principal({ userId: 'cached-user', roles: [{ role: 'CUSTOMER', branchId: null }] });
+
+    const first = await service.customerOverview(p, { ttlMs: 10_000 });
+    expect(db.pemesananKelas.findMany).toHaveBeenCalledTimes(1);
+
+    const second = await service.customerOverview(p, { ttlMs: 10_000 });
+    expect(db.pemesananKelas.findMany).toHaveBeenCalledTimes(1);
+    expect(second).toBe(first);
+
+    const third = await service.customerOverview(p, { forceRefresh: true, ttlMs: 10_000 });
+    expect(db.pemesananKelas.findMany).toHaveBeenCalledTimes(2);
+
+    service.clearCustomerOverviewCache('cached-user');
+    await service.customerOverview(p, { ttlMs: 10_000 });
+    expect(db.pemesananKelas.findMany).toHaveBeenCalledTimes(3);
+  });
 });
