@@ -187,7 +187,7 @@ export function PaymentAccountsView({
 
   return (
     <section
-      className="rounded-dd-lg border border-dd-line bg-dd-surface p-6 shadow-dd-card"
+      className="rounded-dd-lg border border-dd-line bg-dd-surface p-6"
       aria-labelledby="payment-account-title"
     >
       {/* Header Panel */}

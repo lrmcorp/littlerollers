@@ -566,7 +566,7 @@ export function Dashboard({
                       Rincian Finansial & Transaksi
                     </span>
                     {overview.financial.completeness === 'INCOMPLETE' && (
-                      <span className="inline-flex items-center gap-1.5 rounded-full border border-dd-warning/30 bg-dd-warning-soft px-2.5 py-0.5 text-[11px] font-semibold text-dd-warning shadow-xs">
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-dd-warning/30 bg-dd-warning-soft px-2.5 py-0.5 text-[11px] font-semibold text-dd-warning">
                         <span className="size-1.5 rounded-full bg-dd-warning" />
                         {overview.financial.anomalyCount} anomali data migrasi tercatat
                       </span>
@@ -586,7 +586,7 @@ export function Dashboard({
           {Array.from({ length: 8 }, (_, index) => (
             <div
               key={index}
-              className="h-40 animate-pulse rounded-dd-lg border border-dd-line/80 bg-white/70 shadow-sm"
+              className="h-40 animate-pulse rounded-dd-lg border border-dd-line/80 bg-white/70"
             />
           ))}
         </div>
@@ -919,7 +919,7 @@ export function Dashboard({
                 <Link
                   key={page.href}
                   href={page.href}
-                  className="group flex flex-col justify-between gap-3 rounded-dd-lg border border-dd-line/80 bg-white p-4 no-underline shadow-sm transition hover:-translate-y-0.5 hover:border-dd-forest hover:shadow-dd-card"
+                  className="group flex flex-col justify-between gap-3 rounded-dd-lg border border-dd-line/80 bg-white p-4 no-underline transition hover:-translate-y-0.5 hover:border-dd-forest hover:"
                 >
                   <div className="flex items-center justify-between">
                     <span className="grid size-9 place-items-center rounded-dd-md bg-dd-forest/10 text-dd-forest">

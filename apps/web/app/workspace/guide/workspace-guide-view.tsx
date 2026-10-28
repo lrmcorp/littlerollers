@@ -351,7 +351,7 @@ export function WorkspaceGuideView() {
   return (
     <div className="space-y-6">
       {/* Header Banner */}
-      <div className="rounded-dd-lg border border-dd-line/80 bg-white p-6 shadow-sm sm:p-8">
+      <div className="rounded-dd-lg border border-dd-line/80 bg-white p-6 sm:p-8">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <span className="inline-flex items-center gap-2 rounded-full bg-dd-forest-dark/10 px-3.5 py-1 text-[13px] font-bold text-dd-forest">
             <BookOpen className="size-3.5" /> Panduan Operasional Internal
@@ -414,7 +414,7 @@ export function WorkspaceGuideView() {
       </div>
 
       {/* Role Intro Banner */}
-      <div className="rounded-dd-lg border border-dd-line bg-white p-6 shadow-sm">
+      <div className="rounded-dd-lg border border-dd-line bg-white p-6">
         <div className="flex items-start gap-4">
           <div className="grid size-12 shrink-0 place-items-center rounded-full bg-dd-success-soft text-dd-forest">
             <currentGuide.icon className="size-6" />
@@ -445,7 +445,7 @@ export function WorkspaceGuideView() {
             <article
               key={section.id}
               id={section.id}
-              className="overflow-hidden rounded-dd-lg border border-dd-line bg-white shadow-sm"
+              className="overflow-hidden rounded-dd-lg border border-dd-line bg-white"
             >
               {/* Section Header */}
               <div className="border-b border-dd-line bg-dd-surface-muted/50 p-6">
@@ -507,7 +507,7 @@ export function WorkspaceGuideView() {
                   <h4 className="mb-3 text-[13px] font-bold text-dd-muted">
                     Pratinjau Antarmuka:
                   </h4>
-                  <div className="rounded-dd-lg border border-dd-line bg-dd-surface p-4 shadow-xs">
+                  <div className="rounded-dd-lg border border-dd-line bg-dd-surface p-4">
                     <div className="flex items-center justify-between border-b border-dd-line pb-2.5">
                       <span className="text-xs font-bold text-dd-ink">{section.mockup.title}</span>
                       {section.mockup.statusBadge && (

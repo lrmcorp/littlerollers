@@ -223,7 +223,7 @@ export function MultiImageGalleryField({
         {items.map((item, index) => (
           <div
             key={item.id}
-            className="group relative aspect-4/3 rounded-dd-lg overflow-hidden bg-dd-surface-muted border border-dd-line shadow-xs flex items-center justify-center transition hover:shadow-dd-soft"
+            className="group relative aspect-4/3 rounded-dd-lg overflow-hidden bg-dd-surface-muted border border-dd-line flex items-center justify-center transition hover:shadow-dd-soft"
           >
             {item.uploading ? (
               <div className="flex flex-col items-center gap-1.5 p-2 text-center">

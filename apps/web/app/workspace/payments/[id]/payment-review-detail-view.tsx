@@ -463,7 +463,7 @@ export function PaymentReviewDetailView({
       )}      <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
         {/* Panel Kiri: Antrean Bukti Transfer Menunggu (Mockup 16) */}
         <aside aria-label="Antrean bukti transfer" className="space-y-3 lg:w-80 shrink-0">
-          <div className="rounded-dd-xl border border-dd-border-interactive bg-white p-4 shadow-sm space-y-3">
+          <div className="rounded-dd-xl border border-dd-border-interactive bg-white p-4 space-y-3">
             <div>
               <p className="text-sm font-bold text-dd-ink">
                 <span className="text-dd-forest">{pendingTotal || pendingQueue.length} bukti</span> menunggu diperiksa.

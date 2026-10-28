@@ -439,12 +439,12 @@ function KycSubmissionForm({ onSubmitted }: { onSubmitted: () => Promise<void> }
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <section className="rounded-dd-xl border border-dd-line bg-white p-6 shadow-dd-card sm:p-8">
+      <section className="rounded-dd-xl border border-dd-line bg-white p-6 sm:p-8">
         <div className="flex items-start gap-3.5 border-b border-dd-line/60 pb-5">
           <Link
             href="/account"
             aria-label="Kembali ke Beranda"
-            className="inline-flex size-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-dd-md border border-dd-border-interactive bg-white text-dd-forest shadow-xs transition hover:bg-dd-surface-muted focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#09371f]"
+            className="inline-flex size-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-dd-md border border-dd-border-interactive bg-white text-dd-forest transition hover:bg-dd-surface-muted focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#09371f]"
           >
             <ChevronLeft className="size-5" aria-hidden="true" />
           </Link>
@@ -665,7 +665,7 @@ export function VerificationView() {
 
   if (state === 'error' && !summary)
     return (
-      <section className="mx-auto max-w-xl rounded-dd-xl border border-dd-danger/20 bg-white p-8 text-center shadow-dd-card">
+      <section className="mx-auto max-w-xl rounded-dd-xl border border-dd-danger/20 bg-white p-8 text-center">
         <RefreshCw className="mx-auto size-9 text-dd-danger" />
         <h1 className="mt-4 text-2xl font-bold">Status verifikasi belum dapat dimuat</h1>
         <p className="mt-2 text-sm leading-6 text-dd-muted">
@@ -683,14 +683,14 @@ export function VerificationView() {
 
   return (
     <div className="space-y-6">
-      <section className="overflow-hidden rounded-dd-xl border border-dd-line bg-white shadow-dd-card">
+      <section className="overflow-hidden rounded-dd-xl border border-dd-line bg-white">
         <div className="grid gap-7 p-6 sm:p-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:p-10">
           <div>
             <div className="flex items-start gap-3.5">
               <Link
                 href="/account"
                 aria-label="Kembali ke Beranda"
-                className="inline-flex size-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-dd-md border border-dd-border-interactive bg-white text-dd-forest shadow-xs transition hover:bg-dd-surface-muted focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#09371f]"
+                className="inline-flex size-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-dd-md border border-dd-border-interactive bg-white text-dd-forest transition hover:bg-dd-surface-muted focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#09371f]"
               >
                 <ChevronLeft className="size-5" aria-hidden="true" />
               </Link>
@@ -781,7 +781,7 @@ export function VerificationView() {
               <article
                 id={`verification-document-${document.kind}`}
                 tabIndex={-1}
-                className={`rounded-dd-xl border bg-white p-5 shadow-dd-card outline-none transition sm:p-6 ${
+                className={`rounded-dd-xl border bg-white p-5 outline-none transition sm:p-6 ${
                   highlightedKind === document.kind
                     ? 'border-dd-brass ring-4 ring-dd-brass/25'
                     : 'border-dd-line'

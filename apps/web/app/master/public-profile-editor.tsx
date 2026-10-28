@@ -108,7 +108,7 @@ export function PublicProfileEditor({
     }
   };
   return (
-    <section className="rounded-dd-lg border border-dd-line bg-white p-6 shadow-dd-card">
+    <section className="rounded-dd-lg border border-dd-line bg-white p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h2>Profil Publik</h2>

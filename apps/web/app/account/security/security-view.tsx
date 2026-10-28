@@ -83,7 +83,7 @@ export function SecurityView({ client = browserIdentityClient }: { client?: Iden
         </section>
       )}
 
-      <section className="rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card sm:p-6">
+      <section className="rounded-dd-xl border border-dd-line bg-white p-5 sm:p-6">
         <div className="flex items-start gap-3">
           <span className="grid size-11 place-items-center rounded-dd-lg bg-dd-success-soft text-dd-success">
             <ShieldCheck className="size-5" />
@@ -110,7 +110,7 @@ export function SecurityView({ client = browserIdentityClient }: { client?: Iden
       {isPasswordActive && (
         <form
           method="post"
-          className="rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card sm:p-6"
+          className="rounded-dd-xl border border-dd-line bg-white p-5 sm:p-6"
           aria-label="Ubah password"
           onSubmit={async (event) => {
             event.preventDefault();

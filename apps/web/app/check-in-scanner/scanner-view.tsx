@@ -214,7 +214,7 @@ export function CheckInScannerView() {
 
       {/* HASIL SUKSES INSTRUKTUR */}
       {mode === 'instructor' && instructorResult && (
-        <Panel className="border-dd-success/30 p-6 text-center space-y-4 shadow-dd-card bg-white rounded-2xl">
+        <Panel className="border-dd-success/30 p-6 text-center space-y-4 bg-white rounded-2xl">
           <div className="size-14 rounded-full bg-dd-success-soft text-dd-success mx-auto flex items-center justify-center">
             <CheckCircle2 className="size-8" />
           </div>
@@ -256,7 +256,7 @@ export function CheckInScannerView() {
 
       {/* HASIL SUKSES PELANGGAN */}
       {mode === 'customer' && result && (
-        <Panel className="border-dd-success/30 p-6 text-center space-y-4 shadow-dd-card bg-white rounded-2xl">
+        <Panel className="border-dd-success/30 p-6 text-center space-y-4 bg-white rounded-2xl">
           <div className="size-14 rounded-full bg-dd-success-soft text-dd-success mx-auto flex items-center justify-center">
             <CheckCircle2 className="size-8" />
           </div>

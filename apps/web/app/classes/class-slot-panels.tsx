@@ -817,7 +817,7 @@ function InstructorQrCanvas({
           ref={canvasRef}
           role="img"
           aria-label="QR presensi instruktur"
-          className="justify-self-start rounded-dd-md border border-dd-line bg-white shadow-xs"
+          className="justify-self-start rounded-dd-md border border-dd-line bg-white"
         />
         <Button
           type="button"
@@ -832,7 +832,7 @@ function InstructorQrCanvas({
       {fullscreen && (
         <section
           aria-label="Mode Layar Kiosk Studio"
-          className="my-4 rounded-dd-xl border-2 border-dd-forest/30 bg-dd-surface p-6 sm:p-8 shadow-dd-card text-center"
+          className="my-4 rounded-dd-xl border-2 border-dd-forest/30 bg-dd-surface p-6 sm:p-8 text-center"
         >
           <div className="flex flex-col items-center justify-center">
             <span className="text-[13px] font-bold text-dd-forest">
@@ -843,7 +843,7 @@ function InstructorQrCanvas({
               Arahkan kamera instruktur dari menu Scan QR di aplikasi
             </p>
 
-            <div className="my-5 rounded-dd-lg border-2 border-dd-forest/20 p-3 bg-white shadow-xs">
+            <div className="my-5 rounded-dd-lg border-2 border-dd-forest/20 p-3 bg-white">
               <canvas
                 ref={fullscreenCanvasRef}
                 role="img"

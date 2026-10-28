@@ -981,7 +981,7 @@ export function BookingView({
                 return (
                   <li
                     key={reschedule.id}
-                    className="rounded-dd-lg border border-dd-line bg-white p-4 shadow-sm"
+                    className="rounded-dd-lg border border-dd-line bg-white p-4"
                   >
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>

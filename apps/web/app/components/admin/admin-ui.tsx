@@ -167,7 +167,7 @@ export function Tabs({
           role="tab"
           aria-selected={item.value === value}
           onClick={() => onChange(item.value)}
-          className={`min-h-11 whitespace-nowrap rounded-dd-sm border-0 px-3 text-sm font-bold ${item.value === value ? 'bg-white text-dd-forest shadow-sm' : 'bg-transparent text-dd-muted hover:text-dd-ink'}`}
+          className={`min-h-11 whitespace-nowrap rounded-dd-sm border-0 px-3 text-sm font-bold ${item.value === value ? 'bg-white text-dd-forest' : 'bg-transparent text-dd-muted hover:text-dd-ink'}`}
         >
           {item.label}
           {item.count != null && (
@@ -205,7 +205,7 @@ export function FilterBar({
   /** Sembunyikan "Reset" saat tidak ada filter aktif. */
   showReset?: boolean;
 }) {
-  const className = 'rounded-dd-lg border border-dd-line bg-dd-surface p-4 shadow-sm';
+  const className = 'rounded-dd-lg border border-dd-line bg-dd-surface p-4';
   const content = (
     <>
       <div className="flex flex-wrap items-end gap-3">
@@ -308,7 +308,7 @@ export function DataTable<T>({
   if (loading) return <AdminSkeleton rows={5} />;
   if (!items.length) return <AdminEmptyState title={emptyTitle} description={emptyDescription} action={emptyAction} />;
   return (
-    <div className="overflow-hidden rounded-dd-lg border border-dd-line bg-dd-surface shadow-sm">
+    <div className="overflow-hidden rounded-dd-lg border border-dd-line bg-dd-surface">
       <div className={mobileCard ? 'hidden overflow-x-auto md:block' : 'overflow-x-auto'}>
         <table className="w-full border-collapse text-left text-sm">
           <thead className="sticky top-0 z-10 bg-dd-surface-muted text-[13px] text-dd-muted">
@@ -480,7 +480,7 @@ export function Pagination({
   return (
     <nav
       aria-label="Paginasi data"
-      className="flex flex-col sm:flex-row items-center justify-between gap-3 rounded-dd-lg border border-dd-line/80 bg-white/95 px-4 py-3 shadow-dd-card backdrop-blur-sm"
+      className="flex flex-col sm:flex-row items-center justify-between gap-3 rounded-dd-lg border border-dd-line/80 bg-white/95 px-4 py-3 backdrop-blur-sm"
     >
       <div className="text-xs sm:text-sm font-medium text-dd-muted">
         {showPagePrefix && (
@@ -611,7 +611,7 @@ export function AdminPageState({
   return (
     <div
       role={kind === 'error' ? 'alert' : 'status'}
-      className="rounded-dd-lg border border-dd-line bg-white p-7 text-center shadow-sm"
+      className="rounded-dd-lg border border-dd-line bg-white p-7 text-center"
     >
       <AlertTriangle
         className={`mx-auto size-8 ${kind === 'error' ? 'text-dd-danger' : 'text-dd-brass'}`}

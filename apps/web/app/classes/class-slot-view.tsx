@@ -293,7 +293,7 @@ export function ClassSlotView({
   if (!branch && !globalMode) {
     return (
       <section
-        className="rounded-dd-lg border border-dd-line bg-dd-surface p-6 shadow-dd-card"
+        className="rounded-dd-lg border border-dd-line bg-dd-surface p-6"
         aria-labelledby="classes-title"
       >
         <AdminPageHeader
@@ -524,7 +524,7 @@ export function ClassSlotView({
       )}
 
       {/* Toolbar & Filter Panel */}
-      <div className="rounded-2xl border border-dd-line/80 bg-white p-4 sm:p-5 shadow-dd-card space-y-4">
+      <div className="rounded-2xl border border-dd-line/80 bg-white p-4 sm:p-5 space-y-4">
         <div
           className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 pb-4 border-b border-dd-line/60"
           aria-label="Kontrol timetable"

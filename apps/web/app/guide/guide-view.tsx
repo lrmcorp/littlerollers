@@ -600,7 +600,7 @@ export function GuideView() {
       {/* Content Area */}
       <section className={`${publicContainer} py-10`}>
         {/* Role Intro Banner */}
-        <div className="mb-10 rounded-dd-lg border border-dd-line bg-white p-6 shadow-dd-card sm:p-8">
+        <div className="mb-10 rounded-dd-lg border border-dd-line bg-white p-6 sm:p-8">
           <div className="flex items-start gap-4">
             <div className="grid size-12 shrink-0 place-items-center rounded-full bg-dd-success-soft text-dd-forest">
               <currentGuide.icon className="size-6" />
@@ -633,7 +633,7 @@ export function GuideView() {
               <article
                 key={section.id}
                 id={section.id}
-                className="overflow-hidden rounded-dd-lg border border-dd-line bg-white shadow-dd-card"
+                className="overflow-hidden rounded-dd-lg border border-dd-line bg-white"
               >
                 {/* Section Header */}
                 <div className="border-b border-dd-line bg-dd-surface-muted/50 p-6 sm:px-8">

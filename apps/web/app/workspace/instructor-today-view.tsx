@@ -265,7 +265,7 @@ export function InstructorTodayView({
         {loading ? (
           <Skeleton label="Memuat jadwal kelas hari ini" />
         ) : todaySlots.length === 0 ? (
-          <div className="rounded-2xl border border-dd-line/80 bg-white p-8 text-center space-y-4 shadow-dd-card">
+          <div className="rounded-2xl border border-dd-line/80 bg-white p-8 text-center space-y-4">
             <p className="text-base text-dd-ink font-medium">
               Tidak ada kelas terjadwal untuk kamu hari ini.
             </p>
@@ -306,7 +306,7 @@ export function InstructorTodayView({
                       setSelectedSlot(slot);
                     }
                   }}
-                  className="group w-full text-left rounded-2xl border border-dd-line/80 bg-white p-5 shadow-dd-card hover:border-dd-forest/40 hover:shadow-md transition cursor-pointer space-y-3 focus:outline-none focus:ring-2 focus:ring-dd-forest"
+                  className="group w-full text-left rounded-2xl border border-dd-line/80 bg-white p-5 hover:border-dd-forest/40 hover: transition cursor-pointer space-y-3 focus:outline-none focus:ring-2 focus:ring-dd-forest"
                   aria-label={`Sesi ${className}, ${timeDisplay}, ${slot.bookedCount} dari ${slot.capacity} peserta`}
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -413,7 +413,7 @@ export function InstructorTodayView({
 
       {/* 5. Kartu ketersediaan mengajar dengan ringkasan pengajuan dan tautan Atur */}
       <section
-        className="rounded-2xl border border-dd-line/80 bg-white p-5 shadow-dd-card flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+        className="rounded-2xl border border-dd-line/80 bg-white p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
         aria-labelledby="availability-card-heading"
       >
         <div className="space-y-1">

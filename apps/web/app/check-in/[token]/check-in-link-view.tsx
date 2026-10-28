@@ -90,7 +90,7 @@ export function CheckInLinkView({ token }: { token: string }) {
 
   return (
     <main className="grid min-h-dvh min-w-0 place-items-center overflow-x-hidden bg-dd-canvas px-4 py-10 font-sans">
-      <section className="box-border w-full min-w-0 max-w-md rounded-2xl border border-dd-line bg-dd-surface p-6 sm:p-8 shadow-xl">
+      <section className="box-border w-full min-w-0 max-w-md rounded-2xl border border-dd-line bg-dd-surface p-6 sm:p-8">
         <div className="text-center">
           <p className="text-[13px] font-bold text-dd-forest">
             Daily Dose Pilates

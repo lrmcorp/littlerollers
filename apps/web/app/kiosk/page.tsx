@@ -68,7 +68,7 @@ export default function KioskPortalPage() {
               {error}
             </div>
           ) : branches.length === 0 ? (
-            <div className="rounded-dd-xl border border-dd-line bg-dd-surface p-8 text-center text-sm text-dd-muted shadow-sm">
+            <div className="rounded-dd-xl border border-dd-line bg-dd-surface p-8 text-center text-sm text-dd-muted">
               Belum ada cabang studio aktif yang terdaftar.
             </div>
           ) : (
@@ -77,7 +77,7 @@ export default function KioskPortalPage() {
                 <Link
                   key={b.id}
                   href={`/kiosk/${encodeURIComponent(b.code.toLowerCase())}`}
-                  className="group relative flex flex-col justify-between overflow-hidden rounded-dd-2xl border border-dd-line bg-dd-surface p-6 shadow-dd-card transition hover:scale-[1.02] hover:border-dd-forest hover:shadow-dd-soft"
+                  className="group relative flex flex-col justify-between overflow-hidden rounded-dd-2xl border border-dd-line bg-dd-surface p-6 transition hover:scale-[1.02] hover:border-dd-forest hover:shadow-dd-soft"
                 >
                   <div className="space-y-3">
                     <div className="flex items-start justify-between gap-3">
@@ -114,7 +114,7 @@ export default function KioskPortalPage() {
           )}
 
           {/* Security & Instruction Card */}
-          <div className="mt-10 rounded-dd-2xl border border-dd-line bg-dd-surface-muted p-6 text-xs text-dd-muted space-y-3 shadow-sm">
+          <div className="mt-10 rounded-dd-2xl border border-dd-line bg-dd-surface-muted p-6 text-xs text-dd-muted space-y-3">
             <div className="flex items-center gap-2 font-bold text-dd-ink">
               <ShieldCheck className="size-4 text-dd-forest" />
               <span>Keamanan Tablet Kiosk Studio &amp; Integrasi Geofence:</span>

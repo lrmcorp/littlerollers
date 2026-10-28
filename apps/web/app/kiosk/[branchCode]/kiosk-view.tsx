@@ -241,7 +241,7 @@ export function KioskView({
   if (!isAuthorized) {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center bg-dd-canvas p-6 text-dd-ink">
-        <div className="w-full max-w-md rounded-2xl border border-dd-line bg-white p-8 shadow-dd-card text-center">
+        <div className="w-full max-w-md rounded-2xl border border-dd-line bg-white p-8 text-center">
           <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-dd-forest text-white shadow-md">
             <Lock className="size-7" />
           </div>
@@ -338,7 +338,7 @@ export function KioskView({
   if (error || !data) {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center bg-dd-canvas p-6 text-center text-dd-ink">
-        <div className="max-w-md space-y-4 rounded-2xl border border-dd-danger/30 bg-white p-8 shadow-dd-card">
+        <div className="max-w-md space-y-4 rounded-2xl border border-dd-danger/30 bg-white p-8">
           <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-dd-danger-soft text-dd-danger">
             <MapPin className="size-6" />
           </div>
@@ -411,7 +411,7 @@ export function KioskView({
             type="button"
             onClick={lockKiosk}
             title="Kunci Kembali Tablet Kiosk"
-            className="flex items-center gap-1.5 rounded-xl border border-dd-line bg-white px-3 py-2 text-xs font-semibold text-dd-muted shadow-sm transition hover:bg-dd-danger-soft hover:text-dd-danger hover:border-dd-danger/30"
+            className="flex items-center gap-1.5 rounded-xl border border-dd-line bg-white px-3 py-2 text-xs font-semibold text-dd-muted transition hover:bg-dd-danger-soft hover:text-dd-danger hover:border-dd-danger/30"
             aria-label="Kunci Tablet Kiosk"
           >
             <Lock className="size-4" />
@@ -423,7 +423,7 @@ export function KioskView({
             type="button"
             onClick={toggleFullscreen}
             title={isFullscreen ? 'Keluar Layar Penuh' : 'Layar Penuh (Kiosk)'}
-            className="rounded-xl border border-dd-line bg-white p-2 text-dd-muted shadow-sm transition hover:bg-dd-canvas hover:text-dd-ink"
+            className="rounded-xl border border-dd-line bg-white p-2 text-dd-muted transition hover:bg-dd-canvas hover:text-dd-ink"
             aria-label="Toggle Fullscreen"
           >
             {isFullscreen ? <Minimize2 className="size-5" /> : <Maximize2 className="size-5" />}
@@ -436,7 +436,7 @@ export function KioskView({
         <div className="mx-auto max-w-6xl">
           {data.slots.length === 0 ? (
             /* Empty State Sesi Kelas */
-            <div className="flex min-h-[55vh] flex-col items-center justify-center rounded-2xl border border-dd-line bg-white p-8 text-center shadow-dd-card">
+            <div className="flex min-h-[55vh] flex-col items-center justify-center rounded-2xl border border-dd-line bg-white p-8 text-center">
               <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-dd-surface-muted text-dd-muted shadow-inner">
                 <Calendar className="size-8" />
               </div>
@@ -456,17 +456,17 @@ export function KioskView({
           ) : (
             <div className="grid gap-8 lg:grid-cols-12 items-start">
               {/* SISI KIRI (~45% Lebar): QR PRESENSI MINIMAL 280 PX PADA KARTU PUTIH */}
-              <div className="lg:col-span-5 flex flex-col items-center justify-center rounded-2xl border-2 border-dd-line/80 bg-white p-6 sm:p-8 shadow-dd-card text-center">
+              <div className="lg:col-span-5 flex flex-col items-center justify-center rounded-2xl border-2 border-dd-line/80 bg-white p-6 sm:p-8 text-center">
                 {activeSlot && (
                   <div className="w-full space-y-5">
                     {/* Badge Sesi Status */}
                     <div className="flex items-center justify-center gap-2">
                       {activeSlot.isAttended ? (
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-dd-success-soft border border-dd-forest/30 px-3 py-1 text-xs font-bold text-dd-forest shadow-sm">
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-dd-success-soft border border-dd-forest/30 px-3 py-1 text-xs font-bold text-dd-forest">
                           <CheckCircle2 className="size-4" /> Presensi Terverifikasi
                         </span>
                       ) : activeSlot.window === 'OPEN' ? (
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-dd-forest/10 border border-dd-forest/30 px-3 py-1 text-xs font-bold text-dd-forest shadow-sm">
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-dd-forest/10 border border-dd-forest/30 px-3 py-1 text-xs font-bold text-dd-forest">
                           <span className="size-2 rounded-full bg-dd-forest animate-ping" />
                           <span>QR Siap Dipindai</span>
                         </span>
@@ -490,7 +490,7 @@ export function KioskView({
                           <p className="mt-1 text-sm font-semibold text-dd-forest-dark">
                             Coach {activeSlot.instructorName}
                           </p>
-                          <div className="mt-4 rounded-xl bg-white border border-dd-line p-3 text-xs text-dd-ink w-full text-left space-y-1.5 shadow-sm">
+                          <div className="mt-4 rounded-xl bg-white border border-dd-line p-3 text-xs text-dd-ink w-full text-left space-y-1.5">
                             <div className="flex justify-between">
                               <span className="text-dd-muted">Waktu Presensi:</span>
                               <strong className="text-dd-ink font-semibold">
@@ -516,7 +516,7 @@ export function KioskView({
                       ) : activeSlot.window === 'OPEN' ? (
                         <div className="flex flex-col items-center justify-center space-y-3">
                           {/* Kartu Putih Berisi QR Presensi Berukuran 280 px */}
-                          <div className="rounded-2xl border-2 border-dd-forest/20 bg-white p-3 shadow-md">
+                          <div className="rounded-2xl border-2 border-dd-forest/20 bg-white p-3">
                             <canvas
                               ref={qrCanvasRef}
                               width={280}
@@ -546,7 +546,7 @@ export function KioskView({
                           </div>
                         </div>
                       ) : (
-                        <div className="rounded-xl border border-dd-line bg-dd-canvas p-8 text-center max-w-xs shadow-sm space-y-2">
+                        <div className="rounded-xl border border-dd-line bg-dd-canvas p-8 text-center max-w-xs space-y-2">
                           <Clock className="mx-auto size-10 text-dd-warning" />
                           <h3 className="text-base font-bold text-dd-ink">
                             Menunggu Jendela Jam Kelas
@@ -567,7 +567,7 @@ export function KioskView({
               <div className="lg:col-span-7 flex flex-col space-y-6">
                 {/* SISI KANAN ATAS: SESI BERIKUTNYA / AKTIF (Spec 5.10: 40px & 22px) */}
                 {activeSlot && (
-                  <div className="rounded-2xl border border-dd-line bg-white p-6 sm:p-8 shadow-dd-card space-y-4">
+                  <div className="rounded-2xl border border-dd-line bg-white p-6 sm:p-8 space-y-4">
                     <div className="flex items-center justify-between border-b border-dd-line pb-3">
                       <span className="inline-flex items-center gap-1.5 text-[13px] font-bold text-dd-forest">
                         <Sparkles className="size-4" /> Sesi Kelas Studio
@@ -613,7 +613,7 @@ export function KioskView({
                 )}
 
                 {/* SISI KANAN BAWAH: DAFTAR PRESENSI HARI INI DENGAN JAM SCAN (Spec 5.10) */}
-                <div className="rounded-2xl border border-dd-line bg-white p-6 sm:p-8 shadow-dd-card space-y-4">
+                <div className="rounded-2xl border border-dd-line bg-white p-6 sm:p-8 space-y-4">
                   <div className="flex items-center justify-between border-b border-dd-line pb-3">
                     <h3 className="text-base font-bold text-dd-ink flex items-center gap-2">
                       <CheckCircle2 className="size-5 text-dd-forest" />
@@ -633,7 +633,7 @@ export function KioskView({
                       {attendedSlotsToday.map((slot) => (
                         <div
                           key={slot.id}
-                          className="flex items-center justify-between rounded-xl border border-dd-forest/20 bg-dd-success-soft/30 p-3.5 shadow-sm text-sm"
+                          className="flex items-center justify-between rounded-xl border border-dd-forest/20 bg-dd-success-soft/30 p-3.5 text-sm"
                         >
                           <div className="space-y-0.5">
                             <strong className="block font-bold text-dd-ink">
@@ -714,7 +714,7 @@ export function KioskView({
                 </div>
 
                 {/* BARIS PENUTUP WAJIB (Spec 5.10) */}
-                <div className="rounded-xl border border-dd-forest/20 bg-dd-surface p-4 text-center shadow-sm">
+                <div className="rounded-xl border border-dd-forest/20 bg-dd-surface p-4 text-center">
                   <p className="text-sm font-semibold text-dd-forest-dark">
                     Presensi hanya tercatat jika instruktur terdaftar di sesi ini dan berada di area studio.
                   </p>

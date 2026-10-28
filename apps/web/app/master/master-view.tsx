@@ -370,7 +370,7 @@ export function MasterView({
       </div>
 
       {/* Navigation Tabs Bar */}
-      <div className="rounded-dd-lg border border-dd-line bg-dd-surface p-3 shadow-dd-card">
+      <div className="rounded-dd-lg border border-dd-line bg-dd-surface p-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="w-full overflow-x-auto pb-1 no-scrollbar lg:w-auto">
             <Tabs
@@ -482,7 +482,7 @@ export function MasterView({
       {selectedTab === 'classTypes' && (
         <div className="space-y-4">
           <section
-            className="rounded-dd-lg border border-dd-line bg-dd-surface p-6 shadow-dd-card"
+            className="rounded-dd-lg border border-dd-line bg-dd-surface p-6"
             aria-labelledby="class-list-title"
           >
             {/* Header: Title, Total Badge, and [+ Tambah Tipe Kelas] */}
@@ -740,7 +740,7 @@ export function MasterView({
       {['capacity', 'fees'].includes(selectedTab) && (
         <div className="space-y-6">
           {/* Pemilih Cabang Operasional Mandiri */}
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-dd-lg border border-dd-line bg-dd-surface p-4 shadow-dd-card">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-dd-lg border border-dd-line bg-dd-surface p-4">
             <div className="flex items-center gap-3">
               <div className="flex size-10 shrink-0 items-center justify-center rounded-dd-sm bg-dd-sand/40 text-dd-forest">
                 <Store className="size-5" />
@@ -775,7 +775,7 @@ export function MasterView({
 
           {/* Tabel Penuh CRUD Standar Konfigurasi */}
           <section
-            className="rounded-dd-lg border border-dd-line bg-dd-surface p-6 shadow-dd-card"
+            className="rounded-dd-lg border border-dd-line bg-dd-surface p-6"
             aria-labelledby="setting-list-title"
           >
             {/* Header: Judul, Search Filter & Tombol Tambah */}

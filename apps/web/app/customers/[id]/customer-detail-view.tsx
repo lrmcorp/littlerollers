@@ -103,7 +103,7 @@ function CustomerDocumentCard({
   }, [doc?.id, doc?.uploadedAt, refreshKey]);
 
   return (
-    <div className="flex flex-col overflow-hidden rounded-dd-lg border border-dd-line bg-white shadow-xs transition hover:shadow-md">
+    <div className="flex flex-col overflow-hidden rounded-dd-lg border border-dd-line bg-white transition hover:">
       <div className="flex items-center justify-between border-b border-dd-line/80 px-4 py-3 bg-dd-surface-muted/30">
         <div className="flex items-center gap-2">
           <FileText className="size-4 text-dd-forest" />
@@ -587,7 +587,7 @@ export function CustomerDetailView({ id }: { id: string }) {
         {/* LEFT COLUMN: Profil, Dokumen Verifikasi Identitas, Keamanan & Pengingat */}
         <div className="lg:col-span-5 space-y-6">
           {/* Card 1: Profil & Data Demografi */}
-          <div className="rounded-dd-lg border border-dd-line bg-white p-5 shadow-xs space-y-4">
+          <div className="rounded-dd-lg border border-dd-line bg-white p-5 space-y-4">
             <div className="flex items-center justify-between border-b border-dd-line/80 pb-3">
               <h2 className="text-base font-bold text-dd-ink flex items-center gap-2">
                 <User className="size-5 text-dd-forest" />
@@ -670,7 +670,7 @@ export function CustomerDetailView({ id }: { id: string }) {
           </div>
 
           {/* Card 2: Dokumen Verifikasi Identitas */}
-          <div className="rounded-dd-lg border border-dd-line bg-white p-5 shadow-xs space-y-4">
+          <div className="rounded-dd-lg border border-dd-line bg-white p-5 space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-dd-line/80 pb-3">
               <div>
                 <h2 className="text-base font-bold text-dd-ink flex items-center gap-2">
@@ -713,7 +713,7 @@ export function CustomerDetailView({ id }: { id: string }) {
           </div>
 
           {/* Card 3: Keamanan & Status Akun */}
-          <div className="rounded-dd-lg border border-dd-line bg-white p-5 shadow-xs space-y-4">
+          <div className="rounded-dd-lg border border-dd-line bg-white p-5 space-y-4">
             <div className="border-b border-dd-line/80 pb-3">
               <h2 className="text-base font-bold text-dd-ink flex items-center gap-2">
                 <KeyRound className="size-5 text-dd-forest" />
@@ -788,7 +788,7 @@ export function CustomerDetailView({ id }: { id: string }) {
             {cards.map((c) => {
               const Icon = c.icon;
               return (
-                <div key={c.label} className="rounded-dd-lg border border-dd-line bg-white p-4 shadow-xs">
+                <div key={c.label} className="rounded-dd-lg border border-dd-line bg-white p-4">
                   <div className="flex items-center justify-between">
                     <span className="text-[13px] font-bold text-dd-muted">{c.label}</span>
                     <Icon className="size-4 text-dd-forest/70" />
@@ -800,7 +800,7 @@ export function CustomerDetailView({ id }: { id: string }) {
           </div>
 
           {/* Tabbed Tables (Paket Aktif, Riwayat Order, Riwayat Booking Kelas) */}
-          <div className="rounded-dd-lg border border-dd-line bg-white shadow-xs overflow-hidden">
+          <div className="rounded-dd-lg border border-dd-line bg-white overflow-hidden">
             {/* Table Tabs Header */}
             <div className="flex border-b border-dd-line bg-dd-surface-muted/30 px-6 pt-3 gap-2 overflow-x-auto">
               <button

@@ -163,7 +163,7 @@ export function AvailabilityView({
   if (!branch) {
     return (
       <section
-        className="rounded-dd-lg border border-dd-line bg-dd-surface p-6 shadow-dd-card"
+        className="rounded-dd-lg border border-dd-line bg-dd-surface p-6"
         aria-labelledby="availability-title"
       >
         <AdminPageHeader
@@ -187,7 +187,7 @@ export function AvailabilityView({
       />
 
       {canCreate && (
-        <div className="rounded-2xl border border-dd-line/80 bg-white p-5 shadow-dd-card">
+        <div className="rounded-2xl border border-dd-line/80 bg-white p-5">
           <h2 className="text-lg font-semibold text-dd-ink">Ajukan ketersediaan baru</h2>
           <form
             className="mt-4 grid gap-4 sm:grid-cols-3"

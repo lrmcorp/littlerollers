@@ -343,7 +343,7 @@ export function PublicContentManagementView() {
       {activeTab === 'slider' && (
         <section className="space-y-6">
           {/* Slider Global Settings Card */}
-          <div className="rounded-dd-xl border border-dd-line bg-white p-6 shadow-dd-card">
+          <div className="rounded-dd-xl border border-dd-line bg-white p-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-dd-line/60 pb-4">
               <div>
                 <h2 className="text-lg font-bold text-dd-ink">Pengaturan Slider Beranda</h2>
@@ -413,7 +413,7 @@ export function PublicContentManagementView() {
           </div>
 
           {/* Slide List & Management */}
-          <div className="rounded-dd-xl border border-dd-line bg-white p-6 shadow-dd-card">
+          <div className="rounded-dd-xl border border-dd-line bg-white p-6">
             <div className="flex items-center justify-between border-b border-dd-line/60 pb-4">
               <div>
                 <h3 className="text-base font-bold text-dd-ink">Daftar Slide Banner</h3>
@@ -482,7 +482,7 @@ export function PublicContentManagementView() {
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <div className="relative size-16 shrink-0 overflow-hidden rounded-dd-md border border-dd-line bg-dd-surface-muted shadow-xs">
+                      <div className="relative size-16 shrink-0 overflow-hidden rounded-dd-md border border-dd-line bg-dd-surface-muted">
                         {imagePreviewUrl ? (
                           <Image
                             src={imagePreviewUrl}

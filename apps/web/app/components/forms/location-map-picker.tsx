@@ -464,7 +464,7 @@ export function LocationMapPicker({
             type="button"
             onClick={handleDetectCurrentLocation}
             disabled={isLocating}
-            className="inline-flex items-center gap-1.5 rounded-dd-md border border-dd-line bg-white px-3 py-1.5 text-xs font-medium text-dd-ink shadow-xs transition hover:bg-dd-surface-muted hover:border-dd-forest/40 focus:outline-hidden disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 rounded-dd-md border border-dd-line bg-white px-3 py-1.5 text-xs font-medium text-dd-ink transition hover:bg-dd-surface-muted hover:border-dd-forest/40 focus:outline-hidden disabled:opacity-50"
           >
             <Crosshair className={`size-3.5 text-dd-forest ${isLocating ? 'animate-spin' : ''}`} />
             {isLocating ? 'Mendeteksi GPS…' : '📍 Deteksi Lokasi Perangkat Saya'}
@@ -474,7 +474,7 @@ export function LocationMapPicker({
             <button
               type="button"
               onClick={handleSetCurrentCenter}
-              className="inline-flex items-center gap-1.5 rounded-dd-md border border-dd-forest/30 bg-dd-forest/10 px-3 py-1.5 text-xs font-medium text-dd-forest shadow-xs transition hover:bg-dd-forest/20 focus:outline-hidden"
+              className="inline-flex items-center gap-1.5 rounded-dd-md border border-dd-forest/30 bg-dd-forest/10 px-3 py-1.5 text-xs font-medium text-dd-forest transition hover:bg-dd-forest/20 focus:outline-hidden"
             >
               <MapPin className="size-3.5" />
               Pasang Titik di Peta
@@ -506,7 +506,7 @@ export function LocationMapPicker({
 
       {/* Koordinat & Kontrol Radius */}
       {isGeofenceActive ? (
-        <div className="grid gap-3 rounded-dd-md border border-dd-line/60 bg-white p-3 shadow-xs">
+        <div className="grid gap-3 rounded-dd-md border border-dd-line/60 bg-white p-3">
           {/* Detail Koordinat */}
           <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
             <span className="font-semibold text-dd-ink flex items-center gap-1">

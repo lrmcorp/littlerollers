@@ -415,7 +415,7 @@ export function RolePermissionsView({
         <>
           {urlState.tab === 'roles' && (
             <section className="grid items-start gap-5 xl:grid-cols-[300px_minmax(0,1fr)]">
-              <aside className="self-start rounded-dd-xl border border-dd-line bg-white p-4 shadow-dd-card xl:sticky xl:top-24">
+              <aside className="self-start rounded-dd-xl border border-dd-line bg-white p-4 xl:sticky xl:top-24">
                 <div className="flex items-center justify-between gap-2">
                   <div>
                     <h2 className="text-lg font-semibold">Katalog role</h2>
@@ -505,7 +505,7 @@ export function RolePermissionsView({
 
               {selectedRole && roleDraft ? (
                 <div className="space-y-5">
-                  <section className="rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card">
+                  <section className="rounded-dd-xl border border-dd-line bg-white p-5">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
                         <p className="text-[13px] font-bold text-dd-forest">
@@ -540,7 +540,7 @@ export function RolePermissionsView({
                       </dl>
                   </section>
 
-                  <section className="rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card">
+                  <section className="rounded-dd-xl border border-dd-line bg-white p-5">
                     <div className="flex flex-wrap items-end gap-3">
                       <div className="min-w-64 flex-1">
                         <SearchInput
@@ -657,7 +657,7 @@ export function RolePermissionsView({
           )}
 
           {urlState.tab === 'users' && (
-            <section className="rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card">
+            <section className="rounded-dd-xl border border-dd-line bg-white p-5">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <p className="text-[13px] font-bold text-dd-forest">Akses efektif pengguna</p>

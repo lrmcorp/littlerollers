@@ -424,7 +424,7 @@ export function PublicPackagesView({
           <div className="flex items-center gap-3">
             <Link
               href={inCustomerShell ? '/account' : '/'}
-              className="inline-flex size-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-dd-md border border-dd-border-interactive bg-white text-dd-forest shadow-xs transition hover:bg-dd-surface-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-dd-forest"
+              className="inline-flex size-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-dd-md border border-dd-border-interactive bg-white text-dd-forest transition hover:bg-dd-surface-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-dd-forest"
               aria-label={inCustomerShell ? 'Kembali ke Beranda' : 'Kembali ke situs utama'}
             >
               <ChevronLeft className="size-5" aria-hidden="true" />

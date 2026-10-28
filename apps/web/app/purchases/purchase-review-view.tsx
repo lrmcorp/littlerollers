@@ -543,7 +543,7 @@ export function PurchaseReviewView({
               type="button"
               aria-pressed={active}
               onClick={() => changeFilters({ status: value, cursor: undefined, page: 1 })}
-              className={`rounded-dd-lg border bg-white p-4 text-left shadow-sm transition hover:border-dd-forest ${active ? 'border-dd-forest ring-1 ring-dd-forest/20' : 'border-dd-line'}`}
+              className={`rounded-dd-lg border bg-white p-4 text-left transition hover:border-dd-forest ${active ? 'border-dd-forest ring-1 ring-dd-forest/20' : 'border-dd-line'}`}
             >
               <span className="block text-xs font-semibold text-dd-muted">{label}</span>
               <strong className="mt-2 block text-2xl text-dd-ink">

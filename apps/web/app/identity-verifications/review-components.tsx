@@ -88,7 +88,7 @@ export function SummaryButton({
       type="button"
       aria-pressed={active}
       onClick={onClick}
-      className={`rounded-2xl border p-5 sm:p-6 text-left shadow-dd-card transition duration-200 cursor-pointer ${
+      className={`rounded-2xl border p-5 sm:p-6 text-left transition duration-200 cursor-pointer ${
         active
           ? 'border-dd-forest bg-dd-forest text-white shadow-dd-soft'
           : tone === 'danger'
@@ -172,7 +172,7 @@ export function DocumentReviewCard({
   if (!document)
     return (
       <div className="flex min-h-[380px] flex-col items-center justify-center rounded-dd-xl border-2 border-dashed border-dd-line/80 bg-dd-surface-muted/40 p-8 text-center">
-        <div className="grid size-12 place-items-center rounded-full bg-white shadow-xs border border-dd-line">
+        <div className="grid size-12 place-items-center rounded-full bg-white border border-dd-line">
           <ShieldCheck className="size-6 text-dd-muted" />
         </div>
         <strong className="mt-4 block text-base font-semibold text-dd-ink">
@@ -192,7 +192,7 @@ export function DocumentReviewCard({
   const KindIcon = document.kind === 'SELFIE' ? Camera : CreditCard;
 
   return (
-    <div className="flex flex-col justify-between rounded-dd-xl border border-dd-line/80 bg-white p-5 shadow-xs transition-shadow hover:shadow-dd-soft">
+    <div className="flex flex-col justify-between rounded-dd-xl border border-dd-line/80 bg-white p-5 transition-shadow hover:shadow-dd-soft">
       <div className="space-y-4">
         {/* Header Dokumen */}
         <div className="flex items-start justify-between gap-3 border-b border-dd-line/60 pb-3">
@@ -258,7 +258,7 @@ export function DocumentReviewCard({
             </div>
           ) : (
             <div className="p-6 text-center">
-              <div className="mx-auto mb-2 grid size-10 place-items-center rounded-full bg-white shadow-xs border border-dd-line">
+              <div className="mx-auto mb-2 grid size-10 place-items-center rounded-full bg-white border border-dd-line">
                 <Eye className="size-5 text-dd-muted" />
               </div>
               <p className="text-xs font-semibold text-dd-ink">Preview Aman Terenkripsi</p>

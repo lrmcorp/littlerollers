@@ -88,7 +88,7 @@ function ClassSessionDetailCard({
     }[slot.classType.modality ?? ''] ?? 'Kelas Pilates';
 
   return (
-    <section className="rounded-dd-xl border border-dd-line bg-white p-5 sm:p-6 shadow-dd-card space-y-5">
+    <section className="rounded-dd-xl border border-dd-line bg-white p-5 sm:p-6 space-y-5">
       {/* Top Header: Modality + Badges */}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
@@ -263,7 +263,7 @@ export function CustomerBookingFlow({ client = browserBookingClient }: { client?
 
   if (status === 'loading') {
     return (
-      <section className="rounded-dd-xl border border-dd-line bg-white p-6 shadow-dd-card">
+      <section className="rounded-dd-xl border border-dd-line bg-white p-6">
         <Skeleton label="Menyiapkan rincian booking…" />
       </section>
     );
@@ -271,7 +271,7 @@ export function CustomerBookingFlow({ client = browserBookingClient }: { client?
 
   if (!options) {
     return (
-      <section className="rounded-dd-xl border border-dd-line bg-white p-6 shadow-dd-card">
+      <section className="rounded-dd-xl border border-dd-line bg-white p-6">
         <EmptyState
           title={status === 'error' ? 'Jadwal kelas tidak dapat dibuka' : 'Pilih jadwal kelas terlebih dahulu'}
           description={
@@ -374,7 +374,7 @@ export function CustomerBookingFlow({ client = browserBookingClient }: { client?
       {/* Booking Result (Success View) */}
       {booking ? (
         <section
-          className="rounded-dd-xl border border-dd-success/30 bg-dd-success-soft p-6 shadow-dd-card"
+          className="rounded-dd-xl border border-dd-success/30 bg-dd-success-soft p-6"
           aria-live="polite"
         >
           <div className="flex items-center gap-3">
@@ -430,7 +430,7 @@ export function CustomerBookingFlow({ client = browserBookingClient }: { client?
             durationMinutes={durationMinutes}
           />
 
-          <section className="rounded-dd-xl border border-dd-warning/30 bg-dd-warning-soft/40 p-6 shadow-dd-card space-y-4">
+          <section className="rounded-dd-xl border border-dd-warning/30 bg-dd-warning-soft/40 p-6 space-y-4">
             <AlertBanner
               tone="warning"
               title={eligibilityMessage.title}
@@ -566,7 +566,7 @@ export function CustomerBookingFlow({ client = browserBookingClient }: { client?
 
               {/* Step 1: Package Selection */}
               {step === 'select' ? (
-                <section className="rounded-dd-xl border border-dd-line bg-white p-5 sm:p-6 shadow-dd-card space-y-4">
+                <section className="rounded-dd-xl border border-dd-line bg-white p-5 sm:p-6 space-y-4">
                   <div>
                     <h3 className="text-base font-semibold text-dd-ink">
                       Pilih paket aktif untuk sesi ini
@@ -646,7 +646,7 @@ export function CustomerBookingFlow({ client = browserBookingClient }: { client?
                 </section>
               ) : (
                 /* Step 2: Review Final */
-                <section className="rounded-dd-xl border border-dd-line bg-white p-5 sm:p-6 shadow-dd-card space-y-4">
+                <section className="rounded-dd-xl border border-dd-line bg-white p-5 sm:p-6 space-y-4">
                   <div>
                     <p className="text-[13px] font-bold text-dd-forest">
                       Review reservasi
@@ -717,7 +717,7 @@ export function CustomerBookingFlow({ client = browserBookingClient }: { client?
 
             {/* Right Column: Studio Guidelines & Policy (Aside) */}
             <aside className="space-y-5">
-              <div className="rounded-dd-xl border border-dd-brass/50 bg-dd-brass-soft p-5 sm:p-6 shadow-dd-card">
+              <div className="rounded-dd-xl border border-dd-brass/50 bg-dd-brass-soft p-5 sm:p-6">
                 <ShieldCheck className="size-8 text-dd-forest" />
                 <h3 className="mt-3 text-lg font-semibold text-dd-ink">
                   Kebijakan & panduan studio
@@ -748,7 +748,7 @@ export function CustomerBookingFlow({ client = browserBookingClient }: { client?
                 </ul>
               </div>
 
-              <div className="rounded-dd-xl border border-dd-line bg-white p-5 text-xs leading-relaxed text-dd-muted shadow-dd-card">
+              <div className="rounded-dd-xl border border-dd-line bg-white p-5 text-xs leading-relaxed text-dd-muted">
                 <p className="flex items-center gap-1.5 font-semibold text-dd-ink mb-1">
                   <MapPin className="size-3.5 text-dd-forest" />
                   Alamat Studio
