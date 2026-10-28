@@ -8,20 +8,22 @@ export class TargetController {
   constructor(private readonly target: TargetService) {}
 
   /**
-   * Laju pencapaian target. Nilai targetnya dikirim pemanggil lewat `targetRp`; layanan ini tidak
-   * menyimpan target di mana pun dan hanya membaca tabel pembelian yang sudah ada.
+   * Laju pencapaian target. Targetnya dibaca dari `Cabang.monthlyTargetRp`; `targetRpOverride`
+   * hanya untuk simulasi dan tidak mengubah yang tersimpan. Tanpa `branchId`, target dan omzet
+   * dijumlahkan dari cabang yang boleh dilihat pemanggil.
    */
   @Get('targets/pace')
   pace(
     @Req() req: AuthenticatedRequest,
-    @Query('targetRp') targetRp: string,
     @Query('branchId') branchId?: string,
     @Query('period') period?: string,
+    @Query('targetRpOverride') targetRpOverride?: string,
   ) {
+    const simulasi = targetRpOverride ? Number.parseInt(targetRpOverride, 10) : undefined;
     return this.target.pace(req.principal, {
       branchId: branchId ?? null,
       period,
-      targetRp: Number.parseInt(targetRp, 10),
+      targetRpOverride: Number.isFinite(simulasi) ? simulasi : undefined,
     });
   }
 }
