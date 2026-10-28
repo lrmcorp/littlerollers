@@ -33,8 +33,13 @@ function setup(
     }>;
     slotInstruktur?: unknown;
     booking?: unknown;
+    /** Beberapa kelas sekaligus; menimpa slotInstruktur/booking. */
+    slots?: unknown[];
+    bookings?: unknown[];
     hadirInstruktur?: unknown;
     hadirMember?: unknown;
+    /** Id kelas atau booking yang sudah tercatat, untuk skenario banyak kelas. */
+    tercatat?: string[];
   } = {},
 ) {
   const pengguna = opts.pengguna ?? [
@@ -57,10 +62,32 @@ function setup(
         });
       }),
     },
-    slotKelas: { findFirst: jest.fn().mockResolvedValue(opts.slotInstruktur ?? null) },
-    pemesananKelas: { findFirst: jest.fn().mockResolvedValue(opts.booking ?? null) },
-    kehadiranInstruktur: { findUnique: jest.fn().mockResolvedValue(opts.hadirInstruktur ?? null) },
-    kehadiranPelanggan: { findUnique: jest.fn().mockResolvedValue(opts.hadirMember ?? null) },
+    slotKelas: {
+      findMany: jest
+        .fn()
+        .mockResolvedValue(opts.slots ?? (opts.slotInstruktur ? [opts.slotInstruktur] : [])),
+    },
+    pemesananKelas: {
+      findMany: jest.fn().mockResolvedValue(opts.bookings ?? (opts.booking ? [opts.booking] : [])),
+    },
+    kehadiranInstruktur: {
+      findMany: jest.fn(({ where }: { where: { classSlotId: { in: string[] } } }) =>
+        Promise.resolve(
+          where.classSlotId.in
+            .filter((k) => opts.tercatat?.includes(k) || (opts.hadirInstruktur && !opts.tercatat))
+            .map((classSlotId) => ({ classSlotId })),
+        ),
+      ),
+    },
+    kehadiranPelanggan: {
+      findMany: jest.fn(({ where }: { where: { bookingId: { in: string[] } } }) =>
+        Promise.resolve(
+          where.bookingId.in
+            .filter((k) => opts.tercatat?.includes(k) || (opts.hadirMember && !opts.tercatat))
+            .map((bookingId) => ({ bookingId })),
+        ),
+      ),
+    },
   };
   return { service: new StudioScanService(db as never), db };
 }
@@ -123,15 +150,34 @@ describe('StudioScanService, member', () => {
 
     await service.resolve(buildPass(member), cabangB, NOW);
 
-    expect(db.pemesananKelas.findFirst.mock.calls[0][0].where.classSlot.branchId).toBe(cabangB);
+    expect(db.pemesananKelas.findMany.mock.calls[0][0].where.classSlot.branchId).toBe(cabangB);
   });
 
-  it('hanya menerima booking berstatus BOOKED, bukan yang sudah batal', async () => {
+  it('tidak mencari booking yang sudah batal', async () => {
     const { service, db } = setup({ booking });
 
     await service.resolve(buildPass(member), cabangA, NOW);
 
-    expect(db.pemesananKelas.findFirst.mock.calls[0][0].where.status).toBe('BOOKED');
+    expect(db.pemesananKelas.findMany.mock.calls[0][0].where.status).toEqual({
+      in: ['BOOKED', 'ATTENDED'],
+    });
+  });
+
+  it('memilih kelas 09.00 untuk member yang baru selesai kelas 07.00', async () => {
+    const pagi = {
+      id: id(71),
+      classSlot: slot({
+        id: id(91),
+        startAt: new Date('2026-10-28T07:00:00.000Z'),
+        endAt: new Date('2026-10-28T07:55:00.000Z'),
+      }),
+    };
+    const { service } = setup({ bookings: [pagi, booking], tercatat: [id(71)] });
+
+    const hasil = await service.resolve(buildPass(member), cabangA, NOW);
+
+    expect(hasil.diterima).toBe(true);
+    expect(hasil.kelas?.bookingId).toBe(id(70));
   });
 
   it('menolak bila kelas masih terlalu jauh dari jam pindai', async () => {
@@ -177,11 +223,26 @@ describe('StudioScanService, member', () => {
     const hasil = await service.resolve(buildPass(member), cabangA, NOW);
 
     expect(hasil.alasan).toBe('AKUN_BERHENTI');
-    expect(db.pemesananKelas.findFirst).not.toHaveBeenCalled();
+    expect(db.pemesananKelas.findMany).not.toHaveBeenCalled();
   });
 });
 
 describe('StudioScanService, instruktur', () => {
+  it('memilih kelas kedua bila kelas pertama sudah tercatat dan keduanya terbuka', async () => {
+    const pertama = slot({
+      id: id(91),
+      startAt: new Date('2026-10-28T08:20:00.000Z'),
+      endAt: new Date('2026-10-28T09:15:00.000Z'),
+    });
+    const kedua = slot({ id: id(92) });
+    const { service } = setup({ slots: [pertama, kedua], tercatat: [id(91)] });
+
+    const hasil = await service.resolve(buildPass(instruktur), cabangA, NOW);
+
+    expect(hasil.diterima).toBe(true);
+    expect(hasil.kelas?.classSlotId).toBe(id(92));
+  });
+
   it('menerima instruktur yang mengajar kelas itu', async () => {
     const { service } = setup({ slotInstruktur: slot() });
 
@@ -197,8 +258,8 @@ describe('StudioScanService, instruktur', () => {
 
     await service.resolve(buildPass(instruktur), cabangA, NOW);
 
-    expect(db.slotKelas.findFirst.mock.calls[0][0].where.instructorId).toBe(instruktur);
-    expect(db.pemesananKelas.findFirst).not.toHaveBeenCalled();
+    expect(db.slotKelas.findMany.mock.calls[0][0].where.instructorId).toBe(instruktur);
+    expect(db.pemesananKelas.findMany).not.toHaveBeenCalled();
   });
 
   it('menolak instruktur yang tidak mengajar di cabang itu hari itu', async () => {

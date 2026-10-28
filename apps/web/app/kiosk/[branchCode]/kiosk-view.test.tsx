@@ -1,14 +1,13 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { ApiError } from '../../lib/api-client';
-import QRCode from 'qrcode';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { KioskView } from './kiosk-view';
-import type { KioskDisplayData } from '../../api-clients/booking-client';
+import type { KioskDisplayData, KioskScanResult } from '../../api-clients/booking-client';
 
-vi.mock('qrcode', () => ({
-  default: {
-    toCanvas: vi.fn().mockResolvedValue(undefined),
-  },
+vi.mock('@zxing/browser', () => ({
+  BrowserMultiFormatReader: vi.fn().mockImplementation(() => ({
+    decodeFromConstraints: vi.fn().mockRejectedValue(new Error('tanpa kamera di tes')),
+  })),
 }));
 
 const mockData: KioskDisplayData = {
@@ -86,6 +85,52 @@ describe('KioskView Component', () => {
     });
   });
 
+  const scanner = (hasil?: Partial<KioskScanResult>, galat?: unknown) => ({
+    scanAtKiosk: galat
+      ? vi.fn().mockRejectedValue(galat)
+      : vi.fn().mockResolvedValue({
+          diterima: true,
+          tercatat: true,
+          orang: { userId: 'm-1', nama: 'Sari Dewi', peran: 'MEMBER' },
+          kelas: {
+            classSlotId: 'slot-1',
+            bookingId: 'b-1',
+            namaKelas: 'Private Group Reformer',
+            studio: 'Studio 2',
+            mulai: '2026-10-21T02:00:00.000Z',
+            selesai: '2026-10-21T02:55:00.000Z',
+          },
+          tercatatPada: '2026-10-21T02:14:00.000Z',
+          namaCabang: 'Daily Dose Senopati',
+          timezone: 'Asia/Jakarta',
+          ...hasil,
+        }),
+    getKioskToday: vi.fn().mockResolvedValue([
+      { nama: 'Asrida Putri', peran: 'INSTRUKTUR', tercatatPada: '2026-10-21T01:47:00.000Z' },
+      { nama: 'Maya Putri', peran: 'MEMBER', tercatatPada: '2026-10-21T01:52:00.000Z' },
+    ]),
+  });
+
+  /** Pemindai genggam bekerja seperti papan ketik: mengetik isi QR lalu Enter. */
+  const pindaiGenggam = (isi: string) => {
+    for (const huruf of isi) fireEvent.keyDown(window, { key: huruf });
+    fireEvent.keyDown(window, { key: 'Enter' });
+  };
+
+  const bukaPemindai = async (sc = scanner()) => {
+    render(
+      <KioskView
+        branchCode="seno"
+        client={clientWith() as never}
+        initialToken="tablet-token"
+        scannerClient={sc}
+        kameraAktif={false}
+      />,
+    );
+    await screen.findByRole('heading', { name: 'Tunjukkan QR Anda ke kamera' });
+    return sc;
+  };
+
   const clientWith = (overrides: Record<string, unknown> = {}) => ({
     getKioskDisplay: vi.fn().mockResolvedValue(mockData),
     unlockKiosk: vi.fn().mockResolvedValue({ token: 'tablet-token', expiresAt: '2026-11-20T00:00:00.000Z' }),
@@ -99,7 +144,15 @@ describe('KioskView Component', () => {
       .mockResolvedValueOnce({ token: 'tablet-token', expiresAt: '2026-11-20T00:00:00.000Z' });
     const mockClient = clientWith({ unlockKiosk });
 
-    render(<KioskView branchCode="seno" client={mockClient as never} initialToken={null} />);
+    render(
+      <KioskView
+        branchCode="seno"
+        client={mockClient as never}
+        initialToken={null}
+        scannerClient={scanner()}
+        kameraAktif={false}
+      />,
+    );
 
     expect(screen.getByRole('heading', { name: /Kunci Akses Tablet Kiosk/i })).toBeInTheDocument();
     expect(screen.getByText(/Masukkan 6 digit PIN otorisasi studio/i)).toBeInTheDocument();
@@ -113,9 +166,10 @@ describe('KioskView Component', () => {
     fireEvent.change(pinInput, { target: { value: '482913' } });
     fireEvent.click(screen.getByRole('button', { name: /Aktifkan Layar Kiosk/i }));
 
-    await waitFor(() => {
-      expect(screen.getByText(/Daily Dose Pilates · Daily Dose Senopati/i)).toBeInTheDocument();
-    });
+    expect(
+      await screen.findByRole('heading', { name: 'Tunjukkan QR Anda ke kamera' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Daily Dose Senopati' })).toBeInTheDocument();
     expect(mockClient.unlockKiosk).toHaveBeenLastCalledWith('seno', '482913');
     expect(mockClient.getKioskDisplay).toHaveBeenCalledWith('seno', 'tablet-token');
     expect(window.localStorage.setItem).toHaveBeenCalledWith('dd_kiosk_token_seno', 'tablet-token');
@@ -140,81 +194,94 @@ describe('KioskView Component', () => {
     expect(window.localStorage.removeItem).toHaveBeenCalledWith('dd_kiosk_token_seno');
   });
 
-  it('memenuhi spesifikasi tata letak 5.10 (jarak 2 meter, 40px, 22px, QR 280px, dan rotasi 60 detik)', async () => {
-    const mockClient = clientWith();
+  it('mencatat kehadiran dari pemindai genggam dan menampilkan nama serta kelasnya', async () => {
+    const sc = await bukaPemindai();
 
-    render(<KioskView branchCode="seno" client={mockClient as never} initialToken="tablet-token" />);
+    act(() => pindaiGenggam('dd-pass:v1:abc'));
 
-    await waitFor(() => {
-      expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/Daily Dose Senopati/i);
-    });
-
-    // 1. Tipografi 40 px: Nama kelas & Jam sesi
-    const classNameHeading = screen.getByRole('heading', { level: 2, name: /Reformer Flow/i });
-    expect(classNameHeading).toHaveClass('text-[40px]');
-    const sessionTimeText = screen.getByText(/15[.:]00\s*–\s*16[.:]00/);
-    expect(sessionTimeText).toBeInTheDocument();
-    expect(sessionTimeText).toHaveClass('text-[40px]');
-
-    // 2. Tipografi 22 px: Nama instruktur & studio
-    const instructorStudioText = document.querySelector('.text-\\[22px\\]');
-    expect(instructorStudioText).toBeInTheDocument();
-    expect(instructorStudioText).toHaveTextContent(/Coach Sarah Kartika/i);
-    expect(instructorStudioText).toHaveTextContent(/Studio Pilates Senopati/i);
-
-    // 3. QR presensi 280 px pada kartu putih & teks keterangan rotasi 60 detik
-    const qrCanvas = screen.getByLabelText(/QR Code Presensi Instruktur Kiosk/i);
-    expect(qrCanvas).toBeInTheDocument();
-    expect(qrCanvas).toHaveAttribute('width', '280');
-    expect(qrCanvas).toHaveAttribute('height', '280');
-    expect(screen.getByText(/Kode berganti otomatis setiap 60 detik/i)).toBeInTheDocument();
-
-    // 4. Jumlah peserta terdaftar
-    expect(screen.getByText(/8 dari 10 peserta/i)).toBeInTheDocument();
-
-    // 5. Radius geofence dan koordinat studio tidak pernah ditampilkan di layar publik
-    expect(document.body.textContent ?? '').not.toMatch(/geofence|radius|-6\.\d{3}/i);
+    await waitFor(() =>
+      expect(sc.scanAtKiosk).toHaveBeenCalledWith('seno', 'tablet-token', 'dd-pass:v1:abc'),
+    );
+    expect(await screen.findByRole('heading', { name: 'Kehadiran tercatat' })).toBeInTheDocument();
+    expect(screen.getByText('Sari Dewi')).toBeInTheDocument();
+    expect(screen.getByText(/Private Group Reformer, 09.00 sampai 09.55 · Studio 2/)).toBeInTheDocument();
   });
 
-  it('menampilkan daftar presensi hari ini beserta jam scan kehadiran (Spec 5.10)', async () => {
-    const mockClient = clientWith();
+  it('mengabaikan ketikan yang bukan pass Daily Dose', async () => {
+    const sc = await bukaPemindai();
 
-    render(<KioskView branchCode="seno" client={mockClient as never} initialToken="tablet-token" />);
+    act(() => pindaiGenggam('12345'));
 
-    await waitFor(() => {
-      expect(screen.getByText(/Daftar Presensi Hari Ini/i)).toBeInTheDocument();
-    });
-
-    // Sesi slot-2 yang sudah dihadiri Coach Budi Santoso
-    expect(screen.getAllByText(/Coach Budi Santoso/i).length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText(/Mat Pilates Fundamentals/i).length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText(/15m dari studio/i)).toBeInTheDocument();
+    expect(sc.scanAtKiosk).not.toHaveBeenCalled();
   });
 
-  it('menampilkan baris penutup wajib sesuai Spesifikasi 5.10', async () => {
-    const mockClient = clientWith();
+  it('tidak mengirim kode yang sama dua kali dalam beberapa detik', async () => {
+    const sc = await bukaPemindai();
 
-    render(<KioskView branchCode="seno" client={mockClient as never} initialToken="tablet-token" />);
+    act(() => pindaiGenggam('dd-pass:v1:abc'));
+    await screen.findByRole('heading', { name: 'Kehadiran tercatat' });
+    act(() => pindaiGenggam('dd-pass:v1:abc'));
 
-    await waitFor(() => {
-      expect(
-        screen.getByText(
-          /Presensi hanya tercatat jika instruktur terdaftar di sesi ini dan berada di area studio./i,
-        ),
-      ).toBeInTheDocument();
-    });
+    expect(sc.scanAtKiosk).toHaveBeenCalledTimes(1);
+  });
+
+  it('menyebut alasan penolakan dengan kalimat yang bisa dipahami orang di depan layar', async () => {
+    await bukaPemindai(
+      scanner({ diterima: false, tercatat: false, alasan: 'TIDAK_ADA_KELAS', kelas: undefined }),
+    );
+
+    act(() => pindaiGenggam('dd-pass:v1:abc'));
+
+    expect(await screen.findByRole('heading', { name: 'Tidak ada kelas' })).toBeInTheDocument();
+    expect(
+      screen.getByText(/Sari Dewi tidak punya kelas di Daily Dose Senopati sekitar jam ini/),
+    ).toBeInTheDocument();
+  });
+
+  it('kembali ke layar PIN bila token tablet ditolak saat memindai', async () => {
+    await bukaPemindai(
+      scanner(undefined, new ApiError('Unauthorized', 401, { error: { code: 'KIOSK_LOCKED' } })),
+    );
+
+    act(() => pindaiGenggam('dd-pass:v1:abc'));
+
+    expect(
+      await screen.findByRole('heading', { name: /Kunci Akses Tablet Kiosk/i }, { timeout: 4000 }),
+    ).toBeInTheDocument();
+    expect(window.localStorage.removeItem).toHaveBeenCalledWith('dd_kiosk_token_seno');
+  });
+
+  it('menampilkan daftar tercatat hari ini hanya dengan nama dan jam, tanpa foto', async () => {
+    await bukaPemindai();
+
+    const daftar = await screen.findByRole('region', { name: 'Tercatat hari ini' });
+    expect(await within(daftar).findByText('Asrida Putri · instruktur')).toBeInTheDocument();
+    expect(within(daftar).getByText('08.47')).toBeInTheDocument();
+    expect(within(daftar).queryByRole('img')).toBeNull();
+  });
+
+  it('menampilkan aturan jendela waktu di bawah layar', async () => {
+    await bukaPemindai();
+
+    expect(
+      screen.getByText(/Kehadiran hanya tercatat jika orangnya punya kelas di cabang ini/),
+    ).toBeInTheDocument();
   });
 
   it('mendukung penguncian kembali perangkat tablet kiosk oleh staf studio', async () => {
     const mockClient = clientWith();
 
-    render(<KioskView branchCode="seno" client={mockClient as never} initialToken="tablet-token" />);
+    render(
+      <KioskView
+        branchCode="seno"
+        client={mockClient as never}
+        initialToken="tablet-token"
+        scannerClient={scanner()}
+        kameraAktif={false}
+      />,
+    );
 
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /Kunci Tablet Kiosk/i })).toBeInTheDocument();
-    });
-
-    fireEvent.click(screen.getByRole('button', { name: /Kunci Tablet Kiosk/i }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Kunci tablet' }));
 
     expect(screen.getByRole('heading', { name: /Kunci Akses Tablet Kiosk/i })).toBeInTheDocument();
   });

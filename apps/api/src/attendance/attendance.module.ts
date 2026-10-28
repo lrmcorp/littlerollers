@@ -9,6 +9,7 @@ import { KioskAdminController } from './kiosk-admin.controller';
 import { NoShowController } from './no-show.controller';
 import { CheckInDeskController } from './check-in-desk.controller';
 import { CheckInDeskService } from './check-in-desk.service';
+import { StudioCheckInService } from './studio-check-in.service';
 import { NoShowService } from './no-show.service';
 import { StudioScanService } from './studio-scan.service';
 
@@ -27,6 +28,7 @@ import { StudioScanService } from './studio-scan.service';
     NoShowService,
     StudioScanService,
     CheckInDeskService,
+    StudioCheckInService,
   ],
 })
 export class AttendanceModule {}

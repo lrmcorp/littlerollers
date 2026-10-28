@@ -1,11 +1,23 @@
 import { Body, Controller, Get, Headers, Param, Post, Req, UseGuards } from '@nestjs/common';
 import { AuthGuard, type AuthenticatedRequest } from '../identity/auth.guard';
 import { AttendanceService } from './kehadiran.service';
+import { buildPass } from './check-in-pass';
+import { SelfService } from '../identity/route-access';
 
 @Controller()
 @UseGuards(AuthGuard)
 export class AttendanceController {
   constructor(private readonly attendance: AttendanceService) {}
+
+  /**
+   * QR tetap milik akun yang sedang masuk. Member dan instruktur menyimpannya di ponsel sekali,
+   * lalu memindainya di tablet studio setiap datang tanpa perlu masuk ke aplikasi.
+   */
+  @SelfService()
+  @Get('me/check-in-pass')
+  myCheckInPass(@Req() request: AuthenticatedRequest) {
+    return { pass: buildPass(request.principal.userId) };
+  }
 
   @Post('bookings/:id/customer-check-in-links')
   issue(

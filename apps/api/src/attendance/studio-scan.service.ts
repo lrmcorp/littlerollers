@@ -132,7 +132,7 @@ export class StudioScanService {
   }
 
   private async kelasInstruktur(userId: string, branchId: string, now: Date) {
-    const slot = await this.db.slotKelas.findFirst({
+    const slots = await this.db.slotKelas.findMany({
       where: {
         instructorId: userId,
         branchId,
@@ -142,20 +142,29 @@ export class StudioScanService {
       orderBy: { startAt: 'asc' },
       include: { classType: { select: { name: true } }, studio: { select: { name: true } } },
     });
-    if (!slot) return null;
+    if (slots.length === 0) return null;
 
-    const hadir = await this.db.kehadiranInstruktur.findUnique({
-      where: { classSlotId: slot.id },
-      select: { id: true },
+    const hadir = await this.db.kehadiranInstruktur.findMany({
+      where: { classSlotId: { in: slots.map((slot) => slot.id) } },
+      select: { classSlotId: true },
     });
-    return { ...ringkas(slot), bookingId: null, sudahTercatat: Boolean(hadir) };
+    const tercatat = new Set(hadir.map((h) => h.classSlotId));
+    return pilihKelas(
+      slots.map((slot) => ({
+        ...ringkas(slot),
+        bookingId: null,
+        sudahTercatat: tercatat.has(slot.id),
+      })),
+      now,
+    );
   }
 
   private async kelasMember(userId: string, branchId: string, now: Date) {
-    const booking = await this.db.pemesananKelas.findFirst({
+    // ATTENDED ikut dicari supaya pindaian kedua dijawab "sudah tercatat", bukan "tidak ada kelas".
+    const bookings = await this.db.pemesananKelas.findMany({
       where: {
         userId,
-        status: 'BOOKED',
+        status: { in: ['BOOKED', 'ATTENDED'] },
         classSlot: {
           branchId,
           startAt: rentang(now),
@@ -169,14 +178,42 @@ export class StudioScanService {
         },
       },
     });
-    if (!booking) return null;
+    if (bookings.length === 0) return null;
 
-    const hadir = await this.db.kehadiranPelanggan.findUnique({
-      where: { bookingId: booking.id },
-      select: { id: true },
+    const hadir = await this.db.kehadiranPelanggan.findMany({
+      where: { bookingId: { in: bookings.map((b) => b.id) } },
+      select: { bookingId: true },
     });
-    return { ...ringkas(booking.classSlot), bookingId: booking.id, sudahTercatat: Boolean(hadir) };
+    const tercatat = new Set(hadir.map((h) => h.bookingId));
+    return pilihKelas(
+      bookings.map((b) => ({
+        ...ringkas(b.classSlot),
+        bookingId: b.id,
+        sudahTercatat: tercatat.has(b.id),
+      })),
+      now,
+    );
   }
+}
+
+/**
+ * Kelas mana yang dimaksud pindaian ini, bila orang itu punya beberapa kelas di sekitar jam itu.
+ *
+ * Urutannya: kelas yang jendela pindainya sedang terbuka dan belum tercatat, lalu yang terbuka
+ * walau sudah tercatat, lalu kelas berikutnya yang terdekat, lalu yang terakhir lewat. Mengambil
+ * kelas paling awal saja akan menjawab "kelas sudah lewat" kepada member yang baru selesai kelas
+ * 07.00 dan sekarang datang untuk kelas 09.00.
+ */
+export function pilihKelas<T extends { startAt: Date; endAt: Date; sudahTercatat: boolean }>(
+  kandidat: readonly T[],
+  now: Date,
+): T | null {
+  const terbuka = kandidat.filter((k) => scanWindowFor(k.startAt, k.endAt, now) === 'OPEN');
+  const berikutnya = kandidat
+    .filter((k) => k.startAt > now)
+    .sort((a, b) => a.startAt.getTime() - b.startAt.getTime());
+  const lewat = [...kandidat].sort((a, b) => b.startAt.getTime() - a.startAt.getTime());
+  return terbuka.find((k) => !k.sudahTercatat) ?? terbuka[0] ?? berikutnya[0] ?? lewat[0] ?? null;
 }
 
 function rentang(now: Date) {

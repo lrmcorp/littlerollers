@@ -1205,3 +1205,52 @@ export async function getKioskDisplay(branchCode: string, token: string): Promis
   });
 }
 
+/** Hasil pindaian QR tetap di tablet studio. */
+export interface KioskScanResult {
+  diterima: boolean;
+  tercatat: boolean;
+  alasan?:
+    | 'PASS_TIDAK_DIKENALI'
+    | 'AKUN_BERHENTI'
+    | 'TIDAK_ADA_KELAS'
+    | 'BELUM_WAKTUNYA'
+    | 'KELAS_SUDAH_LEWAT'
+    | 'SUDAH_TERCATAT';
+  orang?: { userId: string; nama: string; peran: 'MEMBER' | 'INSTRUKTUR' };
+  kelas?: {
+    classSlotId: string;
+    bookingId: string | null;
+    namaKelas: string | null;
+    studio: string | null;
+    mulai: string;
+    selesai: string;
+  };
+  bukaPadaMenitSebelum?: number;
+  tercatatPada?: string;
+  namaCabang: string;
+  timezone: string;
+}
+
+export interface KioskTodayItem {
+  nama: string;
+  peran: 'MEMBER' | 'INSTRUKTUR';
+  tercatatPada: string;
+}
+
+export async function scanAtKiosk(
+  branchCode: string,
+  token: string,
+  pass: string,
+): Promise<KioskScanResult> {
+  return apiFetch<KioskScanResult>(
+    `/api/v1/check-ins/kiosk/${encodeURIComponent(branchCode)}/scan`,
+    { method: 'POST', headers: { 'x-kiosk-token': token }, body: JSON.stringify({ pass }) },
+  );
+}
+
+export async function getKioskToday(branchCode: string, token: string): Promise<KioskTodayItem[]> {
+  return apiFetch<KioskTodayItem[]>(
+    `/api/v1/check-ins/kiosk/${encodeURIComponent(branchCode)}/today`,
+    { headers: { 'x-kiosk-token': token } },
+  );
+}
