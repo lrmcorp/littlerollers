@@ -30,6 +30,7 @@ export class CustomerProfileService {
 
     return {
       id: user.id,
+      username: user.username ?? null,
       displayName: user.displayName,
       emailMasked: maskEmail(user.email),
       phoneMasked: maskPhone(user.phone),
@@ -92,6 +93,7 @@ export class CustomerProfileService {
 
     return {
       id: updated?.id ?? existing.id,
+      username: (updated as any)?.username ?? existing.username ?? null,
       displayName: updated?.displayName ?? existing.displayName,
       emailMasked: maskEmail(updated?.email ?? existing.email),
       phoneMasked: maskPhone((updated as any)?.phone ?? (updated as any)?.phoneE164 ?? (existing as any)?.phone ?? (existing as any)?.phoneE164),

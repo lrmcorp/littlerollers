@@ -596,6 +596,7 @@ export class IdentityController {
     @Body()
     body: {
       displayName: string;
+      username?: string | null;
       phoneE164?: string | null;
       expectedVersion: number;
       reason: string;

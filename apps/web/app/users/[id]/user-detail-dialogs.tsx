@@ -56,7 +56,11 @@ export function ProfileDialog({
   user: UserSummary;
   submitting: boolean;
   onClose(): void;
-  onSubmit(input: { displayName: string; phoneE164: string | null }): Promise<void>;
+  onSubmit(input: {
+    displayName: string;
+    username?: string | null;
+    phoneE164: string | null;
+  }): Promise<void>;
 }) {
   const guard = useDialogFormGuard(open, onClose, 'perubahan profil');
   return (
@@ -91,13 +95,22 @@ export function ProfileDialog({
         onSubmit={(event) => {
           event.preventDefault();
           const data = new FormData(event.currentTarget);
+          const rawUsername = String(data.get('username') ?? '').trim();
           void onSubmit({
             displayName: String(data.get('displayName')),
+            username: rawUsername ? rawUsername.toLowerCase() : null,
             phoneE164: String(data.get('phoneE164')).trim() || null,
           });
         }}
       >
         <FormSection title="Informasi Profil">
+          <TextInput
+            label="Username (ID Login)"
+            name="username"
+            defaultValue={user.username ?? ''}
+            placeholder="contoh: budi_santoso"
+            description="Gunakan huruf kecil, angka, _, ., atau - (3-30 karakter). Digunakan untuk login."
+          />
           <TextInput
             label="Nama Tampilan"
             name="displayName"

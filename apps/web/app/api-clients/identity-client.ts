@@ -27,6 +27,8 @@ export interface UserRoleSummary {
 
 export interface UserSummary {
   id: string;
+  email?: string | null;
+  username?: string | null;
   displayName: string;
   phoneE164: string | null;
   status: 'PENDING_ACTIVATION' | 'ACTIVE' | 'INACTIVE';
@@ -156,6 +158,7 @@ export interface IdentityClient {
     id: string,
     input: {
       displayName: string;
+      username?: string | null;
       phoneE164: string | null;
       expectedVersion?: number;
       reason?: string;

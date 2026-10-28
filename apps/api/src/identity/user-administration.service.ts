@@ -107,6 +107,7 @@ export class UserAdministrationService {
     return {
       id: user.id,
       email: user.email ?? null,
+      username: user.username ?? null,
       displayName: user.displayName,
       phoneE164: user.phoneE164 ?? user.phone ?? null,
       phone: user.phone ?? user.phoneE164 ?? null,
@@ -410,6 +411,7 @@ export class UserAdministrationService {
     targetId: string,
     input: {
       displayName: string;
+      username?: string | null;
       phoneE164?: string | null;
       expectedVersion?: number;
       reason?: string;
@@ -421,6 +423,25 @@ export class UserAdministrationService {
     if (!displayName || displayName.length < 2)
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
 
+    let cleanUsername: string | undefined;
+    if (input.username !== undefined) {
+      const trimmed = input.username?.trim().toLowerCase();
+      if (!trimmed || !/^[a-z0-9_.-]{3,30}$/.test(trimmed)) {
+        throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
+      }
+      const existingWithUsername = await this.db.user.findFirst({
+        where: {
+          username: trimmed,
+          NOT: { id: targetId },
+        },
+        select: { id: true },
+      });
+      if (existingWithUsername) {
+        throw new ApiProblem('IDENTITY_CONFLICT', HttpStatus.CONFLICT);
+      }
+      cleanUsername = trimmed;
+    }
+
     const phone = input.phoneE164?.trim() ? normalizePhone(input.phoneE164) : undefined;
 
     const existing = await this.db.user.findUnique({ where: { id: targetId } });
@@ -430,6 +451,7 @@ export class UserAdministrationService {
       where: { id: targetId },
       data: {
         displayName,
+        ...(cleanUsername !== undefined ? { username: cleanUsername } : {}),
         ...(phone !== undefined ? { phone } : {}),
       },
       include: { profile: true },
@@ -441,7 +463,13 @@ export class UserAdministrationService {
       targetUserId: targetId,
       correlationId: _correlationId,
       reason: input.reason,
-      detail: { fields: ['displayName', ...(phone !== undefined ? ['phone'] : [])] },
+      detail: {
+        fields: [
+          'displayName',
+          ...(cleanUsername !== undefined ? ['username'] : []),
+          ...(phone !== undefined ? ['phone'] : []),
+        ],
+      },
     });
 
     return this.userView(updated ?? existing);

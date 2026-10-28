@@ -283,6 +283,7 @@ export function UserDetailView({
             </h2>
             <dl className="mt-5 grid gap-4 sm:grid-cols-2">
               <DetailItem label="Nama tampilan" value={user.displayName} />
+              <DetailItem label="Username (ID Login)" value={user.username ? `@${user.username}` : '-'} />
               <DetailItem label="Kontak" value={maskPhone(user.phoneE164)} />
               <DetailItem label="Status" value={statusLabels[user.status]} />
               <DetailItem label="Revisi data" value={`v${user.version}`} />

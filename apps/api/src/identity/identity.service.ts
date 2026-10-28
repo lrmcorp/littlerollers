@@ -250,7 +250,6 @@ export class IdentityService {
       });
     } else {
       const cleanUsername = rawIdentifier.toLowerCase();
-      const nameWithSpaces = cleanUsername.replace(/[_-]+/g, ' ');
       const usernameHash = digest(cleanUsername);
       await Promise.all([
         this.rateLimit.consume('PASSWORD_LOGIN_SUBJECT', usernameHash, 5, 900),
@@ -261,10 +260,7 @@ export class IdentityService {
           OR: [
             { username: rawIdentifier },
             { username: cleanUsername },
-            { displayName: rawIdentifier },
-            { displayName: nameWithSpaces },
             { email: rawIdentifier },
-            { email: { startsWith: `${cleanUsername}@` } },
           ],
         },
       });

@@ -39,6 +39,7 @@ export interface PublicClassMarketingProfile {
 
 export interface MyProfile {
   id: string;
+  username?: string | null;
   displayName: string;
   emailMasked: string | null;
   phoneMasked: string | null;

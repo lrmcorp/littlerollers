@@ -372,6 +372,11 @@ export function UsersView({
                   >
                     {user.displayName}
                   </Link>
+                  {user.username && (
+                    <span className="block text-xs font-mono text-dd-forest">
+                      @{user.username}
+                    </span>
+                  )}
                   <p className="mt-1 text-xs text-dd-muted">
                     Diperbarui {new Date(user.updatedAt).toLocaleDateString('id-ID')}
                   </p>
@@ -428,6 +433,11 @@ export function UsersView({
                 <Link className="font-bold text-dd-ink no-underline" href={`/users/${user.id}`}>
                   {user.displayName}
                 </Link>
+                {user.username && (
+                  <span className="block text-xs font-mono text-dd-forest">
+                    @{user.username}
+                  </span>
+                )}
                 <p className="mt-1 text-sm text-dd-muted">
                   {audience === 'CUSTOMER'
                     ? verificationLabel(user.identityVerification?.status)

@@ -135,7 +135,7 @@ export function ProfileView() {
                 </StatusBadge>
               </div>
               <p className="mt-1 text-xs text-dd-muted">
-                {profile.emailMasked ?? 'Email akun terdaftar'} · {roleBadge.detail}
+                {profile.username ? `@${profile.username} · ` : ''}{profile.emailMasked ?? 'Email akun terdaftar'} · {roleBadge.detail}
               </p>
             </div>
           </div>
@@ -184,21 +184,48 @@ export function ProfileView() {
         </div>
 
         <div className="space-y-4">
-          <div>
-            <label htmlFor="displayName" className="block text-xs font-semibold text-dd-forest uppercase tracking-wider">
-              Nama Tampilan
-            </label>
-            <div className="relative mt-1.5">
-              <input
-                id="displayName"
-                name="displayName"
-                defaultValue={profile.displayName}
-                minLength={2}
-                maxLength={160}
-                required
-                className="w-full rounded-dd-md border border-dd-line bg-white px-3.5 py-2.5 text-sm text-dd-ink transition focus:border-dd-forest focus:outline-none focus:ring-1 focus:ring-dd-forest"
-                placeholder="Masukkan nama lengkap Anda"
-              />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <span className="flex items-center justify-between text-xs font-semibold text-dd-forest uppercase tracking-wider">
+                <span>Username (ID Login)</span>
+                <span className="flex items-center gap-1 text-[13px] font-normal text-dd-muted">
+                  <Lock className="size-3" /> Akun Terdaftar
+                </span>
+              </span>
+              <div className="relative mt-1.5 flex items-center">
+                <input
+                  id="username"
+                  name="username"
+                  value={profile.username ? `@${profile.username}` : 'Belum diatur'}
+                  readOnly
+                  disabled
+                  className="w-full rounded-dd-md border border-dd-line bg-dd-surface-muted px-3.5 py-2.5 text-sm font-medium font-mono text-dd-ink cursor-not-allowed"
+                />
+              </div>
+              <p className="mt-1 text-[12px] text-dd-muted">
+                Username resmi Anda untuk masuk ke aplikasi Daily Dose.
+              </p>
+            </div>
+
+            <div>
+              <label htmlFor="displayName" className="block text-xs font-semibold text-dd-forest uppercase tracking-wider">
+                Nama Lengkap / Tampilan
+              </label>
+              <div className="relative mt-1.5">
+                <input
+                  id="displayName"
+                  name="displayName"
+                  defaultValue={profile.displayName}
+                  minLength={2}
+                  maxLength={160}
+                  required
+                  className="w-full rounded-dd-md border border-dd-line bg-white px-3.5 py-2.5 text-sm text-dd-ink transition focus:border-dd-forest focus:outline-none focus:ring-1 focus:ring-dd-forest"
+                  placeholder="Masukkan nama lengkap Anda"
+                />
+              </div>
+              <p className="mt-1 text-[12px] text-dd-muted">
+                Nama yang ditampilkan di jadwal instruktur &amp; kartu reservasi kelas.
+              </p>
             </div>
           </div>
 
