@@ -101,6 +101,7 @@ const auditActionLabels: Record<string, string> = {
   SESSION_ADJUSTMENT_REQUESTED: 'Penyesuaian sesi diajukan',
   SESSION_ADJUSTMENT_APPROVED: 'Penyesuaian sesi disetujui',
   SESSION_ADJUSTMENT_DIRECT_APPLIED: 'Penyesuaian sesi diterapkan langsung',
+  SESSION_ADJUSTMENT_EVIDENCE_ATTACHED: 'Bukti penyesuaian sesi dilampirkan',
   CUSTOMER_PACKAGE_EXTEND: 'Masa berlaku paket pelanggan diperpanjang',
   CUSTOMER_PACKAGE_FREEZE: 'Paket pelanggan dibekukan',
   CUSTOMER_PACKAGE_UNFREEZE: 'Paket pelanggan diaktifkan kembali',
