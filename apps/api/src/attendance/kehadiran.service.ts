@@ -13,6 +13,16 @@ const UUID = ENTITY_ID_REGEX;
 const RAW_TOKEN = /^[A-Za-z0-9_-]{43}$/u;
 const sha256 = (value: string) => createHash('sha256').update(value).digest('hex');
 
+/**
+ * Token QR check-in pelanggan = HMAC(id baris). Id baris acak (UUID v4) dan hanya diketahui pemilik booking serta
+ * staf, sehingga kerahasiaan token bersandar pada id itu; rahasia server menambah satu lapis lagi.
+ * Hasilnya 43 karakter base64url, sama dengan bentuk token acak sebelumnya.
+ */
+export function deriveCheckInToken(rowId: string): string {
+  const secret = process.env.CHECK_IN_TOKEN_SECRET || process.env.SESSION_SECRET || 'dailydose-kiosk-secret';
+  return createHmac('sha256', secret).update(`customer-check-in:v1:${rowId}`).digest('base64url');
+}
+
 export type CheckInWindowState = 'TOO_EARLY' | 'OPEN' | 'EXPIRED';
 
 export function checkInWindowState(startAt: Date, endAt: Date, now: Date): CheckInWindowState {
@@ -117,6 +127,8 @@ export class AttendanceService {
               include: {
                 classType: { select: { name: true } },
                 branch: { select: { id: true, code: true, name: true, timezone: true } },
+                studio: { select: { name: true } },
+                instructor: { select: { displayName: true } },
               },
             },
           },
@@ -131,21 +143,39 @@ export class AttendanceService {
         if (booking.classSlot.endAt <= new Date())
           throw new ApiProblem('CHECK_IN_WINDOW_CLOSED', HttpStatus.GONE);
 
-        // Revoke existing active tokens for this booking
-        await tx.checkInToken.updateMany({
-          where: { bookingId, isUsed: false },
-          data: { isUsed: true },
+        // Token yang masih berlaku dipakai ulang: membuka QR berkali-kali (beranda, detail booking, tautan dari
+        // staf) harus menampilkan QR yang sama. Token asli tidak disimpan, jadi ia diturunkan dari id baris
+        // lewat HMAC dan dicocokkan dengan hash yang tersimpan. Token lama bentuk acak (tidak dapat diturunkan),
+        // token milik slot yang sudah berpindah jadwal, dan token yang dicabut tidak dipakai ulang.
+        const now = new Date();
+        const active = await tx.checkInToken.findMany({
+          where: { bookingId, isUsed: false, expiresAt: { gt: now } },
+          orderBy: { createdAt: 'desc' },
         });
-
-        const rawToken = randomBytes(32).toString('base64url');
-        const token = await tx.checkInToken.create({
-          data: {
-            id: randomUUID(),
-            bookingId,
-            token: sha256(rawToken),
-            expiresAt: booking.classSlot.endAt,
-          },
-        });
+        const reusable = active.find(
+          (row) =>
+            row.expiresAt.getTime() === booking.classSlot.endAt.getTime() &&
+            row.token === sha256(deriveCheckInToken(row.id)),
+        );
+        let token: { id: string; bookingId: string; expiresAt: Date };
+        let rawToken: string;
+        if (reusable) {
+          token = reusable;
+          rawToken = deriveCheckInToken(reusable.id);
+          const stale = active.filter((row) => row.id !== reusable.id).map((row) => row.id);
+          if (stale.length > 0)
+            await tx.checkInToken.updateMany({ where: { id: { in: stale } }, data: { isUsed: true } });
+        } else {
+          await tx.checkInToken.updateMany({
+            where: { bookingId, isUsed: false },
+            data: { isUsed: true },
+          });
+          const id = randomUUID();
+          rawToken = deriveCheckInToken(id);
+          token = await tx.checkInToken.create({
+            data: { id, bookingId, token: sha256(rawToken), expiresAt: booking.classSlot.endAt },
+          });
+        }
 
         const payload = `dd-checkin:v1:${rawToken}`;
         const base = (process.env.PUBLIC_WEB_BASE_URL ?? 'http://127.0.0.1:32120').replace(/\/$/u, '');
@@ -164,6 +194,14 @@ export class AttendanceService {
           purpose: 'CUSTOMER_CHECK_IN' as const,
           bookingId: token.bookingId,
           expiresAt: token.expiresAt.toISOString(),
+          // Ringkasan kelas untuk halaman QR pelanggan, agar tidak bergantung pada parameter alamat.
+          className: booking.classSlot.classType.name,
+          branchName: booking.classSlot.branch.name,
+          studioName: booking.classSlot.studio?.name ?? null,
+          instructorName: booking.classSlot.instructor?.displayName ?? null,
+          startAt: booking.classSlot.startAt.toISOString(),
+          endAt: booking.classSlot.endAt.toISOString(),
+          timezone: booking.classSlot.branch.timezone,
           token: rawToken,
           qrPayload: payload,
           passUrl,

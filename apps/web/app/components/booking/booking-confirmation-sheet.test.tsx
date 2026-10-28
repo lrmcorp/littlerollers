@@ -158,7 +158,7 @@ describe('BookingConfirmationSheet (Tiket T-05 / Spesifikasi 5.3)', () => {
     expect(screen.getByText('BK-2026-0001')).toBeVisible();
     expect(screen.getByRole('link', { name: 'Lihat QR Pass' })).toHaveAttribute(
       'href',
-      '/check-in-pass',
+      '/check-in-pass?bookingId=bk-12345',
     );
     expect(handleSuccess).toHaveBeenCalledWith(fakeBooking);
 

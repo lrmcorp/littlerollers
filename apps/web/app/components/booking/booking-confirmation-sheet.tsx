@@ -264,7 +264,11 @@ export function BookingConfirmationSheet({
             {/* Tombol Aksi */}
             <div className="space-y-2.5 pt-2">
               <Link
-                href="/check-in-pass"
+                href={
+                  bookingResult?.id
+                    ? `/check-in-pass?bookingId=${encodeURIComponent(bookingResult.id)}`
+                    : '/check-in-pass'
+                }
                 className="flex h-[52px] min-h-[52px] w-full items-center justify-center rounded-dd-md bg-dd-forest px-6 text-sm font-bold text-white shadow-xs transition hover:bg-dd-forest-hover"
               >
                 Lihat QR Pass

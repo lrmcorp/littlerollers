@@ -141,9 +141,9 @@ test.describe('E2E Workflow & Data Accuracy Testing per Role', () => {
 
     // Buka halaman QR Check-in Pass /check-in-pass
     await page.goto(`${BASE_URL}/check-in-pass`);
-    await expect(page.locator('h1').filter({ hasText: /Pass check-in/i }).first()).toBeVisible({ timeout: 15000 });
-    // Verifikasi alert proteksi token bekerja
-    await expect(page.locator('text=Pass QR tidak valid atau sudah tidak tersedia').first()).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('h1').filter({ hasText: /QR Pass Kelas/i }).first()).toBeVisible({ timeout: 15000 });
+    // Tanpa booking terpilih halaman memakai booking mendatang terdekat, atau mengajak melihat jadwal; bukan galat.
+    await expect(page.locator('text=Pass QR tidak valid atau sudah tidak tersedia')).toHaveCount(0, { timeout: 10000 });
   });
 
   // ==========================================================================

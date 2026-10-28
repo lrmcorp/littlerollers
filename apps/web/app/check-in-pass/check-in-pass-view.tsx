@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import QRCode from 'qrcode';
-import { AlertCircle, ArrowLeft, Check, Download } from 'lucide-react';
+import { AlertCircle, ArrowLeft, CalendarX2, Check, Clock, Download, QrCode } from 'lucide-react';
 import { useSessionContext } from '../session-context';
 
 function formatPassSchedule(startAtStr: string, endAtStr: string, timezone = 'Asia/Jakarta') {
@@ -45,20 +45,98 @@ function formatPassSchedule(startAtStr: string, endAtStr: string, timezone = 'As
   }
 }
 
+/** QR baru dapat dipindai 30 menit sebelum kelas (sama dengan aturan pemindaian di server). */
+const OPENS_BEFORE_MS = 30 * 60_000;
+const QR_UNAVAILABLE = 'Pass QR tidak valid atau sudah tidak tersedia.';
+
+interface PassInfo {
+  className: string;
+  studioName: string;
+  instructorName: string | null;
+  startAt: string;
+  endAt: string;
+  timezone: string;
+}
+
+type PassWindow = 'TOO_EARLY' | 'OPEN' | 'ENDED';
+
+export function passWindow(info: Pick<PassInfo, 'startAt' | 'endAt'>, now: number): PassWindow | null {
+  const start = new Date(info.startAt).getTime();
+  const end = new Date(info.endAt).getTime();
+  if (Number.isNaN(start) || Number.isNaN(end)) return null;
+  if (now < start - OPENS_BEFORE_MS) return 'TOO_EARLY';
+  return now < end ? 'OPEN' : 'ENDED';
+}
+
+function formatOpensAt(startAt: string, timezone: string) {
+  const opens = new Date(new Date(startAt).getTime() - OPENS_BEFORE_MS);
+  return new Intl.DateTimeFormat('id-ID', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: timezone })
+    .format(opens)
+    .replace(':', '.');
+}
+
+type IssuedPass = {
+  qrPayload?: string;
+  token?: string;
+  className?: string;
+  branchName?: string;
+  studioName?: string | null;
+  instructorName?: string | null;
+  startAt?: string;
+  endAt?: string;
+  timezone?: string;
+};
+
+function infoFrom(data: IssuedPass): PassInfo | null {
+  if (!data.className || !data.startAt || !data.endAt) return null;
+  return {
+    className: data.className,
+    studioName: data.studioName ?? data.branchName ?? '',
+    instructorName: data.instructorName ?? null,
+    startAt: data.startAt,
+    endAt: data.endAt,
+    timezone: data.timezone ?? 'Asia/Jakarta',
+  };
+}
+
+async function issuePass(bookingId: string): Promise<IssuedPass> {
+  const res = await fetch(`/api/v1/bookings/${encodeURIComponent(bookingId)}/customer-check-in-links`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'content-type': 'application/json' },
+  });
+  if (!res.ok) throw new Error('CHECKIN_UNAVAILABLE');
+  return (await res.json()) as IssuedPass;
+}
+
+/** Booking mendatang terdekat milik pelanggan, untuk halaman yang dibuka tanpa memilih booking. */
+async function nearestBookingId(): Promise<string | null> {
+  const res = await fetch('/api/v1/me/dashboard', { credentials: 'include' });
+  if (!res.ok) throw new Error('DASHBOARD_UNAVAILABLE');
+  const data = (await res.json()) as { upcomingBookings?: Array<{ id: string; status?: string }> };
+  return data.upcomingBookings?.find((booking) => !booking.status || booking.status === 'BOOKED')?.id ?? null;
+}
+
+async function linkInfo(rawToken: string): Promise<PassInfo | null> {
+  const res = await fetch(`/api/v1/check-ins/customer-link-info?token=${encodeURIComponent(rawToken)}`, {
+    credentials: 'include',
+  });
+  if (!res.ok) return null;
+  return infoFrom((await res.json()) as IssuedPass);
+}
+
 export function CheckInPassView() {
   const session = useSessionContext()?.session;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [payload, setPayload] = useState('');
   const [error, setError] = useState('');
+  const [noBooking, setNoBooking] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
 
-  // Metadata per Spesifikasi 5.8
-  const [classTitle, setClassTitle] = useState('Reformer Flow');
-  const [studioName, setStudioName] = useState('Daily Dose Studio');
-  const [instructorName, setInstructorName] = useState('Instruktur Daily Dose');
-  const [passHolder, setPassHolder] = useState(session?.displayName ?? 'Member Daily Dose');
-  const [dateStr, setDateStr] = useState('Hari ini');
-  const [timeStr, setTimeStr] = useState('Sesuai jadwal');
+  // Rincian kelas berasal dari server (atau parameter alamat bila ada); tidak ada nilai contoh sebagai pengganti.
+  const [info, setInfo] = useState<PassInfo | null>(null);
+  const [passHolder, setPassHolder] = useState(session?.displayName ?? '');
 
   const downloadQr = () => {
     const canvas = canvasRef.current;
@@ -71,7 +149,18 @@ export function CheckInPassView() {
     setTimeout(() => setSaved(false), 2000);
   };
 
+  // Status aktif QR diperbarui tiap 30 detik tanpa memuat ulang halaman.
   useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 30_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    if (session?.displayName) setPassHolder((current) => current || session.displayName);
+  }, [session?.displayName]);
+
+  useEffect(() => {
+    let cancelled = false;
     // 1. Screen Wake Lock (Spesifikasi 5.8: "Kecerahan layar dinaikkan saat halaman dibuka, kalau platform mengizinkan")
     let wakeLockSentinel: any = null;
     if (typeof navigator !== 'undefined' && 'wakeLock' in navigator) {
@@ -113,67 +202,85 @@ export function CheckInPassView() {
     const paramEnd = searchParams.get('end') ?? hashParams.get('end') ?? searchParams.get('endAt');
     const paramTz = searchParams.get('tz') ?? hashParams.get('timezone') ?? 'Asia/Jakarta';
 
-    if (paramClass) setClassTitle(paramClass);
-    if (paramStudio) setStudioName(paramStudio);
-    if (paramInstructor) setInstructorName(paramInstructor);
     if (paramHolder) setPassHolder(paramHolder);
-    else if (session?.displayName) setPassHolder(session.displayName);
-
-    if (paramStart) {
-      const schedule = formatPassSchedule(paramStart, paramEnd ?? '', paramTz);
-      if (schedule) {
-        setDateStr(schedule.date);
-        setTimeStr(schedule.time);
-      }
+    if (paramClass) {
+      setInfo({
+        className: paramClass,
+        studioName: paramStudio ?? '',
+        instructorName: paramInstructor,
+        startAt: paramStart ?? '',
+        endAt: paramEnd ?? '',
+        timezone: paramTz,
+      });
     }
 
-    const decoded = rawToken ? decodeURIComponent(rawToken) : '';
-    if (decoded.startsWith('dd-checkin:v1:')) {
-      setPayload(decoded);
-      void QRCode.toCanvas(canvasRef.current, decoded, {
+    const draw = (value: string) => {
+      setPayload(value);
+      if (!canvasRef.current) return;
+      void QRCode.toCanvas(canvasRef.current, value, {
         width: 260,
         margin: 2,
         errorCorrectionLevel: 'M',
         color: { dark: '#17392d', light: '#ffffff' },
       }).catch(() => setError('QR tidak dapat dirender pada perangkat ini.'));
+    };
+
+    const showIssued = (data: IssuedPass) => {
+      const value = data.qrPayload ?? (data.token ? `dd-checkin:v1:${data.token}` : '');
+      if (!value.startsWith('dd-checkin:v1:')) {
+        setError(QR_UNAVAILABLE);
+        return;
+      }
+      const fromServer = infoFrom(data);
+      if (fromServer) setInfo(fromServer);
+      draw(value);
+    };
+
+    const decoded = rawToken ? decodeURIComponent(rawToken) : '';
+    if (decoded.startsWith('dd-checkin:v1:')) {
+      draw(decoded);
+      // Tautan dari staf hanya membawa token; rincian kelas diambil dari server bila alamat tidak memuatnya.
+      if (!paramClass) {
+        void linkInfo(decoded.slice('dd-checkin:v1:'.length)).then((fromServer) => {
+          if (!cancelled && fromServer) setInfo(fromServer);
+        });
+      }
     } else if (bookingId) {
-      // Dynamic fetch check-in token from booking ID
-      fetch(`/api/v1/bookings/${encodeURIComponent(bookingId)}/customer-check-in-links`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'content-type': 'application/json' },
-      })
-        .then(async (res) => {
-          if (!res.ok) throw new Error('CHECKIN_UNAVAILABLE');
-          return res.json() as Promise<{ qrPayload?: string; token?: string }>;
-        })
+      issuePass(bookingId)
         .then((data) => {
-          const fetchedPayload = data.qrPayload ?? (data.token ? `dd-checkin:v1:${data.token}` : '');
-          if (fetchedPayload.startsWith('dd-checkin:v1:')) {
-            setPayload(fetchedPayload);
-            void QRCode.toCanvas(canvasRef.current, fetchedPayload, {
-              width: 260,
-              margin: 2,
-              errorCorrectionLevel: 'M',
-              color: { dark: '#17392d', light: '#ffffff' },
-            }).catch(() => setError('QR tidak dapat dirender pada perangkat ini.'));
-          } else {
-            setError('Pass QR tidak valid atau sudah tidak tersedia.');
-          }
+          if (!cancelled) showIssued(data);
         })
-        .catch(() => setError('Pass QR tidak valid atau sudah tidak tersedia.'));
+        .catch(() => {
+          if (!cancelled) setError(QR_UNAVAILABLE);
+        });
     } else {
-      setError('Pass QR tidak valid atau sudah tidak tersedia.');
+      // Dibuka tanpa memilih booking (menu, penanda halaman): pakai booking mendatang terdekat.
+      nearestBookingId()
+        .then(async (id) => {
+          if (cancelled) return;
+          if (!id) {
+            setNoBooking(true);
+            return;
+          }
+          showIssued(await issuePass(id));
+        })
+        .catch(() => {
+          if (!cancelled) setError(QR_UNAVAILABLE);
+        });
     }
 
     return () => {
+      cancelled = true;
       try {
         void wakeLockSentinel?.release?.();
       } catch {
         // Ignore
       }
     };
-  }, [session?.displayName]);
+  }, []);
+
+  const schedule = info?.startAt ? formatPassSchedule(info.startAt, info.endAt, info.timezone) : null;
+  const state = info?.startAt && info.endAt ? passWindow(info, now) : null;
 
   return (
     <main className="flex min-h-dvh min-w-0 flex-col items-center justify-center overflow-x-hidden bg-[#24483a] px-4 py-8 text-white">
@@ -191,7 +298,29 @@ export function CheckInPassView() {
         </p>
       </header>
 
-      {error ? (
+      {noBooking ? (
+        <section className="mt-6 box-border w-full max-w-sm rounded-2xl bg-white p-6 text-center text-ed-ink shadow-2xl">
+          <CalendarX2 className="mx-auto size-12 text-ed-forest" />
+          <h2 className="mt-3 font-serif text-lg font-bold text-ed-ink">Belum ada booking mendatang</h2>
+          <p className="mt-2 text-sm text-ed-muted">
+            QR Pass muncul setelah Anda booking kelas. Pilih kelas di jadwal, lalu kembali ke sini.
+          </p>
+          <div className="mt-6 space-y-2">
+            <Link
+              href="/classes#schedule"
+              className="inline-flex h-11 min-h-[44px] w-full items-center justify-center rounded-xl bg-[#396552] text-sm font-bold text-white transition hover:bg-[#2e5243]"
+            >
+              Lihat jadwal kelas
+            </Link>
+            <Link
+              href="/account"
+              className="inline-flex h-11 min-h-[44px] w-full items-center justify-center text-sm font-semibold text-ed-forest"
+            >
+              Kembali ke Beranda
+            </Link>
+          </div>
+        </section>
+      ) : error ? (
         <section
           role="alert"
           className="mt-6 box-border w-full max-w-sm rounded-2xl bg-white p-6 text-center text-ed-ink shadow-2xl"
@@ -211,21 +340,58 @@ export function CheckInPassView() {
       ) : (
         <>
           <section className="box-border mt-6 w-full max-w-sm rounded-2xl bg-white p-6 text-center text-ed-ink shadow-2xl">
+            {state && (
+              <p
+                role="status"
+                data-pass-state={state}
+                className={`mb-4 flex items-start justify-center gap-2 rounded-xl border p-2.5 text-left text-xs font-semibold leading-relaxed ${
+                  state === 'OPEN'
+                    ? 'border-[#396552]/30 bg-[#e8f1ec] text-[#1f4a37]'
+                    : 'border-amber-800/25 bg-amber-50 text-amber-900'
+                }`}
+              >
+                {state === 'OPEN' ? <QrCode className="mt-0.5 size-4 shrink-0" /> : <Clock className="mt-0.5 size-4 shrink-0" />}
+                <span>
+                  {state === 'TOO_EARLY' &&
+                    `Belum aktif. QR dapat dipindai mulai pukul ${formatOpensAt(info!.startAt, info!.timezone)} WIB, 30 menit sebelum kelas.`}
+                  {state === 'OPEN' && 'QR aktif. Tunjukkan ke petugas saat tiba di studio.'}
+                  {state === 'ENDED' && 'Kelas sudah selesai. QR ini tidak berlaku lagi.'}
+                </span>
+              </p>
+            )}
             <canvas
               ref={canvasRef}
-              className="mx-auto box-border rounded-xl bg-white p-2 shadow-inner"
+              className={`mx-auto box-border rounded-xl bg-white p-2 shadow-inner ${state === 'ENDED' ? 'opacity-30' : ''}`}
               style={{ width: 'min(260px, 100%)', minWidth: '230px', height: 'auto' }}
               aria-label="QR check-in"
             />
 
             <div className="mt-5 border-t border-ed-line pt-4 text-left space-y-1.5">
-              <h2 className="font-serif text-lg font-bold text-ed-ink">{classTitle}</h2>
-              <p className="text-sm font-semibold text-ed-forest">{dateStr} · {timeStr}</p>
-              <div className="pt-1 space-y-1 text-xs text-ed-muted">
-                <p>Studio: <span className="font-medium text-ed-ink">{studioName}</span></p>
-                <p>Instruktur: <span className="font-medium text-ed-ink">{instructorName}</span></p>
-                <p>Pemegang Pass: <span className="font-medium text-ed-ink">{passHolder}</span></p>
-              </div>
+              {info ? (
+                <>
+                  <h2 className="font-serif text-lg font-bold text-ed-ink">{info.className}</h2>
+                  {schedule && (
+                    <p className="text-sm font-semibold text-ed-forest">
+                      {schedule.date} · {schedule.time}
+                    </p>
+                  )}
+                  <div className="pt-1 space-y-1 text-xs text-ed-muted">
+                    {info.studioName && (
+                      <p>Studio: <span className="font-medium text-ed-ink">{info.studioName}</span></p>
+                    )}
+                    {info.instructorName && (
+                      <p>Instruktur: <span className="font-medium text-ed-ink">{info.instructorName}</span></p>
+                    )}
+                    {passHolder && (
+                      <p>Pemegang Pass: <span className="font-medium text-ed-ink">{passHolder}</span></p>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <p className="text-sm text-ed-muted animate-pulse" aria-live="polite">
+                  Memuat detail kelas…
+                </p>
+              )}
             </div>
 
             <p className="mt-4 rounded-xl border border-[#396552]/20 bg-[#faeceb]/60 p-2.5 text-center text-xs leading-relaxed text-[#396552]">

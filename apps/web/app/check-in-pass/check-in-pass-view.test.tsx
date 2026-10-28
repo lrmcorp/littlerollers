@@ -1,8 +1,8 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import QRCode from 'qrcode';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { CheckInPassView } from './check-in-pass-view';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { CheckInPassView, passWindow } from './check-in-pass-view';
 
 vi.mock('qrcode', () => ({
   default: {
@@ -14,6 +14,10 @@ describe('check-in pass (Tiket T-08 / Spesifikasi 5.8)', () => {
   beforeEach(() => {
     vi.mocked(QRCode.toCanvas).mockClear();
     window.history.replaceState({}, '', '/check-in-pass');
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it('renders QR Pass on dark background #24483a with QR >= 230px, 1-line instruction, class details, and Simpan ke galeri button', async () => {
@@ -94,5 +98,110 @@ describe('check-in pass (Tiket T-08 / Spesifikasi 5.8)', () => {
       'href',
       '/account',
     );
+  });
+
+  describe('rincian kelas dan status aktif QR berasal dari server', () => {
+    const minutes = (n: number) => new Date(Date.now() + n * 60_000).toISOString();
+    const issued = (startOffset: number, endOffset: number) => ({
+      qrPayload: 'dd-checkin:v1:issued-pass',
+      className: 'Group Class',
+      branchName: 'Daily Dose Green Garden',
+      studioName: 'Studio 1',
+      instructorName: 'Coach Clara',
+      startAt: minutes(startOffset),
+      endAt: minutes(endOffset),
+      timezone: 'Asia/Jakarta',
+    });
+    const respond = (body: unknown, ok = true) => ({ ok, json: async () => body }) as Response;
+
+    it('menampilkan instruktur dan studio asli dari respons, bukan nilai contoh', async () => {
+      window.history.replaceState({}, '', '/check-in-pass?bookingId=bk-1');
+      vi.stubGlobal('fetch', vi.fn(async () => respond(issued(180, 240))));
+      render(<CheckInPassView />);
+
+      expect(await screen.findByRole('heading', { name: 'Group Class' })).toBeVisible();
+      expect(screen.getByText('Coach Clara')).toBeVisible();
+      expect(screen.getByText('Studio 1')).toBeVisible();
+      expect(screen.queryByText('Instruktur Daily Dose')).not.toBeInTheDocument();
+      expect(screen.queryByText('Reformer Flow')).not.toBeInTheDocument();
+    });
+
+    it('memberi tahu kapan QR mulai aktif bila kelas masih jauh', async () => {
+      window.history.replaceState({}, '', '/check-in-pass?bookingId=bk-1');
+      vi.stubGlobal('fetch', vi.fn(async () => respond(issued(180, 240))));
+      render(<CheckInPassView />);
+
+      const status = await screen.findByRole('status');
+      expect(status).toHaveAttribute('data-pass-state', 'TOO_EARLY');
+      expect(status).toHaveTextContent(/Belum aktif\. QR dapat dipindai mulai pukul \d{2}\.\d{2} WIB/);
+    });
+
+    it('menandai QR aktif saat jendela 30 menit terbuka dan selesai setelah kelas berakhir', async () => {
+      window.history.replaceState({}, '', '/check-in-pass?bookingId=bk-1');
+      vi.stubGlobal('fetch', vi.fn(async () => respond(issued(-10, 50))));
+      const { unmount } = render(<CheckInPassView />);
+      expect(await screen.findByRole('status')).toHaveAttribute('data-pass-state', 'OPEN');
+      unmount();
+
+      vi.stubGlobal('fetch', vi.fn(async () => respond(issued(-120, -60))));
+      render(<CheckInPassView />);
+      expect(await screen.findByRole('status')).toHaveAttribute('data-pass-state', 'ENDED');
+    });
+
+    it('tanpa booking terpilih memakai booking mendatang terdekat', async () => {
+      const fetchMock = vi.fn(async (url: string) =>
+        url.includes('/me/dashboard')
+          ? respond({ upcomingBookings: [{ id: 'bk-near', status: 'BOOKED' }] })
+          : respond(issued(180, 240)),
+      );
+      vi.stubGlobal('fetch', fetchMock);
+      render(<CheckInPassView />);
+
+      expect(await screen.findByRole('heading', { name: 'Group Class' })).toBeVisible();
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/v1/bookings/bk-near/customer-check-in-links',
+        expect.objectContaining({ method: 'POST' }),
+      );
+      expect(QRCode.toCanvas).toHaveBeenCalledWith(
+        expect.any(HTMLCanvasElement),
+        'dd-checkin:v1:issued-pass',
+        expect.anything(),
+      );
+    });
+
+    it('tanpa booking mendatang menampilkan ajakan melihat jadwal, bukan pesan galat', async () => {
+      vi.stubGlobal('fetch', vi.fn(async () => respond({ upcomingBookings: [] })));
+      render(<CheckInPassView />);
+
+      expect(await screen.findByRole('heading', { name: 'Belum ada booking mendatang' })).toBeVisible();
+      expect(screen.getByRole('link', { name: 'Lihat jadwal kelas' })).toHaveAttribute(
+        'href',
+        '/classes#schedule',
+      );
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    });
+
+    it('tautan dari staf yang hanya membawa token mengambil rincian kelas dari server', async () => {
+      window.history.replaceState({}, '', '/check-in-pass#token=dd-checkin%3Av1%3Alink-pass');
+      const fetchMock = vi.fn(async () => respond(issued(180, 240)));
+      vi.stubGlobal('fetch', fetchMock);
+      render(<CheckInPassView />);
+
+      expect(await screen.findByRole('heading', { name: 'Group Class' })).toBeVisible();
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/v1/check-ins/customer-link-info?token=link-pass',
+        expect.anything(),
+      );
+    });
+  });
+
+  it('passWindow mengikuti aturan 30 menit sebelum mulai hingga kelas selesai', () => {
+    const base = new Date('2026-10-29T10:00:00.000Z');
+    const info = { startAt: base.toISOString(), endAt: new Date(base.getTime() + 3_600_000).toISOString() };
+    expect(passWindow(info, base.getTime() - 31 * 60_000)).toBe('TOO_EARLY');
+    expect(passWindow(info, base.getTime() - 30 * 60_000)).toBe('OPEN');
+    expect(passWindow(info, base.getTime() + 59 * 60_000)).toBe('OPEN');
+    expect(passWindow(info, base.getTime() + 60 * 60_000)).toBe('ENDED');
+    expect(passWindow({ startAt: '', endAt: '' }, 0)).toBeNull();
   });
 });
