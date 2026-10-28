@@ -278,6 +278,7 @@ model User {
   id                String     @id @default(uuid()) @db.Char(36)
   email             String?    @unique @db.VarChar(191)
   phone             String?    @unique @db.VarChar(32)
+  username          String?    @unique @db.VarChar(64)
   displayName       String     @map("name") @db.VarChar(128)
   passwordHash      String?    @db.VarChar(255)
   role              Role       @default(CUSTOMER)
