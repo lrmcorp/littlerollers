@@ -80,6 +80,19 @@ export const frontendPages: FrontendPageDefinition[] = [
     dashboardDeepLink: '/workspace/bookings?tab=reschedules&status=PENDING',
   },
   {
+    href: '/workspace/check-in',
+    label: 'Check-in hari ini',
+    shortLabel: 'Check-in',
+    description:
+      'Kartu check-in dengan foto selfie, kelas yang perlu diputuskan atau ditutup, dan peserta yang tidak hadir.',
+    group: 'Operasional Studio',
+    capabilities: ['attendance:manage'],
+    priority: 3,
+    branchScope: 'topbar',
+    accent: 'brand',
+    roleRelevance: ['ADMIN', 'MANAGER', 'SUPER_OWNER'],
+  },
+  {
     href: '/check-in-scanner',
     label: 'Scan QR check-in',
     shortLabel: 'Scan QR',

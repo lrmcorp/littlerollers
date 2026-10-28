@@ -7,6 +7,8 @@ import { AttendanceService } from './kehadiran.service';
 import { KioskAccessService } from './kiosk-access.service';
 import { KioskAdminController } from './kiosk-admin.controller';
 import { NoShowController } from './no-show.controller';
+import { CheckInDeskController } from './check-in-desk.controller';
+import { CheckInDeskService } from './check-in-desk.service';
 import { NoShowService } from './no-show.service';
 import { StudioScanService } from './studio-scan.service';
 
@@ -17,7 +19,14 @@ import { StudioScanService } from './studio-scan.service';
     PublicAttendanceController,
     KioskAdminController,
     NoShowController,
+    CheckInDeskController,
   ],
-  providers: [AttendanceService, KioskAccessService, NoShowService, StudioScanService],
+  providers: [
+    AttendanceService,
+    KioskAccessService,
+    NoShowService,
+    StudioScanService,
+    CheckInDeskService,
+  ],
 })
 export class AttendanceModule {}
