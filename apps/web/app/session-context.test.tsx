@@ -209,6 +209,13 @@ describe('capability-aware session shell', () => {
     expect(breadcrumb).toHaveTextContent('Detail');
   });
 
+  it('lets every signed-in session open the public kiosk portal instead of bouncing it to the dashboard', () => {
+    for (const session of [adminSession, instructorSession, customerSession]) {
+      expect(canAccessSessionPath(session, '/kiosk')).toBe(true);
+      expect(canAccessSessionPath(session, '/kiosk/dd-gg')).toBe(true);
+    }
+  });
+
   it('keeps the WhatsApp automation route capability-scoped instead of closed for everyone', () => {
     expect(canAccessSessionPath(adminSession, '/workspace/reminders')).toBe(false);
     expect(
