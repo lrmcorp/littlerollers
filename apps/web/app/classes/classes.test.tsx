@@ -335,7 +335,7 @@ describe('ClassSlotView', () => {
       ),
     );
     // Menekan kelas menampilkan pesertanya di bawah kalender, seperti mockup.
-    const panel = await screen.findByRole('complementary', { name: 'Reformer' });
+    const panel = await screen.findByRole('dialog', { name: 'Reformer' });
     expect(await within(panel).findByText('Customer Demo')).toBeVisible();
     expect(within(panel).getByText('Sisa 7 sesi')).toBeVisible();
     // Pengaturan kelas lengkap tetap ada, satu ketuk lagi lewat "Atur kelas".
