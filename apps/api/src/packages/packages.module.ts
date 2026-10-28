@@ -20,13 +20,15 @@ import { PackagePromotionService } from './package-promotion.service';
 import { LedgerController } from './ledger.controller';
 import { LedgerService } from './ledger.service';
 import { FinanceController } from './finance.controller';
+import { RetentionController } from './retention.controller';
+import { RetentionService } from './retention.service';
 import { FinanceService } from './finance.service';
 
 import { PaymentExpirationWorkerService } from './payment-expiration-worker';
 
 @Module({
   imports: [DatabaseModule, FoundationModule, IdentityModule],
-  controllers: [PackagesController, LedgerController, FinanceController],
+  controllers: [PackagesController, LedgerController, FinanceController, RetentionController],
   providers: [
     CustomerOrderService,
     PackageAccessService,
@@ -41,6 +43,7 @@ import { PaymentExpirationWorkerService } from './payment-expiration-worker';
     PackagePromotionService,
     LedgerService,
     FinanceService,
+    RetentionService,
     PaymentExpirationWorkerService,
   ],
   exports: [LedgerService, FinanceService, PaymentExpirationWorkerService],
