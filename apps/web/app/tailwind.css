@@ -46,9 +46,11 @@
 
   --radius-dd-sm: 0.5rem;
   --radius-dd-md: 0.75rem;
-  --radius-dd-lg: 1.375rem;
+  /* Rujukan yang disetujui memakai sudut 12px untuk panel dan paling besar 16px; nilai lama
+     (22px dan 28px) membuat kartu di layar terlihat jauh lebih membulat daripada mockup. */
+  --radius-dd-lg: 0.75rem;
 
-  --radius-dd-xl: 1.75rem;
+  --radius-dd-xl: 1rem;
 
   --shadow-dd-soft: 0 14px 30px rgb(31 68 53 / 14%);
   --shadow-dd-card: 0 16px 42px rgb(31 68 53 / 8%);

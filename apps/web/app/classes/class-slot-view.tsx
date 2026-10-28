@@ -106,6 +106,8 @@ export function ClassSlotView({
   const [seret, setSeret] = useState<ClassSlot | null>(null);
   /** Sel `hari-jam` yang sedang dilewati kursor, hanya untuk menandai tujuan. */
   const [sasaran, setSasaran] = useState<string | null>(null);
+  /** Sel `hari-jam` yang diminta staf untuk menampilkan seluruh kelasnya. */
+  const [selPenuh, setSelPenuh] = useState<Set<string>>(new Set());
   const displayTimezone = branch?.timezone ?? branches[0]?.timezone ?? 'Asia/Jakarta';
   const week = useMemo(
     () => (branch || globalMode ? weekWindow(reference, displayTimezone) : null),
@@ -392,7 +394,7 @@ export function ClassSlotView({
               ? 'Belum ada peserta. Seret ke jam lain untuk memindah, atau klik lalu ubah jamnya.'
               : `${slot.bookedCount} peserta sudah booking, jadwal terkunci`
         }
-        className={`flex min-w-0 flex-1 flex-col gap-0.5 rounded-dd-sm border p-1.5 text-left transition focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#09371f] ${
+        className={`flex w-full min-w-0 flex-col gap-0.5 rounded-dd-sm border p-1.5 text-left transition focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#09371f] ${
           dibatalkan
             ? 'border-dd-danger/40 bg-dd-danger-soft text-dd-danger'
             : kosong
@@ -738,7 +740,7 @@ export function ClassSlotView({
 
               {gridHours.map((hour) => (
                 <div
-                  className="grid min-h-[58px] border-b border-dd-line/50 last:border-b-0"
+                  className="grid min-h-[58px] items-stretch border-b border-dd-line/50 last:border-b-0"
                   style={{ gridTemplateColumns: '68px repeat(7, minmax(0, 1fr))' }}
                   key={hour}
                 >
@@ -751,9 +753,23 @@ export function ClassSlotView({
                     );
                     const kunci = `${day}-${hour}`;
                     const jadiTujuan = seret !== null && sasaran === kunci;
+                    /*
+                     * Kelas pada jam yang sama ditumpuk ke bawah, bukan dijejer ke samping.
+                     * Satu kolom hari hanya selebar sekitar 150 piksel; dibagi lima, tiap kartu
+                     * tinggal 30 piksel dan semua tulisannya terpotong. Ditumpuk, tiap kartu
+                     * memakai lebar penuh dan tetap terbaca.
+                     *
+                     * Yang ditampilkan dibatasi dua supaya jam tersibuk tidak menarik seluruh
+                     * baris menjadi sangat tinggi; sisanya dibuka satu ketuk, per sel, sehingga
+                     * jam lain tidak ikut melebar.
+                     */
+                    const BATAS_TAMPIL = 2;
+                    const penuhkan = selPenuh.has(kunci) || diJam.length <= BATAS_TAMPIL + 1;
+                    const tampil = penuhkan ? diJam : diJam.slice(0, BATAS_TAMPIL);
+                    const tersembunyi = diJam.length - tampil.length;
                     return (
                       <div
-                        className={`flex min-w-0 gap-1 border-l border-dd-line/60 p-1 ${
+                        className={`flex min-w-0 flex-col gap-1 border-l border-dd-line/60 p-1 ${
                           jadiTujuan
                             ? 'bg-dd-success-soft outline outline-2 -outline-offset-2 outline-dd-forest'
                             : day === todayKey
@@ -777,7 +793,22 @@ export function ClassSlotView({
                         }}
                         key={kunci}
                       >
-                        {diJam.map((slot) => hourChip(slot))}
+                        {tampil.map((slot) => hourChip(slot))}
+                        {tersembunyi > 0 && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setSelPenuh((kini) => {
+                                const next = new Set(kini);
+                                next.add(kunci);
+                                return next;
+                              })
+                            }
+                            className="w-full rounded-dd-sm border border-dashed border-dd-border-interactive px-1 py-1 text-[13px] font-bold text-dd-forest transition hover:border-dd-forest focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#09371f]"
+                          >
+                            +{tersembunyi} kelas lagi
+                          </button>
+                        )}
                       </div>
                     );
                   })}
