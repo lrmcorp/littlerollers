@@ -23,6 +23,7 @@ import { PreviewTag } from './components/admin/preview-tag';
 import { PageMetaProvider } from './components/admin/page-meta';
 import { useStudioPreference } from './components/public/public-experience';
 import { NotificationCenter } from './components/notification-center';
+import { TOP_BAR_START_ID } from './components/top-bar-slot';
 import { SearchSelect } from './components/forms';
 import { Modal, useOverlayPresence } from './components/app-feedback';
 import { IconButton } from './components/actions';
@@ -87,7 +88,9 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
   );
   const customerOnly = isCustomerOnlySession(session);
   const instructorOnly = Boolean(!customerOnly && isInstructorOnlySession(session));
-  const canViewAllBranches = Boolean(!instructorOnly && session?.capabilities.includes('branch:all'));
+  const canViewAllBranches = Boolean(
+    !instructorOnly && session?.capabilities.includes('branch:all'),
+  );
   const primaryRole = session?.roles.find((role) => role !== 'CUSTOMER');
   const activeScopeLabel = context?.activeBranch
     ? context.activeBranch.name
@@ -417,7 +420,9 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
             Pencarian halaman, notifikasi, dan menu akun tetap ada sebagai tombol ikon kecil karena
             fungsinya dipakai setiap hari, meski mockup tidak menggambarnya. */}
         <header className="sticky top-0 z-30 border-b border-dd-line bg-white pt-[env(safe-area-inset-top)]">
-          <div className="flex min-h-[72px] items-center justify-between gap-3 px-4 py-3.5 sm:px-7">
+          {/* Bila halaman menaruh kontrolnya di bilah atas (mis. navigasi minggu timetable), chip
+              zona waktu disembunyikan seperti di mockup agar kontrol itu tidak terpotong. */}
+          <div className="flex min-h-[72px] items-center justify-between gap-3 px-4 py-3.5 sm:px-7 [&:has([data-topbar-override])_[data-zona-waktu]]:!hidden">
             <IconButton
               label="Buka navigasi"
               variant="secondary"
@@ -431,32 +436,36 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
             >
               <Menu className="size-5" />
             </IconButton>
-            <nav
-              className="min-w-0 flex-1 truncate text-[15px] text-dd-muted"
-              aria-label="Breadcrumb"
+            {/* Halaman dapat menaruh kontrolnya sendiri di sini lewat TopBarSlot; nama halaman
+                lalu disembunyikan supaya bilah atas tidak memuat dua judul. */}
+            <div
+              id={TOP_BAR_START_ID}
+              className="min-w-0 flex-1 [&:has(>[data-topbar-override])>nav]:hidden"
             >
-              <Link href="/workspace" className="text-dd-muted no-underline hover:text-dd-ink">
-                Daily Dose
-              </Link>{' '}
-              {isDetailPath ? (
-                <>
-                  <Link
-                    href={currentPage!.href}
-                    className="font-bold text-dd-ink no-underline hover:text-dd-forest"
-                  >
-                    {currentPageLabel}
-                  </Link>
-                  <span className="text-dd-muted"> · </span>
+              <nav className="min-w-0 truncate text-[15px] text-dd-muted" aria-label="Breadcrumb">
+                <Link href="/workspace" className="text-dd-muted no-underline hover:text-dd-ink">
+                  Daily Dose
+                </Link>{' '}
+                {isDetailPath ? (
+                  <>
+                    <Link
+                      href={currentPage!.href}
+                      className="font-bold text-dd-ink no-underline hover:text-dd-forest"
+                    >
+                      {currentPageLabel}
+                    </Link>
+                    <span className="text-dd-muted"> · </span>
+                    <span className="font-bold text-dd-ink" aria-current="page">
+                      Detail
+                    </span>
+                  </>
+                ) : (
                   <span className="font-bold text-dd-ink" aria-current="page">
-                    Detail
+                    {currentPageLabel ?? 'Beranda'}
                   </span>
-                </>
-              ) : (
-                <span className="font-bold text-dd-ink" aria-current="page">
-                  {currentPageLabel ?? 'Beranda'}
-                </span>
-              )}
-            </nav>
+                )}
+              </nav>
+            </div>
             <div className="flex min-w-0 items-center justify-end gap-2.5">
               {session && (!instructorOnly || session.branches.length > 1) && (
                 <div
@@ -483,7 +492,10 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
                   />
                 </div>
               )}
-              <span className="hidden min-h-11 items-center rounded-dd-sm border border-dd-line px-3.5 text-[15px] text-dd-muted sm:inline-flex">
+              <span
+                data-zona-waktu
+                className="hidden min-h-11 items-center rounded-dd-sm border border-dd-line px-3.5 text-[15px] text-dd-muted sm:inline-flex"
+              >
                 {zonaWaktu(context?.activeBranch?.timezone ?? session?.branches[0]?.timezone)}
               </span>
               <IconButton

@@ -34,12 +34,15 @@
   --color-dd-surface-muted: #edeff2;
   --color-dd-sidebar: #edeff2;
   --color-dd-sidebar-soft: #e4e7ec;
-  --color-dd-brass: #8a5b17;
+  --color-dd-brass: #8a4b08;
   --color-dd-brass-dark: #6e4610;
   --color-dd-brass-soft: #eee4d1;
   --color-dd-success: #246144;
   --color-dd-success-soft: #e6f4ec;
-  --color-dd-warning: #8a5b17;
+  --color-dd-warning: #8a4b08;
+  /* Permukaan dan garis peringatan dari mockup: kelas di bawah kuota hari ini, antrean telat. */
+  --color-dd-warning-soft: #fffbeb;
+  --color-dd-warning-line: #d97706;
   --color-dd-warning-soft: #fff4da;
   --color-dd-danger: #9b3d38;
   --color-dd-danger-soft: #faeceb;

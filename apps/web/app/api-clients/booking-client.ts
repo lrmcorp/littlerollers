@@ -386,8 +386,33 @@ export type InstructorCheckInResult = {
   branchName?: string | null;
 };
 
+/** Satu bentuk saldo paket untuk semua pemanggil, apa pun versi respons API-nya. */
+export function normalizePackageBalance(item: any): CustomerPackageBalance {
+  const expiryAt = item.expiryAt ? new Date(item.expiryAt) : new Date(0);
+  return {
+    ...item,
+    customerUserId: item.customer?.id ?? item.customerUserId,
+    customer: item.customer,
+    packageName: item.packageName ?? item.name ?? 'Paket',
+    classTypeId: item.classTypeId ?? null,
+    classTypeName: item.classTypeName,
+    branchName: item.branchName,
+    available: item.available ?? item.remainingSessions ?? 0,
+    reserved: item.reserved ?? 0,
+    expiryAt: Number.isFinite(expiryAt.getTime()) ? expiryAt : new Date(0),
+  };
+}
+
 export interface BookingClient {
   discover(branchId: string): Promise<BookingDiscovery>;
+  /**
+   * Cari member di cabang ini lewat server (nama, email, atau nomor WhatsApp) beserta semua paket
+   * mereka, termasuk yang sudah habis, supaya layar bisa menyebut alasannya tidak bisa ditambahkan.
+   */
+  searchRosterCandidates?(
+    branchId: string,
+    q: string,
+  ): Promise<{ customers: BookingCustomer[]; packages: CustomerPackageBalance[] }>;
   options(classSlotId: string): Promise<CustomerBookingOptions>;
   list(input: {
     branchId?: string;
@@ -569,21 +594,7 @@ export const browserBookingClient: BookingClient = {
         eligiblePackageCount: user.metadata?.eligiblePackageCount,
       })),
       packages: (packages.items ?? [])
-        .map((item: any) => {
-          const expiryAt = item.expiryAt ? new Date(item.expiryAt) : new Date(0);
-          return {
-            ...item,
-            customerUserId: item.customer?.id ?? item.customerUserId,
-            customer: item.customer,
-            packageName: item.packageName ?? item.name ?? 'Paket',
-            classTypeId: item.classTypeId ?? null,
-            classTypeName: item.classTypeName,
-            branchName: item.branchName,
-            available: item.available ?? item.remainingSessions ?? 0,
-            reserved: item.reserved ?? 0,
-            expiryAt: Number.isFinite(expiryAt.getTime()) ? expiryAt : new Date(0),
-          };
-        })
+        .map(normalizePackageBalance)
         .filter(
           (item) =>
             (item.branchId === branchId || item.branchId === 'global' || !item.branchId) &&
@@ -608,6 +619,32 @@ export const browserBookingClient: BookingClient = {
             slot.bookedCount < slot.capacity,
         )
         .sort((left, right) => left.startAt.getTime() - right.startAt.getTime()),
+    };
+  },
+  async searchRosterCandidates(branchId, q) {
+    const params = new URLSearchParams({ branchId, q, limit: '6' });
+    const lookup = await apiFetch<{
+      items: Array<{ id: string; label?: string; description?: string }>;
+    }>(`/lookups/customers?${params.toString()}`, { label: 'Mencari member…' });
+    const customers = (lookup.items ?? []).map((user) => ({
+      id: user.id,
+      displayName: user.label || 'Pelanggan',
+      phoneMasked: user.description,
+    }));
+    const halaman = await Promise.all(
+      customers.map((customer) =>
+        apiFetch<{ items: Array<any> }>(
+          `/customer-packages?${new URLSearchParams({
+            branchId,
+            customerUserId: customer.id,
+            pageSize: '20',
+          }).toString()}`,
+        ).catch(() => ({ items: [] })),
+      ),
+    );
+    return {
+      customers,
+      packages: halaman.flatMap((page) => (page.items ?? []).map(normalizePackageBalance)),
     };
   },
   async list(input) {

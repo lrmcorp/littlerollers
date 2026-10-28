@@ -82,3 +82,64 @@ export function geserJadwal(params: {
     endAt: new Date(params.endAt.getTime() + geser),
   };
 }
+
+/** Posisi kelas di kalender: tanggal lokal cabang (`YYYY-MM-DD`) dan jam mulai. */
+export interface PosisiKalender {
+  hari: string;
+  jam: number;
+}
+
+/**
+ * Menggeser posisi dengan tombol panah, untuk memindahkan kelas tanpa tetikus.
+ * Kiri dan kanan berpindah hari, atas dan bawah berpindah jam; berhenti di tepi kalender alih-alih
+ * melompat ke minggu lain, karena berpindah minggu tanpa terlihat mudah membuat salah taruh.
+ * `null` berarti tombol itu bukan tombol panah.
+ */
+export function geserDenganPanah(
+  posisi: PosisiKalender,
+  tombol: string,
+  hariTersedia: readonly string[],
+  jamTersedia: readonly number[],
+): PosisiKalender | null {
+  const iHari = hariTersedia.indexOf(posisi.hari);
+  const iJam = jamTersedia.indexOf(posisi.jam);
+  const batas = (n: number, panjang: number) => Math.min(Math.max(n, 0), panjang - 1);
+  switch (tombol) {
+    case 'ArrowLeft':
+      return { ...posisi, hari: hariTersedia[batas(iHari - 1, hariTersedia.length)]! };
+    case 'ArrowRight':
+      return { ...posisi, hari: hariTersedia[batas(iHari + 1, hariTersedia.length)]! };
+    case 'ArrowUp':
+      return { ...posisi, jam: jamTersedia[batas(iJam - 1, jamTersedia.length)]! };
+    case 'ArrowDown':
+      return { ...posisi, jam: jamTersedia[batas(iJam + 1, jamTersedia.length)]! };
+    default:
+      return null;
+  }
+}
+
+/**
+ * Rentang jam kalender: jam operasional studio, diperluas bila ada kelas di luar jam itu supaya
+ * tidak ada kelas yang hilang dari tampilan.
+ */
+export function rentangJam(jamKelas: readonly number[], buka = 9, tutup = 22): number[] {
+  const sah = jamKelas.filter((n) => Number.isFinite(n));
+  const mulai = Math.min(buka, ...sah);
+  const selesai = Math.max(tutup, ...sah);
+  return Array.from({ length: selesai - mulai + 1 }, (_, i) => mulai + i);
+}
+
+/**
+ * Warna angka keterisian. Mengikuti mockup: hijau bila kuota minimum sudah terpenuhi atau kelas
+ * masih kosong (masih bisa dipindah), cokelat bila sudah ada peserta tetapi kurang dari minimum.
+ */
+export function nadaKeterisian(slot: {
+  bookedCount: number;
+  capacity: number;
+  minimumQuota: number;
+}): 'kosong' | 'kurang' | 'cukup' | 'penuh' {
+  if (slot.bookedCount === 0) return 'kosong';
+  if (slot.bookedCount >= slot.capacity) return 'penuh';
+  if (slot.bookedCount < slot.minimumQuota) return 'kurang';
+  return 'cukup';
+}

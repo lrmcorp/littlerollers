@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, GripVertical, Lock, SlidersHorizontal, Tv } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import {
   browserClassSlotClient,
   classSlotFailure,
@@ -25,9 +25,18 @@ import { useSessionContext } from '../session-context';
 import { isInstructorOnlySession } from '@/lib/session-audience';
 import { CreatePanel, DetailPanel, type CreateTemplate } from './class-slot-panels';
 import { LifecycleDialog } from '../components/admin/lifecycle-dialog';
-import { classStatusTone, geserJadwal, statusLabels, timezoneLabel } from './class-slot-presenters';
-import { SearchSelect, SelectInput } from '../components/forms';
-import { Button, ButtonLink } from '../components/actions';
+import {
+  classStatusTone,
+  geserJadwal,
+  rentangJam,
+  statusLabels,
+  timezoneLabel,
+  type PosisiKalender,
+} from './class-slot-presenters';
+import { labelHari, TimetableMoveBar, TimetableWeekGrid } from './timetable-week-grid';
+import { TimetableRosterPanel } from './timetable-roster-panel';
+import { TopBarSlot } from '../components/top-bar-slot';
+import { Button } from '../components/actions';
 import { Drawer, useAppFeedback } from '../components/app-feedback';
 import { browserBookingClient, type BookingClient } from '@/api-clients/booking-client';
 import { EmptyWeeksNotice } from '../workspace/empty-weeks-notice';
@@ -42,15 +51,6 @@ type SlotNames = {
   branch?: { name?: string | null } | null;
 };
 
-const statuses = [
-  'ALL',
-  'DRAFT',
-  'PUBLISHED',
-  'CONFIRMED',
-  'AUTO_CANCELLED',
-  'CANCELLED',
-  'COMPLETED',
-];
 export function ClassSlotView({
   client = browserClassSlotClient,
   branchOverride,
@@ -63,7 +63,16 @@ export function ClassSlotView({
   branchesOverride?: BranchOption[];
   capabilitiesOverride?: readonly string[];
   bookingClient?: Pick<BookingClient, 'list'> &
-    Partial<Pick<BookingClient, 'issueBulkCheckIns' | 'issueInstructorCheckIn'>>;
+    Partial<
+      Pick<
+        BookingClient,
+        | 'issueBulkCheckIns'
+        | 'issueInstructorCheckIn'
+        | 'searchRosterCandidates'
+        | 'create'
+        | 'cancelAsStaff'
+      >
+    >;
 }) {
   const sessionContext = useSessionContext();
   const feedback = useAppFeedback();
@@ -91,9 +100,7 @@ export function ClassSlotView({
   const [classTypes, setClassTypes] = useState<ClassTypeOption[]>([]);
   const [instructors, setInstructors] = useState<InstructorOption[]>([]);
   const [studios, setStudios] = useState<StudioOption[]>([]);
-  const [statusFilter, setStatusFilter] = useState('ALL');
   const [classTypeFilter, setClassTypeFilter] = useState('');
-  const [instructorFilter, setInstructorFilter] = useState('');
   const [panel, setPanel] = useState<Panel>(null);
   const [message, setMessage] = useState<string>();
   const [failure, setFailure] = useState<string>();
@@ -101,26 +108,16 @@ export function ClassSlotView({
   const [panelDirty, setPanelDirty] = useState(false);
   const [slotToDelete, setSlotToDelete] = useState<ClassSlot | null>(null);
   const [selectedMobileDay, setSelectedMobileDay] = useState<string>('ALL');
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
-  /** Kelas yang sedang diseret di kalender; null berarti tidak ada yang diseret. */
-  const [seret, setSeret] = useState<ClassSlot | null>(null);
-  /** Sel `hari-jam` yang sedang dilewati kursor, hanya untuk menandai tujuan. */
-  const [sasaran, setSasaran] = useState<string | null>(null);
-  /** Sel `hari-jam` yang diminta staf untuk menampilkan seluruh kelasnya. */
-  const [selPenuh, setSelPenuh] = useState<Set<string>>(new Set());
+  /** Kelas yang dipilih di kalender; daftar pesertanya tampil di bawah kalender. */
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  /** Pemindahan yang belum disimpan: id kelas ke posisi barunya. */
+  const [tertunda, setTertunda] = useState<Record<string, PosisiKalender>>({});
+  const [savingMoves, setSavingMoves] = useState(false);
   const displayTimezone = branch?.timezone ?? branches[0]?.timezone ?? 'Asia/Jakarta';
   const week = useMemo(
     () => (branch || globalMode ? weekWindow(reference, displayTimezone) : null),
     [branch, displayTimezone, globalMode, reference],
   );
-  const activeFilterCount = useMemo(() => {
-    let count = 0;
-    if (statusFilter !== 'ALL') count++;
-    if (classTypeFilter) count++;
-    if (instructorFilter) count++;
-    return count;
-  }, [statusFilter, classTypeFilter, instructorFilter]);
-
   const load = useCallback(async () => {
     if (!canRead || (!branch && !globalMode) || !week) return;
     setBusy(true);
@@ -132,7 +129,6 @@ export function ClassSlotView({
         timezone: displayTimezone,
         from: week.start,
         until: week.end,
-        status: statusFilter === 'ALL' ? undefined : statusFilter,
       });
       setSlots(workspace.slots);
       setClassTypes(workspace.classTypes);
@@ -152,7 +148,6 @@ export function ClassSlotView({
     client,
     displayTimezone,
     globalMode,
-    statusFilter,
     week?.start,
     week?.end,
   ]);
@@ -163,7 +158,6 @@ export function ClassSlotView({
     setInstructors([]);
     setStudios([]);
     setClassTypeFilter('');
-    setInstructorFilter('');
     setPanel(null);
     setMessage(undefined);
     setFailure(undefined);
@@ -248,26 +242,8 @@ export function ClassSlotView({
         label: classTypeName(slot.classTypeId, slot),
         description: undefined,
       }));
-  const instructorOptions = instructors.length
-    ? instructors.map((item) => ({
-        id: item.id,
-        label: item.displayName,
-        description: globalMode && item.branchId ? branchName(item.branchId) : undefined,
-      }))
-    : [
-        ...new Map(
-          slots
-            .filter((slot) => slot.instructorUserId)
-            .map((slot) => [slot.instructorUserId!, slot]),
-        ).values(),
-      ].map((slot) => ({
-        id: slot.instructorUserId!,
-        label: instructorName(slot.instructorUserId, slot),
-        description: undefined,
-      }));
   const visible = slots
     .filter((slot) => !classTypeFilter || slot.classTypeId === classTypeFilter)
-    .filter((slot) => !instructorFilter || slot.instructorUserId === instructorFilter)
     .sort((left, right) => left.startAt.getTime() - right.startAt.getTime());
   const grouped = new Map(
     (week?.days ?? []).map((day) => [
@@ -316,43 +292,55 @@ export function ClassSlotView({
 
   const todayKey = localDateKey(new Date(), displayTimezone);
 
-  /**
-   * Rentang jam kalender diturunkan dari jadwal yang benar-benar ada, bukan dipatok tetap,
-   * supaya studio yang buka sampai malam tidak terpotong dan yang tutup sore tidak menyisakan
-   * baris kosong berjam-jam.
-   */
-  const gridHours = (() => {
-    const jam = visible.map(slotHour).filter((n) => Number.isFinite(n));
-    const mulai = jam.length ? Math.min(...jam) : 9;
-    const selesai = jam.length ? Math.max(...jam) : 21;
-    return Array.from({ length: selesai - mulai + 1 }, (_, i) => mulai + i);
-  })();
+  const posisiAsli = (slot: ClassSlot): PosisiKalender => ({
+    hari: localDateKey(slot.startAt, slot.timezone),
+    jam: slotHour(slot),
+  });
+  const posisi = (slot: ClassSlot) => tertunda[slot.id] ?? posisiAsli(slot);
+
+  const gridHours = rentangJam(visible.map(slotHour));
+  const jamTeks = (jam: number) => `${String(jam).padStart(2, '0')}.00`;
 
   /** Nama depan saja; kolom hari terlalu sempit untuk nama lengkap. */
   const firstName = (nama: string) => nama.trim().split(/\s+/)[0] ?? nama;
 
-  /**
-   * Memindahkan kelas ke hari dan jam tempat ia dilepaskan; `geserJadwal` yang menghitung waktunya.
-   *
-   * `expectedVersion` dikirim supaya pemindahan gagal terang-terangan bila ada staf lain yang baru
-   * mengubah kelas yang sama, bukan menimpa pekerjaannya diam-diam.
-   */
-  const pindahkanKelas = async (slot: ClassSlot, hariTujuan: string, jamTujuan: number) => {
-    const jadwal = geserJadwal({
-      startAt: slot.startAt,
-      endAt: slot.endAt,
-      hariAsal: localDateKey(slot.startAt, slot.timezone),
-      jamAsal: slotHour(slot),
-      hariTujuan,
-      jamTujuan,
+  /** Menandai pemindahan; kembali ke tempat asal sama dengan membatalkannya. */
+  const stage = (slot: ClassSlot, tujuan: PosisiKalender | null) =>
+    setTertunda((kini) => {
+      const next = { ...kini };
+      const asli = posisiAsli(slot);
+      if (!tujuan || (tujuan.hari === asli.hari && tujuan.jam === asli.jam)) delete next[slot.id];
+      else next[slot.id] = tujuan;
+      return next;
     });
-    if (!jadwal) return;
 
-    const jamTeks = `${String(jamTujuan).padStart(2, '0')}.00`;
-
-    await run(
-      () =>
-        client.update(slot.id, {
+  /**
+   * Menyimpan semua pemindahan satu per satu. Yang gagal tetap bergaris putus-putus di posisi
+   * barunya supaya staf bisa mencoba lagi atau membatalkannya, dan alasannya disebut per kelas.
+   * `expectedVersion` membuat pemindahan gagal terang-terangan bila staf lain baru mengubah kelas
+   * yang sama, bukan menimpa pekerjaannya diam-diam.
+   */
+  const simpanPemindahan = async () => {
+    setSavingMoves(true);
+    setFailure(undefined);
+    setMessage(undefined);
+    const gagal: string[] = [];
+    let berhasil = 0;
+    for (const [id, tujuan] of Object.entries(tertunda)) {
+      const slot = slots.find((item) => item.id === id);
+      if (!slot) continue;
+      const asli = posisiAsli(slot);
+      const jadwal = geserJadwal({
+        startAt: slot.startAt,
+        endAt: slot.endAt,
+        hariAsal: asli.hari,
+        jamAsal: asli.jam,
+        hariTujuan: tujuan.hari,
+        jamTujuan: tujuan.jam,
+      });
+      if (!jadwal) continue;
+      try {
+        const updated = await client.update(slot.id, {
           classTypeId: slot.classTypeId,
           studioId: slot.studioId,
           roomId: slot.roomId ?? null,
@@ -361,71 +349,49 @@ export function ClassSlotView({
           endAt: jadwal.endAt,
           expectedVersion: slot.version,
           reason: 'Dipindah lewat kalender',
-        }),
-      `${classTypeName(slot.classTypeId, slot)} dipindah ke ${formatBranchDay(
-        hariTujuan,
-        displayTimezone,
-      )} jam ${jamTeks}.`,
-    );
+        });
+        setSlots((kini) => kini.map((item) => (item.id === updated.id ? updated : item)));
+        setTertunda((kini) => {
+          const next = { ...kini };
+          delete next[id];
+          return next;
+        });
+        berhasil += 1;
+      } catch (error) {
+        gagal.push(
+          `${classTypeName(slot.classTypeId, slot)} ke ${labelHari(tujuan.hari)} ${jamTeks(
+            tujuan.jam,
+          )}: ${classSlotFailure(error)}`,
+        );
+      }
+    }
+    setSavingMoves(false);
+    if (berhasil)
+      setMessage(berhasil === 1 ? 'Satu kelas dipindah.' : `${berhasil} kelas dipindah.`);
+    if (gagal.length)
+      setFailure(`Belum tersimpan, masih bergaris putus-putus: ${gagal.join('; ')}`);
   };
 
+  const selectedSlot = slots.find((item) => item.id === selectedId) ?? null;
+  const canAddToRoster =
+    !isInstructor &&
+    capabilities.includes('booking:create:assisted') &&
+    Boolean(bookingClient.searchRosterCandidates && bookingClient.create);
+  const canRemoveFromRoster =
+    !isInstructor &&
+    capabilities.includes('booking:cancel:assisted') &&
+    Boolean(bookingClient.cancelAsStaff);
+
   /**
-   * Kartu kecil di dalam sel jam. Kelas yang belum ada pesertanya ditandai titik enam dan dapat
-   * dipindah; yang sudah ada pesertanya ditandai gembok, karena memindahkannya berarti memindahkan
-   * jadwal orang yang sudah menyiapkan waktunya.
+   * Menekan kelas menampilkan pesertanya di bawah kalender, seperti mockup. Tanpa izin membaca
+   * booking tidak ada peserta yang bisa ditampilkan, jadi panel detail kelas yang dibuka.
    */
-  const hourChip = (slot: ClassSlot) => {
-    const dibatalkan = slot.status === 'CANCELLED' || slot.status === 'AUTO_CANCELLED';
-    const kosong = slot.bookedCount === 0 && !dibatalkan;
-    const penuh = slot.bookedCount >= slot.capacity;
-    return (
-      <button
-        type="button"
-        draggable={kosong && !busy}
-        onDragStart={() => setSeret(slot)}
-        onDragEnd={() => {
-          setSeret(null);
-          setSasaran(null);
-        }}
-        title={
-          dibatalkan
-            ? 'Kelas dibatalkan'
-            : kosong
-              ? 'Belum ada peserta. Seret ke jam lain untuk memindah, atau klik lalu ubah jamnya.'
-              : `${slot.bookedCount} peserta sudah booking, jadwal terkunci`
-        }
-        className={`flex w-full min-w-0 flex-col gap-0.5 rounded-dd-sm border p-1.5 text-left transition focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#09371f] ${
-          dibatalkan
-            ? 'border-dd-danger/40 bg-dd-danger-soft text-dd-danger'
-            : kosong
-              ? 'cursor-grab border-dd-forest bg-dd-success-soft/60'
-              : 'cursor-pointer border-dd-border-interactive bg-white hover:border-dd-forest'
-        }`}
-        key={slot.id}
-        onClick={() => openPanel({ kind: 'detail', slot })}
-      >
-        <span className="flex items-center gap-1">
-          {kosong ? (
-            <GripVertical className="size-3 shrink-0 text-dd-forest" aria-hidden="true" />
-          ) : (
-            <Lock className="size-3 shrink-0 text-dd-muted" aria-hidden="true" />
-          )}
-          <span className="truncate text-[13px] font-bold text-dd-ink">
-            {classTypeName(slot.classTypeId, slot)}
-          </span>
-        </span>
-        <span className="truncate text-[13px] text-dd-muted">
-          {firstName(instructorName(slot.instructorUserId, slot))}
-        </span>
-        <span
-          className={`text-[13px] font-bold ${
-            kosong ? 'text-dd-forest' : penuh ? 'text-dd-warning' : 'text-dd-muted'
-          }`}
-        >
-          {kosong ? `Kosong, 0/${slot.capacity}` : `${slot.bookedCount}/${slot.capacity}`}
-        </span>
-      </button>
-    );
+  const pilihKelas = (slot: ClassSlot) => {
+    if (!canReadBookings) {
+      openPanel({ kind: 'detail', slot });
+      return;
+    }
+    setSelectedId(slot.id);
   };
 
   const slotCard = (slot: ClassSlot) => {
@@ -485,36 +451,71 @@ export function ClassSlotView({
   };
 
   return (
-    <section className="space-y-6" aria-labelledby="classes-title">
-      <AdminPageHeader
-        title={isInstructor ? 'Jadwal kelas saya' : 'Timetable kelas mingguan'}
-        titleId="classes-title"
-        description={
-          isInstructor
-            ? 'Lihat jadwal sesi kelas yang ditugaskan kepada Anda pada waktu lokal studio.'
-            : globalMode
-              ? 'Pantau jadwal seluruh cabang. Anda dapat membuat kelas langsung dengan memilih cabang studio tujuan pada formulir.'
-              : 'Kelola draft, instruktur, publish, dan pembatalan pada waktu lokal cabang.'
-        }
-        actions={
-          <>
-            {!isInstructor && (
-              <StatusBadge tone={canOperate ? 'success' : 'neutral'}>
-                {canOperate ? 'Dapat mengelola' : 'Hanya lihat'}
-              </StatusBadge>
-            )}
-            {!globalMode && <StatusBadge tone="neutral">Zona waktu {branch?.timezone}</StatusBadge>}
-          </>
-        }
-      />
-
-      {globalMode && (
-        <Feedback kind="info">
-          Anda sedang melihat seluruh cabang. Klik tombol &ldquo;Buat kelas&rdquo; untuk
-          menjadwalkan kelas di cabang pilihan Anda, atau pilih cabang spesifik untuk fokus
-          operasional.
-        </Feedback>
+    <section className="space-y-[22px]" aria-labelledby="classes-title">
+      {week && (
+        <TopBarSlot>
+          <button
+            type="button"
+            aria-label="Minggu sebelumnya"
+            onClick={() => setReference(shiftWeek(reference, -1))}
+            className="flex size-11 items-center justify-center rounded-dd-sm border border-dd-border-interactive bg-white text-dd-ink transition hover:border-dd-forest"
+          >
+            <ChevronLeft className="size-[18px]" aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setReference(new Date())}
+            className="min-h-11 rounded-dd-sm border border-dd-border-interactive bg-white px-4 text-[15px] font-bold text-dd-ink transition hover:border-dd-forest"
+          >
+            Minggu ini
+          </button>
+          <button
+            type="button"
+            aria-label="Minggu berikutnya"
+            onClick={() => setReference(shiftWeek(reference, 1))}
+            className="flex size-11 items-center justify-center rounded-dd-sm border border-dd-border-interactive bg-white text-dd-ink transition hover:border-dd-forest"
+          >
+            <ChevronRight className="size-[18px]" aria-hidden="true" />
+          </button>
+          <p
+            className="m-0 ml-2 min-w-0 truncate font-display text-[19px] font-semibold text-dd-ink"
+            aria-live="polite"
+          >
+            {week.label.replace(' – ', ' sampai ')}
+          </p>
+        </TopBarSlot>
       )}
+
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-[280px] flex-1">
+          <h1
+            id="classes-title"
+            className="m-0 text-[26px] font-semibold tracking-[-0.02em] text-dd-ink"
+          >
+            {isInstructor ? 'Jadwal kelas saya' : 'Timetable kelas'}
+          </h1>
+          <p className="m-0 mt-1 max-w-4xl text-base text-dd-muted">
+            {isInstructor
+              ? 'Lihat jadwal sesi kelas yang ditugaskan kepada Anda pada waktu lokal studio.'
+              : `Pukul ${jamTeks(gridHours[0] ?? 9)} sampai ${jamTeks(
+                  gridHours.at(-1) ?? 22,
+                )}, satu minggu penuh. Tekan satu kelas untuk mengatur pesertanya.${
+                  canManage
+                    ? ' Kelas yang belum ada pesertanya bisa diseret ke jam lain.'
+                    : ' Akses Anda hanya untuk melihat.'
+                }${globalMode ? ' Menampilkan semua cabang; pilih cabang di bilah atas untuk fokus.' : ''}`}
+          </p>
+        </div>
+        {!isInstructor && (
+          <Button
+            disabled={!canCreateSlot}
+            title={!canManage ? 'Akses membuat kelas memerlukan izin class-slot:manage' : undefined}
+            onClick={() => openPanel({ kind: 'create' })}
+          >
+            Buat kelas
+          </Button>
+        )}
+      </div>
 
       {branch && !isInstructor && (
         <EmptyWeeksNotice
@@ -524,144 +525,6 @@ export function ClassSlotView({
           canFill={canOperate}
         />
       )}
-
-      {/* Toolbar & Filter Panel */}
-      <div className="rounded-2xl border border-dd-line/80 bg-white p-4 sm:p-5 space-y-4">
-        <div
-          className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 pb-4 border-b border-dd-line/60"
-          aria-label="Kontrol timetable"
-        >
-          <div className="flex items-center justify-between gap-2 sm:gap-4 flex-1">
-            <div className="flex items-center gap-1.5 shrink-0">
-              <Button
-                variant="secondary"
-                size="sm"
-                aria-label="Minggu sebelumnya"
-                onClick={() => setReference(shiftWeek(reference, -1))}
-              >
-                <span className="inline-flex items-center gap-1">
-                  <ChevronLeft className="size-4" />
-                  <span className="hidden sm:inline">Minggu sebelumnya</span>
-                </span>
-              </Button>
-              <Button variant="secondary" size="sm" onClick={() => setReference(new Date())}>
-                Hari ini
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                aria-label="Minggu berikutnya"
-                onClick={() => setReference(shiftWeek(reference, 1))}
-              >
-                <span className="inline-flex items-center gap-1">
-                  <span className="hidden sm:inline">Minggu berikutnya</span>
-                  <ChevronRight className="size-4" />
-                </span>
-              </Button>
-            </div>
-            <strong
-              className="text-xs sm:text-base font-bold text-dd-ink text-right sm:text-center flex-1"
-              aria-live="polite"
-            >
-              {week?.label}
-            </strong>
-          </div>
-          <div className="shrink-0 w-full sm:w-auto flex flex-col sm:flex-row items-center gap-2">
-            {!isInstructor && canManageAttendance && (
-              <ButtonLink
-                variant="secondary"
-                size="sm"
-                href={
-                  branch?.code
-                    ? `/kiosk/${encodeURIComponent(branch.code.toLowerCase())}`
-                    : '/kiosk'
-                }
-                target="_blank"
-                rel="noopener noreferrer"
-                title="Buka Layar Kiosk Studio di tab baru untuk tablet meja resepsionis"
-                className="w-full sm:w-auto min-h-11 inline-flex items-center gap-1.5"
-              >
-                <Tv className="size-4 shrink-0" />
-                <span>Layar Kiosk Studio</span>
-              </ButtonLink>
-            )}
-            {!isInstructor && (
-              <Button
-                className="w-full sm:w-auto min-h-11"
-                disabled={!canCreateSlot}
-                title={
-                  !canManage ? 'Akses membuat kelas memerlukan izin class-slot:manage' : undefined
-                }
-                onClick={() => openPanel({ kind: 'create' })}
-              >
-                Buat kelas
-              </Button>
-            )}
-          </div>
-        </div>
-
-        {/* Mobile Filter Toggle */}
-        <div className="sm:hidden flex items-center justify-between">
-          <button
-            type="button"
-            onClick={() => setIsFilterOpen((prev) => !prev)}
-            className="inline-flex items-center gap-2 text-xs font-semibold text-dd-forest bg-dd-forest/10 hover:bg-dd-forest/20 px-3 py-2 rounded-lg transition"
-            aria-expanded={isFilterOpen}
-          >
-            <SlidersHorizontal className="size-3.5" />
-            <span>{isFilterOpen ? 'Tutup filter' : 'Filter & pencarian'}</span>
-            {activeFilterCount > 0 && (
-              <span className="rounded-full bg-dd-forest text-white text-[10px] px-1.5 py-0.5 font-bold">
-                {activeFilterCount}
-              </span>
-            )}
-          </button>
-          {activeFilterCount > 0 && (
-            <button
-              type="button"
-              onClick={() => {
-                setStatusFilter('ALL');
-                setClassTypeFilter('');
-                setInstructorFilter('');
-              }}
-              className="text-xs text-dd-muted hover:text-dd-ink underline"
-            >
-              Reset filter
-            </button>
-          )}
-        </div>
-
-        <div
-          className={`${isFilterOpen ? 'grid' : 'hidden sm:grid'} grid-cols-1 sm:grid-cols-3 gap-3`}
-          aria-label="Filter timetable"
-        >
-          <SelectInput
-            label="Status"
-            value={statusFilter}
-            onChange={(event) => setStatusFilter(event.target.value)}
-          >
-            {statuses.map((status) => (
-              <option value={status} key={status}>
-                {status === 'ALL' ? 'Semua status' : statusLabels[status]}
-              </option>
-            ))}
-          </SelectInput>
-          <SearchSelect
-            label="Tipe kelas"
-            value={classTypeFilter}
-            placeholder="Semua tipe kelas"
-            options={classTypeOptions}
-            onChange={setClassTypeFilter}
-          />
-          <SearchSelect
-            label="Instruktur"
-            value={instructorFilter}
-            placeholder="Semua instruktur"
-            options={instructorOptions}
-            onChange={setInstructorFilter}
-          />
-        </div>
-      </div>
 
       {busy && <Skeleton label="Memuat timetable kelas" />}
       {failure && <Feedback kind="error">{failure}</Feedback>}
@@ -678,144 +541,77 @@ export function ClassSlotView({
         />
       ) : (
         <>
-          {/* Tipe kelas dalam satu ketuk. Dropdown di panel filter tetap ada untuk daftar panjang,
-              tetapi hari yang padat biasanya cuma perlu memisahkan group dari private. */}
+          {/* Tipe kelas dalam satu ketuk, seperti mockup. */}
           {classTypeOptions.length > 1 && (
-            <div className="flex flex-wrap items-center gap-2" aria-label="Saring tipe kelas">
+            <div
+              className="flex flex-wrap gap-2"
+              role="group"
+              aria-label="Saring menurut tipe kelas"
+            >
               {[{ id: '', label: 'Semua tipe' }, ...classTypeOptions].map((opsi) => {
                 const aktif = classTypeFilter === opsi.id;
-                const jumlah = opsi.id
-                  ? slots.filter((slot) => slot.classTypeId === opsi.id).length
-                  : slots.length;
                 return (
                   <button
                     type="button"
                     aria-pressed={aktif}
                     onClick={() => setClassTypeFilter(opsi.id)}
-                    className={`flex min-h-11 items-center gap-2 rounded-dd-sm border px-3 text-sm transition focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#09371f] ${
+                    className={`min-h-11 rounded-[9px] px-4 text-[15px] transition focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#09371f] ${
                       aktif
-                        ? 'border-dd-forest bg-dd-success-soft font-bold text-dd-forest'
-                        : 'border-dd-border-interactive bg-white font-medium text-dd-ink hover:border-dd-forest'
+                        ? 'border-0 bg-dd-forest font-bold text-white'
+                        : 'border border-dd-border-interactive bg-white font-medium text-dd-ink hover:border-dd-forest'
                     }`}
                     key={opsi.id || 'semua'}
                   >
                     {opsi.label}
-                    <span className="text-[13px] font-medium text-dd-muted">{jumlah}</span>
                   </button>
                 );
               })}
             </div>
           )}
 
-          <p className="m-0 hidden text-[13px] text-dd-muted xl:block">
-            Kelas bertanda titik enam belum ada pesertanya dan bisa diseret ke jam lain. Yang
-            bertanda gembok sudah ada peserta; ubah jamnya dari panel detail bila memang perlu.
-          </p>
-
-          {/* Desktop: baris jam x kolom hari (≥ xl). Tinggi kalender ditentukan jam operasional,
-              bukan jumlah kelas, sehingga hari tersibuk pun tidak membuatnya memanjang. */}
-          <div className="hidden xl:block overflow-x-auto pb-4">
-            <div
-              className="min-w-[980px] overflow-hidden rounded-dd-md border border-dd-line bg-white"
-              role="region"
-              aria-label="Kalender kelas tujuh hari"
-            >
-              <div
-                className="grid border-b border-dd-line bg-white"
-                style={{ gridTemplateColumns: '68px repeat(7, minmax(0, 1fr))' }}
-              >
-                <span aria-hidden="true" />
-                {(week?.days ?? []).map((day) => (
-                  <p
-                    className={`m-0 border-l border-dd-line/60 px-1 py-2.5 text-center text-[13px] font-bold ${
-                      day === todayKey ? 'bg-dd-success-soft text-dd-forest' : 'text-dd-muted'
-                    }`}
-                    key={day}
-                  >
-                    {formatBranchDay(day, displayTimezone)}
-                    {day === todayKey && <span className="block font-medium">hari ini</span>}
-                  </p>
-                ))}
-              </div>
-
-              {gridHours.map((hour) => (
-                <div
-                  className="grid min-h-[58px] items-stretch border-b border-dd-line/50 last:border-b-0"
-                  style={{ gridTemplateColumns: '68px repeat(7, minmax(0, 1fr))' }}
-                  key={hour}
-                >
-                  <p className="m-0 pr-2 pt-1.5 text-right text-[13px] text-dd-muted">
-                    {String(hour).padStart(2, '0')}.00
-                  </p>
-                  {(week?.days ?? []).map((day) => {
-                    const diJam = (grouped.get(day) ?? []).filter(
-                      (slot) => slotHour(slot) === hour,
-                    );
-                    const kunci = `${day}-${hour}`;
-                    const jadiTujuan = seret !== null && sasaran === kunci;
-                    /*
-                     * Kelas pada jam yang sama ditumpuk ke bawah, bukan dijejer ke samping.
-                     * Satu kolom hari hanya selebar sekitar 150 piksel; dibagi lima, tiap kartu
-                     * tinggal 30 piksel dan semua tulisannya terpotong. Ditumpuk, tiap kartu
-                     * memakai lebar penuh dan tetap terbaca.
-                     *
-                     * Yang ditampilkan dibatasi dua supaya jam tersibuk tidak menarik seluruh
-                     * baris menjadi sangat tinggi; sisanya dibuka satu ketuk, per sel, sehingga
-                     * jam lain tidak ikut melebar.
-                     */
-                    const BATAS_TAMPIL = 2;
-                    const penuhkan = selPenuh.has(kunci) || diJam.length <= BATAS_TAMPIL + 1;
-                    const tampil = penuhkan ? diJam : diJam.slice(0, BATAS_TAMPIL);
-                    const tersembunyi = diJam.length - tampil.length;
-                    return (
-                      <div
-                        className={`flex min-w-0 flex-col gap-1 border-l border-dd-line/60 p-1 ${
-                          jadiTujuan
-                            ? 'bg-dd-success-soft outline outline-2 -outline-offset-2 outline-dd-forest'
-                            : day === todayKey
-                              ? 'bg-dd-success-soft/40'
-                              : ''
-                        }`}
-                        onDragOver={(event) => {
-                          if (!seret) return;
-                          // Tanpa preventDefault peramban menolak lepasan, jadi sel tidak pernah
-                          // jadi tujuan yang sah.
-                          event.preventDefault();
-                          setSasaran(kunci);
-                        }}
-                        onDragLeave={() => setSasaran((kini) => (kini === kunci ? null : kini))}
-                        onDrop={(event) => {
-                          event.preventDefault();
-                          const dipindah = seret;
-                          setSeret(null);
-                          setSasaran(null);
-                          if (dipindah) void pindahkanKelas(dipindah, day, hour);
-                        }}
-                        key={kunci}
-                      >
-                        {tampil.map((slot) => hourChip(slot))}
-                        {tersembunyi > 0 && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setSelPenuh((kini) => {
-                                const next = new Set(kini);
-                                next.add(kunci);
-                                return next;
-                              })
-                            }
-                            className="w-full rounded-dd-sm border border-dashed border-dd-border-interactive px-1 py-1 text-[13px] font-bold text-dd-forest transition hover:border-dd-forest focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#09371f]"
-                          >
-                            +{tersembunyi} kelas lagi
-                          </button>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              ))}
+          {/* Desktop: baris jam x kolom hari (≥ xl), lalu keterangan dan tombol simpan pemindahan. */}
+          <div className="hidden xl:block">
+            <div className="overflow-x-auto">
+              <TimetableWeekGrid
+                days={week?.days ?? []}
+                hours={gridHours}
+                todayKey={todayKey}
+                slots={visible}
+                posisi={posisi}
+                tertunda={tertunda}
+                selectedId={selectedId}
+                canMove={canManage}
+                namaTipe={(slot) => classTypeName(slot.classTypeId, slot)}
+                namaInstruktur={(slot) => firstName(instructorName(slot.instructorUserId, slot))}
+                onSelect={pilihKelas}
+                onStage={stage}
+              />
             </div>
+            {canManage && (
+              <TimetableMoveBar
+                jumlahTertunda={Object.keys(tertunda).length}
+                saving={savingMoves}
+                onSave={() => void simpanPemindahan()}
+                onCancel={() => setTertunda({})}
+              />
+            )}
           </div>
+
+          {selectedSlot && (
+            <TimetableRosterPanel
+              key={selectedSlot.id}
+              slot={selectedSlot}
+              classTypeName={classTypeName(selectedSlot.classTypeId, selectedSlot)}
+              instructorName={instructorName(selectedSlot.instructorUserId, selectedSlot)}
+              studioName={studios.find((studio) => studio.id === selectedSlot.studioId)?.name}
+              client={bookingClient}
+              canAdd={canAddToRoster}
+              canRemove={canRemoveFromRoster}
+              canManageClass
+              onManage={() => openPanel({ kind: 'detail', slot: selectedSlot })}
+              onChanged={() => void load()}
+            />
+          )}
 
           {/* Mobile & Tablet Agenda View with 1-Tap Day Filter (< xl) */}
           <div className="xl:hidden flex flex-col gap-4" aria-label="Agenda kelas mingguan">

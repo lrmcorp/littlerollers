@@ -109,7 +109,7 @@ describe('ClassSlotView', () => {
         capabilitiesOverride={readCapabilities}
       />,
     );
-    expect(screen.getByText('Hanya lihat')).toBeVisible();
+    expect(screen.getByText(/Akses Anda hanya untuk melihat/)).toBeVisible();
     expect(screen.getByRole('button', { name: 'Buat kelas' })).toBeDisabled();
   });
 
@@ -161,7 +161,7 @@ describe('ClassSlotView', () => {
         capabilitiesOverride={['class-slot:read', 'class-slot:manage', 'branch:all']}
       />,
     );
-    expect(await screen.findByText(/Pantau jadwal seluruh cabang/)).toBeVisible();
+    expect(await screen.findByText(/Menampilkan semua cabang/)).toBeVisible();
     expect(screen.getByRole('button', { name: 'Buat kelas' })).toBeEnabled();
     expect(client.discover).toHaveBeenCalledWith(expect.objectContaining({ branchId: undefined }));
   });
@@ -334,6 +334,12 @@ describe('ClassSlotView', () => {
         { name: /Reformer/ },
       ),
     );
+    // Menekan kelas menampilkan pesertanya di bawah kalender, seperti mockup.
+    const panel = await screen.findByRole('complementary', { name: 'Reformer' });
+    expect(await within(panel).findByText('Customer Demo')).toBeVisible();
+    expect(within(panel).getByText('Sisa 7 sesi')).toBeVisible();
+    // Pengaturan kelas lengkap tetap ada, satu ketuk lagi lewat "Atur kelas".
+    await user.click(within(panel).getByRole('button', { name: 'Atur kelas' }));
     const dialog = screen.getByRole('dialog', { name: 'Reformer' });
     expect((await within(dialog).findAllByText('Customer Demo')).length).toBeGreaterThan(0);
     expect(within(dialog).getAllByText('+62••••1234').length).toBeGreaterThan(0);
@@ -585,7 +591,7 @@ describe('ClassSlotView without catalog access (read-only roles)', () => {
     expect(within(dialog).queryByText('Instruktur belum dimuat')).toBeNull();
   });
 
-  it('builds the class-type and instructor filters from the visible slots', async () => {
+  it('takes class-type and instructor names from the visible slots', async () => {
     render(
       <ClassSlotView
         client={emptyCatalog()}
@@ -593,10 +599,11 @@ describe('ClassSlotView without catalog access (read-only roles)', () => {
         capabilitiesOverride={readCapabilities}
       />,
     );
-    const user = userEvent.setup();
-    await screen.findAllByText('Reformer Pilates');
-    await user.click(screen.getByRole('combobox', { name: 'Instruktur' }));
-    expect(await screen.findByRole('option', { name: /Sarah Coach/ })).toBeVisible();
+    // Tanpa akses katalog, nama tipe kelas dan instruktur tetap terbaca dari data kelas itu sendiri.
+    const calendar = screen.getByRole('region', { name: 'Kalender kelas tujuh hari' });
+    expect(
+      await within(calendar).findByRole('button', { name: /Reformer Pilates, Sarah\./ }),
+    ).toBeInTheDocument();
   });
 });
 
@@ -775,6 +782,7 @@ describe('ClassSlotView detail drawer layout', () => {
         { name: /Reformer/ },
       ),
     );
+    await user.click(await screen.findByRole('button', { name: 'Atur kelas' }));
     const dialog = screen.getByRole('dialog', { name: 'Reformer' });
     expect(await within(dialog).findByText('Belum ada peserta')).toBeVisible();
     expect(within(dialog).queryByText(/Halaman 1/)).toBeNull();
