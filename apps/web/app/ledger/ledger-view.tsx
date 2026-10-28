@@ -122,6 +122,7 @@ export function LedgerView({
   onWorkspaceTabChange,
   access,
   adjustmentsOnly = false,
+  asSection = false,
   customerUserId,
   initialAdjustmentMode = 'PENDING',
   onAdjustmentModeChange,
@@ -145,6 +146,8 @@ export function LedgerView({
   onWorkspaceTabChange?(value: 'balances' | 'adjustments'): void;
   access?: { canRequest: boolean; canDecide: boolean; canReview: boolean };
   adjustmentsOnly?: boolean;
+  /** Tampil sebagai bagian di bawah judul halaman lain: judulnya h2, bukan h1. */
+  asSection?: boolean;
   customerUserId?: string;
   initialAdjustmentMode?: AdjustmentMode;
   onAdjustmentModeChange?(value: AdjustmentMode): void;
@@ -538,15 +541,11 @@ export function LedgerView({
 
   return (
     <section className="space-y-6" aria-labelledby="ledger-title">
-      <AdminPageHeader
-        title={adjustmentsOnly ? 'Penyesuaian Sesi' : 'Sesi Pelanggan'}
-        titleId="ledger-title"
-        description={
-          adjustmentsOnly
-            ? 'Permintaan tidak langsung mengubah saldo dan harus diputuskan pihak berizin yang berbeda dari pemohon. Tinjau sesuai hak akses dan cakupan cabang.'
-            : 'Pantau saldo paket, sesi terpakai, tertahan, dan tersedia berdasarkan catatan sesi resmi.'
-        }
-        actions={
+      {asSection ? (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 id="ledger-title" className="m-0 text-[22px] font-semibold text-dd-ink">
+            Permintaan dan riwayat
+          </h2>
           <Button
             variant="secondary"
             disabled={loading || adjustmentLoading}
@@ -555,8 +554,28 @@ export function LedgerView({
           >
             Segarkan
           </Button>
-        }
-      />
+        </div>
+      ) : (
+        <AdminPageHeader
+          title={adjustmentsOnly ? 'Penyesuaian Sesi' : 'Sesi Pelanggan'}
+          titleId="ledger-title"
+          description={
+            adjustmentsOnly
+              ? 'Permintaan tidak langsung mengubah saldo dan harus diputuskan pihak berizin yang berbeda dari pemohon. Tinjau sesuai hak akses dan cakupan cabang.'
+              : 'Pantau saldo paket, sesi terpakai, tertahan, dan tersedia berdasarkan catatan sesi resmi.'
+          }
+          actions={
+            <Button
+              variant="secondary"
+              disabled={loading || adjustmentLoading}
+              leadingIcon={<RefreshCw className="size-4" aria-hidden="true" />}
+              onClick={() => void refreshOperationalData()}
+            >
+              Segarkan
+            </Button>
+          }
+        />
+      )}
 
       {!adjustmentsOnly && (
         <Tabs

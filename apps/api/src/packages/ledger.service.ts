@@ -650,6 +650,10 @@ export class LedgerService {
       quantity?: number;
       reasonCode?: string;
       note?: string;
+      /** Booking yang dikoreksi, mis. sesi hangus karena kesalahan studio. */
+      bookingId?: string;
+      /** Id penyesuaian yang sudah ditentukan pemanggil, agar bukti bisa disimpan lebih dulu. */
+      id?: string;
     },
   ) {
     this.policy.requireCapability(principal.capabilities, 'ledger:adjust:decide');
@@ -687,6 +691,16 @@ export class LedgerService {
         });
         if (pending > 0) throw problem('ADJUSTMENT_ALREADY_PENDING', HttpStatus.CONFLICT);
 
+        if (body.bookingId) {
+          const booking = await tx.pemesananKelas.findUnique({
+            where: { id: body.bookingId },
+            select: { customerPackageId: true },
+          });
+          // Booking harus memakai paket yang sama; kalau tidak, koreksinya salah alamat.
+          if (!booking || booking.customerPackageId !== pkg.id)
+            throw problem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, 'bookingId');
+        }
+
         const now = new Date();
         const balanceAfter = pkg.remainingSessions + quantity;
         const nextStatus =
@@ -703,7 +717,9 @@ export class LedgerService {
 
         const request = await tx.sessionAdjustRequest.create({
           data: {
+            ...(body.id ? { id: body.id } : {}),
             customerPackageId: pkg.id,
+            bookingId: body.bookingId ?? null,
             requestedById: principal.userId,
             approvedById: principal.userId,
             sessionCount: quantity,

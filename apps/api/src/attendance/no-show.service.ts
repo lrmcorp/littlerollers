@@ -114,17 +114,20 @@ export class NoShowService {
     );
 
     // Sesi yang sudah dikembalikan lewat penyesuaian manual ditandai agar tidak dikoreksi dua kali.
+    // Penyesuaian menyimpan booking yang dikoreksi di `bookingId`; entri buku besarnya merujuk ke
+    // id penyesuaian, bukan booking, jadi pencocokan lewat buku besar tidak akan pernah kena.
     const koreksi = terlihat.length
-      ? await this.db.sessionLedger.findMany({
+      ? await this.db.sessionAdjustRequest.findMany({
           where: {
-            referenceId: { in: terlihat.map((b) => b.id) },
-            type: 'ADJUST_MANUAL',
+            bookingId: { in: terlihat.map((b) => b.id) },
+            status: 'APPROVED',
+            sessionCount: { gt: 0 },
           },
-          select: { referenceId: true },
+          select: { bookingId: true },
         })
       : [];
     const sudah = new Set(
-      koreksi.map((k: { referenceId: string | null }) => k.referenceId).filter(Boolean),
+      koreksi.map((k: { bookingId: string | null }) => k.bookingId).filter(Boolean),
     );
 
     const rows: NoShowRow[] = terlihat.map((b) => ({

@@ -3,11 +3,16 @@
 import { useSearchParams } from 'next/navigation';
 import { useTrackedRouter } from '../../components/app-loading';
 import { LedgerView } from '../ledger-view';
+import { useSessionContext } from '../../session-context';
+import { PenyesuaianForm } from './penyesuaian-form';
 
 export function SessionAdjustmentsPageView() {
   const params = useSearchParams();
   const router = useTrackedRouter();
   const initialMode = params.get('status') === 'HISTORY' ? 'HISTORY' : 'PENDING';
+  // Penyesuaian langsung dengan bukti hanya untuk Super Owner dan Studio Manager.
+  const bisaLangsung = useSessionContext()?.hasCapability('ledger:adjust:decide') ?? false;
+  const sesiAwal = Number(params.get('sesi'));
   const replaceFilters = (updates: Record<string, string>) => {
     const query = new URLSearchParams(params.toString());
     for (const [key, value] of Object.entries(updates)) {
@@ -18,11 +23,12 @@ export function SessionAdjustmentsPageView() {
       scroll: false,
     });
   };
-  return (
+  const daftar = (
     <LedgerView
       initialWorkspaceTab="adjustments"
       initialAdjustmentMode={initialMode}
       adjustmentsOnly
+      asSection={bisaLangsung}
       customerUserId={params.get('customerUserId') ?? undefined}
       initialAdjustmentSearch={params.get('q') ?? ''}
       initialAdjustmentFrom={params.get('from') ?? ''}
@@ -60,5 +66,27 @@ export function SessionAdjustmentsPageView() {
         });
       }}
     />
+  );
+  if (!bisaLangsung) return daftar;
+  return (
+    <div className="space-y-8">
+      <header>
+        <h1 className="m-0 text-[28px] font-semibold tracking-[-0.02em] text-dd-ink sm:text-[32px]">
+          Penyesuaian sesi
+        </h1>
+        <p className="m-0 mt-1 text-[17px] text-dd-muted">
+          Hanya Super Owner dan Studio Manager. Setiap perubahan tercatat permanen beserta alasan
+          dan buktinya.
+        </p>
+      </header>
+      <PenyesuaianForm
+        awal={{
+          memberId: params.get('member') ?? undefined,
+          bookingId: params.get('booking') ?? undefined,
+          sesi: Number.isInteger(sesiAwal) && sesiAwal !== 0 ? sesiAwal : undefined,
+        }}
+      />
+      {daftar}
+    </div>
   );
 }

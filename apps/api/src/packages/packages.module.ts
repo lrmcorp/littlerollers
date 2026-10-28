@@ -1,3 +1,5 @@
+import { PenyesuaianBuktiController } from './penyesuaian-bukti.controller';
+import { PenyesuaianBuktiService } from './penyesuaian-bukti.service';
 import { Module } from '@nestjs/common';
 import { DatabaseModule } from '../database/database.module';
 import { FoundationModule } from '../foundation/foundation.module';
@@ -33,11 +35,13 @@ import { PaymentExpirationWorkerService } from './payment-expiration-worker';
   controllers: [
     PackagesController,
     LedgerController,
+    PenyesuaianBuktiController,
     FinanceController,
     RetentionController,
     TargetController,
   ],
   providers: [
+    PenyesuaianBuktiService,
     CustomerOrderService,
     PackageAccessService,
     PackageCatalogService,

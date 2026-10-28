@@ -48,7 +48,7 @@ function booking(over: {
 function setup(bookings: unknown[] = [], koreksi: unknown[] = []) {
   const db = {
     pemesananKelas: { findMany: jest.fn().mockResolvedValue(bookings) },
-    sessionLedger: { findMany: jest.fn().mockResolvedValue(koreksi) },
+    sessionAdjustRequest: { findMany: jest.fn().mockResolvedValue(koreksi) },
   };
   return { service: new NoShowService(db as never, new PolicyService()), db };
 }
@@ -94,7 +94,7 @@ describe('NoShowService.report', () => {
   it('menandai sesi yang sudah dikembalikan lewat penyesuaian manual', async () => {
     const { service } = setup(
       [booking({ id: id(10), userId: id(50) }), booking({ id: id(11), userId: id(51) })],
-      [{ referenceId: id(10) }],
+      [{ bookingId: id(10) }],
     );
 
     const hasil = await service.report(superOwner, { period: '2026-10' }, NOW);
@@ -104,12 +104,15 @@ describe('NoShowService.report', () => {
     expect(hasil.rows.find((r) => r.bookingId === id(11))?.sudahDikoreksi).toBe(false);
   });
 
-  it('mencari koreksi hanya bertipe ADJUST_MANUAL, bukan pemotongan biasa', async () => {
+  it('hanya menghitung penyesuaian disetujui yang mengembalikan sesi untuk booking itu', async () => {
     const { service, db } = setup([booking({ id: id(10), userId: id(50) })]);
 
     await service.report(superOwner, { period: '2026-10' }, NOW);
 
-    expect(db.sessionLedger.findMany.mock.calls[0]![0].where.type).toBe('ADJUST_MANUAL');
+    const where = db.sessionAdjustRequest.findMany.mock.calls[0]![0].where;
+    expect(where.bookingId).toEqual({ in: [id(10)] });
+    expect(where.status).toBe('APPROVED');
+    expect(where.sessionCount).toEqual({ gt: 0 });
   });
 
   it('tidak menanyakan koreksi sama sekali ketika tidak ada yang mangkir', async () => {
@@ -118,7 +121,7 @@ describe('NoShowService.report', () => {
     const hasil = await service.report(superOwner, { period: '2026-10' }, NOW);
 
     expect(hasil.total).toBe(0);
-    expect(db.sessionLedger.findMany).not.toHaveBeenCalled();
+    expect(db.sessionAdjustRequest.findMany).not.toHaveBeenCalled();
   });
 
   it('menyembunyikan cabang lain dari admin cabang', async () => {
