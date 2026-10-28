@@ -36,6 +36,14 @@ p.cabang.count().then(async c => {
       }
       await p.jenisKelas.updateMany({ where: { code: 'REFORMER', heroImageKey: null }, data: { heroImageKey: 'classes/reformer-pilates.png' } });
       await p.jenisKelas.updateMany({ where: { code: 'MAT', heroImageKey: null }, data: { heroImageKey: 'classes/mat-pilates.png' } });
+      const unassignedUsers = await p.user.findMany({ where: { username: null }, select: { id: true, email: true, displayName: true } });
+      for (const u of unassignedUsers) {
+        let cand = (u.email && u.email.includes('@')) ? u.email.split('@')[0].toLowerCase().replace(/[^a-z0-9_.-]/g, '') : (u.displayName ? u.displayName.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_.-]/g, '') : 'user_' + u.id.slice(0, 6));
+        if (!cand || cand.length < 3) cand = 'user_' + u.id.slice(0, 6);
+        let finalU = cand, cnt = 1;
+        while (await p.user.findFirst({ where: { username: finalU, NOT: { id: u.id } } })) { finalU = cand + '_' + (cnt++); }
+        await p.user.update({ where: { id: u.id }, data: { username: finalU } });
+      }
     } catch (e) {
       console.warn('==> [DailyDose] Backfill notice:', e.message);
     }

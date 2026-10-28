@@ -167,7 +167,8 @@ export async function backfillUsernames(db: PrismaClient) {
   for (const u of usersWithoutUsername) {
     let candidate = '';
     if (u.email && u.email.includes('@')) {
-      candidate = u.email.split('@')[0].toLowerCase().replace(/[^a-z0-9_.-]/g, '');
+      const emailPrefix = u.email.split('@')[0] ?? '';
+      candidate = emailPrefix.toLowerCase().replace(/[^a-z0-9_.-]/g, '');
     } else if (u.displayName) {
       candidate = u.displayName.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_.-]/g, '');
     }

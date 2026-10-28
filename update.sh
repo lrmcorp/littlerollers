@@ -9,6 +9,30 @@ TARGET_BRANCH="perbaikan_arsitektur"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
+# Satu update pada satu waktu: dua build bersamaan di server bersama akan saling menyesakkan.
+LOCK_FILE="/tmp/dailydose-update.lock"
+if command -v flock >/dev/null 2>&1; then
+  exec 9>"$LOCK_FILE"
+  if ! flock -n 9; then
+    echo "Update lain sedang berjalan (kunci: $LOCK_FILE). Coba lagi setelah selesai."
+    exit 1
+  fi
+fi
+START_TS="$(date +%s)"
+
+# Cache build disimpan sampai batas ini; selebihnya yang tertua dipangkas.
+BUILD_CACHE_KEEP="${BUILD_CACHE_KEEP:-4GB}"
+# Bila ruang kosong di bawah batas ini (GB), cache dibuang seluruhnya sebagai pengaman terakhir.
+MIN_FREE_GB="${MIN_FREE_GB:-6}"
+
+# Pangkas cache build seperlunya: buang yang tidak terpakai 7 hari, lalu sisakan hanya ${BUILD_CACHE_KEEP} cache
+# yang paling baru dipakai. Cache yang masih baru (mis. layer `pnpm install`) dipertahankan sehingga build berikutnya cepat.
+prune_build_cache() {
+  docker builder prune -af --filter "until=168h" >/dev/null 2>&1 || true
+  docker builder prune -af --reserved-space "$BUILD_CACHE_KEEP" >/dev/null 2>&1 \
+    || docker builder prune -af --keep-storage "$BUILD_CACHE_KEEP" >/dev/null 2>&1 || true
+}
+
 # Colors for terminal output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -29,10 +53,17 @@ echo -e "${BLUE}▶ [1/6] Memeriksa & Membersihkan Kapasitas Disk Server...${NC}
 echo -e "   Status Disk Sebelum Pembersihan:"
 df -h / | awk 'NR==1 || NR==2 {print "   " $0}'
 
-echo -e "\n   Membersihkan build cache Docker lama untuk mencegah 'no space left on device'..."
-docker builder prune -af 2>/dev/null || true
-docker image prune -f 2>/dev/null || true
-docker container prune -f 2>/dev/null || true
+echo -e "\n   Memangkas build cache Docker lama (batas simpan ${BUILD_CACHE_KEEP}) agar build berikutnya tetap cepat..."
+prune_build_cache
+docker image prune -f >/dev/null 2>&1 || true
+
+# Pengaman terakhir: bila disk hampir penuh, buang seluruh cache build supaya build tidak gagal
+# dengan 'no space left on device'. Container yang berhenti TIDAK disentuh (server ini dipakai bersama).
+FREE_GB="$(df -Pk / | awk 'NR==2 {print int($4/1024/1024)}')"
+if [ "${FREE_GB:-0}" -lt "$MIN_FREE_GB" ]; then
+  echo -e "   ${YELLOW}! Ruang kosong tinggal ${FREE_GB} GB (< ${MIN_FREE_GB} GB). Membuang seluruh cache build...${NC}"
+  docker builder prune -af >/dev/null 2>&1 || true
+fi
 
 # Bersihkan system log jika dijalankan di Linux VPS
 if command -v journalctl >/dev/null 2>&1; then
@@ -105,11 +136,14 @@ fi
 echo -e "\n${BLUE}▶ [4/6] Membangun Image Docker (Docker Build)...${NC}"
 echo -e "   Menjalankan: docker compose build app"
 
-docker compose build app
+BUILD_START="$(date +%s)"
+DOCKER_BUILDKIT=1 docker compose build app
+BUILD_SECS=$(( $(date +%s) - BUILD_START ))
 
-# Bersihkan layer builder cache yang tersisa setelah build selesai
-docker builder prune -f 2>/dev/null || true
-echo -e "   ${GREEN}✓ Build image Docker berhasil diselesaikan.${NC}\n"
+# Jaga cache di bawah batas, tetapi jangan dibuang: layer instalasi paket dipakai lagi pada deploy berikutnya.
+prune_build_cache
+docker image prune -f >/dev/null 2>&1 || true
+echo -e "   ${GREEN}✓ Build image Docker berhasil diselesaikan dalam ${BUILD_SECS} detik.${NC}\n"
 
 # ------------------------------------------------------------------------------
 # STEP 5: DEPLOY CONTAINER (DOCKER COMPOSE UP)
@@ -156,7 +190,8 @@ if [ "$HEALTHY" = true ]; then
   echo -e " - Web Portal : ${YELLOW}http://<IP_SERVER>:32120/${NC} (atau domain production Anda)"
   echo -e " - API Base   : ${YELLOW}http://<IP_SERVER>:32121/api/v1/${NC}"
   echo -e " - Git Commit : ${YELLOW}${COMMIT_HASH} (${COMMIT_MSG})${NC}"
-  echo -e "\nAplikasi Daily Dose Pilates sudah langsung dapat digunakan sekarang!\n"
+  echo -e "\nTotal waktu update: $(( $(date +%s) - START_TS )) detik."
+  echo -e "Aplikasi Daily Dose Pilates sudah langsung dapat digunakan sekarang!\n"
 else
   echo -e "\n${YELLOW}! Aplikasi masih dalam proses inisialisasi awal. Memeriksa log terakhir:${NC}"
   docker compose logs --tail=25 app

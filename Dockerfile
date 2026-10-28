@@ -19,7 +19,10 @@ COPY packages/eslint-config/package.json ./packages/eslint-config/
 COPY packages/notification-core/package.json ./packages/notification-core/
 COPY packages/test-utils/package.json ./packages/test-utils/
 
-RUN pnpm install --frozen-lockfile
+# Cache unduhan paket pnpm di luar layer image: instalasi ulang (mis. lockfile berubah) tidak mengunduh semuanya lagi,
+# dan store tidak ikut membesarkan image.
+RUN --mount=type=cache,id=dailydose-pnpm-store,target=/pnpm/store \
+    pnpm install --frozen-lockfile --store-dir /pnpm/store
 
 # Generate Prisma Client before copying all source code to leverage caching
 COPY apps/api/prisma ./apps/api/prisma
@@ -35,13 +38,18 @@ ENV NEXT_PUBLIC_AUTH_SYNTHETIC_ENABLED=false
 ENV API_BASE_URL=$API_BASE_URL
 ENV NODE_OPTIONS="--max-old-space-size=2048"
 
-RUN pnpm build \
+# Satu tugas build sekaligus (API lalu web) menekan puncak pemakaian RAM dan CPU di server bersama; waktu build
+# bertambah sedikit, tetapi layanan lain di server tidak ikut tersendat.
+RUN pnpm exec turbo run build --concurrency=1 \
     && install -d apps/web/.next/standalone/apps/web/.next/static \
     && install -d apps/web/.next/standalone/apps/web/public \
     && cp -a apps/web/.next/static/. apps/web/.next/standalone/apps/web/.next/static/ \
     && cp -a apps/web/public/. apps/web/.next/standalone/apps/web/public/ \
     && rm -rf .turbo apps/web/.next/cache /root/.local/share/pnpm/store /pnpm/store \
     && chmod +x docker-entrypoint.sh
+
+# Buang paket yang tidak terjangkau dari API (alat uji, paket khusus web) sebelum disalin ke image runtime.
+RUN node scripts/docker-prune-node-modules.cjs /app
 
 FROM node:24-bookworm-slim AS runner
 
@@ -54,7 +62,15 @@ RUN apt-get update \
     && groupadd --system --gid 1001 dailydose \
     && useradd --system --uid 1001 --gid dailydose dailydose
 
-COPY --from=builder --chown=dailydose:dailydose /app /app
+# Hanya yang dibutuhkan saat berjalan: API (dist, prisma, dependensi), paket workspace, dan server Next.js standalone
+# (sudah membawa node_modules sendiri). Kode sumber web, cache, dan artefak build ganda tidak ikut.
+COPY --from=builder --chown=dailydose:dailydose /app/package.json /app/package.json
+COPY --from=builder --chown=dailydose:dailydose /app/node_modules /app/node_modules
+COPY --from=builder --chown=dailydose:dailydose /app/packages /app/packages
+COPY --from=builder --chown=dailydose:dailydose /app/apps/api /app/apps/api
+COPY --from=builder --chown=dailydose:dailydose /app/apps/web/package.json /app/apps/web/package.json
+COPY --from=builder --chown=dailydose:dailydose /app/apps/web/.next/standalone /app/apps/web/.next/standalone
+COPY --from=builder --chown=dailydose:dailydose /app/docker-entrypoint.sh /app/docker-entrypoint.sh
 
 RUN mkdir -p /app/.local-data/public-uploads /app/data/private /app/data/public-uploads \
     && chown -R dailydose:dailydose /app/.local-data /app/data
