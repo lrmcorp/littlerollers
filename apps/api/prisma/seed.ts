@@ -212,11 +212,11 @@ export async function seedUsersAndRoles(
   // Superadmin / Super Owner (Global access across all branches)
   const superadmin = await db.user.upsert({
     where: { email: 'ralamzah@gmail.com' },
-    update: { role: Role.SUPER_OWNER, status: UserStatus.ACTIVE, username: 'ralamzah' },
+    update: { role: Role.SUPER_OWNER, status: UserStatus.ACTIVE, username: 'ridho_al_amzah' },
     create: {
       id: '00000000-0000-4000-8000-000000000100',
       email: 'ralamzah@gmail.com',
-      username: 'ralamzah',
+      username: 'ridho_al_amzah',
       displayName: 'Ridho Alamzah',
       phone: '081234567890',
       passwordHash: defaultPasswordHash,

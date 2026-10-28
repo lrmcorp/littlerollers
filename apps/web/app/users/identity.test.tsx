@@ -125,7 +125,7 @@ describe('identity UI', () => {
     expect((await axe(view.container)).violations).toHaveLength(0);
     await userEvent.type(screen.getByLabelText(/Email/i), 'owner@example.test');
     await userEvent.type(screen.getByLabelText('Password'), 'correct-password-123');
-    await userEvent.click(screen.getByRole('button', { name: /Masuk dengan email/ }));
+    await userEvent.click(screen.getByRole('button', { name: /Masuk ke Akun/ }));
     expect(await screen.findByText('Identitas terverifikasi.')).toBeVisible();
     view.unmount();
     render(
@@ -137,13 +137,13 @@ describe('identity UI', () => {
     );
     await userEvent.type(screen.getByLabelText(/Email/i), 'owner@example.test');
     await userEvent.type(screen.getByLabelText('Password'), 'incorrect-password');
-    await userEvent.click(screen.getByRole('button', { name: /Masuk dengan email/ }));
+    await userEvent.click(screen.getByRole('button', { name: /Masuk ke Akun/ }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Terlalu banyak');
   });
 
-  it('describes sign-in as email or WhatsApp number and offers a single register link', () => {
+  it('describes sign-in as email, username or WhatsApp number and offers a single register link', () => {
     render(<SignInView client={client()} />);
-    expect(screen.getByText(/email atau nomor WhatsApp yang terdaftar/i)).toBeVisible();
+    expect(screen.getByText(/email, username, atau nomor WhatsApp yang terdaftar/i)).toBeVisible();
     expect(screen.queryByText(/Gunakan email dan password/)).not.toBeInTheDocument();
     expect(screen.getAllByText(/Belum punya akun\?/)).toHaveLength(1);
     expect(screen.getAllByRole('link', { name: /Daftar akun/ })).toHaveLength(1);
@@ -177,7 +177,7 @@ describe('identity UI', () => {
     );
     await userEvent.type(screen.getByLabelText(/Email/i), 'owner@example.test');
     await userEvent.type(screen.getByLabelText('Password'), 'correct-password-123');
-    await userEvent.click(screen.getByRole('button', { name: /Masuk dengan email/ }));
+    await userEvent.click(screen.getByRole('button', { name: /Masuk ke Akun/ }));
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Layanan masuk sedang mengalami gangguan. Kode bantuan: auth-reference-456.',
     );

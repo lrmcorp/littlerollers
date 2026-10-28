@@ -1,42 +1,152 @@
-name: Production Auto Deploy
+name: Deploy production
 
+# Build image di GitHub (bukan di server produksi), kirim ke GHCR, lalu server hanya menarik image itu.
+# Dijalankan manual (Actions > Deploy production > Run workflow) atau dengan mendorong tag rilis, mis. `v2026.10.29`.
+# Push biasa ke branch TIDAK lagi memicu deploy. Panduan lengkap: docs/DEPLOY.md
 on:
-  push:
-    branches:
-      - perbaikan_arsitektur
-      - main
   workflow_dispatch:
+    inputs:
+      run_tests:
+        description: 'Jalankan typecheck dan tes unit sebelum membangun image'
+        type: boolean
+        default: true
+      deploy:
+        description: 'Deploy ke server setelah image dibangun (matikan untuk hanya membangun dan mengirim image)'
+        type: boolean
+        default: true
+  push:
+    tags: ['v*']
 
 concurrency:
   group: production-deploy
   cancel-in-progress: false
 
-jobs:
-  deploy:
-    name: Deploy to Production Docker
-    runs-on: ubuntu-latest
+permissions:
+  contents: read
 
+jobs:
+  verify:
+    name: Typecheck dan tes unit
+    if: github.event_name == 'push' || inputs.run_tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      # `prisma generate` tidak membuka koneksi, tetapi skema membaca variabel ini.
+      DATABASE_URL: mysql://dailydose:dailydose_ci@127.0.0.1:3306/dailydose_ci
+      AUTH_SYNTHETIC_ENABLED: 'true'
     steps:
-      - name: Trigger Remote Deploy via SSH
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v4
+        with: { version: 11.7.0 }
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - name: Buat berkas environment untuk CLI Node
+        run: cp .env.example .env
+      - name: Generate Prisma Client
+        run: pnpm db:generate
+      - name: Typecheck
+        run: pnpm typecheck
+      - name: Tes unit API (tanpa database)
+        run: pnpm --filter @dailydose/api test:unit
+      - name: Tes web
+        run: pnpm --filter @dailydose/web test
+
+  image:
+    name: Bangun dan kirim image
+    needs: verify
+    # `verify` boleh dilewati (run_tests=false), tetapi bila dijalankan harus lolos.
+    if: ${{ !cancelled() && (needs.verify.result == 'success' || needs.verify.result == 'skipped') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      tag: ${{ steps.meta.outputs.tag }}
+      image: ${{ steps.meta.outputs.image }}
+    steps:
+      - uses: actions/checkout@v6
+      - name: Tentukan nama dan tag image
+        id: meta
+        run: |
+          IMAGE="ghcr.io/$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')/dailydose-v2-app"
+          TAG="sha-$(echo "${GITHUB_SHA}" | cut -c1-7)"
+          echo "image=${IMAGE}" >> "$GITHUB_OUTPUT"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          TAGS="${IMAGE}:${TAG}"
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then TAGS="${TAGS},${IMAGE}:${GITHUB_REF_NAME}"; fi
+          echo "tags=${TAGS}" >> "$GITHUB_OUTPUT"
+      - name: Peringatan bila Client ID Google kosong
+        run: |
+          if [ -z "${{ vars.NEXT_PUBLIC_GOOGLE_CLIENT_ID }}" ]; then
+            echo "::warning::Variabel repository NEXT_PUBLIC_GOOGLE_CLIENT_ID kosong. Tombol 'Lanjutkan dengan Google' di produksi tidak akan berfungsi pada image ini."
+          fi
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          provenance: false
+          tags: ${{ steps.meta.outputs.tags }}
+          # Menghubungkan paket GHCR ke repositori ini, supaya workflow deploy boleh membacanya.
+          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
+          build-args: |
+            NEXT_PUBLIC_GOOGLE_CLIENT_ID=${{ vars.NEXT_PUBLIC_GOOGLE_CLIENT_ID }}
+            API_BASE_URL=http://127.0.0.1:32121
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    name: Deploy ke server
+    needs: image
+    if: ${{ !cancelled() && needs.image.result == 'success' && (github.event_name == 'push' || inputs.deploy) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Atur "Required reviewers" pada environment `production` bila ingin persetujuan manual sebelum deploy.
+    environment: production
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Tarik image di server lewat SSH
         uses: appleboy/ssh-action@v1.2.0
+        env:
+          GHCR_USER: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IMAGE_TAG: ${{ needs.image.outputs.tag }}
+          GIT_SHA: ${{ github.sha }}
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT || 22 }}
+          envs: GHCR_USER,GHCR_TOKEN,IMAGE_TAG,GIT_SHA
           script_stop: true
-          command_timeout: 30m
+          command_timeout: 20m
           script: |
             TARGET_DIR="${{ secrets.PROJECT_PATH }}"
             if [ -z "$TARGET_DIR" ]; then
               TARGET_DIR="/var/www/dailydose_v2"
             fi
-
-            echo "▶ [CI/CD] Navigasi ke direktori project: $TARGET_DIR"
             cd "$TARGET_DIR"
 
-            echo "▶ [CI/CD] Memastikan permission eksekusi untuk update.sh..."
-            chmod +x update.sh
+            # Samakan berkas deploy (compose, skrip) dengan commit tepat yang image-nya dibangun, sebelum skrip
+            # dijalankan. Dengan begitu skrip yang berjalan selalu versi terbaru, bukan salinan lama di server.
+            if ! git diff-index --quiet HEAD -- 2>/dev/null; then
+              git stash push -m "Auto-stash oleh deploy $(date +'%Y-%m-%d %H:%M:%S')" || true
+            fi
+            git fetch origin "$GIT_SHA" || git fetch origin
+            git checkout --detach "$GIT_SHA"
 
-            echo "▶ [CI/CD] Menjalankan update.sh..."
-            ./update.sh
+            chmod +x update.sh
+            ./update.sh --pull --tag "$IMAGE_TAG" --sha "$GIT_SHA" --skip-git

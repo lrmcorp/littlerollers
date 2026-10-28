@@ -6,6 +6,35 @@
 set -Eeuo pipefail
 
 TARGET_BRANCH="perbaikan_arsitektur"
+
+# Mode kerja:
+#   (tanpa argumen)            bangun image di server ini lalu jalankan (cara lama, tetap tersedia sebagai cadangan)
+#   --pull --tag sha-xxxxxxx   tarik image yang sudah dibangun GitHub Actions dari GHCR lalu jalankan (tanpa build)
+# Opsi: --sha <commit> (hanya untuk peringatan bila kode di server berbeda), --skip-git (lewati sinkronisasi git).
+MODE="build"
+IMAGE_TAG=""
+EXPECT_SHA=""
+SKIP_GIT="false"
+APP_IMAGE_REPO="${APP_IMAGE_REPO:-ghcr.io/ridho15/dailydose-v2-app}"
+KEEP_SHA_IMAGES="${KEEP_SHA_IMAGES:-3}"
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --pull) MODE="pull" ;;
+    --tag) IMAGE_TAG="${2:-}"; shift ;;
+    --sha) EXPECT_SHA="${2:-}"; shift ;;
+    --skip-git) SKIP_GIT="true" ;;
+    -h|--help) sed -n '2,6p;/^# Mode kerja/,/^# Opsi/p' "$0"; exit 0 ;;
+    *) echo "Argumen tidak dikenal: $1 (lihat --help)"; exit 2 ;;
+  esac
+  shift
+done
+if [ "$MODE" = "pull" ] && [ -z "$IMAGE_TAG" ]; then
+  echo "Mode --pull memerlukan --tag (mis. --tag sha-1a2b3c4)."
+  exit 2
+fi
+# docker-compose.yml membaca nama image dari sini; tag lokal 'production' selalu menunjuk versi yang berjalan.
+export DD_APP_IMAGE="${APP_IMAGE_REPO}:production"
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
@@ -33,6 +62,33 @@ prune_build_cache() {
     || docker builder prune -af --keep-storage "$BUILD_CACHE_KEEP" >/dev/null 2>&1 || true
 }
 
+# Tarik image dari GHCR dan jadikan tag lokal 'production'. Versi yang berjalan sebelumnya disimpan sebagai
+# 'previous' agar kembali ke versi lama cukup mengganti tag (lihat docs/DEPLOY.md).
+pull_image() {
+  local ref="${APP_IMAGE_REPO}:${IMAGE_TAG}" logged_in="false"
+  if [ -n "${GHCR_TOKEN:-}" ]; then
+    echo "${GHCR_TOKEN}" | docker login ghcr.io -u "${GHCR_USER:-github}" --password-stdin >/dev/null
+    logged_in="true"
+  fi
+  if ! docker pull "$ref"; then
+    [ "$logged_in" = "true" ] && docker logout ghcr.io >/dev/null 2>&1
+    echo "Gagal menarik ${ref}. Pastikan image sudah dikirim dan server boleh membaca paket GHCR."
+    return 1
+  fi
+  [ "$logged_in" = "true" ] && docker logout ghcr.io >/dev/null 2>&1
+  if docker image inspect "${APP_IMAGE_REPO}:production" >/dev/null 2>&1; then
+    docker tag "${APP_IMAGE_REPO}:production" "${APP_IMAGE_REPO}:previous"
+  fi
+  docker tag "$ref" "${APP_IMAGE_REPO}:production"
+}
+
+# Simpan hanya beberapa versi sha-* terbaru; tag production, previous, dan v* tidak disentuh.
+prune_old_app_images() {
+  docker image ls "$APP_IMAGE_REPO" --format '{{.CreatedAt}}|{{.Tag}}' 2>/dev/null \
+    | grep '|sha-' | sort -r | tail -n +"$((KEEP_SHA_IMAGES + 1))" | cut -d'|' -f2 \
+    | while read -r old_tag; do docker rmi "${APP_IMAGE_REPO}:${old_tag}" >/dev/null 2>&1 || true; done
+}
+
 # Colors for terminal output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -53,8 +109,10 @@ echo -e "${BLUE}▶ [1/6] Memeriksa & Membersihkan Kapasitas Disk Server...${NC}
 echo -e "   Status Disk Sebelum Pembersihan:"
 df -h / | awk 'NR==1 || NR==2 {print "   " $0}'
 
-echo -e "\n   Memangkas build cache Docker lama (batas simpan ${BUILD_CACHE_KEEP}) agar build berikutnya tetap cepat..."
-prune_build_cache
+if [ "$MODE" = "build" ]; then
+  echo -e "\n   Memangkas build cache Docker lama (batas simpan ${BUILD_CACHE_KEEP}) agar build berikutnya tetap cepat..."
+  prune_build_cache
+fi
 docker image prune -f >/dev/null 2>&1 || true
 
 # Pengaman terakhir: bila disk hampir penuh, buang seluruh cache build supaya build tidak gagal
@@ -93,6 +151,11 @@ echo -e "   ${GREEN}✓ Pembersihan cache selesai.${NC}\n"
 # ------------------------------------------------------------------------------
 echo -e "${BLUE}▶ [2/6] Memperbarui Source Code via Git (Branch: ${TARGET_BRANCH})...${NC}"
 
+if [ "$SKIP_GIT" = "true" ]; then
+  echo -e "   ${YELLOW}! --skip-git: sinkronisasi git dilewati.${NC}"
+  COMMIT_HASH="$(git rev-parse --short HEAD 2>/dev/null || echo '-')"
+  COMMIT_MSG="$(git log -1 --pretty=%B 2>/dev/null | head -n 1)"
+else
 # Simpan perubahan lokal jika ada yang tidak sengaja teredit di server
 if ! git diff-index --quiet HEAD -- 2>/dev/null; then
   echo -e "   ${YELLOW}! Menyimpan perubahan lokal sementara ke git stash...${NC}"
@@ -113,7 +176,12 @@ git pull origin "$TARGET_BRANCH"
 
 COMMIT_HASH="$(git rev-parse --short HEAD)"
 COMMIT_MSG="$(git log -1 --pretty=%B | head -n 1)"
-echo -e "   ${GREEN}✓ Berhasil sinkronisasi git pada commit [${COMMIT_HASH}]: ${COMMIT_MSG}${NC}\n"
+echo -e "   ${GREEN}✓ Berhasil sinkronisasi git pada commit [${COMMIT_HASH}]: ${COMMIT_MSG}${NC}"
+fi
+if [ -n "$EXPECT_SHA" ] && [ "$(git rev-parse HEAD 2>/dev/null)" != "$EXPECT_SHA" ]; then
+  echo -e "   ${YELLOW}! Peringatan: berkas compose dan skrip di server berasal dari commit ${COMMIT_HASH}, sedangkan image dibangun dari ${EXPECT_SHA:0:7}.${NC}"
+fi
+echo ""
 
 # ------------------------------------------------------------------------------
 # STEP 3: ENVIRONMENT CONFIGURATION CHECK
@@ -133,24 +201,37 @@ fi
 # ------------------------------------------------------------------------------
 # STEP 4: DOCKER COMPOSE BUILD
 # ------------------------------------------------------------------------------
-echo -e "\n${BLUE}▶ [4/6] Membangun Image Docker (Docker Build)...${NC}"
-echo -e "   Menjalankan: docker compose build app"
+if [ "$MODE" = "pull" ]; then
+  echo -e "\n${BLUE}▶ [4/6] Menarik Image Siap Pakai dari GHCR (tanpa build di server)...${NC}"
+  echo -e "   Image: ${APP_IMAGE_REPO}:${IMAGE_TAG}"
+  PULL_START="$(date +%s)"
+  pull_image
+  echo -e "   ${GREEN}✓ Image ditarik dalam $(( $(date +%s) - PULL_START )) detik dan ditandai sebagai 'production'.${NC}\n"
+else
+  echo -e "\n${BLUE}▶ [4/6] Membangun Image Docker (Docker Build)...${NC}"
+  echo -e "   Menjalankan: docker compose build app"
 
-BUILD_START="$(date +%s)"
-DOCKER_BUILDKIT=1 docker compose build app
-BUILD_SECS=$(( $(date +%s) - BUILD_START ))
+  BUILD_START="$(date +%s)"
+  DOCKER_BUILDKIT=1 docker compose build app
+  BUILD_SECS=$(( $(date +%s) - BUILD_START ))
 
-# Jaga cache di bawah batas, tetapi jangan dibuang: layer instalasi paket dipakai lagi pada deploy berikutnya.
-prune_build_cache
-docker image prune -f >/dev/null 2>&1 || true
-echo -e "   ${GREEN}✓ Build image Docker berhasil diselesaikan dalam ${BUILD_SECS} detik.${NC}\n"
+  # Jaga cache di bawah batas, tetapi jangan dibuang: layer instalasi paket dipakai lagi pada deploy berikutnya.
+  prune_build_cache
+  docker image prune -f >/dev/null 2>&1 || true
+  echo -e "   ${GREEN}✓ Build image Docker berhasil diselesaikan dalam ${BUILD_SECS} detik.${NC}\n"
+fi
 
 # ------------------------------------------------------------------------------
 # STEP 5: DEPLOY CONTAINER (DOCKER COMPOSE UP)
 # ------------------------------------------------------------------------------
 echo -e "${BLUE}▶ [5/6] Menjalankan Container Baru...${NC}"
-echo -e "   Menjalankan: docker compose up -d --remove-orphans"
-docker compose up -d --remove-orphans
+if [ "$MODE" = "pull" ]; then
+  echo -e "   Menjalankan: docker compose up -d --remove-orphans --no-build"
+  docker compose up -d --remove-orphans --no-build
+else
+  echo -e "   Menjalankan: docker compose up -d --remove-orphans"
+  docker compose up -d --remove-orphans
+fi
 echo -e "   ${GREEN}✓ Container berhasil diluncurkan di background.${NC}\n"
 
 # ------------------------------------------------------------------------------
@@ -190,10 +271,20 @@ if [ "$HEALTHY" = true ]; then
   echo -e " - Web Portal : ${YELLOW}http://<IP_SERVER>:32120/${NC} (atau domain production Anda)"
   echo -e " - API Base   : ${YELLOW}http://<IP_SERVER>:32121/api/v1/${NC}"
   echo -e " - Git Commit : ${YELLOW}${COMMIT_HASH} (${COMMIT_MSG})${NC}"
+  if [ "$MODE" = "pull" ]; then
+    echo "${IMAGE_TAG} $(date -u +%Y-%m-%dT%H:%M:%SZ)" > .deployed-version
+    prune_old_app_images
+    echo -e " - Image      : ${YELLOW}${APP_IMAGE_REPO}:${IMAGE_TAG}${NC}"
+  fi
   echo -e "\nTotal waktu update: $(( $(date +%s) - START_TS )) detik."
   echo -e "Aplikasi Daily Dose Pilates sudah langsung dapat digunakan sekarang!\n"
 else
   echo -e "\n${YELLOW}! Aplikasi masih dalam proses inisialisasi awal. Memeriksa log terakhir:${NC}"
   docker compose logs --tail=25 app
   echo -e "\n${YELLOW}Silakan pantau status dengan perintah: docker compose ps && docker compose logs -f app${NC}\n"
+  if [ "$MODE" = "pull" ]; then
+    echo -e "${RED}Container belum sehat. Untuk kembali ke versi sebelumnya:${NC}"
+    echo -e "  docker tag ${APP_IMAGE_REPO}:previous ${APP_IMAGE_REPO}:production && docker compose up -d --no-build app\n"
+    exit 1
+  fi
 fi

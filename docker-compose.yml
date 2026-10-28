@@ -51,7 +51,9 @@ services:
           memory: 256M
 
   app:
-    image: dailydose-v2-app:${APP_VERSION:-dev}
+    # Image dibangun GitHub Actions dan ditarik dari GHCR oleh `update.sh --pull`; tag lokal `production` menunjuk
+    # versi yang sedang berjalan. `docker compose build app` (update.sh tanpa argumen) tetap bisa dipakai sebagai cadangan.
+    image: ${DD_APP_IMAGE:-ghcr.io/ridho15/dailydose-v2-app:production}
     build:
       context: .
       args:
