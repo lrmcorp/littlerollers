@@ -434,7 +434,7 @@ export function PurchaseReviewView({
     ['EXPIRED', 'Kedaluwarsa', summary.expired],
   ] as const;
 
-  const currentTotal = useMemo(() => {
+  const currentTotal = (() => {
     switch (filters.status) {
       case 'PENDING':
         return summary.pending;
@@ -450,7 +450,7 @@ export function PurchaseReviewView({
       default:
         return totalAll;
     }
-  }, [filters.status, summary, totalAll]);
+  })();
 
   const isSuper = Boolean(
     sessionContext?.session?.roles?.some((r) =>

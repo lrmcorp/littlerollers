@@ -84,11 +84,42 @@ interface FinancialResult {
   profitBreakdown: ProfitBreakdownDetails;
 }
 
+interface CachedCustomerOverview {
+  data: any;
+  cachedAt: number;
+}
+
+const DEFAULT_CUSTOMER_OVERVIEW_TTL_MS = 20_000;
+
 @Injectable()
 export class DashboardService {
+  private readonly customerOverviewCache = new Map<string, CachedCustomerOverview>();
+
   constructor(private readonly db: PrismaService) {}
 
-  async customerOverview(principal: SessionPrincipal) {
+  clearCustomerOverviewCache(userId?: string): void {
+    if (userId) {
+      this.customerOverviewCache.delete(userId);
+    } else {
+      this.customerOverviewCache.clear();
+    }
+  }
+
+  async customerOverview(
+    principal: SessionPrincipal,
+    options?: { forceRefresh?: boolean; ttlMs?: number },
+  ) {
+    const isTest = process.env.NODE_ENV === 'test';
+    const ttl = options?.ttlMs ?? (isTest ? 0 : DEFAULT_CUSTOMER_OVERVIEW_TTL_MS);
+    const nowMs = Date.now();
+
+    if (!options?.forceRefresh && ttl > 0) {
+      const cached = this.customerOverviewCache.get(principal.userId);
+      if (cached && nowMs - cached.cachedAt < ttl) {
+        return cached.data;
+      }
+    }
+
     const isCustomer = principal.roles.some(({ role }) => role === 'CUSTOMER');
     if (!isCustomer && principal.roles.length > 0) {
       // allow access for customer/member or review principals
@@ -145,7 +176,7 @@ export class DashboardService {
     const hasDocs = Boolean(profile?.ktpUrl || profile?.selfieUrl);
     const verificationStatus = isApproved ? 'APPROVED' : hasDocs ? 'PENDING' : 'ACTION_REQUIRED';
 
-    return {
+    const result = {
       generatedAt: now,
       upcomingBookings: upcomingBookings.map((booking) => ({
         id: booking.id,
@@ -178,6 +209,19 @@ export class DashboardService {
       },
       unreadNotifications: 0,
     };
+
+    if (ttl > 0) {
+      this.customerOverviewCache.set(principal.userId, { data: result, cachedAt: nowMs });
+      if (this.customerOverviewCache.size > 1000) {
+        for (const [key, val] of this.customerOverviewCache) {
+          if (nowMs - val.cachedAt > ttl) {
+            this.customerOverviewCache.delete(key);
+          }
+        }
+      }
+    }
+
+    return result;
   }
 
   private async aggregateFinancials(params: {

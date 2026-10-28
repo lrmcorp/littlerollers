@@ -30,6 +30,7 @@ export function ProfileView() {
   const session = sessionContext?.session;
   const feedback = useAppFeedback();
   const studioPreference = useStudioPreference();
+  const badges = useCustomerBadges();
   const [profile, setProfile] = useState<MyProfile | null>(null);
   const [state, setState] = useState<'loading' | 'ready' | 'saving' | 'error' | 'stale'>('loading');
   const [message, setMessage] = useState('');
@@ -94,7 +95,6 @@ export function ProfileView() {
     };
   })();
 
-  const badges = useCustomerBadges();
   const bookingsHref = isInternal ? '/workspace/bookings' : '/bookings';
 
   return (

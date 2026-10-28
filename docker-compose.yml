@@ -30,9 +30,9 @@ services:
       - --max-binlog-size=100M
       - --gtid-mode=ON
       - --enforce-gtid-consistency=ON
-      - --innodb-buffer-pool-size=128M
+      - --innodb-buffer-pool-size=256M
       - --innodb-log-buffer-size=16M
-      - --max-connections=50
+      - --max-connections=100
     volumes:
       - mysql-data:/var/lib/mysql
     healthcheck:
@@ -46,9 +46,9 @@ services:
       resources:
         limits:
           cpus: '1.0'
-          memory: 512M
+          memory: 1024M
         reservations:
-          memory: 256M
+          memory: 512M
 
   app:
     # Image dibangun GitHub Actions dan ditarik dari GHCR oleh `update.sh --pull`; tag lokal `production` menunjuk
@@ -93,9 +93,9 @@ services:
       resources:
         limits:
           cpus: '1.5'
-          memory: 768M
+          memory: 1536M
         reservations:
-          memory: 384M
+          memory: 768M
 
 volumes:
   mysql-data:
