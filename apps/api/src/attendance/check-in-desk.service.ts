@@ -1,8 +1,10 @@
-import { HttpStatus, Injectable, Optional } from '@nestjs/common';
+import { HttpStatus, Inject, Injectable, Optional } from '@nestjs/common';
+import type { Readable } from 'node:stream';
 import { PrismaService } from '../database/prisma.service';
 import { AuditService } from '../foundation/audit.service';
 import type { SessionPrincipal } from '../identity/identity.service';
 import { PolicyService } from '../identity/policy.service';
+import { PRIVATE_FILE_STORAGE, type PrivateFileStorage } from '../identity/private-file-storage';
 import { ApiProblem } from '../identity/security';
 import { dateInTimeZone, startOfLocalDateUtc } from '../identity/assignment-boundary';
 import { catatanKeputusan, evaluasiKuota, type EvaluasiKuota } from '../classes/kuota-minimum';
@@ -74,6 +76,7 @@ export class CheckInDeskService {
     private readonly db: PrismaService,
     private readonly policy: PolicyService,
     @Optional() private readonly audit?: AuditService,
+    @Optional() @Inject(PRIVATE_FILE_STORAGE) private readonly storage?: PrivateFileStorage,
   ) {}
 
   private wajibCabang(principal: SessionPrincipal, branchId?: string): string {
@@ -199,6 +202,7 @@ export class CheckInDeskService {
         recordedBy: { select: { displayName: true } },
         booking: {
           select: {
+            userId: true,
             user: { select: { displayName: true, profile: { select: { selfieUrl: true } } } },
             classSlot: {
               select: {
@@ -220,7 +224,9 @@ export class CheckInDeskService {
         id: row.id,
         jenis: 'MEMBER' as const,
         nama: row.booking.user.displayName,
-        fotoUrl: row.booking.user.profile?.selfieUrl ?? null,
+        fotoUrl: row.booking.user.profile?.selfieUrl
+          ? alamatFotoMeja(row.booking.userId, branchId)
+          : null,
         namaKelas: row.booking.classSlot.classType?.name ?? 'Kelas',
         mulaiKelas: row.booking.classSlot.startAt.toISOString(),
         selesaiKelas: row.booking.classSlot.endAt.toISOString(),
@@ -333,4 +339,61 @@ export class CheckInDeskService {
 
     return { ...catatan, tercatatPada: now.toISOString() };
   }
+
+  /**
+   * Foto selfie member untuk kartu check-in.
+   *
+   * Selfie disimpan di penyimpanan privat, jadi tidak pernah diberikan sebagai alamat publik. Staf
+   * hanya bisa membuka foto member yang punya kelas di cabangnya hari ini; dengan begitu layar
+   * meja depan tidak bisa dipakai untuk menjelajah foto member lain.
+   */
+  async fotoMember(
+    principal: SessionPrincipal,
+    input: { userId: string; branchId?: string },
+    now = new Date(),
+  ): Promise<{ mimeType: string; stream: Readable }> {
+    this.policy.requireCapability(principal.capabilities, 'attendance:manage');
+    const branchId = this.wajibCabang(principal, input.branchId);
+    const tidakAda = () => new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+
+    const cabang = await this.db.cabang.findUnique({
+      where: { id: branchId },
+      select: { timezone: true },
+    });
+    if (!cabang) throw tidakAda();
+    const awal = startOfLocalDateUtc(dateInTimeZone(now, cabang.timezone), cabang.timezone);
+    const akhir = new Date(awal.getTime() + 24 * 3_600_000);
+
+    const punyaKelas = await this.db.pemesananKelas.findFirst({
+      where: {
+        userId: input.userId,
+        status: { in: ['BOOKED', 'ATTENDED', 'NO_SHOW'] },
+        classSlot: { branchId, startAt: { gte: awal, lt: akhir } },
+      },
+      select: { id: true },
+    });
+    if (!punyaKelas) throw tidakAda();
+
+    const profil = await this.db.profilPengguna.findUnique({
+      where: { userId: input.userId },
+      select: { selfieUrl: true },
+    });
+    const kunci = profil?.selfieUrl;
+    if (!kunci || !this.storage) throw tidakAda();
+
+    const stream = await this.storage.read(kunci).catch(() => {
+      throw tidakAda();
+    });
+    const mimeType = kunci.endsWith('.png')
+      ? 'image/png'
+      : kunci.endsWith('.webp')
+        ? 'image/webp'
+        : 'image/jpeg';
+    return { mimeType, stream };
+  }
+}
+
+/** Alamat foto selfie lewat API yang memeriksa hak akses, bukan alamat berkas langsung. */
+export function alamatFotoMeja(userId: string, branchId: string) {
+  return `/api/v1/attendance/desk/members/${encodeURIComponent(userId)}/photo?branchId=${encodeURIComponent(branchId)}`;
 }

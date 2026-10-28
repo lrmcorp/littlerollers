@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useRef, useState, type ChangeEvent, type FocusEvent } from 'react';
-import { Eye, EyeOff, Lock, ShieldCheck, User, UserCheck } from 'lucide-react';
+import { useEffect, useRef, useState, type ChangeEvent, type FocusEvent } from 'react';
+import { Camera, Eye, EyeOff, Lock, ShieldCheck, User, UserCheck } from 'lucide-react';
 import { AuthPageShell } from '../components/auth/auth-page-shell';
 import { Button } from '../components/actions';
 import { FieldError, FormField, TextInput, editorialControlClassName } from '../components/forms';
@@ -102,6 +102,21 @@ function formValues(form: HTMLFormElement): RegisterValues {
 export function RegisterView() {
   const [state, setState] = useState<'idle' | 'loading' | 'error'>('idle');
   const [message, setMessage] = useState('');
+  /** Selfie wajib saat mendaftar: staf mencocokkannya dengan wajah member saat check-in. */
+  const [selfie, setSelfie] = useState<File | null>(null);
+  const [selfiePreview, setSelfiePreview] = useState('');
+  const [selfieError, setSelfieError] = useState('');
+  useEffect(() => {
+    if (!selfie) {
+      setSelfiePreview('');
+      return;
+    }
+    // Tanpa pratinjau pun foto tetap terkirim; jangan sampai formulir gagal karena peramban lama.
+    if (typeof URL.createObjectURL !== 'function') return;
+    const url = URL.createObjectURL(selfie);
+    setSelfiePreview(url);
+    return () => URL.revokeObjectURL?.(url);
+  }, [selfie]);
   const [errors, setErrors] = useState<RegisterErrors>({});
   const formRef = useRef<HTMLFormElement>(null);
   const session = useSessionContext();
@@ -151,7 +166,7 @@ export function RegisterView() {
     <AuthPageShell
       eyebrow="Registrasi customer"
       title="Buat akun Daily Dose"
-      description="Verifikasi KTP dan identitas diri baru diminta nanti saat pembelian paket pertama. Buat akun sekarang cukup dalam 1 menit."
+      description="Tiga isian dan satu foto selfie. Tidak perlu KTP."
       compactMobileVisual
       visualSrc="/images/public/landing/register-illustration.webp"
       loginLabel="Masuk"
@@ -217,6 +232,13 @@ export function RegisterView() {
             if (field instanceof HTMLElement) field.focus();
             return;
           }
+          if (!selfie) {
+            setSelfieError(
+              'Ambil foto selfie dulu. Foto ini yang dicocokkan staf saat Anda datang.',
+            );
+            document.getElementById('register-selfie')?.focus();
+            return;
+          }
 
           setState('loading');
           try {
@@ -226,6 +248,7 @@ export function RegisterView() {
               email: values.email.trim(),
               password: values.password,
               consent: values.consent,
+              selfie,
             });
             const searchParams = new URLSearchParams(window.location.search);
             const returnTo =
@@ -326,7 +349,66 @@ export function RegisterView() {
           />
         </div>
 
-        {/* Section 3: Privacy Notice & Consent */}
+        {/* Section 3: Foto selfie, wajib sejak pendaftaran */}
+        <div className="space-y-3 rounded-none border border-ed-line bg-white p-4 sm:p-5">
+          <div className="flex items-center gap-2 border-b border-ed-line pb-2 text-[13px] font-bold text-ed-forest">
+            <Camera className="size-3.5 text-ed-green" /> 3. Foto selfie
+          </div>
+          <p className="text-sm leading-relaxed text-ed-ink">
+            Dipakai staf studio untuk mengenali Anda saat datang, supaya paket Anda tidak bisa
+            dipakai orang lain. Tidak ditampilkan ke member lain.
+          </p>
+          <div className="flex items-center gap-4">
+            {selfiePreview ? (
+              <img
+                src={selfiePreview}
+                alt="Pratinjau foto selfie Anda"
+                className="size-24 shrink-0 border border-ed-line object-cover"
+              />
+            ) : (
+              <span className="flex size-24 shrink-0 items-center justify-center border border-ed-line bg-ed-tint/50 p-2 text-center text-xs text-ed-muted">
+                Belum ada foto
+              </span>
+            )}
+            <label
+              htmlFor="register-selfie"
+              className="inline-flex min-h-[48px] cursor-pointer items-center justify-center bg-ed-forest px-5 text-sm font-bold text-white transition hover:bg-ed-green focus-within:outline focus-within:outline-3 focus-within:outline-offset-2 focus-within:outline-[#09371f]"
+            >
+              {selfie ? 'Ambil ulang' : 'Ambil foto sekarang'}
+              <input
+                id="register-selfie"
+                name="selfie"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                capture="user"
+                className="sr-only"
+                disabled={loading}
+                aria-invalid={Boolean(selfieError) || undefined}
+                aria-describedby={selfieError ? 'register-selfie-error' : 'register-selfie-hint'}
+                onChange={(event) => {
+                  const file = event.target.files?.[0] ?? null;
+                  setSelfie(file);
+                  if (file) setSelfieError('');
+                }}
+              />
+            </label>
+          </div>
+          {selfieError ? (
+            <p
+              id="register-selfie-error"
+              role="alert"
+              className="text-xs font-medium text-ed-danger"
+            >
+              {selfieError}
+            </p>
+          ) : (
+            <p id="register-selfie-hint" className="text-xs text-ed-muted">
+              Cukup wajah terlihat jelas dan tidak gelap. Bisa diganti kapan saja lewat menu Akun.
+            </p>
+          )}
+        </div>
+
+        {/* Section 4: Privacy Notice & Consent */}
         <div
           id="register-privacy-notice"
           className="flex items-start gap-3 rounded-none border border-ed-line bg-ed-tint/60 p-3.5 text-xs leading-relaxed text-ed-muted shadow-none"
@@ -335,7 +417,8 @@ export function RegisterView() {
           <ShieldCheck className="size-5 shrink-0 text-ed-green mt-0.5" />
           <span>
             Data pendaftaran Anda disimpan secara privat dan aman, dan hanya digunakan untuk layanan
-            keanggotaan studio Daily Dose. Foto KTP baru diminta nanti saat pembelian paket pertama.
+            keanggotaan studio Daily Dose. Foto selfie hanya dilihat staf studio, tidak ditampilkan
+            ke member lain.
           </span>
         </div>
 

@@ -21,16 +21,13 @@ describe('customer self-registration', () => {
     expect(screen.getByLabelText('Nomor WhatsApp')).toBeRequired();
     expect(screen.getByLabelText('Email')).toBeRequired();
     expect(screen.getByLabelText('Password')).toBeRequired();
-    // KTP dan selfie tidak diminta di formulir awal (T-09).
-    expect(view.container.querySelector('input[type="file"]')).toBeNull();
-    expect(
-      screen.getByLabelText(
-        /Saya menyetujui Syarat & Ketentuan Layanan/i,
-      ),
-    ).not.toBeRequired();
-    expect(
-      screen.getByText(/Data pendaftaran Anda disimpan secara privat/i),
-    ).toBeVisible();
+    // Selfie wajib sejak pendaftaran (keputusan bersama); KTP tidak diminta.
+    const unggahan = view.container.querySelectorAll('input[type="file"]');
+    expect(unggahan).toHaveLength(1);
+    expect(unggahan[0]).toHaveAttribute('name', 'selfie');
+    expect(unggahan[0]).toHaveAttribute('capture', 'user');
+    expect(screen.getByLabelText(/Saya menyetujui Syarat & Ketentuan Layanan/i)).not.toBeRequired();
+    expect(screen.getByText(/Data pendaftaran Anda disimpan secara privat/i)).toBeVisible();
     expect(screen.getByRole('button', { name: 'Daftar dan masuk' })).toHaveClass(
       'min-h-12',
       'w-full',
@@ -40,16 +37,29 @@ describe('customer self-registration', () => {
     expect((await axe(view.container)).violations).toHaveLength(0);
   });
 
-  it('numbers the form sections 1 to 2 in order and states what is needed before booking', () => {
+  it('numbers the form sections 1 to 3 in order and says no KTP is needed', () => {
     render(<RegisterView />);
     expect(screen.getByText(/1\. Data Diri/)).toBeVisible();
     expect(screen.getByText(/2\. Keamanan Akun/)).toBeVisible();
-    expect(screen.queryByText(/3\. /)).toBeNull();
+    expect(screen.getByText(/3\. Foto selfie/)).toBeVisible();
     expect(screen.queryByText(/Dokumen Identitas/)).toBeNull();
-    expect(screen.queryByText(/siap digunakan untuk memilih paket dan memesan jadwal/)).toBeNull();
-    expect(
-      screen.getByText(/Verifikasi KTP dan identitas diri baru diminta nanti saat pembelian paket pertama/i),
-    ).toBeVisible();
+    expect(screen.getByText(/Tidak perlu KTP/)).toBeVisible();
+  });
+
+  it('refuses to submit without a selfie and says why', async () => {
+    const user = userEvent.setup();
+    const register = vi.spyOn(verificationClient, 'register');
+    render(<RegisterView />);
+
+    await user.type(screen.getByLabelText('Nama lengkap'), 'Nadia Putri');
+    await user.type(screen.getByLabelText('Nomor WhatsApp'), '0812 3456 7890');
+    await user.type(screen.getByLabelText('Email'), 'nadia@example.com');
+    await user.type(screen.getByLabelText('Password'), 'password-aman');
+    await user.click(screen.getByLabelText(/Saya menyetujui Syarat & Ketentuan Layanan/i));
+    await user.click(screen.getByRole('button', { name: 'Daftar dan masuk' }));
+
+    expect(register).not.toHaveBeenCalled();
+    expect(screen.getByRole('alert')).toHaveTextContent(/Ambil foto selfie dulu/);
   });
 
   it('renders callout for existing studio members with direct link to sign in (Tiket T-09)', () => {
@@ -105,11 +115,13 @@ describe('customer self-registration', () => {
     await user.type(phone, 'bukan-nomor');
     await user.tab();
     expect(
-      screen.getByText('Masukkan nomor WhatsApp yang valid (awalan 08 atau +62), misalnya 0812 3456 7890.'),
+      screen.getByText(
+        'Masukkan nomor WhatsApp yang valid (awalan 08 atau +62), misalnya 0812 3456 7890.',
+      ),
     ).toBeVisible();
   });
 
-  it('sends one valid registration without identity photos and locks the form while loading', async () => {
+  it('sends one valid registration with the selfie and locks the form while loading', async () => {
     const user = userEvent.setup();
     const register = vi
       .spyOn(verificationClient, 'register')
@@ -120,11 +132,9 @@ describe('customer self-registration', () => {
     await user.type(screen.getByLabelText('Nomor WhatsApp'), '0812 3456 7890');
     await user.type(screen.getByLabelText('Email'), 'nadia@example.com');
     await user.type(screen.getByLabelText('Password'), 'password-aman');
-    await user.click(
-      screen.getByLabelText(
-        /Saya menyetujui Syarat & Ketentuan Layanan/i,
-      ),
-    );
+    const foto = new File(['wajah'], 'selfie.jpg', { type: 'image/jpeg' });
+    await user.upload(screen.getByLabelText(/Ambil foto sekarang/), foto);
+    await user.click(screen.getByLabelText(/Saya menyetujui Syarat & Ketentuan Layanan/i));
     await user.click(screen.getByRole('button', { name: 'Daftar dan masuk' }));
 
     expect(register).toHaveBeenCalledTimes(1);
@@ -134,6 +144,7 @@ describe('customer self-registration', () => {
       email: 'nadia@example.com',
       password: 'password-aman',
       consent: true,
+      selfie: foto,
     });
     expect(screen.getByRole('button', { name: 'Membuat akun…' })).toBeDisabled();
     expect(screen.getByLabelText('Nama lengkap')).toBeDisabled();
@@ -150,12 +161,16 @@ describe('customer self-registration', () => {
 
     await user.click(screen.getByRole('button', { name: 'Daftar dan masuk' }));
     expect(
-      screen.getByText('Anda wajib menyetujui Syarat & Ketentuan serta Kebijakan Privasi Daily Dose.'),
+      screen.getByText(
+        'Anda wajib menyetujui Syarat & Ketentuan serta Kebijakan Privasi Daily Dose.',
+      ),
     ).toBeVisible();
 
     await user.click(screen.getByLabelText(/Saya menyetujui Syarat & Ketentuan Layanan/i));
     expect(
-      screen.queryByText('Anda wajib menyetujui Syarat & Ketentuan serta Kebijakan Privasi Daily Dose.'),
+      screen.queryByText(
+        'Anda wajib menyetujui Syarat & Ketentuan serta Kebijakan Privasi Daily Dose.',
+      ),
     ).not.toBeInTheDocument();
   });
   it('keeps the booking destination on the links back to sign in', async () => {
@@ -163,9 +178,9 @@ describe('customer self-registration', () => {
     render(<RegisterView />);
     const expected = '/sign-in?returnTo=%2Fbookings%2Fnew%3Fslot%3Dslot-1';
     await waitFor(() =>
-      expect(screen.getAllByRole('link', { name: /Masuk/i }).map((a) => a.getAttribute('href'))).toContain(
-        expected,
-      ),
+      expect(
+        screen.getAllByRole('link', { name: /Masuk/i }).map((a) => a.getAttribute('href')),
+      ).toContain(expected),
     );
     for (const link of screen.getAllByRole('link', { name: /^Masuk/i })) {
       expect(link.getAttribute('href')).toBe(expected);

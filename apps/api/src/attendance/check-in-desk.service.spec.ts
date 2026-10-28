@@ -214,3 +214,102 @@ describe('CheckInDeskService.tetapJalan', () => {
     expect(audit.catat.mock.calls[0]![1].afterMasked).toMatchObject({ honorDiketahui: false });
   });
 });
+
+describe('CheckInDeskService.fotoMember', () => {
+  function setupFoto(
+    opts: { punyaKelas?: boolean; selfie?: string | null; storage?: boolean } = {},
+  ) {
+    const db = {
+      cabang: { findUnique: jest.fn().mockResolvedValue({ timezone: 'Asia/Jakarta' }) },
+      pemesananKelas: {
+        findFirst: jest.fn().mockResolvedValue(opts.punyaKelas === false ? null : { id: 'b' }),
+      },
+      profilPengguna: {
+        findUnique: jest
+          .fn()
+          .mockResolvedValue({
+            selfieUrl:
+              opts.selfie === undefined ? 'identity-documents/u/selfie-1.png' : opts.selfie,
+          }),
+      },
+    };
+    const storage = { read: jest.fn().mockResolvedValue('ALIRAN') };
+    const service = new CheckInDeskService(
+      db as never,
+      new PolicyService(),
+      undefined,
+      opts.storage === false ? undefined : (storage as never),
+    );
+    return { service, db, storage };
+  }
+
+  it('memberi foto member yang punya kelas di cabang ini hari ini', async () => {
+    const { service, db, storage } = setupFoto();
+
+    const hasil = await service.fotoMember(admin, { userId: id(50), branchId: cabangA }, NOW);
+
+    expect(hasil).toEqual({ mimeType: 'image/png', stream: 'ALIRAN' });
+    expect(storage.read).toHaveBeenCalledWith('identity-documents/u/selfie-1.png');
+    const where = db.pemesananKelas.findFirst.mock.calls[0]![0].where;
+    expect(where.classSlot.branchId).toBe(cabangA);
+    expect(where.classSlot.startAt.gte.toISOString()).toBe('2026-10-27T17:00:00.000Z');
+  });
+
+  it('tidak bisa dipakai menjelajah foto member yang tidak punya kelas hari ini', async () => {
+    const { service, storage } = setupFoto({ punyaKelas: false });
+
+    await expect(
+      service.fotoMember(admin, { userId: id(50), branchId: cabangA }, NOW),
+    ).rejects.toMatchObject({ status: 404 });
+    expect(storage.read).not.toHaveBeenCalled();
+  });
+
+  it('menolak cabang di luar penugasan', async () => {
+    const { service } = setupFoto();
+
+    await expect(
+      service.fotoMember(admin, { userId: id(50), branchId: cabangB }, NOW),
+    ).rejects.toMatchObject({ status: 403 });
+  });
+
+  it('menjawab tidak ada bila member belum mengunggah selfie', async () => {
+    const { service } = setupFoto({ selfie: null });
+
+    await expect(
+      service.fotoMember(admin, { userId: id(50), branchId: cabangA }, NOW),
+    ).rejects.toMatchObject({ status: 404 });
+  });
+
+  it('menyajikan alamat terlindungi di daftar, bukan kunci berkas privat', async () => {
+    const { service } = setup();
+    const db = (service as unknown as { db: { kehadiranPelanggan: { findMany: jest.Mock } } }).db;
+    db.kehadiranPelanggan.findMany.mockResolvedValue([
+      {
+        id: 'k1',
+        checkedInAt: wib(8, 50),
+        method: 'QR_SCAN',
+        recordedBy: null,
+        booking: {
+          userId: id(50),
+          user: {
+            displayName: 'Sari',
+            profile: { selfieUrl: 'identity-documents/u/selfie-1.png' },
+          },
+          classSlot: {
+            startAt: wib(9),
+            endAt: wib(9, 55),
+            classType: { name: 'Group' },
+            studio: null,
+          },
+        },
+      },
+    ]);
+
+    const { tercatat } = await service.meja(admin, { branchId: cabangA }, NOW);
+
+    expect(tercatat[0]!.fotoUrl).toBe(
+      `/api/v1/attendance/desk/members/${id(50)}/photo?branchId=${cabangA}`,
+    );
+    expect(JSON.stringify(tercatat)).not.toContain('identity-documents');
+  });
+});

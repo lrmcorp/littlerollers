@@ -1,4 +1,16 @@
-import { Body, Controller, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Query,
+  Req,
+  Res,
+  StreamableFile,
+  UseGuards,
+} from '@nestjs/common';
+import type { Response } from 'express';
 import { AuthGuard, type AuthenticatedRequest } from '../identity/auth.guard';
 import { CheckInDeskService } from './check-in-desk.service';
 
@@ -21,5 +33,24 @@ export class CheckInDeskController {
     @Body() body: { reason?: string },
   ) {
     return this.desk.tetapJalan(req.principal, classSlotId, body ?? {});
+  }
+
+  /** Foto selfie member yang punya kelas di cabang ini hari ini, untuk kartu check-in. */
+  @Get('attendance/desk/members/:userId/photo')
+  async foto(
+    @Req() req: AuthenticatedRequest,
+    @Param('userId') userId: string,
+    @Query('branchId') branchId: string | undefined,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const file = await this.desk.fotoMember(req.principal, { userId, branchId });
+    response.set({
+      'Cache-Control': 'private, no-store, max-age=0',
+      'Content-Type': file.mimeType,
+      'Content-Disposition': 'inline; filename="selfie"',
+      'Referrer-Policy': 'no-referrer',
+      'X-Content-Type-Options': 'nosniff',
+    });
+    return new StreamableFile(file.stream);
   }
 }

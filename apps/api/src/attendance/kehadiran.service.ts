@@ -4,6 +4,7 @@ import { createHash, createHmac, randomBytes, randomUUID } from 'node:crypto';
 import { PrismaService } from '../database/prisma.service';
 import { isWithinGeofence } from '../foundation/geofence.util';
 import { AuditService } from '../foundation/audit.service';
+import { alamatFotoMeja } from './check-in-desk.service';
 import { IdempotencyService } from '../foundation/idempotency.service';
 import type { SessionPrincipal } from '../identity/identity.service';
 import { PolicyService } from '../identity/policy.service';
@@ -560,6 +561,7 @@ export class AttendanceService {
       classSlotId: string;
       user: { displayName: string; profile?: { selfieUrl: string | null } | null };
       classSlot: {
+        branchId: string;
         startAt: Date;
         endAt: Date;
         classType: { name: string };
@@ -576,7 +578,9 @@ export class AttendanceService {
       checkedInAt: attendance.checkedInAt.toISOString(),
       customerName: booking.user.displayName,
       /** Null bila member belum pernah mengunggah selfie; antarmuka menyebutkannya apa adanya. */
-      customerPhotoUrl: booking.user.profile?.selfieUrl ?? null,
+      customerPhotoUrl: booking.user.profile?.selfieUrl
+        ? alamatFotoMeja(booking.userId, booking.classSlot.branchId)
+        : null,
       className: booking.classSlot.classType.name,
       branch: booking.classSlot.branch,
       startAt: booking.classSlot.startAt.toISOString(),

@@ -616,6 +616,13 @@ export class IdentityService {
         { field: 'email', issue: 'Format email tidak valid.' },
       ]);
     }
+    // Selfie wajib sejak pendaftaran pertama: staf mencocokkan wajah ini saat check-in, sehingga
+    // paket tidak bisa dipakai bergantian oleh orang lain. KTP tidak diminta.
+    if (!input.selfie?.buffer) {
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY, false, [
+        { field: 'selfie', issue: 'Foto selfie wajib diambil saat mendaftar.' },
+      ]);
+    }
 
     // Pre-check for duplicate email or phone (Zero-crash defensive check)
     const existingUser = await this.db.user.findFirst({
