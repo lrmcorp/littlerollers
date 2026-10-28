@@ -448,7 +448,7 @@ function KycSubmissionForm({ onSubmitted }: { onSubmitted: () => Promise<void> }
           <Link
             href="/account"
             aria-label="Kembali ke Beranda"
-            className="inline-flex size-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-dd-md border border-dd-border-interactive bg-white text-dd-forest shadow-xs transition hover:bg-dd-surface-muted focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#24483a]"
+            className="inline-flex size-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-dd-md border border-dd-border-interactive bg-white text-dd-forest shadow-xs transition hover:bg-dd-surface-muted focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#09371f]"
           >
             <ChevronLeft className="size-5" aria-hidden="true" />
           </Link>
@@ -460,20 +460,28 @@ function KycSubmissionForm({ onSubmitted }: { onSubmitted: () => Promise<void> }
               Lengkapi Dokumen Verifikasi
             </h1>
             <p className="mt-2 text-sm leading-6 text-dd-muted">
-              Sesuai kebijakan keamanan studio Daily Dose, silakan siapkan 4 data berikut: 16 digit NIK, alamat lengkap sesuai KTP, foto e-KTP jelas, dan foto selfie untuk mengaktifkan pemesanan kelas.
+              Sesuai kebijakan keamanan studio Daily Dose, silakan siapkan 4 data berikut: 16 digit
+              NIK, alamat lengkap sesuai KTP, foto e-KTP jelas, dan foto selfie untuk mengaktifkan
+              pemesanan kelas.
             </p>
           </div>
         </div>
 
         {error && (
-          <div className="mt-4 rounded-dd-md bg-dd-danger-soft p-3 text-sm text-dd-danger" role="alert">
+          <div
+            className="mt-4 rounded-dd-md bg-dd-danger-soft p-3 text-sm text-dd-danger"
+            role="alert"
+          >
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-5">
           <div>
-            <label htmlFor="nik" className="block text-xs font-semibold uppercase tracking-wider text-dd-forest">
+            <label
+              htmlFor="nik"
+              className="block text-xs font-semibold uppercase tracking-wider text-dd-forest"
+            >
               Nomor Induk Kependudukan (NIK)
             </label>
             <input
@@ -486,12 +494,15 @@ function KycSubmissionForm({ onSubmitted }: { onSubmitted: () => Promise<void> }
               onChange={(e) => setNik(e.target.value.replace(/\D/g, '').slice(0, 16))}
               placeholder="Masukkan 16 digit NIK di KTP"
               required
-              className="mt-1.5 w-full min-h-[44px] rounded-dd-md border border-dd-border-interactive bg-white px-3.5 py-2.5 text-sm text-dd-ink transition focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#24483a]"
+              className="mt-1.5 w-full min-h-[44px] rounded-dd-md border border-dd-border-interactive bg-white px-3.5 py-2.5 text-sm text-dd-ink transition focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#09371f]"
             />
           </div>
 
           <div>
-            <label htmlFor="address" className="block text-xs font-semibold uppercase tracking-wider text-dd-forest">
+            <label
+              htmlFor="address"
+              className="block text-xs font-semibold uppercase tracking-wider text-dd-forest"
+            >
               Alamat Sesuai KTP
             </label>
             <textarea
@@ -502,13 +513,16 @@ function KycSubmissionForm({ onSubmitted }: { onSubmitted: () => Promise<void> }
               onChange={(e) => setAddress(e.target.value)}
               placeholder="Contoh: Jl. Nama Jalan No. XX, RT/RW, Kelurahan, Kecamatan, Kota"
               required
-              className="mt-1.5 w-full min-h-[44px] rounded-dd-md border border-dd-border-interactive bg-white px-3.5 py-2.5 text-sm text-dd-ink transition focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#24483a]"
+              className="mt-1.5 w-full min-h-[44px] rounded-dd-md border border-dd-border-interactive bg-white px-3.5 py-2.5 text-sm text-dd-ink transition focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#09371f]"
             />
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="rounded-dd-lg border border-dashed border-dd-line p-4">
-              <label htmlFor="ktp" className="block text-xs font-bold uppercase tracking-wider text-dd-forest">
+              <label
+                htmlFor="ktp"
+                className="block text-xs font-bold uppercase tracking-wider text-dd-forest"
+              >
                 Unggah Foto KTP
               </label>
               <p className="mt-1 text-[13px] text-dd-muted">
@@ -531,7 +545,10 @@ function KycSubmissionForm({ onSubmitted }: { onSubmitted: () => Promise<void> }
             </div>
 
             <div className="rounded-dd-lg border border-dashed border-dd-line p-4">
-              <label htmlFor="selfie" className="block text-xs font-bold uppercase tracking-wider text-dd-forest">
+              <label
+                htmlFor="selfie"
+                className="block text-xs font-bold uppercase tracking-wider text-dd-forest"
+              >
                 Unggah Foto Selfie
               </label>
               <p className="mt-1 text-[13px] text-dd-muted">
@@ -676,8 +693,7 @@ export function VerificationView() {
       </section>
     );
 
-  if (!summary?.documents.length)
-    return <KycSubmissionForm onSubmitted={load} />;
+  if (!summary?.documents.length) return <KycSubmissionForm onSubmitted={load} />;
 
   const copy = statusCopy[summary.status];
 
@@ -690,7 +706,7 @@ export function VerificationView() {
               <Link
                 href="/account"
                 aria-label="Kembali ke Beranda"
-                className="inline-flex size-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-dd-md border border-dd-border-interactive bg-white text-dd-forest shadow-xs transition hover:bg-dd-surface-muted focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#24483a]"
+                className="inline-flex size-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-dd-md border border-dd-border-interactive bg-white text-dd-forest shadow-xs transition hover:bg-dd-surface-muted focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#09371f]"
               >
                 <ChevronLeft className="size-5" aria-hidden="true" />
               </Link>
@@ -868,8 +884,8 @@ export function VerificationView() {
         <div>
           <h2 className="text-sm font-bold">Privasi dokumen Anda</h2>
           <p className="mt-1 text-xs leading-5 text-dd-muted">
-            File disimpan di penyimpanan privat, tidak menjadi aset publik, dan setiap akses
-            tim peninjau tercatat dalam audit.
+            File disimpan di penyimpanan privat, tidak menjadi aset publik, dan setiap akses tim
+            peninjau tercatat dalam audit.
           </p>
         </div>
         <Link

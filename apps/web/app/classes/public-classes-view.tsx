@@ -24,10 +24,7 @@ import {
   type LedgerBalance,
   type LedgerClient,
 } from '@/api-clients/ledger-client';
-import {
-  browserBookingClient,
-  type BookingClient,
-} from '@/api-clients/booking-client';
+import { browserBookingClient, type BookingClient } from '@/api-clients/booking-client';
 import { BookingConfirmationSheet } from '../components/booking/booking-confirmation-sheet';
 import { PublicFooter } from '../components/public/public-footer';
 import { PublicHeader } from '../components/public/public-header';
@@ -64,13 +61,15 @@ function verificationBannerFor(status: string | undefined, here: string) {
   switch (status) {
     case 'PENDING':
       return {
-        message: 'Dokumen verifikasi Anda sedang diperiksa tim studio. Anda bisa memesan kelas setelah disetujui.',
+        message:
+          'Dokumen verifikasi Anda sedang diperiksa tim studio. Anda bisa memesan kelas setelah disetujui.',
         action: 'Cek status verifikasi',
         href: '/account/verification',
       };
     case 'REJECTED':
       return {
-        message: 'Verifikasi identitas Anda belum disetujui. Perbaiki dokumen untuk bisa memesan kelas.',
+        message:
+          'Verifikasi identitas Anda belum disetujui. Perbaiki dokumen untuk bisa memesan kelas.',
         action: 'Perbaiki dokumen',
         href: to,
       };
@@ -125,7 +124,9 @@ export function PublicClassesView({
   // classSlotId -> bookingId untuk booking aktif pelanggan, agar kartu kelas yang sudah dipesan tidak menawarkan booking lagi.
   const verificationBanner = verificationBannerFor(
     session?.identityVerificationStatus,
-    typeof window !== 'undefined' ? `${window.location.pathname}${window.location.search}` : '/classes',
+    typeof window !== 'undefined'
+      ? `${window.location.pathname}${window.location.search}`
+      : '/classes',
   );
   const [bookedBySlot, setBookedBySlot] = useState<Map<string, string>>(() => new Map());
 
@@ -260,7 +261,10 @@ export function PublicClassesView({
       setSlots(result.items);
       setStatus('ready');
 
-      const querySlot = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('slot') : null;
+      const querySlot =
+        typeof window !== 'undefined'
+          ? new URLSearchParams(window.location.search).get('slot')
+          : null;
       if (querySlot) {
         const found = result.items.find((s) => s.id === querySlot);
         if (found) {
@@ -386,7 +390,9 @@ export function PublicClassesView({
         .format(d)
         .replace('.', '')
         .toUpperCase();
-      const dayNumber = new Intl.DateTimeFormat('id-ID', { timeZone: tz, day: 'numeric' }).format(d);
+      const dayNumber = new Intl.DateTimeFormat('id-ID', { timeZone: tz, day: 'numeric' }).format(
+        d,
+      );
       const label = dateLabel(d.toISOString(), tz);
       days.push({ key, label, weekdayShort, dayNumber, count });
     }
@@ -541,7 +547,7 @@ export function PublicClassesView({
                     className={`flex h-[64px] min-h-[64px] w-[56px] min-w-[56px] shrink-0 flex-col items-center justify-center rounded-dd-md transition-colors cursor-pointer ${
                       isSelected
                         ? 'border-transparent bg-[#396552] text-white shadow-xs'
-                        : 'border-[1.5px] border-[#768b84] bg-white text-dd-ink hover:bg-dd-surface-muted'
+                        : 'border-[1.5px] border-[#7a848f] bg-white text-dd-ink hover:bg-dd-surface-muted'
                     }`}
                   >
                     <span
@@ -590,9 +596,7 @@ export function PublicClassesView({
             className="inline-flex min-h-[44px] items-center gap-2 rounded-dd-md border border-dd-border-interactive bg-white px-3.5 py-2 text-sm font-semibold text-dd-ink shadow-xs transition hover:bg-dd-surface-muted disabled:opacity-50 disabled:pointer-events-none cursor-pointer"
           >
             <SlidersHorizontal className="size-4 text-dd-forest shrink-0" aria-hidden="true" />
-            <span>
-              Tipe kelas: {classTypes.find((t) => t.id === classType)?.name ?? 'Semua'}
-            </span>
+            <span>Tipe kelas: {classTypes.find((t) => t.id === classType)?.name ?? 'Semua'}</span>
             <ChevronDown className="size-4 text-dd-muted shrink-0 ml-0.5" aria-hidden="true" />
           </button>
 
@@ -616,9 +620,7 @@ export function PublicClassesView({
               role="status"
               aria-label={`Memuat jadwal ${activeStudioName}...`}
             >
-              <p className="text-sm font-medium text-dd-muted">
-                Memuat jadwal {activeStudioName}…
-              </p>
+              <p className="text-sm font-medium text-dd-muted">Memuat jadwal {activeStudioName}…</p>
               {/* Kerangka abu tanpa animasi berulang */}
               <div className="space-y-3 pt-1">
                 <div className="h-16 rounded-dd-lg bg-dd-surface-muted border border-dd-line/60" />
@@ -741,7 +743,9 @@ export function PublicClassesView({
                       return (
                         <article
                           className={`p-4 sm:p-5 transition ${
-                            isFull ? 'bg-dd-surface-muted/20 opacity-75' : 'hover:bg-dd-surface-muted/10'
+                            isFull
+                              ? 'bg-dd-surface-muted/20 opacity-75'
+                              : 'hover:bg-dd-surface-muted/10'
                           }`}
                           key={slot.id}
                         >
@@ -792,14 +796,19 @@ export function PublicClassesView({
                                 )}
                                 {isCustomer && !bookedId && !isFull && matchingPkg && (
                                   <span className="mt-1.5 inline-flex items-center gap-1 rounded-dd-sm border border-dd-forest/20 bg-dd-forest-soft px-2 py-0.5 text-[11px] font-semibold text-dd-forest">
-                                    <Check className="size-3" /> Paket Sesuai ({matchingPkg.available} sesi)
+                                    <Check className="size-3" /> Paket Sesuai (
+                                    {matchingPkg.available} sesi)
                                   </span>
                                 )}
-                                {isCustomer && !bookedId && !isFull && !matchingPkg && customerPackages.length > 0 && (
-                                  <span className="mt-1.5 inline-flex items-center gap-1 rounded-dd-sm border border-amber-800/30 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-900">
-                                    Perlu paket studio/kelas ini
-                                  </span>
-                                )}
+                                {isCustomer &&
+                                  !bookedId &&
+                                  !isFull &&
+                                  !matchingPkg &&
+                                  customerPackages.length > 0 && (
+                                    <span className="mt-1.5 inline-flex items-center gap-1 rounded-dd-sm border border-amber-800/30 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-900">
+                                      Perlu paket studio/kelas ini
+                                    </span>
+                                  )}
                               </div>
                             </div>
 
@@ -808,7 +817,7 @@ export function PublicClassesView({
                               {bookedId ? (
                                 <a
                                   href={`/bookings/${bookedId}`}
-                                  className="inline-flex min-h-[48px] w-full sm:w-auto items-center justify-center rounded-dd-md border-[1.5px] border-dd-border-interactive bg-white px-5 py-2.5 text-sm font-bold text-dd-forest shadow-xs transition hover:bg-dd-surface-muted focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#24483a]"
+                                  className="inline-flex min-h-[48px] w-full sm:w-auto items-center justify-center rounded-dd-md border-[1.5px] border-dd-border-interactive bg-white px-5 py-2.5 text-sm font-bold text-dd-forest shadow-xs transition hover:bg-dd-surface-muted focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#09371f]"
                                 >
                                   Lihat booking
                                 </a>
@@ -846,7 +855,7 @@ export function PublicClassesView({
                                       setIsBookingSheetOpen(true);
                                     }
                                   }}
-                                  className={`inline-flex min-h-[48px] w-full sm:w-auto items-center justify-center rounded-dd-md px-5 py-2.5 text-sm font-bold shadow-xs transition cursor-pointer focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#24483a] ${
+                                  className={`inline-flex min-h-[48px] w-full sm:w-auto items-center justify-center rounded-dd-md px-5 py-2.5 text-sm font-bold shadow-xs transition cursor-pointer focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#09371f] ${
                                     isCustomer && !matchingPkg
                                       ? 'border-[1.5px] border-dd-border-interactive bg-white text-dd-forest hover:bg-dd-surface-muted'
                                       : 'bg-dd-forest text-white hover:bg-dd-forest-dark'
@@ -880,7 +889,7 @@ export function PublicClassesView({
           role="dialog"
           aria-modal="true"
           aria-label="Pilih Lokasi Studio"
-          className="fixed inset-0 z-50 flex flex-col justify-end bg-[#17231e]/45 backdrop-blur-xs"
+          className="fixed inset-0 z-50 flex flex-col justify-end bg-[#111827]/45 backdrop-blur-xs"
           onClick={() => setIsStudioSheetOpen(false)}
         >
           <div
@@ -919,7 +928,9 @@ export function PublicClassesView({
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <MapPin className={`size-4 ${isSelected ? 'text-dd-forest' : 'text-dd-muted'}`} />
+                      <MapPin
+                        className={`size-4 ${isSelected ? 'text-dd-forest' : 'text-dd-muted'}`}
+                      />
                       <span>{b.name}</span>
                     </div>
                     {isSelected && <Check className="size-4 text-dd-forest" />}
@@ -937,7 +948,7 @@ export function PublicClassesView({
           role="dialog"
           aria-modal="true"
           aria-label="Pilih Tipe Kelas"
-          className="fixed inset-0 z-50 flex flex-col justify-end bg-[#17231e]/45 backdrop-blur-xs"
+          className="fixed inset-0 z-50 flex flex-col justify-end bg-[#111827]/45 backdrop-blur-xs"
           onClick={() => setIsTypeSheetOpen(false)}
         >
           <div
@@ -1011,7 +1022,7 @@ export function PublicClassesView({
         slot={bookingSlot}
         studioName={
           bookingSlot
-            ? branches.find((b) => b.id === bookingSlot.branchId)?.name ?? branch?.name
+            ? (branches.find((b) => b.id === bookingSlot.branchId)?.name ?? branch?.name)
             : branch?.name
         }
         packageItem={bookingSlot ? (findMatchingPackage(bookingSlot) ?? null) : null}

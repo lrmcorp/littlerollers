@@ -1,5 +1,13 @@
 import Link from 'next/link';
-import { ArrowLeft, Calendar, Compass, HelpCircle, House, MessageCircle, Sparkles } from 'lucide-react';
+import {
+  ArrowLeft,
+  Calendar,
+  Compass,
+  HelpCircle,
+  House,
+  MessageCircle,
+  Sparkles,
+} from 'lucide-react';
 import { ButtonLink } from './components/actions';
 
 export const metadata = { title: 'Halaman Tidak Ditemukan (404)' };
@@ -19,7 +27,8 @@ export default function NotFound() {
             Ups! Halaman belum tersedia
           </h1>
           <p className="mx-auto max-w-md text-sm leading-relaxed text-dd-muted">
-            Tautan yang Anda tuju mungkin salah ketik, sudah dipindahkan, atau tidak lagi aktif. Mari kembali ke jalur latihan Anda.
+            Tautan yang Anda tuju mungkin salah ketik, sudah dipindahkan, atau tidak lagi aktif.
+            Mari kembali ke jalur latihan Anda.
           </p>
         </div>
 
@@ -27,7 +36,7 @@ export default function NotFound() {
         <div className="grid gap-3 sm:grid-cols-2 pt-2 text-left">
           <Link
             href="/classes"
-            className="flex min-h-[44px] items-center gap-3 rounded-dd-lg border border-dd-border-interactive bg-dd-surface p-3.5 no-underline transition hover:border-dd-forest hover:bg-dd-forest/5 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#24483a]"
+            className="flex min-h-[44px] items-center gap-3 rounded-dd-lg border border-dd-border-interactive bg-dd-surface p-3.5 no-underline transition hover:border-dd-forest hover:bg-dd-forest/5 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#09371f]"
           >
             <div className="grid size-9 place-items-center rounded-full bg-dd-forest/10 text-dd-forest shrink-0">
               <Calendar className="size-4" />
@@ -40,7 +49,7 @@ export default function NotFound() {
 
           <Link
             href="/packages"
-            className="flex min-h-[44px] items-center gap-3 rounded-dd-lg border border-dd-border-interactive bg-dd-surface p-3.5 no-underline transition hover:border-dd-forest hover:bg-dd-forest/5 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#24483a]"
+            className="flex min-h-[44px] items-center gap-3 rounded-dd-lg border border-dd-border-interactive bg-dd-surface p-3.5 no-underline transition hover:border-dd-forest hover:bg-dd-forest/5 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#09371f]"
           >
             <div className="grid size-9 place-items-center rounded-full bg-dd-forest/10 text-dd-forest shrink-0">
               <Sparkles className="size-4" />

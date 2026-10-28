@@ -43,23 +43,23 @@ function getContrastRatio(hex1: string, hex2: string): number {
 
 describe('Tiket T-15: Perbaiki kontras dan ukuran teks', () => {
   describe('Kriteria 1: Rasio Kontras Batas Komponen Interaktif (Minimal 3:1)', () => {
-    const interactiveBorderColor = '#768b84';
+    const interactiveBorderColor = '#7a848f';
     const decorativeDividerColor = '#d5dfda';
     const whiteBackground = '#ffffff';
-    const canvasBackground = '#f4f2ec';
+    const canvasBackground = '#f6f7f9';
 
-    it('memastikan warna batas interaktif #768b84 memiliki kontras minimal 3:1 terhadap latar putih', () => {
+    it('memastikan warna batas interaktif #7a848f memiliki kontras minimal 3:1 terhadap latar putih', () => {
       const ratio = getContrastRatio(interactiveBorderColor, whiteBackground);
-      // Di spesifikasi: "Pengganti: #768b84, terukur 3.62:1 pada putih"
+      // Di spesifikasi: "Pengganti: #7a848f, terukur 3.80:1 pada putih"
       expect(ratio).toBeGreaterThanOrEqual(3.0);
-      expect(ratio).toBeCloseTo(3.62, 1);
+      expect(ratio).toBeCloseTo(3.8, 1);
     });
 
-    it('memastikan warna batas interaktif #768b84 memiliki kontras minimal 3:1 terhadap kanvas studio', () => {
+    it('memastikan warna batas interaktif #7a848f memiliki kontras minimal 3:1 terhadap kanvas studio', () => {
       const ratio = getContrastRatio(interactiveBorderColor, canvasBackground);
-      // Di spesifikasi: "terukur 3.33:1 pada kanvas"
+      // Di spesifikasi: "terukur 3.55:1 pada kanvas"
       expect(ratio).toBeGreaterThanOrEqual(3.0);
-      expect(ratio).toBeCloseTo(3.2, 1);
+      expect(ratio).toBeCloseTo(3.55, 1);
     });
 
     it('memastikan garis dekoratif #d5dfda terbukti tidak memenuhi 3:1 (sehingga tepat hanya untuk dekoratif)', () => {
@@ -69,7 +69,7 @@ describe('Tiket T-15: Perbaiki kontras dan ukuran teks', () => {
       expect(ratioCanvas).toBeLessThan(3.0);
     });
 
-    it('memastikan tombol sekunder menggunakan batas interaktif #768b84', () => {
+    it('memastikan tombol sekunder menggunakan batas interaktif #7a848f', () => {
       const classes = actionClasses({ variant: 'secondary' });
       expect(classes).toContain('border-dd-border-interactive');
       expect(classes).toContain('bg-white');
@@ -100,7 +100,7 @@ describe('Tiket T-15: Perbaiki kontras dan ukuran teks', () => {
 
   describe('Kriteria 2: Rasio Kontras Teks (Minimal 4.5:1 untuk teks normal)', () => {
     const whiteBackground = '#ffffff';
-    const canvasBackground = '#f4f2ec';
+    const canvasBackground = '#f6f7f9';
     const primaryInk = '#20231f';
     const supportingMuted = '#607069';
     const editorialMuted = '#4f6255';
@@ -216,37 +216,37 @@ describe('Tiket T-15: Perbaiki kontras dan ukuran teks', () => {
   });
 
   describe('Kriteria 5: Navigasi Keyboard & Indikator Fokus Terlihat Jelas', () => {
-    it('memastikan base CSS mendefinisikan outline fokus 3px #24483a dengan offset 2px', () => {
+    it('memastikan base CSS mendefinisikan outline fokus 3px #0d5132 dengan offset 2px', () => {
       const cssPath = fs.existsSync(path.resolve(process.cwd(), 'app/tailwind.css'))
         ? path.resolve(process.cwd(), 'app/tailwind.css')
         : path.resolve(process.cwd(), 'apps/web/app/tailwind.css');
       const cssContent = fs.readFileSync(cssPath, 'utf8');
 
-      expect(cssContent).toContain('outline: 3px solid #24483a;');
+      expect(cssContent).toContain('outline: 3px solid #09371f;');
       expect(cssContent).toContain('outline-offset: 2px;');
     });
 
-    it('memastikan actionClasses menyertakan outline fokus keyboard 3px #24483a', () => {
+    it('memastikan actionClasses menyertakan outline fokus keyboard 3px #0d5132', () => {
       const classes = actionClasses({});
       expect(classes).toContain('focus-visible:outline-3');
       expect(classes).toContain('focus-visible:outline-offset-2');
-      expect(classes).toContain('focus-visible:outline-[#24483a]');
+      expect(classes).toContain('focus-visible:outline-[#09371f]');
     });
 
-    it('memastikan kontrol input form menyertakan outline fokus keyboard 3px #24483a', () => {
+    it('memastikan kontrol input form menyertakan outline fokus keyboard 3px #0d5132', () => {
       expect(controlClassName).toContain('focus-visible:outline-3');
       expect(controlClassName).toContain('focus-visible:outline-offset-2');
-      expect(controlClassName).toContain('focus-visible:outline-[#24483a]');
+      expect(controlClassName).toContain('focus-visible:outline-[#09371f]');
 
       expect(editorialControlClassName).toContain('focus-visible:outline-3');
       expect(editorialControlClassName).toContain('focus-visible:outline-offset-2');
-      expect(editorialControlClassName).toContain('focus-visible:outline-[#24483a]');
+      expect(editorialControlClassName).toContain('focus-visible:outline-[#09371f]');
     });
 
-    it('memastikan warna outline fokus #24483a memiliki rasio kontras sangat tinggi (> 9:1)', () => {
-      const focusOutlineColor = '#24483a';
+    it('memastikan warna outline fokus #09371f memiliki rasio kontras sangat tinggi (> 9:1)', () => {
+      const focusOutlineColor = '#09371f';
       const ratioWhite = getContrastRatio(focusOutlineColor, '#ffffff');
-      const ratioCanvas = getContrastRatio(focusOutlineColor, '#f4f2ec');
+      const ratioCanvas = getContrastRatio(focusOutlineColor, '#f6f7f9');
 
       expect(ratioWhite).toBeGreaterThanOrEqual(9.0);
       expect(ratioCanvas).toBeGreaterThanOrEqual(9.0);

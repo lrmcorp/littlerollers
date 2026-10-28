@@ -123,10 +123,7 @@ export function OrdersView() {
         }
       />
 
-      <VerificationStatusBanner
-        status={session?.identityVerificationStatus}
-        returnTo="/orders"
-      />
+      <VerificationStatusBanner status={session?.identityVerificationStatus} returnTo="/orders" />
 
       <section
         aria-label="Ringkasan pesanan"
@@ -140,16 +137,20 @@ export function OrdersView() {
               key={card.key}
               aria-pressed={selected}
               onClick={() => updateFilters({ status: card.status })}
-              className={`min-w-[115px] min-h-[44px] shrink-0 rounded-none border p-3 text-left transition-colors cursor-pointer focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#24483a] lg:min-w-0 ${
+              className={`min-w-[115px] min-h-[44px] shrink-0 rounded-none border p-3 text-left transition-colors cursor-pointer focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#09371f] lg:min-w-0 ${
                 selected
                   ? 'border-ed-forest bg-ed-forest text-white shadow-none'
                   : 'border-ed-border-ui bg-white text-ed-ink hover:border-ed-forest hover:bg-ed-tint/30'
               }`}
             >
-              <span className={`block text-[13px] font-semibold uppercase tracking-wider ${selected ? 'text-white/80' : 'text-ed-muted'}`}>
+              <span
+                className={`block text-[13px] font-semibold uppercase tracking-wider ${selected ? 'text-white/80' : 'text-ed-muted'}`}
+              >
                 {card.label}
               </span>
-              <strong className="mt-1 block font-serif text-2xl font-normal">{summary[card.key]}</strong>
+              <strong className="mt-1 block font-serif text-2xl font-normal">
+                {summary[card.key]}
+              </strong>
             </button>
           );
         })}
@@ -236,7 +237,9 @@ export function OrdersView() {
                     <span className="inline-flex size-6 shrink-0 items-center justify-center rounded-none border border-ed-line bg-ed-tint font-serif text-xs font-normal text-ed-forest">
                       #{cursorHistory.length * 20 + index + 1}
                     </span>
-                    <strong className="font-serif text-base font-normal tracking-tight text-ed-ink">{item.packageName}</strong>
+                    <strong className="font-serif text-base font-normal tracking-tight text-ed-ink">
+                      {item.packageName}
+                    </strong>
                     <StatusBadge tone={tone(item.status)}>
                       {orderStatusLabels[item.status]}
                     </StatusBadge>

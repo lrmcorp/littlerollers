@@ -25,11 +25,21 @@ import { isCustomerTabActive } from './customer/customer-navigation';
 const MAX_STAFF_TABS = 4;
 const staffTabCandidates = [
   { href: '/workspace', label: 'Beranda', icon: LayoutDashboard, badgeColor: 'bg-dd-forest' },
-  { href: '/workspace/bookings', label: 'Booking', icon: BookOpenCheck, badgeColor: 'bg-dd-forest' },
+  {
+    href: '/workspace/bookings',
+    label: 'Booking',
+    icon: BookOpenCheck,
+    badgeColor: 'bg-dd-forest',
+  },
   { href: '/workspace/payments', label: 'Pembayaran', icon: CreditCard, badgeColor: 'bg-dd-brass' },
   { href: '/workspace/classes', label: 'Kelas', icon: CalendarDays, badgeColor: 'bg-dd-forest' },
   { href: '/finance', label: 'Keuangan', icon: Landmark, badgeColor: 'bg-dd-brass' },
-  { href: '/ledger/adjustments', label: 'Penyesuaian', icon: ListChecks, badgeColor: 'bg-dd-brass' },
+  {
+    href: '/ledger/adjustments',
+    label: 'Penyesuaian',
+    icon: ListChecks,
+    badgeColor: 'bg-dd-brass',
+  },
 ];
 
 export interface MobileBottomNavigationProps {
@@ -195,8 +205,7 @@ export function MobileBottomNavigation({
   const allowed = (href: string) => {
     const page = frontendPages.find((item) => item.href === href);
     return Boolean(
-      page &&
-        (page.capabilities.length === 0 || context?.hasCapability(...page.capabilities)),
+      page && (page.capabilities.length === 0 || context?.hasCapability(...page.capabilities)),
     );
   };
   const badgeFor = (href: string) => {
@@ -236,7 +245,7 @@ export function MobileBottomNavigation({
               key={tab.href}
               href={tab.href}
               aria-current={active ? 'page' : undefined}
-              className={`flex flex-col items-center justify-center min-h-[48px] py-1 px-1 rounded-dd-md text-[13px] font-semibold transition-all select-none focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#24483a] ${
+              className={`flex flex-col items-center justify-center min-h-[48px] py-1 px-1 rounded-dd-md text-[13px] font-semibold transition-all select-none focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#09371f] ${
                 active
                   ? 'text-dd-forest font-bold bg-dd-forest/8'
                   : 'text-dd-muted hover:text-dd-forest hover:bg-dd-surface-muted/60'
@@ -268,7 +277,7 @@ export function MobileBottomNavigation({
           type="button"
           onClick={onOpenMenu}
           aria-label="Buka semua menu navigasi"
-          className="flex flex-col items-center justify-center min-h-[48px] py-1 px-1 rounded-dd-md text-[13px] font-semibold text-dd-muted hover:text-dd-forest hover:bg-dd-surface-muted/60 transition-all select-none focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#24483a]"
+          className="flex flex-col items-center justify-center min-h-[48px] py-1 px-1 rounded-dd-md text-[13px] font-semibold text-dd-muted hover:text-dd-forest hover:bg-dd-surface-muted/60 transition-all select-none focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#09371f]"
         >
           <div className="relative shrink-0 mb-0.5">
             <Menu className="size-5 stroke-[1.8]" aria-hidden="true" />

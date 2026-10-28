@@ -20,7 +20,7 @@ describe('check-in pass (Tiket T-08 / Spesifikasi 5.8)', () => {
     vi.unstubAllGlobals();
   });
 
-  it('renders QR Pass on dark background #24483a with QR >= 230px, 1-line instruction, class details, and Simpan ke galeri button', async () => {
+  it('renders QR Pass on dark background #0d5132 with QR >= 230px, 1-line instruction, class details, and Simpan ke galeri button', async () => {
     window.history.replaceState(
       {},
       '',
@@ -42,13 +42,15 @@ describe('check-in pass (Tiket T-08 / Spesifikasi 5.8)', () => {
 
     const { container } = render(<CheckInPassView />);
 
-    // 1. Dark canvas background #24483a
+    // 1. Dark canvas background #0d5132
     const mainEl = container.querySelector('main');
-    expect(mainEl).toHaveClass('bg-[#24483a]');
+    expect(mainEl).toHaveClass('bg-[#0d5132]');
 
     // 2. Satu baris instruksi pemindaian
     expect(
-      screen.getByText('Tunjukkan QR ini ke pemindai tablet di meja resepsionis atau kiosk studio.'),
+      screen.getByText(
+        'Tunjukkan QR ini ke pemindai tablet di meja resepsionis atau kiosk studio.',
+      ),
     ).toBeVisible();
 
     // 3. QR Code width minimal 230 px
@@ -116,7 +118,10 @@ describe('check-in pass (Tiket T-08 / Spesifikasi 5.8)', () => {
 
     it('menampilkan instruktur dan studio asli dari respons, bukan nilai contoh', async () => {
       window.history.replaceState({}, '', '/check-in-pass?bookingId=bk-1');
-      vi.stubGlobal('fetch', vi.fn(async () => respond(issued(180, 240))));
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => respond(issued(180, 240))),
+      );
       render(<CheckInPassView />);
 
       expect(await screen.findByRole('heading', { name: 'Group Class' })).toBeVisible();
@@ -128,22 +133,33 @@ describe('check-in pass (Tiket T-08 / Spesifikasi 5.8)', () => {
 
     it('memberi tahu kapan QR mulai aktif bila kelas masih jauh', async () => {
       window.history.replaceState({}, '', '/check-in-pass?bookingId=bk-1');
-      vi.stubGlobal('fetch', vi.fn(async () => respond(issued(180, 240))));
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => respond(issued(180, 240))),
+      );
       render(<CheckInPassView />);
 
       const status = await screen.findByRole('status');
       expect(status).toHaveAttribute('data-pass-state', 'TOO_EARLY');
-      expect(status).toHaveTextContent(/Belum aktif\. QR dapat dipindai mulai pukul \d{2}\.\d{2} WIB/);
+      expect(status).toHaveTextContent(
+        /Belum aktif\. QR dapat dipindai mulai pukul \d{2}\.\d{2} WIB/,
+      );
     });
 
     it('menandai QR aktif saat jendela 30 menit terbuka dan selesai setelah kelas berakhir', async () => {
       window.history.replaceState({}, '', '/check-in-pass?bookingId=bk-1');
-      vi.stubGlobal('fetch', vi.fn(async () => respond(issued(-10, 50))));
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => respond(issued(-10, 50))),
+      );
       const { unmount } = render(<CheckInPassView />);
       expect(await screen.findByRole('status')).toHaveAttribute('data-pass-state', 'OPEN');
       unmount();
 
-      vi.stubGlobal('fetch', vi.fn(async () => respond(issued(-120, -60))));
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => respond(issued(-120, -60))),
+      );
       render(<CheckInPassView />);
       expect(await screen.findByRole('status')).toHaveAttribute('data-pass-state', 'ENDED');
     });
@@ -170,10 +186,15 @@ describe('check-in pass (Tiket T-08 / Spesifikasi 5.8)', () => {
     });
 
     it('tanpa booking mendatang menampilkan ajakan melihat jadwal, bukan pesan galat', async () => {
-      vi.stubGlobal('fetch', vi.fn(async () => respond({ upcomingBookings: [] })));
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => respond({ upcomingBookings: [] })),
+      );
       render(<CheckInPassView />);
 
-      expect(await screen.findByRole('heading', { name: 'Belum ada booking mendatang' })).toBeVisible();
+      expect(
+        await screen.findByRole('heading', { name: 'Belum ada booking mendatang' }),
+      ).toBeVisible();
       expect(screen.getByRole('link', { name: 'Lihat jadwal kelas' })).toHaveAttribute(
         'href',
         '/classes#schedule',
@@ -197,7 +218,10 @@ describe('check-in pass (Tiket T-08 / Spesifikasi 5.8)', () => {
 
   it('passWindow mengikuti aturan 30 menit sebelum mulai hingga kelas selesai', () => {
     const base = new Date('2026-10-29T10:00:00.000Z');
-    const info = { startAt: base.toISOString(), endAt: new Date(base.getTime() + 3_600_000).toISOString() };
+    const info = {
+      startAt: base.toISOString(),
+      endAt: new Date(base.getTime() + 3_600_000).toISOString(),
+    };
     expect(passWindow(info, base.getTime() - 31 * 60_000)).toBe('TOO_EARLY');
     expect(passWindow(info, base.getTime() - 30 * 60_000)).toBe('OPEN');
     expect(passWindow(info, base.getTime() + 59 * 60_000)).toBe('OPEN');

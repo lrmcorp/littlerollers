@@ -3,15 +3,15 @@
   --font-sans: var(--font-ui), 'Poppins', ui-sans-serif, system-ui, sans-serif;
   --font-serif: var(--font-sans);
   --color-brand: #396552;
-  --color-brand-strong: #24483a;
+  --color-brand-strong: #0d5132;
   --color-brand-soft: #e8f0ec;
   --color-canvas: #f3f6f4;
   --color-surface: #ffffff;
   --color-surface-muted: #f8faf9;
-  --color-text: #17231e;
+  --color-text: #111827;
   --color-text-muted: #607069;
-  --color-border: #827c6a;
-  --color-border-strong: #827c6a;
+  --color-border: #7a848f;
+  --color-border-strong: #7a848f;
   --color-info: #27607c;
   --color-info-soft: #e8f3f8;
   --color-success: #246144;
@@ -83,7 +83,7 @@ textarea {
 }
 
 :where(a, button, input, select, textarea, [tabindex]):focus-visible {
-  outline: 3px solid #24483a;
+  outline: 3px solid #09371f;
   outline-offset: 2px;
 }
 

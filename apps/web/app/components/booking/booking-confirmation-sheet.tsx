@@ -61,12 +61,7 @@ function formatTimeAndDuration(startAt: string, endAt: string, timezone: string)
 }
 
 export type BookingSheetStatus =
-  | 'ready'
-  | 'submitting'
-  | 'success'
-  | 'slot_full'
-  | 'unverified'
-  | 'error';
+  'ready' | 'submitting' | 'success' | 'slot_full' | 'unverified' | 'error';
 
 export interface BookingConfirmationSheetProps {
   isOpen: boolean;
@@ -119,19 +114,15 @@ export function BookingConfirmationSheet({
       idempotencyKeyRef.current = crypto.randomUUID();
 
       const initialPkg =
-        packageItem?.id ??
-        availablePackages.find((pkg) => pkg.available > 0)?.id ??
-        '';
+        packageItem?.id ?? availablePackages.find((pkg) => pkg.available > 0)?.id ?? '';
       setSelectedPkgId(initialPkg);
     }
   }, [isOpen, slot?.id, packageItem?.id, availablePkgIds, isVerified]);
 
   if (!isOpen || !slot) return null;
 
-  const hasActionFooter =
-    status !== 'success' && status !== 'slot_full' && status !== 'unverified';
-  const currentPkg =
-    availablePackages.find((p) => p.id === selectedPkgId) ?? packageItem;
+  const hasActionFooter = status !== 'success' && status !== 'slot_full' && status !== 'unverified';
+  const currentPkg = availablePackages.find((p) => p.id === selectedPkgId) ?? packageItem;
 
   const handleConfirmBooking = async () => {
     if (!currentPkg?.id) {
@@ -160,14 +151,9 @@ export function BookingConfirmationSheet({
       onBookingSuccess?.(result);
     } catch (err: unknown) {
       const problem = await bookingProblem(err);
-      if (
-        problem.code === 'CLASS_CAPACITY_FULL' ||
-        problem.code === 'TARGET_CLASS_FULL'
-      ) {
+      if (problem.code === 'CLASS_CAPACITY_FULL' || problem.code === 'TARGET_CLASS_FULL') {
         setStatus('slot_full');
-        setErrorMessage(
-          'Slot kelas ini baru saja penuh. Pilih jam lain di hari yang sama.',
-        );
+        setErrorMessage('Slot kelas ini baru saja penuh. Pilih jam lain di hari yang sama.');
         onSlotUnavailable?.();
       } else if (
         problem.code === 'DUPLICATE_ACTIVE_BOOKING' ||
@@ -181,9 +167,7 @@ export function BookingConfirmationSheet({
         problem.code === 'UNVERIFIED'
       ) {
         setStatus('unverified');
-        setErrorMessage(
-          'Booking belum bisa diproses karena identitas kamu belum diverifikasi.',
-        );
+        setErrorMessage('Booking belum bisa diproses karena identitas kamu belum diverifikasi.');
       } else {
         setStatus('error');
         setErrorMessage(problem.message || 'Gagal memproses booking. Silakan coba lagi.');
@@ -203,7 +187,7 @@ export function BookingConfirmationSheet({
       role="dialog"
       aria-modal="true"
       aria-labelledby="booking-sheet-title"
-      className="fixed inset-0 z-50 flex flex-col justify-end bg-[#17231e]/45 backdrop-blur-xs transition-opacity"
+      className="fixed inset-0 z-50 flex flex-col justify-end bg-[#111827]/45 backdrop-blur-xs transition-opacity"
       onClick={handleOverlayClick}
     >
       <div
@@ -216,271 +200,269 @@ export function BookingConfirmationSheet({
             hasActionFooter ? 'pb-4' : 'pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]'
           }`}
         >
-        {/* 1. Garis pegangan dekoratif */}
-        <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-dd-line" />
+          {/* 1. Garis pegangan dekoratif */}
+          <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-dd-line" />
 
-        {/* ======================================================== */}
-        {/* KEADAAN 3: BERHASIL (SUCCESS) */}
-        {/* ======================================================== */}
-        {status === 'success' ? (
-          <div className="space-y-5 text-center py-2" aria-live="polite">
-            <div className="inline-flex size-14 items-center justify-center rounded-full bg-dd-forest-soft text-dd-forest mx-auto">
-              <CheckCircle2 className="size-8" />
-            </div>
-            <div>
-              <h2
-                id="booking-sheet-title"
-                className="text-2xl font-bold tracking-tight text-dd-ink"
-              >
-                Booking berhasil
-              </h2>
-              <p className="mt-1 text-sm text-dd-muted">
-                Booking berhasil. {slot.classType.name}, {formatFullDate(slot.startAt, slot.timezone)}, {formatTimeAndDuration(slot.startAt, slot.endAt, slot.timezone)} di {studioName ?? 'Studio Utama'}.
-              </p>
-            </div>
-
-            {/* Ringkasan Booking */}
-            <div className="rounded-dd-md border border-dd-line/80 bg-dd-surface-muted/40 p-4 text-left space-y-2 text-sm">
-              <div className="flex justify-between items-center text-xs font-semibold text-dd-muted">
-                <span>NOMOR BOOKING</span>
-                <span className="font-mono text-dd-ink font-bold">
-                  {bookingResult?.bookingNumber ?? 'BK-CONFIRMED'}
-                </span>
+          {/* ======================================================== */}
+          {/* KEADAAN 3: BERHASIL (SUCCESS) */}
+          {/* ======================================================== */}
+          {status === 'success' ? (
+            <div className="space-y-5 text-center py-2" aria-live="polite">
+              <div className="inline-flex size-14 items-center justify-center rounded-full bg-dd-forest-soft text-dd-forest mx-auto">
+                <CheckCircle2 className="size-8" />
               </div>
-              <div className="pt-2 border-t border-dd-line/60">
-                <strong className="block text-base font-bold text-dd-ink">
-                  {slot.classType.name}
-                </strong>
-                <span className="block text-xs text-dd-muted mt-0.5">
-                  {formatFullDate(slot.startAt, slot.timezone)} ·{' '}
-                  {formatTimeAndDuration(slot.startAt, slot.endAt, slot.timezone)}
-                </span>
-                <span className="block text-xs text-dd-forest font-semibold mt-1">
-                  Studio: {studioName ?? 'Studio Utama'}
-                </span>
-              </div>
-            </div>
-
-            {/* Tombol Aksi */}
-            <div className="space-y-2.5 pt-2">
-              <Link
-                href={
-                  bookingResult?.id
-                    ? `/check-in-pass?bookingId=${encodeURIComponent(bookingResult.id)}`
-                    : '/check-in-pass'
-                }
-                className="flex h-[52px] min-h-[52px] w-full items-center justify-center rounded-dd-md bg-dd-forest px-6 text-sm font-bold text-white shadow-xs transition hover:bg-dd-forest-hover"
-              >
-                Lihat QR Pass
-              </Link>
-              <button
-                type="button"
-                onClick={onClose}
-                className="flex h-[44px] min-h-[44px] w-full items-center justify-center text-sm font-semibold text-dd-muted hover:text-dd-ink"
-              >
-                Tutup
-              </button>
-            </div>
-          </div>
-        ) : status === 'slot_full' ? (
-          /* ======================================================== */
-          /* KEADAAN 4A: SLOT HABIS (FULL CONCURRENCY 409) */
-          /* ======================================================== */
-          <div className="space-y-5 text-center py-2" aria-live="polite">
-            <div className="inline-flex size-14 items-center justify-center rounded-full bg-[#fbf4eb] text-[#8a5b17] border border-[#e8d5be] mx-auto">
-              <AlertTriangle className="size-8" />
-            </div>
-            <div>
-              <h2
-                id="booking-sheet-title"
-                className="text-xl font-bold tracking-tight text-dd-ink"
-              >
-                Slot kelas ini baru saja penuh
-              </h2>
-              <p className="mt-2 text-sm text-[#8a5b17] leading-relaxed">
-                Slot kelas ini baru saja penuh. Pilih jam lain di hari yang sama.
-              </p>
-            </div>
-
-            <div className="pt-3">
-              <button
-                type="button"
-                onClick={onClose}
-                className="flex h-[52px] min-h-[52px] w-full items-center justify-center rounded-dd-md bg-dd-forest px-6 text-sm font-bold text-white shadow-xs transition hover:bg-dd-forest-hover cursor-pointer"
-              >
-                Lihat jam lain
-              </button>
-            </div>
-          </div>
-        ) : status === 'unverified' ? (
-          /* ======================================================== */
-          /* KEADAAN 4B: BELUM VERIFIKASI IDENTITAS */
-          /* ======================================================== */
-          <div className="space-y-5 text-center py-2" aria-live="polite">
-            <div className="inline-flex size-14 items-center justify-center rounded-full bg-dd-surface-muted text-[#27607c] mx-auto">
-              <ShieldAlert className="size-8" />
-            </div>
-            <div>
-              <h2
-                id="booking-sheet-title"
-                className="text-xl font-bold tracking-tight text-dd-ink"
-              >
-                Verifikasi identitas diperlukan
-              </h2>
-              <p className="mt-2 text-sm text-dd-muted leading-relaxed">
-                Booking belum bisa diproses karena identitas kamu belum diverifikasi.
-              </p>
-            </div>
-
-            <div className="space-y-2.5 pt-3">
-              <Link
-                href="/account/verification"
-                className="flex h-[52px] min-h-[52px] w-full items-center justify-center rounded-dd-md bg-dd-forest px-6 text-sm font-bold text-white shadow-xs transition hover:bg-dd-forest-hover"
-              >
-                Isi data verifikasi
-              </Link>
-              <button
-                type="button"
-                onClick={onClose}
-                className="flex h-[44px] min-h-[44px] w-full items-center justify-center text-sm font-semibold text-dd-muted hover:text-dd-ink"
-              >
-                Tutup
-              </button>
-            </div>
-          </div>
-        ) : (
-          /* ======================================================== */
-          /* KEADAAN 1: SIAP (READY) & KEADAAN 2: DIPROSES (SUBMITTING) */
-          /* ======================================================== */
-          <div className="space-y-5">
-            {/* Header: Nama kelas 24 px & Tombol X */}
-            <div className="flex items-start justify-between gap-4 pb-2 border-b border-dd-line/60">
               <div>
-                <span className="text-[13px] font-bold uppercase tracking-[0.2em] text-dd-forest">
-                  Konfirmasi Booking
-                </span>
                 <h2
                   id="booking-sheet-title"
-                  className="mt-1 text-2xl font-bold tracking-tight text-dd-ink"
+                  className="text-2xl font-bold tracking-tight text-dd-ink"
                 >
-                  {slot.classType.name}
+                  Booking berhasil
                 </h2>
-              </div>
-              <button
-                type="button"
-                disabled={status === 'submitting'}
-                onClick={onClose}
-                className="inline-flex size-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-dd-md text-dd-muted hover:text-dd-ink disabled:opacity-30 disabled:pointer-events-none"
-                aria-label="Tutup konfirmasi booking"
-              >
-                <X className="size-5" />
-              </button>
-            </div>
-
-            {/* Lima baris dengan ikon (Spesifikasi 5.3) */}
-            <div className="space-y-3 py-1 text-sm text-dd-ink">
-              {/* 1. Tanggal lengkap dengan tahun */}
-              <div className="flex items-center gap-3">
-                <Calendar className="size-5 text-dd-forest shrink-0" aria-hidden="true" />
-                <span className="font-medium">
-                  {formatFullDate(slot.startAt, slot.timezone)}
-                </span>
-              </div>
-
-              {/* 2. Jam mulai sampai selesai dan durasi */}
-              <div className="flex items-center gap-3">
-                <Clock className="size-5 text-dd-forest shrink-0" aria-hidden="true" />
-                <span className="font-medium">
-                  {formatTimeAndDuration(slot.startAt, slot.endAt, slot.timezone)}
-                </span>
-              </div>
-
-              {/* 3. Nama instruktur */}
-              <div className="flex items-center gap-3">
-                <User className="size-5 text-dd-forest shrink-0" aria-hidden="true" />
-                <span className="font-medium">
-                  {slot.instructor?.displayName
-                    ? `Instruktur: ${slot.instructor.displayName}`
-                    : 'Instruktur: Ditentukan studio'}
-                </span>
-              </div>
-
-              {/* 4. Nama studio */}
-              <div className="flex items-center gap-3">
-                <MapPin className="size-5 text-dd-forest shrink-0" aria-hidden="true" />
-                <span className="font-medium">
-                  Studio: {studioName ?? 'Studio Utama'}
-                </span>
-              </div>
-
-              {/* 5. Sisa slot */}
-              <div className="flex items-center gap-3">
-                <Users className="size-5 text-dd-forest shrink-0" aria-hidden="true" />
-                <span className="font-medium text-dd-forest">
-                  Sisa {slot.available} slot tersedia
-                </span>
-              </div>
-            </div>
-
-            {/* Kotak #e8f0ec berisi nama paket dan sisa sesi setelah booking */}
-            <div className="rounded-dd-md border border-dd-forest/20 bg-[#e8f0ec] p-4 space-y-2">
-              <span className="text-[13px] font-bold uppercase tracking-wider text-dd-forest">
-                Paket yang Digunakan
-              </span>
-
-              {availablePackages.length > 1 ? (
-                <div className="space-y-2 pt-1">
-                  {availablePackages.map((pkg) => {
-                    const isChecked = selectedPkgId === pkg.id;
-                    const remainingAfter = Math.max(0, pkg.available - 1);
-                    return (
-                      <label
-                        key={pkg.id}
-                        className={`flex items-start gap-3 rounded-dd-sm border p-2.5 text-xs cursor-pointer transition ${
-                          isChecked
-                            ? 'border-dd-forest bg-white font-semibold shadow-2xs'
-                            : 'border-transparent bg-white/60 hover:bg-white'
-                        }`}
-                      >
-                        <input
-                          type="radio"
-                          name="selectedPackage"
-                          value={pkg.id}
-                          checked={isChecked}
-                          disabled={status === 'submitting'}
-                          onChange={() => setSelectedPkgId(pkg.id)}
-                          className="mt-0.5 size-4 accent-dd-forest"
-                        />
-                        <div className="flex-1">
-                          <strong className="block text-dd-ink">{pkg.packageName}</strong>
-                          <span className="text-dd-muted">
-                            Sisa setelah booking: {remainingAfter} sesi
-                          </span>
-                        </div>
-                      </label>
-                    );
-                  })}
-                </div>
-              ) : currentPkg ? (
-                <div>
-                  <strong className="block text-base font-bold text-dd-ink">
-                    {currentPkg.packageName}
-                  </strong>
-                  <p className="mt-1 text-xs text-dd-forest font-medium">
-                    Sisa sesi setelah booking:{' '}
-                    <strong>{Math.max(0, currentPkg.available - 1)} sesi</strong> (dari{' '}
-                    {currentPkg.available} sesi aktif).
-                  </p>
-                </div>
-              ) : (
-                <p className="text-xs text-red-800">
-                  Tidak ditemukan paket aktif yang sesuai untuk kelas ini.
+                <p className="mt-1 text-sm text-dd-muted">
+                  Booking berhasil. {slot.classType.name},{' '}
+                  {formatFullDate(slot.startAt, slot.timezone)},{' '}
+                  {formatTimeAndDuration(slot.startAt, slot.endAt, slot.timezone)} di{' '}
+                  {studioName ?? 'Studio Utama'}.
                 </p>
-              )}
-            </div>
+              </div>
 
-          </div>
-        )}
+              {/* Ringkasan Booking */}
+              <div className="rounded-dd-md border border-dd-line/80 bg-dd-surface-muted/40 p-4 text-left space-y-2 text-sm">
+                <div className="flex justify-between items-center text-xs font-semibold text-dd-muted">
+                  <span>NOMOR BOOKING</span>
+                  <span className="font-mono text-dd-ink font-bold">
+                    {bookingResult?.bookingNumber ?? 'BK-CONFIRMED'}
+                  </span>
+                </div>
+                <div className="pt-2 border-t border-dd-line/60">
+                  <strong className="block text-base font-bold text-dd-ink">
+                    {slot.classType.name}
+                  </strong>
+                  <span className="block text-xs text-dd-muted mt-0.5">
+                    {formatFullDate(slot.startAt, slot.timezone)} ·{' '}
+                    {formatTimeAndDuration(slot.startAt, slot.endAt, slot.timezone)}
+                  </span>
+                  <span className="block text-xs text-dd-forest font-semibold mt-1">
+                    Studio: {studioName ?? 'Studio Utama'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Tombol Aksi */}
+              <div className="space-y-2.5 pt-2">
+                <Link
+                  href={
+                    bookingResult?.id
+                      ? `/check-in-pass?bookingId=${encodeURIComponent(bookingResult.id)}`
+                      : '/check-in-pass'
+                  }
+                  className="flex h-[52px] min-h-[52px] w-full items-center justify-center rounded-dd-md bg-dd-forest px-6 text-sm font-bold text-white shadow-xs transition hover:bg-dd-forest-hover"
+                >
+                  Lihat QR Pass
+                </Link>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="flex h-[44px] min-h-[44px] w-full items-center justify-center text-sm font-semibold text-dd-muted hover:text-dd-ink"
+                >
+                  Tutup
+                </button>
+              </div>
+            </div>
+          ) : status === 'slot_full' ? (
+            /* ======================================================== */
+            /* KEADAAN 4A: SLOT HABIS (FULL CONCURRENCY 409) */
+            /* ======================================================== */
+            <div className="space-y-5 text-center py-2" aria-live="polite">
+              <div className="inline-flex size-14 items-center justify-center rounded-full bg-[#fbf4eb] text-[#8a5b17] border border-[#e8d5be] mx-auto">
+                <AlertTriangle className="size-8" />
+              </div>
+              <div>
+                <h2
+                  id="booking-sheet-title"
+                  className="text-xl font-bold tracking-tight text-dd-ink"
+                >
+                  Slot kelas ini baru saja penuh
+                </h2>
+                <p className="mt-2 text-sm text-[#8a5b17] leading-relaxed">
+                  Slot kelas ini baru saja penuh. Pilih jam lain di hari yang sama.
+                </p>
+              </div>
+
+              <div className="pt-3">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="flex h-[52px] min-h-[52px] w-full items-center justify-center rounded-dd-md bg-dd-forest px-6 text-sm font-bold text-white shadow-xs transition hover:bg-dd-forest-hover cursor-pointer"
+                >
+                  Lihat jam lain
+                </button>
+              </div>
+            </div>
+          ) : status === 'unverified' ? (
+            /* ======================================================== */
+            /* KEADAAN 4B: BELUM VERIFIKASI IDENTITAS */
+            /* ======================================================== */
+            <div className="space-y-5 text-center py-2" aria-live="polite">
+              <div className="inline-flex size-14 items-center justify-center rounded-full bg-dd-surface-muted text-[#27607c] mx-auto">
+                <ShieldAlert className="size-8" />
+              </div>
+              <div>
+                <h2
+                  id="booking-sheet-title"
+                  className="text-xl font-bold tracking-tight text-dd-ink"
+                >
+                  Verifikasi identitas diperlukan
+                </h2>
+                <p className="mt-2 text-sm text-dd-muted leading-relaxed">
+                  Booking belum bisa diproses karena identitas kamu belum diverifikasi.
+                </p>
+              </div>
+
+              <div className="space-y-2.5 pt-3">
+                <Link
+                  href="/account/verification"
+                  className="flex h-[52px] min-h-[52px] w-full items-center justify-center rounded-dd-md bg-dd-forest px-6 text-sm font-bold text-white shadow-xs transition hover:bg-dd-forest-hover"
+                >
+                  Isi data verifikasi
+                </Link>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="flex h-[44px] min-h-[44px] w-full items-center justify-center text-sm font-semibold text-dd-muted hover:text-dd-ink"
+                >
+                  Tutup
+                </button>
+              </div>
+            </div>
+          ) : (
+            /* ======================================================== */
+            /* KEADAAN 1: SIAP (READY) & KEADAAN 2: DIPROSES (SUBMITTING) */
+            /* ======================================================== */
+            <div className="space-y-5">
+              {/* Header: Nama kelas 24 px & Tombol X */}
+              <div className="flex items-start justify-between gap-4 pb-2 border-b border-dd-line/60">
+                <div>
+                  <span className="text-[13px] font-bold uppercase tracking-[0.2em] text-dd-forest">
+                    Konfirmasi Booking
+                  </span>
+                  <h2
+                    id="booking-sheet-title"
+                    className="mt-1 text-2xl font-bold tracking-tight text-dd-ink"
+                  >
+                    {slot.classType.name}
+                  </h2>
+                </div>
+                <button
+                  type="button"
+                  disabled={status === 'submitting'}
+                  onClick={onClose}
+                  className="inline-flex size-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-dd-md text-dd-muted hover:text-dd-ink disabled:opacity-30 disabled:pointer-events-none"
+                  aria-label="Tutup konfirmasi booking"
+                >
+                  <X className="size-5" />
+                </button>
+              </div>
+
+              {/* Lima baris dengan ikon (Spesifikasi 5.3) */}
+              <div className="space-y-3 py-1 text-sm text-dd-ink">
+                {/* 1. Tanggal lengkap dengan tahun */}
+                <div className="flex items-center gap-3">
+                  <Calendar className="size-5 text-dd-forest shrink-0" aria-hidden="true" />
+                  <span className="font-medium">{formatFullDate(slot.startAt, slot.timezone)}</span>
+                </div>
+
+                {/* 2. Jam mulai sampai selesai dan durasi */}
+                <div className="flex items-center gap-3">
+                  <Clock className="size-5 text-dd-forest shrink-0" aria-hidden="true" />
+                  <span className="font-medium">
+                    {formatTimeAndDuration(slot.startAt, slot.endAt, slot.timezone)}
+                  </span>
+                </div>
+
+                {/* 3. Nama instruktur */}
+                <div className="flex items-center gap-3">
+                  <User className="size-5 text-dd-forest shrink-0" aria-hidden="true" />
+                  <span className="font-medium">
+                    {slot.instructor?.displayName
+                      ? `Instruktur: ${slot.instructor.displayName}`
+                      : 'Instruktur: Ditentukan studio'}
+                  </span>
+                </div>
+
+                {/* 4. Nama studio */}
+                <div className="flex items-center gap-3">
+                  <MapPin className="size-5 text-dd-forest shrink-0" aria-hidden="true" />
+                  <span className="font-medium">Studio: {studioName ?? 'Studio Utama'}</span>
+                </div>
+
+                {/* 5. Sisa slot */}
+                <div className="flex items-center gap-3">
+                  <Users className="size-5 text-dd-forest shrink-0" aria-hidden="true" />
+                  <span className="font-medium text-dd-forest">
+                    Sisa {slot.available} slot tersedia
+                  </span>
+                </div>
+              </div>
+
+              {/* Kotak #e8f0ec berisi nama paket dan sisa sesi setelah booking */}
+              <div className="rounded-dd-md border border-dd-forest/20 bg-[#e8f0ec] p-4 space-y-2">
+                <span className="text-[13px] font-bold uppercase tracking-wider text-dd-forest">
+                  Paket yang Digunakan
+                </span>
+
+                {availablePackages.length > 1 ? (
+                  <div className="space-y-2 pt-1">
+                    {availablePackages.map((pkg) => {
+                      const isChecked = selectedPkgId === pkg.id;
+                      const remainingAfter = Math.max(0, pkg.available - 1);
+                      return (
+                        <label
+                          key={pkg.id}
+                          className={`flex items-start gap-3 rounded-dd-sm border p-2.5 text-xs cursor-pointer transition ${
+                            isChecked
+                              ? 'border-dd-forest bg-white font-semibold shadow-2xs'
+                              : 'border-transparent bg-white/60 hover:bg-white'
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="selectedPackage"
+                            value={pkg.id}
+                            checked={isChecked}
+                            disabled={status === 'submitting'}
+                            onChange={() => setSelectedPkgId(pkg.id)}
+                            className="mt-0.5 size-4 accent-dd-forest"
+                          />
+                          <div className="flex-1">
+                            <strong className="block text-dd-ink">{pkg.packageName}</strong>
+                            <span className="text-dd-muted">
+                              Sisa setelah booking: {remainingAfter} sesi
+                            </span>
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
+                ) : currentPkg ? (
+                  <div>
+                    <strong className="block text-base font-bold text-dd-ink">
+                      {currentPkg.packageName}
+                    </strong>
+                    <p className="mt-1 text-xs text-dd-forest font-medium">
+                      Sisa sesi setelah booking:{' '}
+                      <strong>{Math.max(0, currentPkg.available - 1)} sesi</strong> (dari{' '}
+                      {currentPkg.available} sesi aktif).
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-xs text-red-800">
+                    Tidak ditemukan paket aktif yang sesuai untuk kelas ini.
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {hasActionFooter && (

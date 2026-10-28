@@ -15,7 +15,7 @@ import {
 } from 'react';
 
 export const controlClassName =
-  'min-h-[44px] w-full rounded-dd-md border border-dd-border-interactive bg-white px-3 py-2 font-sans text-sm text-dd-ink shadow-xs transition placeholder:text-dd-muted/75 hover:border-dd-forest focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#24483a] disabled:cursor-not-allowed disabled:bg-dd-surface-muted disabled:text-dd-muted aria-[invalid=true]:border-dd-danger aria-[invalid=true]:ring-2 aria-[invalid=true]:ring-dd-danger/20';
+  'min-h-[44px] w-full rounded-dd-md border border-dd-border-interactive bg-white px-3 py-2 font-sans text-sm text-dd-ink shadow-xs transition placeholder:text-dd-muted/75 hover:border-dd-forest focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#09371f] disabled:cursor-not-allowed disabled:bg-dd-surface-muted disabled:text-dd-muted aria-[invalid=true]:border-dd-danger aria-[invalid=true]:ring-2 aria-[invalid=true]:ring-dd-danger/20';
 
 /** Chevron kustom agar `<select>` bawaan terlihat sama dengan `SearchSelect`. */
 const selectChevronClassName =
@@ -28,7 +28,7 @@ export type FieldVariant = 'default' | 'editorial';
  * input teks/tanggal di halaman itu. Tinggi dasar 48px; `compact` 44px.
  */
 export const editorialControlClassName =
-  'w-full min-h-[48px] rounded-none border border-ed-border-ui bg-white px-4 py-2 font-sans text-sm text-ed-ink shadow-none transition placeholder:text-ed-muted hover:border-ed-green focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#24483a] disabled:cursor-not-allowed disabled:bg-ed-tint disabled:text-ed-muted aria-[invalid=true]:border-dd-danger aria-[invalid=true]:ring-2 aria-[invalid=true]:ring-dd-danger/20';
+  'w-full min-h-[48px] rounded-none border border-ed-border-ui bg-white px-4 py-2 font-sans text-sm text-ed-ink shadow-none transition placeholder:text-ed-muted hover:border-ed-green focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#09371f] disabled:cursor-not-allowed disabled:bg-ed-tint disabled:text-ed-muted aria-[invalid=true]:border-dd-danger aria-[invalid=true]:ring-2 aria-[invalid=true]:ring-dd-danger/20';
 
 const controlFor = (variant: FieldVariant | undefined, compact?: boolean) =>
   variant === 'editorial'
@@ -51,7 +51,7 @@ export function CheckboxInput({
       <input
         {...props}
         type="checkbox"
-        className="mt-0.5 size-4 shrink-0 accent-dd-forest focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#24483a]"
+        className="mt-0.5 size-4 shrink-0 accent-dd-forest focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#09371f]"
       />
       <span className="grid gap-0.5 text-sm">
         <span className="font-medium text-dd-ink">{label}</span>
@@ -561,15 +561,24 @@ export function SearchSelect({
                   onClick={() => commit(option)}
                 >
                   <span className="min-w-0 flex-1">
-                    <strong className={`block truncate text-sm ${editorial ? 'text-ed-ink' : 'text-dd-ink'}`}>{option.label}</strong>
+                    <strong
+                      className={`block truncate text-sm ${editorial ? 'text-ed-ink' : 'text-dd-ink'}`}
+                    >
+                      {option.label}
+                    </strong>
                     {option.description && (
-                      <span className={`mt-0.5 block text-xs leading-5 ${editorial ? 'text-ed-muted' : 'text-dd-muted'}`}>
+                      <span
+                        className={`mt-0.5 block text-xs leading-5 ${editorial ? 'text-ed-muted' : 'text-dd-muted'}`}
+                      >
                         {option.description}
                       </span>
                     )}
                   </span>
                   {option.id === currentValue && (
-                    <Check className={`mt-0.5 size-4 shrink-0 ${editorial ? 'text-ed-green' : 'text-dd-forest'}`} aria-hidden="true" />
+                    <Check
+                      className={`mt-0.5 size-4 shrink-0 ${editorial ? 'text-ed-green' : 'text-dd-forest'}`}
+                      aria-hidden="true"
+                    />
                   )}
                 </button>
               ))}
@@ -854,7 +863,7 @@ export function RadioCard({
         {...props}
         aria-label={props['aria-label'] ?? label}
         type="radio"
-        className="mt-1 size-4 accent-dd-forest focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#24483a]"
+        className="mt-1 size-4 accent-dd-forest focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#09371f]"
       />
       <span>
         <strong className="block text-sm text-dd-ink">{label}</strong>
@@ -865,4 +874,7 @@ export function RadioCard({
 }
 
 export { ImageUploadField, type ImageUploadFieldProps } from './forms/image-upload-field';
-export { MultiImageGalleryField, type MultiImageGalleryFieldProps } from './forms/multi-image-gallery-field';
+export {
+  MultiImageGalleryField,
+  type MultiImageGalleryFieldProps,
+} from './forms/multi-image-gallery-field';

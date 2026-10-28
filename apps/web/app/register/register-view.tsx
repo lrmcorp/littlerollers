@@ -21,13 +21,7 @@ import {
   validateRegistration,
 } from './register-validation';
 
-const fieldOrder: RegisterFieldName[] = [
-  'displayName',
-  'phone',
-  'email',
-  'password',
-  'consent',
-];
+const fieldOrder: RegisterFieldName[] = ['displayName', 'phone', 'email', 'password', 'consent'];
 
 function errorId(name: RegisterFieldName) {
   return `register-${name}-error`;
@@ -118,14 +112,17 @@ export function RegisterView() {
   const handleGoogleComplete = async () => {
     if (session) {
       const searchParams = new URLSearchParams(window.location.search);
-      const destination = searchParams.get('returnTo') || searchParams.get('returnUrl') || '/account/profile';
+      const destination =
+        searchParams.get('returnTo') || searchParams.get('returnUrl') || '/account/profile';
       await session.completeSignIn(destination);
     }
   };
 
   const handleGoogleFailure = () => {
     setState('error');
-    setMessage('Proses masuk dengan Google belum dapat diselesaikan. Silakan lengkapi formulir pendaftaran di bawah.');
+    setMessage(
+      'Proses masuk dengan Google belum dapat diselesaikan. Silakan lengkapi formulir pendaftaran di bawah.',
+    );
   };
 
   const clearRequestError = () => {
@@ -169,7 +166,8 @@ export function RegisterView() {
               Sudah pernah latihan di studio?
             </strong>
             <p className="text-ed-muted">
-              Akun kamu mungkin sudah dibuatkan staf. Masuk pakai nomor WhatsApp yang kamu berikan ke studio.
+              Akun kamu mungkin sudah dibuatkan staf. Masuk pakai nomor WhatsApp yang kamu berikan
+              ke studio.
             </p>
             <Link
               href={withReturnTo('/sign-in')}
@@ -230,7 +228,8 @@ export function RegisterView() {
               consent: values.consent,
             });
             const searchParams = new URLSearchParams(window.location.search);
-            const returnTo = searchParams.get('returnTo') || searchParams.get('returnUrl') || '/classes#schedule';
+            const returnTo =
+              searchParams.get('returnTo') || searchParams.get('returnUrl') || '/classes#schedule';
             const completed = await session?.completeSignIn(returnTo);
             if (!completed) throw new Error('session');
           } catch (error) {
@@ -335,7 +334,8 @@ export function RegisterView() {
         >
           <ShieldCheck className="size-5 shrink-0 text-ed-green mt-0.5" />
           <span>
-            Data pendaftaran Anda disimpan secara privat dan aman, dan hanya digunakan untuk layanan keanggotaan studio Daily Dose. Foto KTP baru diminta nanti saat pembelian paket pertama.
+            Data pendaftaran Anda disimpan secara privat dan aman, dan hanya digunakan untuk layanan
+            keanggotaan studio Daily Dose. Foto KTP baru diminta nanti saat pembelian paket pertama.
           </span>
         </div>
 
@@ -345,7 +345,7 @@ export function RegisterView() {
             htmlFor="register-consent"
           >
             <input
-              className="mt-0.5 size-4 shrink-0 rounded-none border-ed-border-ui text-ed-forest focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#24483a] accent-ed-forest"
+              className="mt-0.5 size-4 shrink-0 rounded-none border-ed-border-ui text-ed-forest focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#09371f] accent-ed-forest"
               id="register-consent"
               name="consent"
               type="checkbox"

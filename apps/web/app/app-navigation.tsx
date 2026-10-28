@@ -59,9 +59,7 @@ export function AppNavigation({
   const advancedPages = frontendPages
     .filter((item) => item.isAdvanced && !item.isDormant)
     .filter(
-      (item) =>
-        item.capabilities.length === 0 ||
-        context?.hasCapability(...item.capabilities),
+      (item) => item.capabilities.length === 0 || context?.hasCapability(...item.capabilities),
     )
     .sort((a, b) => a.priority - b.priority);
 
@@ -148,7 +146,7 @@ export function AppNavigation({
               priority
             />
             {!collapsed && !customerOnly && (
-              <span className="mt-1 block text-[13px] font-bold uppercase tracking-[0.24em] text-[#5f6b63]">
+              <span className="mt-1 block text-[13px] font-bold uppercase tracking-[0.24em] text-[#4b5563]">
                 {instructorOnly ? 'Area instruktur' : 'Studio operations'}
               </span>
             )}
@@ -169,7 +167,7 @@ export function AppNavigation({
             <div className="flex items-center gap-2 text-xs">
               <MapPin className="size-3.5 shrink-0 text-dd-forest" aria-hidden="true" />
               <div className="min-w-0 flex-1">
-                <span className="block text-[13px] font-bold uppercase tracking-wider text-[#5f6b63]">
+                <span className="block text-[13px] font-bold uppercase tracking-wider text-[#4b5563]">
                   Studio Aktif
                 </span>
                 <span className="block truncate font-semibold text-dd-ink">
@@ -189,7 +187,7 @@ export function AppNavigation({
             <section className="space-y-1" aria-labelledby="nav-customer">
               <h2
                 id="nav-customer"
-                className="px-3 pb-2 text-[13px] font-bold uppercase tracking-[0.18em] text-[#5f6b63]"
+                className="px-3 pb-2 text-[13px] font-bold uppercase tracking-[0.18em] text-[#4b5563]"
               >
                 Akun Saya
               </h2>
@@ -228,11 +226,15 @@ export function AppNavigation({
                 if (pagesInGroup.length === 0) return null;
 
                 return (
-                  <section className="space-y-1 pt-2 first:pt-0" aria-labelledby={`nav-${group}`} key={group}>
+                  <section
+                    className="space-y-1 pt-2 first:pt-0"
+                    aria-labelledby={`nav-${group}`}
+                    key={group}
+                  >
                     {!collapsed && (
                       <h2
                         id={`nav-${group}`}
-                        className="px-3 pb-2 text-[13px] font-bold uppercase tracking-[0.2em] text-[#5f6b63]"
+                        className="px-3 pb-2 text-[13px] font-bold uppercase tracking-[0.2em] text-[#4b5563]"
                       >
                         {group}
                       </h2>
@@ -287,12 +289,15 @@ export function AppNavigation({
               })}
 
               {advancedPages.length > 0 && (
-                <section className="pt-3 border-t border-dd-line/60 space-y-1" aria-label="Alat dan sistem lanjutan">
+                <section
+                  className="pt-3 border-t border-dd-line/60 space-y-1"
+                  aria-label="Alat dan sistem lanjutan"
+                >
                   {!collapsed ? (
                     <button
                       type="button"
                       onClick={() => setAdvancedOpen((prev) => !prev)}
-                      className="flex min-h-[44px] w-full items-center justify-between px-3 py-2 text-[13px] font-bold uppercase tracking-[0.2em] text-[#5f6b63] hover:text-dd-ink transition cursor-pointer"
+                      className="flex min-h-[44px] w-full items-center justify-between px-3 py-2 text-[13px] font-bold uppercase tracking-[0.2em] text-[#4b5563] hover:text-dd-ink transition cursor-pointer"
                       aria-expanded={showAdvanced}
                     >
                       <span className="flex items-center gap-2">
@@ -320,7 +325,7 @@ export function AppNavigation({
                             title={
                               collapsed
                                 ? `${item.shortLabel}${item.queueBadgeSource && (queueCounts[item.queueBadgeSource] ?? 0) > 0 ? ` (${queueCounts[item.queueBadgeSource]})` : ''}`
-                              : undefined
+                                : undefined
                             }
                             onClick={onClose}
                             className={linkClass(active)}
@@ -337,7 +342,9 @@ export function AppNavigation({
                                 )}
                             </div>
                             {!collapsed && <span className="truncate">{item.shortLabel}</span>}
-                            {!collapsed && item.maturity === 'preview' && <PreviewTag tone="light" />}
+                            {!collapsed && item.maturity === 'preview' && (
+                              <PreviewTag tone="light" />
+                            )}
                             {!collapsed &&
                               item.queueBadgeSource &&
                               (queueCounts[item.queueBadgeSource] ?? 0) > 0 && (
