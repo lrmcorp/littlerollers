@@ -144,7 +144,7 @@ export function MobileBottomNavigation({
     const instructorTabs = [
       { href: '/workspace', label: 'Hari Ini', icon: House },
       { href: '/workspace/classes', label: 'Jadwal Saya', icon: CalendarDays },
-      // Instruktur menunjukkan QR statisnya ke layar studio; bukan memindai.
+      // Instruktur menunjukkan QR statisnya ke staf di meja check-in; bukan memindai.
       { href: '/check-in-pass', label: 'QR saya', icon: QrCode },
       { href: '/account/profile', label: 'Akun', icon: UserRound },
     ];

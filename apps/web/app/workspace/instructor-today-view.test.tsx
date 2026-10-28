@@ -143,20 +143,21 @@ describe('InstructorTodayView (Tiket T-10 / Spesifikasi 5.4)', () => {
     expect(screen.getByText(/Studio Daily Dose Tebet/i)).toBeInTheDocument();
   });
 
-  it('renders full-width 60px "Tampilkan QR presensi saya" button linking to the instructor own QR pass', async () => {
+  it('shows the instructor own static QR at the top of the home page', async () => {
     render(
       <InstructorTodayView
         client={mockSlotClient}
         bookingClient={mockBookingClient}
         availabilityClient={mockAvailabilityClient}
         initialDate={testDate}
+        muatQr={() => Promise.resolve('dd-pass:v1:instruktur')}
       />,
     );
 
-    const scanButton = await screen.findByRole('link', { name: /Tampilkan QR presensi saya/i });
-    expect(scanButton).toBeInTheDocument();
-    expect(scanButton.getAttribute('href')).toBe('/check-in-pass');
-    expect(scanButton.className).toContain('h-[60px]');
+    const judul = await screen.findAllByRole('heading', { level: 2 });
+    expect(judul[0]).toHaveTextContent('QR kehadiran saya');
+    expect(screen.getByText(/Tunjukkan ke staf di meja check-in/)).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Perbesar' })).toHaveAttribute('href', '/check-in-pass');
   });
 
   it('renders assigned classes with 22px time, duration, studio, quota, and HADIR / NANTI status badge', async () => {

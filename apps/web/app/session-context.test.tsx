@@ -463,9 +463,8 @@ describe('capability-aware session shell', () => {
     expect(
       await screen.findByRole('heading', { name: /Halo, Coach/ }),
     ).toBeVisible();
-    expect(
-      screen.getByRole('link', { name: /Tampilkan QR presensi saya/ }),
-    ).toHaveAttribute('href', '/check-in-pass');
+    expect(screen.getByRole('heading', { name: 'QR kehadiran saya' })).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Perbesar' })).toHaveAttribute('href', '/check-in-pass');
     expect(screen.queryByText('Pilih cabang aktif di bagian atas', { exact: false })).not.toBeInTheDocument();
   });
 
