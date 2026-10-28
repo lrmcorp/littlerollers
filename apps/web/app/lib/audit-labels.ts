@@ -42,6 +42,7 @@ const auditActionLabels: Record<string, string> = {
   'attendance.studio_scan': 'Kehadiran tercatat dari pindaian tablet studio',
   'attendance.studio_scan_rejected': 'Pindaian tablet studio ditolak',
   'class.below_quota_continued': 'Kelas tetap dijalankan di bawah kuota minimum',
+  'checkin.qr_whatsapp_sent': 'QR kehadiran dikirim lewat WhatsApp',
   'instructor.hours_adjusted': 'Jam mengajar instruktur dikoreksi',
   'master.public_profile_updated': 'Profil publik studio diperbarui',
   'class_slot.updated': 'Jadwal kelas diubah',

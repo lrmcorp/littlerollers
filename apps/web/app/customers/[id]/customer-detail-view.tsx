@@ -33,6 +33,7 @@ import { SearchSelect, TextInput } from '../../components/forms';
 import { useSessionContext } from '../../session-context';
 import { Feedback, Skeleton, StatusBadge } from '../../ui';
 import { AdminPageHeader } from '../../components/admin/admin-page-header';
+import { KirimQrWhatsApp } from '../../components/kirim-qr-whatsapp';
 import { AssistedSaleDrawer } from '../../purchases/assisted-sale-drawer';
 import { DataTable } from '../../components/admin/admin-ui';
 import { statusLabel } from '../../lib/status-labels';
@@ -511,6 +512,13 @@ export function CustomerDetailView({ id }: { id: string }) {
               >
                 Reset kata sandi
               </Button>
+            )}
+            {customer.status === 'ACTIVE' && (
+              <KirimQrWhatsApp
+                userId={customer.id}
+                nama={customer.displayName}
+                punyaNomor={Boolean(customer.phoneE164)}
+              />
             )}
             {canSell && customer.status === 'ACTIVE' && (
               <Button disabled={saleBranches.length === 0} onClick={() => setSaleOpen(true)}>
