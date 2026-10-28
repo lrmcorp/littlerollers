@@ -135,7 +135,7 @@ export function Tooltip({ label, children }: { label: string; children: ReactNod
       {children}
       <span
         role="tooltip"
-        className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded bg-dd-sidebar px-2 py-1 text-xs text-white shadow-lg group-hover:block group-focus-within:block"
+        className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded bg-dd-ink px-2 py-1 text-[13px] text-white shadow-lg group-hover:block group-focus-within:block"
       >
         {label}
       </span>
@@ -564,7 +564,7 @@ export function BulkActionBar({
 }) {
   if (!count) return null;
   return (
-    <div className="sticky bottom-4 z-30 flex flex-wrap items-center justify-between gap-3 rounded-dd-lg border border-dd-brass/40 bg-dd-sidebar px-4 py-3 text-white shadow-dd-float">
+    <div className="sticky bottom-4 z-30 flex flex-wrap items-center justify-between gap-3 rounded-dd-lg border border-dd-brass/40 bg-dd-ink px-4 py-3 text-white shadow-dd-float">
       <strong className="text-sm">{count.toLocaleString('id-ID')} dipilih</strong>
       <div className="flex flex-wrap items-center gap-2">
         {children}

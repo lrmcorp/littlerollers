@@ -64,7 +64,7 @@ const headerStyles = {
     primary:
       'hidden min-h-11 items-center justify-center rounded-dd-sm border border-dd-forest bg-dd-forest px-5 text-sm font-bold text-white no-underline shadow-dd-soft transition hover:-translate-y-px hover:bg-dd-forest-dark lg:inline-flex',
     overlay:
-      'fixed inset-0 z-[100] bg-dd-sidebar/45 backdrop-blur-sm transition-opacity duration-[160ms] ease-out motion-reduce:duration-75 lg:hidden',
+      'fixed inset-0 z-[100] bg-dd-ink/45 backdrop-blur-sm transition-opacity duration-[160ms] ease-out motion-reduce:duration-75 lg:hidden',
     panel:
       'ml-auto flex h-dvh w-[min(88vw,380px)] flex-col overflow-y-auto bg-dd-paper pb-[max(1.25rem,env(safe-area-inset-bottom))] pl-5 pr-[max(1.25rem,env(safe-area-inset-right))] pt-[max(1.25rem,env(safe-area-inset-top))] shadow-dd-float transition-transform duration-[220ms] ease-out motion-reduce:transform-none motion-reduce:duration-75',
     drawerHead: 'flex items-center justify-between gap-4 border-b border-dd-line pb-5',

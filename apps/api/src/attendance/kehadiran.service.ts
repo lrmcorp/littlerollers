@@ -351,7 +351,9 @@ export class AttendanceService {
             booking: {
               include: {
                 attendance: true,
-                user: { select: { displayName: true } },
+                // Foto selfie dibawa serta supaya meja depan bisa mencocokkan orang yang
+                // berdiri di depannya dengan pemilik paket, bukan sekadar membaca namanya.
+                user: { select: { displayName: true, profile: { select: { selfieUrl: true } } } },
                 classSlot: {
                   include: {
                     classType: { select: { name: true } },
@@ -438,7 +440,7 @@ export class AttendanceService {
           where: { id: input.bookingId },
           include: {
             attendance: true,
-            user: { select: { displayName: true } },
+            user: { select: { displayName: true, profile: { select: { selfieUrl: true } } } },
             classSlot: {
               include: {
                 classType: { select: { name: true } },
@@ -556,7 +558,7 @@ export class AttendanceService {
     booking: {
       userId: string;
       classSlotId: string;
-      user: { displayName: string };
+      user: { displayName: string; profile?: { selfieUrl: string | null } | null };
       classSlot: {
         startAt: Date;
         endAt: Date;
@@ -573,6 +575,8 @@ export class AttendanceService {
       status: 'CHECKED_IN',
       checkedInAt: attendance.checkedInAt.toISOString(),
       customerName: booking.user.displayName,
+      /** Null bila member belum pernah mengunggah selfie; antarmuka menyebutkannya apa adanya. */
+      customerPhotoUrl: booking.user.profile?.selfieUrl ?? null,
       className: booking.classSlot.classType.name,
       branch: booking.classSlot.branch,
       startAt: booking.classSlot.startAt.toISOString(),

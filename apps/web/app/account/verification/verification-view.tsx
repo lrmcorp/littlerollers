@@ -739,7 +739,7 @@ export function VerificationView() {
               )}
             </div>
           </div>
-          <div className="rounded-dd-lg bg-dd-sidebar p-5 text-white">
+          <div className="rounded-dd-lg bg-dd-ink p-5 text-white">
             <ShieldCheck className="size-7 text-dd-brass" />
             <h2 className="mt-4 text-base font-bold text-white">Progres verifikasi</h2>
             <ol className="mt-4 grid list-none gap-3 p-0">

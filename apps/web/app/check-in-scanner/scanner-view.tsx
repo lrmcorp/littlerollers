@@ -20,6 +20,7 @@ import { Panel } from '../components/admin/admin-ui';
 import { Feedback } from '../ui';
 import { AdminPageHeader } from '../components/admin/admin-page-header';
 import { useSessionContext } from '../session-context';
+import { resolvePublicImageUrl } from '../lib/public-image-url';
 
 type ScanMode = 'customer' | 'instructor';
 
@@ -257,9 +258,21 @@ export function CheckInScannerView() {
       {/* HASIL SUKSES PELANGGAN */}
       {mode === 'customer' && result && (
         <Panel className="border-dd-success/30 p-6 text-center space-y-4 bg-white rounded-2xl">
-          <div className="size-14 rounded-full bg-dd-success-soft text-dd-success mx-auto flex items-center justify-center">
-            <CheckCircle2 className="size-8" />
-          </div>
+          {/* Selfie yang diunggah saat mendaftar ditampilkan sebesar mungkin: inilah satu-satunya
+              cara pemindaian menahan paket yang dipakai bergantian. Tanpa foto, staf hanya membaca
+              nama dan kartunya bisa dipinjamkan ke siapa saja. */}
+          {result.customerPhotoUrl ? (
+            <img
+              src={resolvePublicImageUrl(result.customerPhotoUrl)}
+              alt={`Foto ${result.customerName} saat mendaftar`}
+              className="mx-auto size-28 rounded-full border-4 border-dd-success object-cover"
+            />
+          ) : (
+            <div className="mx-auto flex size-28 flex-col items-center justify-center gap-1 rounded-full border-4 border-dashed border-dd-line bg-dd-surface-muted px-2 text-center">
+              <CheckCircle2 className="size-7 text-dd-success" aria-hidden="true" />
+              <span className="text-[13px] font-bold text-dd-muted">Belum ada foto</span>
+            </div>
+          )}
           <div>
             <p className="text-[13px] font-bold text-dd-success">
               Check-in berhasil
@@ -277,9 +290,15 @@ export function CheckInScannerView() {
               Pelanggan sudah tercatat hadir sebelumnya; tidak ada kehadiran ganda.
             </p>
           )}
+          {!result.customerPhotoUrl && (
+            <p className="m-0 text-[13px] text-dd-muted">
+              Member ini belum mengunggah selfie, jadi wajahnya tidak bisa dicocokkan di sini.
+              Minta dia melengkapinya di menu akun agar check-in berikutnya bisa diperiksa.
+            </p>
+          )}
           <div className="pt-2">
             <Button variant="primary" onClick={resetScan} fullWidth>
-              Pindai berikutnya
+              Cocok, pindai berikutnya
             </Button>
           </div>
         </Panel>

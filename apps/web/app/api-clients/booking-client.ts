@@ -358,6 +358,8 @@ export type CheckInResult = {
   auditReference: string;
   idempotentReplay: boolean;
   customerName: string;
+  /** Selfie yang diunggah member saat mendaftar; null bila belum ada. */
+  customerPhotoUrl?: string | null;
   className: string;
   branch: { code: string; name: string };
   startAt: string;
