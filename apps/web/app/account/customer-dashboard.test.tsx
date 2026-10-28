@@ -77,14 +77,14 @@ describe('customer dashboard (Tiket T-02)', () => {
 
     expect(await screen.findByRole('heading', { name: 'Halo, Nadia' })).toBeVisible();
     expect(
-      screen.getByRole('heading', { name: 'Identitas kamu belum diverifikasi' }),
+      screen.getByRole('heading', { name: 'Ambil foto selfie dulu' }),
     ).toBeVisible();
     expect(
       screen.getByText(
-        'Verifikasi diperlukan sebelum kamu bisa membeli paket dan booking kelas. Satu halaman, sekitar 2 menit.',
+        'Satu foto wajah, tanpa KTP. Wajib sebelum membeli paket dan booking kelas.',
       ),
     ).toBeVisible();
-    const btn = screen.getByRole('link', { name: 'Isi data verifikasi' });
+    const btn = screen.getByRole('link', { name: 'Ambil foto selfie' });
     expect(btn).toBeVisible();
     expect(btn.getAttribute('href')).toBe('/account/verification?returnTo=%2Faccount');
   });
@@ -113,11 +113,11 @@ describe('customer dashboard (Tiket T-02)', () => {
     render(<CustomerDashboard />);
 
     expect(await screen.findByRole('heading', { name: 'Halo, Nadia' })).toBeVisible();
-    expect(screen.getByRole('heading', { name: 'Verifikasi identitas ditolak' })).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Foto selfie perlu diambil ulang' })).toBeVisible();
     expect(
-      screen.getByText('Data ditolak: Foto KTP terlalu buram. Perbaiki lalu kirim lagi.'),
+      screen.getByText('Foto sebelumnya belum bisa dipakai (Foto KTP terlalu buram). Ambil foto baru untuk lanjut.'),
     ).toBeVisible();
-    const btn = screen.getByRole('link', { name: 'Perbaiki data' });
+    const btn = screen.getByRole('link', { name: 'Ambil foto baru' });
     expect(btn).toBeVisible();
     expect(btn.getAttribute('href')).toBe('/account/verification?returnTo=%2Faccount');
   });
@@ -142,9 +142,9 @@ describe('customer dashboard (Tiket T-02)', () => {
     render(<CustomerDashboard />);
 
     expect(await screen.findByRole('heading', { name: 'Halo, Nadia' })).toBeVisible();
-    expect(screen.queryByRole('heading', { name: 'Identitas kamu belum diverifikasi' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Ambil foto selfie dulu' })).toBeNull();
     expect(screen.queryByRole('heading', { name: 'Data kamu sedang diperiksa' })).toBeNull();
-    expect(screen.queryByRole('heading', { name: 'Verifikasi identitas ditolak' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Foto selfie perlu diambil ulang' })).toBeNull();
   });
 
   it('renders the QR at the top and the nearest booking with a cancel link (Tiket T-08)', async () => {

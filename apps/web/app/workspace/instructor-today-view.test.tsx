@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { InstructorTodayView } from './instructor-today-view';
@@ -141,6 +141,32 @@ describe('InstructorTodayView (Tiket T-10 / Spesifikasi 5.4)', () => {
 
     expect(await screen.findByRole('heading', { level: 1, name: /Halo, Sarah/i })).toBeInTheDocument();
     expect(screen.getByText(/Studio Daily Dose Tebet/i)).toBeInTheDocument();
+  });
+
+  it('asks an instructor without a selfie to take one, and hides the prompt once saved', async () => {
+    const user = userEvent.setup();
+    const selfieClient = {
+      mine: vi.fn().mockResolvedValue({ status: 'ACTION_REQUIRED', documents: [] }),
+      submit: vi.fn().mockResolvedValue({ status: 'APPROVED', message: 'ok' }),
+    };
+    render(
+      <InstructorTodayView
+        client={mockSlotClient}
+        bookingClient={mockBookingClient}
+        availabilityClient={mockAvailabilityClient}
+        initialDate={testDate}
+        muatQr={() => Promise.resolve('dd-pass:v1:instruktur')}
+        selfieClient={selfieClient as never}
+      />,
+    );
+    expect(await screen.findByRole('heading', { name: 'Ambil foto selfie dulu' })).toBeVisible();
+    const foto = new File(['x'], 'selfie.jpg', { type: 'image/jpeg' });
+    await user.upload(screen.getByLabelText('Pilih foto selfie'), foto);
+    await user.click(screen.getByRole('button', { name: 'Simpan foto selfie' }));
+    expect(selfieClient.submit).toHaveBeenCalledWith({ selfie: foto });
+    await waitFor(() =>
+      expect(screen.queryByRole('heading', { name: 'Ambil foto selfie dulu' })).toBeNull(),
+    );
   });
 
   it('shows the instructor own static QR at the top of the home page', async () => {

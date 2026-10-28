@@ -83,10 +83,10 @@ const roleGuides: Record<
           },
           {
             number: 3,
-            title: 'Unggah foto KTP dan selfie',
+            title: 'Ambil foto selfie',
             description:
-              'Foto KTP dan selfie dapat diunggah saat mendaftar atau nanti lewat menu "Verifikasi" di akun Anda. Data disimpan secara privat dan hanya dipakai untuk verifikasi.',
-            tips: 'Pastikan foto tidak buram dan seluruh teks pada KTP terbaca jelas.',
+              'Foto selfie diambil saat mendaftar, atau nanti lewat menu "Foto selfie" di akun Anda. Tidak perlu KTP. Foto disimpan secara privat dan hanya dipakai staf untuk mengenali Anda saat datang.',
+            tips: 'Pastikan wajah terlihat jelas dan tidak gelap.',
           },
           {
             number: 4,
@@ -100,8 +100,7 @@ const roleGuides: Record<
           title: 'Status Verifikasi Identitas',
           items: [
             { label: 'Status akun', value: 'Terverifikasi', tone: 'success' },
-            { label: 'Foto KTP', value: 'Sudah diperiksa', tone: 'success' },
-            { label: 'Foto selfie', value: 'Sesuai dengan KTP', tone: 'success' },
+                        { label: 'Foto selfie', value: 'Tersimpan', tone: 'success' },
             { label: 'Pesan kelas', value: 'Sudah bisa', tone: 'info' },
           ],
           statusBadge: { text: 'Terverifikasi', tone: 'success' },

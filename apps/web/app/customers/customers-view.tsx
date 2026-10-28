@@ -22,8 +22,9 @@ export const customerStatusLabels: Record<string, string> = {
 };
 
 export const verificationStatusLabels: Record<string, string> = {
-  APPROVED: 'Disetujui',
-  ACTION_REQUIRED: 'Perlu perbaikan',
+  APPROVED: 'Selfie ada',
+  ACTION_REQUIRED: 'Belum ada selfie',
+  REJECTED: 'Selfie perlu diulang',
   PENDING: 'Menunggu',
 };
 

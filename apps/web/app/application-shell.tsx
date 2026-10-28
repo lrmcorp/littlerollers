@@ -49,7 +49,7 @@ const accountPageLabels: Record<string, string> = {
   '/account': 'Dashboard',
   '/account/profile': 'Profil Saya',
   '/account/security': 'Keamanan akun',
-  '/account/verification': 'Verifikasi identitas',
+  '/account/verification': 'Foto selfie',
   '/checkout': 'Checkout',
   '/orders': 'Pesanan',
   '/bookings': 'Booking',

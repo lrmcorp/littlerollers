@@ -21,6 +21,8 @@ import {
 } from '../api-clients/availability-client';
 import { useSessionContext } from '../session-context';
 import { QrKehadiran } from '../components/qr-kehadiran';
+import { AmbilSelfie } from '../components/ambil-selfie';
+import { verificationClient } from '../api-clients/identity-verification-client';
 import { ButtonLink } from '../components/actions';
 import { Feedback, Skeleton, StatusBadge } from '../ui';
 import { Modal } from '../components/app-feedback';
@@ -33,6 +35,8 @@ export interface InstructorTodayViewProps {
   initialDate?: Date;
   /** Hanya untuk tes: pemuat QR tetap. */
   muatQr?: () => Promise<string>;
+  /** Hanya untuk tes: status dan pengiriman foto selfie. */
+  selfieClient?: Pick<typeof verificationClient, 'mine' | 'submit'>;
 }
 
 export function InstructorTodayView({
@@ -41,6 +45,7 @@ export function InstructorTodayView({
   availabilityClient = browserAvailabilityClient,
   initialDate,
   muatQr,
+  selfieClient = verificationClient,
 }: InstructorTodayViewProps) {
   const sessionContext = useSessionContext();
   const session = sessionContext?.session;
@@ -53,6 +58,18 @@ export function InstructorTodayView({
 
   // Selected slot for attendee panel
   const [selectedSlot, setSelectedSlot] = useState<ClassSlot | null>(null);
+  // Instruktur juga wajib punya foto selfie, supaya staf mengenalinya di meja check-in.
+  const [perluSelfie, setPerluSelfie] = useState(false);
+  useEffect(() => {
+    let batal = false;
+    Promise.resolve()
+      .then(() => selfieClient.mine())
+      .then((r) => !batal && setPerluSelfie(r?.status !== 'APPROVED'))
+      .catch(() => undefined);
+    return () => {
+      batal = true;
+    };
+  }, [selfieClient]);
   const [attendees, setAttendees] = useState<CustomerBookingRecord[]>([]);
   const [attendeesLoading, setAttendeesLoading] = useState(false);
   const [attendeesError, setAttendeesError] = useState<string | null>(null);
@@ -223,6 +240,24 @@ export function InstructorTodayView({
           {branch?.name ? ` · ${branch.name}` : ''}
         </p>
       </header>
+
+      {perluSelfie && (
+        <section
+          aria-labelledby="selfie-instruktur"
+          className="space-y-3 rounded-dd-xl border border-dd-warning-line/60 bg-dd-warning-soft p-5"
+        >
+          <h2 id="selfie-instruktur" className="m-0 text-lg font-semibold text-dd-ink">
+            Ambil foto selfie dulu
+          </h2>
+          <p className="m-0 text-[15px] text-dd-ink">
+            Staf memakai foto ini untuk mengenali Anda saat memindai QR presensi. Cukup sekali.
+          </p>
+          <AmbilSelfie
+            kirim={(file) => selfieClient.submit({ selfie: file })}
+            onTersimpan={() => setPerluSelfie(false)}
+          />
+        </section>
+      )}
 
       {/* 2. QR presensi milik instruktur, langsung di beranda: staf di meja check-in yang memindainya. */}
       <QrKehadiran nama={session?.displayName ?? 'Instruktur'} peran="instruktur" muat={muatQr} />
