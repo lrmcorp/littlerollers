@@ -6,7 +6,8 @@ import { PublicAttendanceController } from './public-attendance.controller';
 import { AttendanceService } from './kehadiran.service';
 import { KioskAccessService } from './kiosk-access.service';
 import { KioskAdminController } from './kiosk-admin.controller';
-import { NoShowController } from './no-show.controller';
+import { LaporanOwnerController, NoShowController } from './no-show.controller';
+import { LaporanOwnerService } from './laporan-owner.service';
 import { CheckInDeskController } from './check-in-desk.controller';
 import { CheckInDeskService } from './check-in-desk.service';
 import { StudioCheckInService } from './studio-check-in.service';
@@ -20,12 +21,14 @@ import { StudioScanService } from './studio-scan.service';
     PublicAttendanceController,
     KioskAdminController,
     NoShowController,
+    LaporanOwnerController,
     CheckInDeskController,
   ],
   providers: [
     AttendanceService,
     KioskAccessService,
     NoShowService,
+    LaporanOwnerService,
     StudioScanService,
     CheckInDeskService,
     StudioCheckInService,

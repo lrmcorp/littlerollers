@@ -33,6 +33,8 @@ import type { ClassSlotClient } from '@/api-clients/class-slot-client';
 import type { BookingClient } from '@/api-clients/booking-client';
 import type { AvailabilityClient } from '@/api-clients/availability-client';
 import { EmptyWeeksNotice } from './workspace/empty-weeks-notice';
+import { OwnerExceptionsPanel } from './workspace/owner-exceptions-panel';
+import type { OwnerReportClient } from '@/api-clients/owner-report-client';
 
 const number = new Intl.NumberFormat('id-ID');
 const compact = new Intl.NumberFormat('id-ID', { notation: 'compact', maximumFractionDigits: 1 });
@@ -201,8 +203,10 @@ export function Dashboard({
   slotClient,
   bookingClient,
   availabilityClient,
+  ownerReportClient,
 }: {
   client?: DashboardClient;
+  ownerReportClient?: OwnerReportClient;
   slotClient?: ClassSlotClient;
   bookingClient?: BookingClient;
   availabilityClient?: AvailabilityClient;
@@ -274,6 +278,11 @@ export function Dashboard({
   );
   const showQueue = Boolean(overview?.sections.queue);
   const showRisk = Boolean(overview?.sections.risk);
+  const canReadOwnerReport = Boolean(
+    typeof context?.hasCapability === 'function'
+      ? context.hasCapability('dashboard:read')
+      : session.capabilities?.includes('dashboard:read'),
+  );
 
   return (
     <div className="space-y-8 font-sans text-dd-ink">
@@ -500,6 +509,16 @@ export function Dashboard({
             )}
           </div>
         </section>
+      )}
+
+      {overview && canReadOwnerReport && (
+        <OwnerExceptionsPanel
+          from={from}
+          until={until}
+          branchId={branchId || undefined}
+          timezone={activeBranch?.timezone}
+          client={ownerReportClient}
+        />
       )}
 
       {/* ========================================================================= */}

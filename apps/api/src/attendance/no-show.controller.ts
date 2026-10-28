@@ -1,5 +1,6 @@
 import { Controller, Get, Query, Req, UseGuards } from '@nestjs/common';
 import { AuthGuard, type AuthenticatedRequest } from '../identity/auth.guard';
+import { LaporanOwnerService } from './laporan-owner.service';
 import { NoShowService } from './no-show.service';
 
 @Controller()
@@ -17,5 +18,23 @@ export class NoShowController {
     @Query('period') period?: string,
   ) {
     return this.noShow.report(req.principal, { branchId, from, until, period });
+  }
+}
+
+@Controller()
+@UseGuards(AuthGuard)
+export class LaporanOwnerController {
+  constructor(private readonly laporan: LaporanOwnerService) {}
+
+  /** Kelas yang tetap jalan di bawah kuota dan pindaian studio yang ditolak, untuk Owner. */
+  @Get('reports/owner-exceptions')
+  report(
+    @Req() req: AuthenticatedRequest,
+    @Query('branchId') branchId?: string,
+    @Query('from') from?: string,
+    @Query('until') until?: string,
+    @Query('period') period?: string,
+  ) {
+    return this.laporan.laporan(req.principal, { branchId, from, until, period });
   }
 }
