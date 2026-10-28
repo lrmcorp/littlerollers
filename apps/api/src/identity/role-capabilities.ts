@@ -47,6 +47,8 @@ const SUPER_OWNER_CAPABILITIES: readonly string[] = [
     'finance:read',
     'finance:manage',
     'instructor:fee:read',
+    // Hapus versi tarif yang sudah berlaku karena salah input (dampak honor dicatat di audit).
+    'instructor-fee:correct',
     'package:read',
     'payment:review',
     'payment:decide',

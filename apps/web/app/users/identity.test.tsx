@@ -873,6 +873,10 @@ describe('effective master UI', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Muat master data' }));
     expect(await screen.findByRole('heading', { name: 'Kuota & kapasitas kelas' })).toBeVisible();
     await userEvent.click(screen.getByRole('button', { name: /\+ Atur kuota baru/i }));
+    // Form baru selalu mulai tanpa tipe kelas; pilihan sebelumnya tidak boleh terbawa.
+    expect(screen.getByRole('button', { name: 'Simpan konfigurasi' })).toBeDisabled();
+    await userEvent.click(screen.getByRole('combobox', { name: 'Tipe kelas' }));
+    await userEvent.click(await screen.findByRole('option', { name: /Reformer Pilates/i }));
     await userEvent.type(screen.getByLabelText(/Minimum peserta/), '4');
     await userEvent.type(screen.getByLabelText(/Kapasitas maksimum/), '8');
     await userEvent.type(screen.getByLabelText(/Efektif mulai/), '2026-08-01');

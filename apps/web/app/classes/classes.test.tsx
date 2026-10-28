@@ -617,7 +617,7 @@ describe('ClassSlotView detail drawer layout', () => {
     );
     const user = userEvent.setup();
     // Kelas batal disembunyikan dulu; staf membukanya lewat tombol "Tampilkan kelas batal".
-    if (target.status === 'CANCELLED') {
+    if ((target.status as string) === 'CANCELLED') {
       await user.click(await screen.findByRole('button', { name: /Tampilkan 1 kelas batal/ }));
     }
     await screen.findAllByText('Reformer');
@@ -791,7 +791,7 @@ describe('ClassSlotView duplicate and delete', () => {
     render(<ClassSlotView client={client} branchOverride={branch} capabilitiesOverride={capabilities} />);
     const user = userEvent.setup();
     // Kelas batal disembunyikan dulu; staf membukanya lewat tombol "Tampilkan kelas batal".
-    if (target.status === 'CANCELLED') {
+    if ((target.status as string) === 'CANCELLED') {
       await user.click(await screen.findByRole('button', { name: /Tampilkan 1 kelas batal/ }));
     }
     await screen.findAllByText('Reformer');

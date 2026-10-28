@@ -67,6 +67,7 @@ const auditActionLabels: Record<string, string> = {
   'master.room_deleted': 'Ruangan dihapus',
   'master.instructor_fee_created': 'Tarif honor ditambahkan',
   'master.instructor_fee_deleted': 'Tarif honor dihapus',
+  'master.instructor_fee_deleted_effective': 'Versi tarif honor yang salah input dihapus',
   'master.projection_rate_created': 'Tarif proyeksi ditambahkan',
   'master.projection_rate_deleted': 'Tarif proyeksi dihapus',
   'master.min_quota_saved': 'Kuota minimum disimpan',
