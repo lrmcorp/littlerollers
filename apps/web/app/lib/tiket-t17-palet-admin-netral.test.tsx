@@ -107,7 +107,7 @@ describe('Tiket T-17: Ganti Palet Panel Admin ke Netral', () => {
   });
 
   describe('Kriteria 3: Penanda Menu Aktif & Struktur Sidebar (Spesifikasi 10.3)', () => {
-    it('memastikan sidebar AppNavigation berlatar netral bg-dd-sidebar (#edeff2) dan border kanan border-dd-line (#7a848f)', () => {
+    it('memastikan sidebar AppNavigation berlatar putih seperti mockup dan berbatas kanan border-dd-line', () => {
       render(
         <AppNavigation
           mobileOpen={false}
@@ -121,7 +121,7 @@ describe('Tiket T-17: Ganti Palet Panel Admin ke Netral', () => {
       );
 
       const nav = screen.getByRole('navigation', { name: 'Navigasi utama' });
-      expect(nav.className).toContain('bg-dd-sidebar');
+      expect(nav.className).toContain('bg-white');
       expect(nav.className).toContain('border-dd-line');
       expect(nav.className).toContain('text-dd-ink');
       // Tidak lagi menggunakan background gelap hijau
@@ -153,7 +153,7 @@ describe('Tiket T-17: Ganti Palet Panel Admin ke Netral', () => {
       }
     });
 
-    it('memastikan label kelompok menu sidebar menggunakan warna text-[#4b5563]', () => {
+    it('memastikan label kelompok menu sidebar memakai token text-dd-muted (#4b5563)', () => {
       render(
         <AppNavigation
           mobileOpen={false}
@@ -169,8 +169,8 @@ describe('Tiket T-17: Ganti Palet Panel Admin ke Netral', () => {
       const groupHeadings = document.querySelectorAll('h2');
       const groupHeadingTexts = Array.from(groupHeadings).map((h) => h.className);
 
-      // Minimal satu heading kelompok menu memiliki kelas text-[#4b5563]
-      const hasCorrectGroupColor = groupHeadingTexts.some((c) => c.includes('text-[#4b5563]'));
+      // Warnanya tetap #4b5563, kini lewat token alih-alih nilai heksa tertulis langsung.
+      const hasCorrectGroupColor = groupHeadingTexts.some((c) => c.includes('text-dd-muted'));
       expect(hasCorrectGroupColor).toBe(true);
     });
   });

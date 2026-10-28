@@ -413,8 +413,11 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
         onCollapse={() => setCollapsed((value) => !value)}
       />
       <div className="min-w-0 flex-1" inert={mobileOverlay.rendered || undefined}>
-        <header className="sticky top-0 z-30 border-b border-dd-line/80 bg-dd-surface/95 pt-[env(safe-area-inset-top)] backdrop-blur-xl">
-          <div className="grid min-h-[72px] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-4 sm:px-6 xl:px-8">
+        {/* Bilah atas mengikuti mockup: nama halaman di kiri, cabang dan zona waktu di kanan.
+            Pencarian halaman, notifikasi, dan menu akun tetap ada sebagai tombol ikon kecil karena
+            fungsinya dipakai setiap hari, meski mockup tidak menggambarnya. */}
+        <header className="sticky top-0 z-30 border-b border-dd-line bg-white pt-[env(safe-area-inset-top)]">
+          <div className="flex min-h-[72px] items-center justify-between gap-3 px-4 py-3.5 sm:px-7">
             <IconButton
               label="Buka navigasi"
               variant="secondary"
@@ -424,104 +427,53 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
                 setCommandOpen(false);
                 setMobileOpen(true);
               }}
-              className="rounded-dd-md border-dd-line bg-white text-dd-ink shadow-none lg:hidden"
+              className="rounded-dd-sm border-dd-line bg-white text-dd-ink shadow-none lg:hidden"
             >
               <Menu className="size-5" />
             </IconButton>
-            <div className="min-w-0">
-              <nav
-                className="hidden min-w-0 items-center gap-2 text-sm text-dd-muted sm:flex"
-                aria-label="Breadcrumb"
-              >
-                {pathname === '/workspace' ? (
-                  <span className="font-semibold text-dd-ink" aria-current="page">
-                    Workspace
+            <nav
+              className="min-w-0 flex-1 truncate text-[15px] text-dd-muted"
+              aria-label="Breadcrumb"
+            >
+              <Link href="/workspace" className="text-dd-muted no-underline hover:text-dd-ink">
+                Daily Dose
+              </Link>{' '}
+              {isDetailPath ? (
+                <>
+                  <Link
+                    href={currentPage!.href}
+                    className="font-bold text-dd-ink no-underline hover:text-dd-forest"
+                  >
+                    {currentPageLabel}
+                  </Link>
+                  <span className="text-dd-muted"> · </span>
+                  <span className="font-bold text-dd-ink" aria-current="page">
+                    Detail
                   </span>
-                ) : (
-                  <>
-                    <Link href="/workspace" className="inline-flex min-h-11 items-center font-semibold text-dd-forest no-underline">
-                      Workspace
-                    </Link>
-                    {currentPage && !accountPageLabelForPath(pathname) && (
-                      <>
-                        <ChevronRight className="size-3.5 shrink-0" aria-hidden="true" />
-                        <span className="hidden truncate lg:inline">{currentPage.group}</span>
-                        <ChevronRight
-                          className="hidden size-3.5 shrink-0 lg:inline"
-                          aria-hidden="true"
-                        />
-                      </>
-                    )}
-                    {isDetailPath ? (
-                      <>
-                        <Link
-                          href={currentPage!.href}
-                          className="truncate font-semibold text-dd-forest no-underline"
-                        >
-                          {currentPageLabel}
-                        </Link>
-                        <ChevronRight className="size-3.5 shrink-0" aria-hidden="true" />
-                        <span className="font-semibold text-dd-ink" aria-current="page">
-                          Detail
-                        </span>
-                      </>
-                    ) : (
-                      <span className="truncate font-semibold text-dd-ink" aria-current="page">
-                        {currentPageLabel ?? 'Workspace'}
-                      </span>
-                    )}
-                  </>
-                )}
-              </nav>
-              <strong className="block truncate text-sm text-dd-ink sm:hidden">
-                {currentPageLabel ?? 'Dashboard'}
-              </strong>
-            </div>
-            <div className="hidden min-w-0 justify-center xl:flex">
-              <button
-                type="button"
-                onClick={() => {
-                  setProfileOpen(false);
-                  setNotificationOpen(false);
-                  setCommandOpen(true);
-                }}
-                className="flex min-h-11 w-full max-w-sm items-center justify-start gap-2 rounded-dd-md border border-dd-line bg-dd-surface-muted px-3 text-sm font-medium text-dd-muted"
-              >
-                <Search className="size-4 shrink-0" />
-                <span className="truncate">Cari halaman…</span>
-                <kbd className="ml-auto rounded border border-dd-line bg-white px-1.5 py-0.5 text-[10px]">
-                  ⌘K
-                </kbd>
-              </button>
-            </div>
-            <div className="flex min-w-0 items-center justify-end gap-2">
-              <IconButton
-                label="Cari halaman"
-                variant="secondary"
-                onClick={() => {
-                  setProfileOpen(false);
-                  setNotificationOpen(false);
-                  setCommandOpen(true);
-                }}
-                className="rounded-dd-md border-dd-line bg-white text-dd-muted shadow-none xl:hidden"
-              >
-                <Search className="size-[18px]" />
-              </IconButton>
+                </>
+              ) : (
+                <span className="font-bold text-dd-ink" aria-current="page">
+                  {currentPageLabel ?? 'Beranda'}
+                </span>
+              )}
+            </nav>
+            <div className="flex min-w-0 items-center justify-end gap-2.5">
               {session && (!instructorOnly || session.branches.length > 1) && (
                 <div
-                  className="!hidden max-w-[220px] md:!block"
+                  className="!hidden md:!block"
                   title={branchLocked ? lockedBranchHint : undefined}
                 >
                   <SearchSelect
                     label="Cabang aktif"
                     compact
+                    prefix="Cabang:"
                     disabled={branchLocked}
-                    wrapperClassName="w-[clamp(160px,18vw,220px)] [&>label]:sr-only"
+                    wrapperClassName="w-[clamp(200px,20vw,250px)] [&>label]:sr-only"
                     value={branchLocked ? '' : (context?.activeBranchId ?? '')}
                     placeholder={
                       branchLocked
-                        ? (aggregateBranchLabel ?? 'Semua cabang')
-                        : (aggregateBranchLabel ?? 'Pilih cabang')
+                        ? (aggregateBranchLabel ?? 'semua')
+                        : (aggregateBranchLabel ?? 'pilih')
                     }
                     clearable={false}
                     options={branchOptions}
@@ -531,18 +483,24 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
                   />
                 </div>
               )}
-              {context?.hasCapability('operations:read') && (
-                <Link
-                  href="/health"
-                  aria-label="Status sistem"
-                  title="Status sistem"
-                  className="hidden size-10 shrink-0 place-items-center rounded-dd-md border border-dd-line bg-white text-dd-muted no-underline 2xl:grid"
-                >
-                  <CircleHelp className="size-[18px]" />
-                </Link>
-              )}
+              <span className="hidden min-h-11 items-center rounded-dd-sm border border-dd-line px-3.5 text-[15px] text-dd-muted sm:inline-flex">
+                {zonaWaktu(context?.activeBranch?.timezone ?? session?.branches[0]?.timezone)}
+              </span>
+              <IconButton
+                label="Cari halaman"
+                variant="ghost"
+                onClick={() => {
+                  setProfileOpen(false);
+                  setNotificationOpen(false);
+                  setCommandOpen(true);
+                }}
+                className="rounded-dd-sm border-transparent bg-transparent text-dd-muted shadow-none hover:bg-black/5"
+              >
+                <Search className="size-[18px]" />
+              </IconButton>
               {Boolean(session) && (
                 <NotificationCenter
+                  quiet
                   open={notificationOpen}
                   onOpenChange={(open) => {
                     setNotificationOpen(open);
@@ -553,9 +511,6 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
                   }}
                 />
               )}
-              <span className="hidden max-w-40 truncate text-sm font-semibold text-dd-ink xl:block">
-                {session?.displayName}
-              </span>
               <div className="relative" ref={profileRoot}>
                 <IconButton
                   ref={profileTrigger}
@@ -568,11 +523,9 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
                     setCommandOpen(false);
                     setProfileOpen((open) => !open);
                   }}
-                  className="rounded-dd-md border-dd-line bg-white text-dd-ink shadow-none"
+                  className="rounded-dd-sm border-transparent bg-transparent text-dd-muted shadow-none hover:bg-black/5"
                 >
-                  <span className="grid size-8 place-items-center rounded-dd-md bg-dd-ink text-white">
-                    <UserRound className="size-4" />
-                  </span>
+                  <UserRound className="size-[18px]" />
                 </IconButton>
                 {profileOpen && (
                   <div
@@ -710,4 +663,14 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
       </Modal>
     </div>
   );
+}
+
+/** Label zona waktu cabang untuk bilah atas, mis. "Jakarta · WIB". */
+function zonaWaktu(timezone?: string) {
+  const peta: Record<string, string> = {
+    'Asia/Jakarta': 'Jakarta · WIB',
+    'Asia/Makassar': 'Makassar · WITA',
+    'Asia/Jayapura': 'Jayapura · WIT',
+  };
+  return (timezone && peta[timezone]) ?? 'Jakarta · WIB';
 }

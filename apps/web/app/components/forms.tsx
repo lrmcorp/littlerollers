@@ -300,6 +300,11 @@ export type SearchSelectProps = {
   clearable?: boolean;
   compact?: boolean;
   wrapperClassName?: string;
+  /**
+   * Teks pendek di depan nilai, menggantikan ikon kaca pembesar. Dipakai pemilih cabang di bilah
+   * atas, yang menurut mockup terbaca "Cabang: Green Garden" dan bukan kolom pencarian.
+   */
+  prefix?: string;
   /** `editorial` untuk halaman publik; bawaan mengikuti gaya panel admin. */
   variant?: FieldVariant;
   loading?: boolean;
@@ -365,6 +370,7 @@ export function SearchSelect({
   clearable = true,
   compact,
   wrapperClassName,
+  prefix,
   variant,
   loading,
   emptyMessage = 'Data tidak ditemukan.',
@@ -446,10 +452,19 @@ export function SearchSelect({
       <div ref={rootRef} className="relative min-w-0">
         {name && <input type="hidden" name={name} value={currentValue} />}
         <div className="relative">
-          <Search
-            className={`pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 ${editorial ? 'text-ed-muted' : 'text-dd-muted'}`}
-            aria-hidden="true"
-          />
+          {prefix ? (
+            <span
+              className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[15px] font-medium text-dd-ink"
+              aria-hidden="true"
+            >
+              {prefix}
+            </span>
+          ) : (
+            <Search
+              className={`pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 ${editorial ? 'text-ed-muted' : 'text-dd-muted'}`}
+              aria-hidden="true"
+            />
+          )}
           <input
             ref={inputRef}
             id={id}
@@ -463,7 +478,7 @@ export function SearchSelect({
             disabled={disabled}
             value={query}
             placeholder={open ? searchPlaceholder : placeholder}
-            className={`${controlFor(variant, compact)} pl-9 pr-16`}
+            className={`${controlFor(variant, compact)} ${prefix ? 'pl-[4.6rem] font-medium text-dd-ink' : 'pl-9'} pr-16`}
             onFocus={() => {
               setOpen(true);
               setQuery('');

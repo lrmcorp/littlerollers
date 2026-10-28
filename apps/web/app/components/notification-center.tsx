@@ -20,11 +20,14 @@ const toneDot = {
 
 export function NotificationCenter({
   compact = false,
+  quiet = false,
   open: controlledOpen,
   onOpenChange,
   client = browserNotificationClient,
 }: {
   compact?: boolean;
+  /** Tombol ikon tanpa bingkai, untuk bilah atas staf yang mengikuti mockup. */
+  quiet?: boolean;
   open?: boolean;
   onOpenChange?(open: boolean): void;
   client?: NotificationClient;
@@ -154,7 +157,11 @@ export function NotificationCenter({
         aria-expanded={open}
         aria-controls="global-notification-center"
         onClick={() => setOpen(!open)}
-        className="relative rounded-dd-md border-dd-line bg-white text-dd-muted shadow-none"
+        className={`relative shadow-none text-dd-muted ${
+          quiet
+            ? 'rounded-dd-sm border-transparent bg-transparent hover:bg-black/5'
+            : 'rounded-dd-md border-dd-line bg-white'
+        }`}
       >
         <Bell className="size-[18px]" aria-hidden="true" />
         {unread > 0 && (

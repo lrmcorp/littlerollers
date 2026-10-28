@@ -37,7 +37,7 @@ export function AdminPageHeader({
           )}
           <h1
             id={titleId}
-            className="mt-1 text-2xl font-semibold tracking-tight text-dd-ink sm:text-3xl"
+            className="mt-1 text-[28px] font-semibold tracking-[-0.02em] text-dd-ink sm:text-[32px]"
           >
             {title}
           </h1>

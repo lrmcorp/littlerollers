@@ -188,7 +188,7 @@ describe('capability-aware session shell', () => {
     expect(await screen.findByRole('combobox', { name: 'Cabang aktif' })).toBeEnabled();
   });
 
-  it('shows Workspace › group › page in the breadcrumb and links back from a detail page', async () => {
+  it('shows Daily Dose › page in the breadcrumb and links back from a detail page', async () => {
     const session: WebSession = { ...adminSession, capabilities: ['customer:read'] };
     const client: SessionClient = { me: vi.fn().mockResolvedValue(session), logout: vi.fn() };
     navigation.pathname = '/customers/abc-123';
@@ -200,8 +200,8 @@ describe('capability-aware session shell', () => {
       </SessionProvider>,
     );
     const breadcrumb = await screen.findByRole('navigation', { name: 'Breadcrumb' });
-    expect(breadcrumb).toHaveTextContent('Workspace');
-    expect(breadcrumb).toHaveTextContent('Member & Pelanggan');
+    // Bilah atas mengikuti mockup: "Daily Dose <halaman>", tanpa nama kelompok menu.
+    expect(breadcrumb).toHaveTextContent('Daily Dose');
     expect(within(breadcrumb).getByRole('link', { name: 'Pelanggan' })).toHaveAttribute(
       'href',
       '/customers',
@@ -438,7 +438,7 @@ describe('capability-aware session shell', () => {
       </SessionProvider>,
     );
     const navigationRegion = await screen.findByRole('navigation', { name: 'Navigasi utama' });
-    expect(within(navigationRegion).getByText('Area instruktur')).toBeVisible();
+    expect(within(navigationRegion).getByText('Instruktur', { exact: true })).toBeVisible();
     expect(within(navigationRegion).getByRole('link', { name: 'Jadwal Saya' })).toHaveAttribute(
       'href',
       '/workspace/classes',

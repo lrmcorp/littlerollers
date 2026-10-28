@@ -1,6 +1,7 @@
 :root {
   color-scheme: light;
-  --font-sans: var(--font-ui), 'Poppins', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-dm-sans), 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-ui), 'Poppins', ui-sans-serif, system-ui, sans-serif;
   --font-serif: var(--font-sans);
   --color-brand: #396552;
   --color-brand-strong: #0d5132;
@@ -116,5 +117,15 @@ textarea {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+
+/* Judul halaman dan judul bagian memakai Poppins seperti mockup; teks lain tetap DM Sans.
+   Situs publik (`.ed-scope`) punya tipografi editorialnya sendiri, jadi dikecualikan. Ditaruh di
+   layer base agar kelas utilitas pada elemen tertentu masih bisa menimpanya. */
+@layer base {
+  :where(h1, h2, h3):not(.ed-scope *) {
+    font-family: var(--font-display);
   }
 }

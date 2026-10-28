@@ -7,11 +7,9 @@ import {
   BookOpenCheck,
   CalendarDays,
   ChevronDown,
-  ChevronLeft,
   CircleDollarSign,
   CreditCard,
   ListChecks,
-  MapPin,
   ShieldCheck,
   Sliders,
   Users,
@@ -25,6 +23,7 @@ import { BrandMark } from './components/public/brand-mark';
 import { useOverlayInteraction, type OverlayPhase } from './components/app-feedback';
 import { IconButton } from './components/actions';
 import { iconForPage } from './lib/page-icons';
+import { roleLabel } from './lib/role-labels';
 import type { QueueCounts } from './components/use-queue-counts';
 
 export function AppNavigation({
@@ -87,7 +86,7 @@ export function AppNavigation({
   const navigationRef = useRef<HTMLElement>(null);
   const mobileVisible = mobilePhase === 'open';
   const mobileClosed = mobileViewport === true && !mobileRendered;
-  const navClass = `fixed inset-y-0 left-0 z-50 flex w-[min(320px,88vw)] flex-col border-r border-dd-line bg-dd-sidebar text-dd-ink shadow-dd-float transition-transform duration-[220ms] ease-out motion-reduce:transform-none motion-reduce:duration-75 lg:sticky lg:top-0 lg:h-dvh lg:translate-x-0 lg:visible lg:pointer-events-auto ${mobileVisible ? 'translate-x-0 visible' : '-translate-x-full'} ${mobileRendered ? 'pointer-events-auto' : 'invisible pointer-events-none'} ${!customerOnly && collapsed ? 'lg:w-[84px]' : 'lg:w-[264px]'}`;
+  const navClass = `fixed inset-y-0 left-0 z-50 flex w-[min(320px,88vw)] flex-col border-r border-dd-line bg-white text-dd-ink shadow-dd-float transition-transform duration-[220ms] ease-out motion-reduce:transform-none motion-reduce:duration-75 lg:sticky lg:top-0 lg:shadow-none lg:h-dvh lg:translate-x-0 lg:visible lg:pointer-events-auto ${mobileVisible ? 'translate-x-0 visible' : '-translate-x-full'} ${mobileRendered ? 'pointer-events-auto' : 'invisible pointer-events-none'} ${!customerOnly && collapsed ? 'lg:w-[84px]' : 'lg:w-[260px]'}`;
 
   useOverlayInteraction({
     open: mobileOpen,
@@ -108,10 +107,10 @@ export function AppNavigation({
   }, []);
 
   const linkClass = (active: boolean) =>
-    `group flex min-h-11 items-center gap-3 rounded-dd-sm px-3 py-2 text-sm transition ${
+    `group flex min-h-11 items-center gap-2.5 rounded-dd-sm px-2.5 text-[15px] transition [&_svg]:shrink-0 ${
       active
         ? 'bg-dd-success-soft font-bold text-dd-forest'
-        : 'font-medium text-dd-ink hover:bg-black/5'
+        : 'font-medium text-dd-ink hover:bg-black/5 [&_svg]:text-dd-muted'
     }`;
 
   return (
@@ -135,55 +134,35 @@ export function AppNavigation({
         data-overlay-phase={mobileRendered ? mobilePhase : undefined}
       >
         <div
-          className={`flex min-h-24 items-center border-b border-dd-line/60 pl-[max(1.25rem,env(safe-area-inset-left))] pr-5 pt-[env(safe-area-inset-top)] ${collapsed ? 'lg:justify-center lg:px-2 lg:pt-0' : 'justify-between'}`}
+          className={`flex items-center gap-2.5 pl-[max(1.5rem,env(safe-area-inset-left))] pr-4 pb-2 pt-[max(1.25rem,env(safe-area-inset-top))] ${collapsed ? 'lg:justify-center lg:px-2' : 'justify-between'}`}
         >
-          <div className={collapsed ? 'lg:w-10 lg:overflow-hidden' : ''}>
+          <div className={`flex min-w-0 items-center gap-2.5 ${collapsed ? 'lg:w-10 lg:overflow-hidden' : ''}`}>
             <BrandMark
               ariaLabel={`Daily Dose Pilates — ${customerOnly ? 'Dashboard Saya' : 'Dashboard'}`}
               tone="default"
-              className="h-auto w-[166px]"
+              className="h-auto w-[118px] shrink-0"
               href={customerOnly ? '/account' : '/workspace'}
               priority
             />
             {!collapsed && !customerOnly && (
-              <span className="mt-1 block text-[13px] font-bold text-[#4b5563]">
-                {instructorOnly ? 'Area instruktur' : 'Studio operations'}
+              <span className="shrink-0 rounded-[5px] bg-dd-ink px-2 py-[3px] text-xs font-bold text-white">
+                {instructorOnly ? 'Instruktur' : 'Staf'}
               </span>
             )}
           </div>
-          {
-            <IconButton
-              label="Tutup navigasi"
-              variant="ghost"
-              onClick={onClose}
-              className="rounded-full border-dd-line bg-transparent text-dd-ink hover:bg-black/5 lg:hidden"
-            >
-              <X className="size-4" />
-            </IconButton>
-          }
+          <IconButton
+            label="Tutup navigasi"
+            variant="ghost"
+            onClick={onClose}
+            className="rounded-full border-dd-line bg-transparent text-dd-ink hover:bg-black/5 lg:hidden"
+          >
+            <X className="size-4" />
+          </IconButton>
         </div>
-        {!collapsed && !customerOnly && (
-          <div className="border-b border-dd-line/60 px-4 py-2.5 bg-black/[0.02]">
-            <div className="flex items-center gap-2 text-xs">
-              <MapPin className="size-3.5 shrink-0 text-dd-forest" aria-hidden="true" />
-              <div className="min-w-0 flex-1">
-                <span className="block text-[13px] font-bold text-[#4b5563]">Studio Aktif</span>
-                <span className="block truncate font-semibold text-dd-ink">
-                  {context?.activeBranch ? `Studio ${context.activeBranch.name}` : 'Semua Cabang'}
-                </span>
-              </div>
-              {(session?.branches ?? []).length > 1 && (
-                <span className="rounded bg-black/5 px-1.5 py-0.5 text-[13px] font-medium text-dd-muted">
-                  {(session?.branches ?? []).length} cabang
-                </span>
-              )}
-            </div>
-          </div>
-        )}
-        <div className="workspace-navigation-scroll min-h-0 flex-1 space-y-6 overflow-x-hidden overflow-y-auto px-3 py-5">
+        <div className="workspace-navigation-scroll min-h-0 flex-1 space-y-[22px] overflow-x-hidden overflow-y-auto px-4 pb-5 pt-4">
           {customerOnly ? (
             <section className="space-y-1" aria-labelledby="nav-customer">
-              <h2 id="nav-customer" className="px-3 pb-2 text-[13px] font-bold text-[#4b5563]">
+              <h2 id="nav-customer" className="mb-1 px-2 text-[13px] font-bold text-dd-muted">
                 Akun Saya
               </h2>
               {customerLinks.map((item) => {
@@ -222,14 +201,14 @@ export function AppNavigation({
 
                 return (
                   <section
-                    className="space-y-1 pt-2 first:pt-0"
+                    className="space-y-1"
                     aria-labelledby={`nav-${group}`}
                     key={group}
                   >
                     {!collapsed && (
                       <h2
                         id={`nav-${group}`}
-                        className="px-3 pb-2 text-[13px] font-bold text-[#4b5563]"
+                        className="mb-1 px-2 text-[13px] font-bold text-dd-muted"
                       >
                         {group}
                       </h2>
@@ -263,7 +242,7 @@ export function AppNavigation({
                               (queueCounts[item.queueBadgeSource] ?? 0) > 0 && (
                                 <span
                                   aria-label={`${queueCounts[item.queueBadgeSource]} antrean`}
-                                  className="absolute -top-1 -right-1 size-2.5 rounded-full bg-dd-brass ring-2 ring-dd-sidebar"
+                                  className="absolute -top-1 -right-1 size-2.5 rounded-full bg-dd-danger ring-2 ring-white"
                                 />
                               )}
                           </div>
@@ -272,7 +251,7 @@ export function AppNavigation({
                           {!collapsed &&
                             item.queueBadgeSource &&
                             (queueCounts[item.queueBadgeSource] ?? 0) > 0 && (
-                              <span className="ml-auto rounded-full bg-dd-brass px-2 py-0.5 text-[13px] font-bold text-white">
+                              <span className="ml-auto rounded-full bg-dd-danger px-2 py-0.5 text-[13px] font-bold text-white">
                                 {queueCounts[item.queueBadgeSource]}
                               </span>
                             )}
@@ -332,7 +311,7 @@ export function AppNavigation({
                                 (queueCounts[item.queueBadgeSource] ?? 0) > 0 && (
                                   <span
                                     aria-label={`${queueCounts[item.queueBadgeSource]} antrean`}
-                                    className="absolute -top-1 -right-1 size-2.5 rounded-full bg-dd-brass ring-2 ring-dd-sidebar"
+                                    className="absolute -top-1 -right-1 size-2.5 rounded-full bg-dd-danger ring-2 ring-white"
                                   />
                                 )}
                             </div>
@@ -343,7 +322,7 @@ export function AppNavigation({
                             {!collapsed &&
                               item.queueBadgeSource &&
                               (queueCounts[item.queueBadgeSource] ?? 0) > 0 && (
-                                <span className="ml-auto rounded-full bg-dd-brass px-2 py-0.5 text-[13px] font-bold text-white">
+                                <span className="ml-auto rounded-full bg-dd-danger px-2 py-0.5 text-[13px] font-bold text-white">
                                   {queueCounts[item.queueBadgeSource]}
                                 </span>
                               )}
@@ -357,24 +336,35 @@ export function AppNavigation({
             </>
           )}
         </div>
-        {!customerOnly && (
-          <div className="border-t border-dd-line/60 p-3">
-            <button
-              type="button"
-              onClick={onCollapse}
-              className="hidden min-h-[44px] w-full items-center gap-3 rounded-dd-md border border-dd-line/60 bg-white/70 px-3 text-sm font-semibold text-dd-ink hover:bg-white lg:flex cursor-pointer transition-colors"
+        {!customerOnly && session && (
+          <div className="mx-4 mb-[max(1.25rem,env(safe-area-inset-bottom))] flex items-center gap-2.5 border-t border-dd-line pt-3.5">
+            <span
+              aria-hidden="true"
+              className="flex size-9 shrink-0 items-center justify-center rounded-dd-sm bg-dd-success-soft text-sm font-bold text-dd-forest"
             >
-              <ChevronLeft className={`size-4 transition ${collapsed ? 'rotate-180' : ''}`} />
-              {!collapsed && 'Ciutkan sidebar'}
-            </button>
+              {initials(session.displayName)}
+            </span>
             {!collapsed && (
-              <p className="mt-3 px-3 text-[13px] font-bold text-dd-muted">
-                Akses berbasis hak akses
-              </p>
+              <span className="min-w-0">
+                <span className="block truncate text-[15px] font-bold text-dd-ink">
+                  {session.displayName}
+                </span>
+                <span className="block truncate text-[13px] text-dd-muted">
+                  {roleLabel(session.roles[0])} ·{' '}
+                  {context?.activeBranch?.name ?? 'semua cabang'}
+                </span>
+              </span>
             )}
           </div>
         )}
       </nav>
     </>
   );
+}
+
+/** Dua huruf awal nama untuk kartu pengguna; satu huruf bila namanya satu kata. */
+function initials(nama: string) {
+  const kata = nama.trim().split(/\s+/).filter(Boolean);
+  const huruf = kata.length > 1 ? `${kata[0]![0]}${kata[kata.length - 1]![0]}` : (kata[0] ?? '?').slice(0, 2);
+  return huruf.toUpperCase();
 }
