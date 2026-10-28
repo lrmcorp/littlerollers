@@ -36,7 +36,7 @@ import {
 import { labelHari, TimetableMoveBar, TimetableWeekGrid } from './timetable-week-grid';
 import { TimetableRosterPanel } from './timetable-roster-panel';
 import { TopBarSlot } from '../components/top-bar-slot';
-import { Button } from '../components/actions';
+import { Button, ButtonLink } from '../components/actions';
 import { Drawer, useAppFeedback } from '../components/app-feedback';
 import { browserBookingClient, type BookingClient } from '@/api-clients/booking-client';
 import { EmptyWeeksNotice } from '../workspace/empty-weeks-notice';
@@ -506,6 +506,17 @@ export function ClassSlotView({
                 }${globalMode ? ' Menampilkan semua cabang; pilih cabang di bilah atas untuk fokus.' : ''}`}
           </p>
         </div>
+        {!isInstructor && canManage && (
+          // Jadwal rutin dan salin minggu dibuka dari sini, bukan dari menu samping.
+          <div className="flex flex-wrap gap-2">
+            <ButtonLink href="/workspace/classes/rutin" variant="secondary">
+              Jadwal rutin
+            </ButtonLink>
+            <ButtonLink href="/workspace/classes/salin" variant="secondary">
+              Salin minggu
+            </ButtonLink>
+          </div>
+        )}
         {!isInstructor && (
           <Button
             disabled={!canCreateSlot}

@@ -17,7 +17,11 @@ import {
 } from 'lucide-react';
 import { frontendPageGroups, frontendPages } from '@/lib/frontend-pages';
 import { PreviewTag } from './components/admin/preview-tag';
-import { isCustomerOnlySession, isInstructorOnlySession } from '@/lib/session-audience';
+import {
+  isCustomerOnlySession,
+  isFrontDeskOnlySession,
+  isInstructorOnlySession,
+} from '@/lib/session-audience';
 import { useSessionContext } from './session-context';
 import { BrandMark } from './components/public/brand-mark';
 import { useOverlayInteraction, type OverlayPhase } from './components/app-feedback';
@@ -56,7 +60,7 @@ export function AppNavigation({
   const [mobileViewport, setMobileViewport] = useState<boolean | null>(null);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const advancedPages = frontendPages
-    .filter((item) => item.isAdvanced && !item.isDormant)
+    .filter((item) => item.isAdvanced && !item.isDormant && !item.hideFromNav)
     .filter(
       (item) => item.capabilities.length === 0 || context?.hasCapability(...item.capabilities),
     )
@@ -67,6 +71,13 @@ export function AppNavigation({
 
   const customerOnly = isCustomerOnlySession(session);
   const instructorOnly = !customerOnly && isInstructorOnlySession(session);
+  // Beranda staf: meja depan dan instruktur melihat "Hari ini", Owner melihat ringkasan bulanannya.
+  const berandaLabel =
+    instructorOnly || isFrontDeskOnlySession(session)
+      ? 'Hari ini'
+      : session?.roles.some((role) => role === 'SUPER_OWNER' || role === 'OWNER')
+        ? 'Beranda'
+        : 'Dashboard';
   const customerLinks = [
     { href: '/classes', label: 'Jadwal', icon: CalendarDays },
     ...(session?.identityVerificationStatus === 'APPROVED'
@@ -189,7 +200,7 @@ export function AppNavigation({
               {frontendPageGroups.map((group) => {
                 const pagesInGroup = frontendPages
                   .filter((item) => item.group === group)
-                  .filter((item) => !item.isDormant && !item.isAdvanced)
+                  .filter((item) => !item.isDormant && !item.isAdvanced && !item.hideFromNav)
                   .filter(
                     (item) =>
                       item.capabilities.length === 0 ||
@@ -217,8 +228,8 @@ export function AppNavigation({
                       const active = item.href === activeHref;
                       const Icon = iconForPage(item.href);
                       const displayLabel =
-                        instructorOnly && item.href === '/workspace'
-                          ? 'Hari Ini'
+                        item.href === '/workspace'
+                          ? berandaLabel
                           : instructorOnly && item.href === '/workspace/classes'
                             ? 'Jadwal Saya'
                             : item.shortLabel;

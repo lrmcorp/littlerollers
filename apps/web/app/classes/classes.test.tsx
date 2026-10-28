@@ -523,24 +523,15 @@ describe('ClassSlotView instructor check-in QR for studio staff', () => {
     return { user, dialog: screen.getByRole('dialog', { name: 'Reformer' }) };
   };
 
-  it('issues and renders the QR the instructor scans, with an idempotency key', async () => {
-    const issueInstructorCheckIn = vi.fn().mockResolvedValue(issue);
-    const { user, dialog } = await open({}, { list: vi.fn(), issueInstructorCheckIn });
-    await user.click(within(dialog).getByRole('button', { name: 'Tampilkan QR presensi instruktur' }));
-    expect(issueInstructorCheckIn).toHaveBeenCalledWith('slot-1', expect.any(String));
-    expect(await within(dialog).findByRole('img', { name: 'QR presensi instruktur' })).toBeVisible();
-    expect(QRCode.toCanvas).toHaveBeenCalledWith(expect.anything(), 'dd-checkin:v1:raw-token', expect.anything());
-    expect(within(dialog).getByRole('button', { name: 'Ganti QR presensi' })).toBeVisible();
-  });
-
-  it('shows the backend refusal (e.g. window not open yet) and no QR', async () => {
-    const issueInstructorCheckIn = vi
-      .fn()
-      .mockRejectedValue({ status: 409, data: { error: { code: 'CHECK_IN_TOO_EARLY' } } });
-    const { user, dialog } = await open({}, { list: vi.fn(), issueInstructorCheckIn });
-    await user.click(within(dialog).getByRole('button', { name: 'Tampilkan QR presensi instruktur' }));
-    await within(dialog).findByText('QR belum aktif. Check-in dibuka 30 menit sebelum kelas.');
+  it('sends staff to the Check-in page to scan the instructor instead of showing a QR', async () => {
+    const issueInstructorCheckIn = vi.fn();
+    const { dialog } = await open({}, { list: vi.fn(), issueInstructorCheckIn });
+    expect(within(dialog).getByRole('link', { name: 'Buka Check-in' })).toHaveAttribute(
+      'href',
+      '/workspace/check-in',
+    );
     expect(within(dialog).queryByRole('img', { name: 'QR presensi instruktur' })).toBeNull();
+    expect(issueInstructorCheckIn).not.toHaveBeenCalled();
   });
 
   it('hides the QR action without attendance:manage', async () => {

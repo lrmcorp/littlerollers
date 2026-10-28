@@ -56,7 +56,6 @@ const routeCapabilities: Array<[string, string[]]> = [
   ['/workspace/reminders', ['automation:read']],
   ['/workspace/bookings', ['booking:read', 'reschedule:read']],
   ['/workspace/branches', ['master:read', 'master:manage']],
-  ['/workspace/kiosk-pin', ['branch:manage']],
   ['/workspace/branch-performance', ['finance:read']],
   ['/workspace/packages', ['package-promotion:read', 'package-promotion:manage']],
   ['/workspace/vouchers', ['voucher:read', 'voucher:manage']],
@@ -76,7 +75,6 @@ const routeCapabilities: Array<[string, string[]]> = [
   ['/workspace/availability', ['availability:self:read']],
   ['/operations', ['operations:read']],
   ['/bookings', ['booking:self:read']],
-  ['/check-in-scanner', ['attendance:manage', 'attendance:self']],
   ['/workspace/guide', []],
 ];
 
@@ -90,7 +88,6 @@ const protectedPathPrefixes = [
   '/notifications',
   '/notification-management',
   '/assignments',
-  '/check-in-scanner',
   '/master',
   '/purchases',
   '/finance',

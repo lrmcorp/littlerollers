@@ -24,6 +24,8 @@ export interface FrontendPageDefinition {
   queueBadgeSource?: string;
   dashboardDeepLink?: string;
   isAdvanced?: boolean;
+  /** Tidak tampil di menu samping; halaman dibuka dari tombol di halaman lain. */
+  hideFromNav?: boolean;
   isDormant?: boolean;
   /**
    * `preview`: halaman belum memakai penyimpanan/sumber data permanen. Diberi tag "Pratinjau" di
@@ -53,7 +55,7 @@ export const frontendPages: FrontendPageDefinition[] = [
   {
     href: '/workspace/classes',
     label: 'Timetable kelas',
-    shortLabel: 'Kelas',
+    shortLabel: 'Timetable kelas',
     description: 'Susun jadwal, tugaskan instruktur, lalu publikasikan atau batalkan kelas.',
     group: 'Operasional Studio',
     capabilities: ['class-slot:read'],
@@ -107,33 +109,6 @@ export const frontendPages: FrontendPageDefinition[] = [
     roleRelevance: ['ADMIN', 'MANAGER', 'SUPER_OWNER'],
   },
   {
-    href: '/check-in-scanner',
-    label: 'Scan QR check-in',
-    shortLabel: 'Scan QR',
-    description:
-      'Staf memindai QR pass pelanggan; instruktur memindai QR presensi studio untuk mencatat kehadirannya.',
-    group: 'Operasional Studio',
-    capabilities: ['attendance:manage', 'attendance:self'],
-    priority: 4,
-    branchScope: 'topbar',
-    accent: 'info',
-    roleRelevance: ['ADMIN', 'MANAGER', 'SUPER_OWNER', 'INSTRUCTOR'],
-  },
-  {
-    href: '/kiosk',
-    label: 'Layar Kiosk Studio',
-    shortLabel: 'Kiosk Studio',
-    description:
-      'Layar penuh Kiosk untuk tablet meja resepsionis studio untuk menampilkan jadwal dan QR presensi instruktur otomatis.',
-    group: 'Operasional Studio',
-    capabilities: [],
-    priority: 5,
-    branchScope: 'topbar',
-    accent: 'info',
-    icon: 'tv',
-    roleRelevance: ['ADMIN', 'MANAGER', 'SUPER_OWNER', 'OWNER'],
-  },
-  {
     href: '/workspace/availability',
     label: 'Ketersediaan Mengajar',
     shortLabel: 'Ketersediaan',
@@ -173,6 +148,8 @@ export const frontendPages: FrontendPageDefinition[] = [
     accent: 'brand',
     icon: 'book-open',
     roleRelevance: ['SUPER_OWNER', 'OWNER', 'MANAGER', 'ADMIN', 'FINANCE', 'INSTRUCTOR'],
+    // Dibuka dari ikon bantuan di bilah atas.
+    hideFromNav: true,
   },
 
   // ==========================================
@@ -194,7 +171,7 @@ export const frontendPages: FrontendPageDefinition[] = [
   {
     href: '/customers',
     label: 'Data Pelanggan',
-    shortLabel: 'Pelanggan',
+    shortLabel: 'Daftar member',
     description: 'Profil pelanggan terpadu, keamanan akun, order, paket, booking, dan timeline.',
     group: 'Member & Pelanggan',
     capabilities: ['customer:read'],
@@ -382,6 +359,8 @@ export const frontendPages: FrontendPageDefinition[] = [
     accent: 'info',
     icon: 'copy-plus',
     roleRelevance: ['SUPER_OWNER', 'OWNER', 'ADMIN', 'MANAGER'],
+    // Dibuka dari tombol di halaman Timetable kelas.
+    hideFromNav: true,
   },
   {
     href: '/workspace/classes/rutin',
@@ -395,18 +374,8 @@ export const frontendPages: FrontendPageDefinition[] = [
     accent: 'info',
     icon: 'calendar-range',
     roleRelevance: ['SUPER_OWNER', 'OWNER', 'ADMIN', 'MANAGER'],
-  },
-  {
-    href: '/workspace/kiosk-pin',
-    label: 'PIN Kiosk Studio',
-    shortLabel: 'PIN Kiosk',
-    description: 'Buat PIN 6 digit per cabang untuk membuka tablet kiosk presensi.',
-    group: 'Pengaturan & Sistem',
-    capabilities: ['branch:manage'],
-    priority: 31,
-    branchScope: 'global',
-    accent: 'brand',
-    icon: 'tablet',
+    // Dibuka dari tombol di halaman Timetable kelas.
+    hideFromNav: true,
   },
   {
     href: '/instructors',

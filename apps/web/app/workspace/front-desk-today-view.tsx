@@ -271,7 +271,6 @@ export function FrontDeskTodayView({
   );
   const queueTotal = (queues ?? []).reduce((sum, queue) => sum + queue.count, 0);
   const canReadRenewal = Boolean(sessionContext?.hasCapability('package:read'));
-  const kioskCode = (branch as { code?: string }).code;
 
   const slotRow = (slot: ClassSlot) => {
     const ended = slotPhase(slot, now) === 'Selesai';
@@ -328,15 +327,13 @@ export function FrontDeskTodayView({
           Kelas yang berjalan, presensi peserta, dan antrean yang perlu Anda putuskan.
         </p>
         <div className="flex flex-wrap gap-3 pt-1">
-          {kioskCode && (
-            <ButtonLink
-              href={`/kiosk/${encodeURIComponent(kioskCode)}`}
-              variant="secondary"
-              leadingIcon={<ScanLine className="size-4" aria-hidden="true" />}
-            >
-              Buka layar pindai studio
-            </ButtonLink>
-          )}
+          <ButtonLink
+            href="/workspace/check-in"
+            variant="secondary"
+            leadingIcon={<ScanLine className="size-4" aria-hidden="true" />}
+          >
+            Buka Check-in
+          </ButtonLink>
           <ButtonLink
             href="/customers"
             leadingIcon={<UserPlus className="size-4" aria-hidden="true" />}
