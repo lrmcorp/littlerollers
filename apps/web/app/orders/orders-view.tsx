@@ -144,7 +144,7 @@ export function OrdersView() {
               }`}
             >
               <span
-                className={`block text-[13px] font-semibold uppercase tracking-wider ${selected ? 'text-white/80' : 'text-ed-muted'}`}
+                className={`block text-[13px] font-bold ${selected ? 'text-white/80' : 'text-ed-muted'}`}
               >
                 {card.label}
               </span>

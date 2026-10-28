@@ -219,7 +219,7 @@ export function CheckInScannerView() {
             <CheckCircle2 className="size-8" />
           </div>
           <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-dd-success">
+            <p className="text-[13px] font-bold text-dd-success">
               Presensi instruktur tercatat
             </p>
             <h2 className="mt-1 text-xl font-bold text-dd-ink">Presensi Berhasil Dicatat</h2>
@@ -261,7 +261,7 @@ export function CheckInScannerView() {
             <CheckCircle2 className="size-8" />
           </div>
           <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-dd-success">
+            <p className="text-[13px] font-bold text-dd-success">
               Check-in berhasil
             </p>
             <h2 className="mt-1 text-2xl font-bold text-dd-ink">{result.customerName}</h2>

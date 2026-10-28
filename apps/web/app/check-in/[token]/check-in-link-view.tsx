@@ -92,7 +92,7 @@ export function CheckInLinkView({ token }: { token: string }) {
     <main className="grid min-h-dvh min-w-0 place-items-center overflow-x-hidden bg-dd-canvas px-4 py-10 font-sans">
       <section className="box-border w-full min-w-0 max-w-md rounded-2xl border border-dd-line bg-dd-surface p-6 sm:p-8 shadow-xl">
         <div className="text-center">
-          <p className="text-xs font-bold uppercase tracking-[0.25em] text-dd-forest">
+          <p className="text-[13px] font-bold text-dd-forest">
             Daily Dose Pilates
           </p>
           <h1 className="mt-2 text-2xl font-bold tracking-tight text-dd-ink">
@@ -158,23 +158,23 @@ export function CheckInLinkView({ token }: { token: string }) {
           <div className="mt-6 space-y-6">
             <div className="rounded-dd-lg border border-dd-line bg-dd-surface-muted p-5 space-y-3">
               <div>
-                <p className="text-xs font-medium text-dd-muted uppercase">Nama Peserta</p>
+                <p className="text-[13px] font-medium text-dd-muted">Nama Peserta</p>
                 <p className="text-base font-semibold text-dd-ink">{info.customerName}</p>
               </div>
               <hr className="border-dd-line" />
               <div>
-                <p className="text-xs font-medium text-dd-muted uppercase">Kelas & Cabang</p>
+                <p className="text-[13px] font-medium text-dd-muted">Kelas & Cabang</p>
                 <p className="text-base font-semibold text-dd-forest">{info.className}</p>
                 <p className="text-sm text-dd-muted">{info.branchName} {info.studioName ? `· ${info.studioName}` : ''}</p>
               </div>
               {info.instructorName && (
                 <div>
-                  <p className="text-xs font-medium text-dd-muted uppercase">Instruktur</p>
+                  <p className="text-[13px] font-medium text-dd-muted">Instruktur</p>
                   <p className="text-sm font-semibold text-dd-ink">{info.instructorName}</p>
                 </div>
               )}
               <div>
-                <p className="text-xs font-medium text-dd-muted uppercase">Jadwal Sesi</p>
+                <p className="text-[13px] font-medium text-dd-muted">Jadwal Sesi</p>
                 <p className="text-sm font-medium text-dd-ink">
                   {formatSchedule(info.startAt, info.endAt)}
                 </p>

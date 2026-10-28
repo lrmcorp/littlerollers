@@ -37,7 +37,7 @@ export default function KioskPortalPage() {
         </div>
         <div className="mt-3 flex items-center justify-center gap-2">
           <span className="size-2 rounded-full bg-dd-forest animate-pulse" />
-          <span className="text-xs font-bold uppercase tracking-widest text-dd-forest">
+          <span className="text-[13px] font-bold text-dd-forest">
             Studio Public Kiosk Portal
           </span>
         </div>
@@ -53,7 +53,7 @@ export default function KioskPortalPage() {
       <div className="flex-1 p-6 lg:p-12">
         <div className="mx-auto max-w-4xl space-y-6">
           <div className="flex items-center justify-between border-b border-dd-line pb-3">
-            <h2 className="text-sm font-bold uppercase tracking-wider text-dd-ink">
+            <h2 className="text-sm font-bold text-dd-ink">
               Pilih Cabang Studio
             </h2>
             <span className="text-xs text-dd-muted font-medium">{branches.length} Cabang Aktif</span>

@@ -354,7 +354,7 @@ export function Dashboard({
           <div className="space-y-4">
             {session.branches.map((b) => (
               <div key={b.id} className="space-y-1.5">
-                <span className="text-xs font-bold uppercase tracking-wider text-dd-muted">
+                <span className="text-[13px] font-bold text-dd-muted">
                   Jadwal Cabang: {b.name}
                 </span>
                 <EmptyWeeksNotice
@@ -402,7 +402,7 @@ export function Dashboard({
       {overview && (showQueue || showRisk) && (
         <section aria-label="Pusat Tindakan & Antrean" className="space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-dd-forest">
+            <span className="text-[13px] font-bold text-dd-forest">
               Pusat Tindakan & Antrean
             </span>
             {queueTotal > 0 && (
@@ -416,7 +416,7 @@ export function Dashboard({
               <Panel className="p-6" aria-labelledby="dashboard-queue-title">
                 <div className="flex items-center justify-between gap-3 border-b border-dd-line/60 pb-4">
                   <div>
-                    <span className="text-xs font-bold uppercase tracking-wider text-dd-forest">
+                    <span className="text-[13px] font-bold text-dd-forest">
                       Antrean kerja
                     </span>
                     <h2
@@ -456,7 +456,7 @@ export function Dashboard({
             {showRisk && (
               <Panel className="p-6" aria-labelledby="dashboard-risk-title">
                 <div className="border-b border-dd-line/60 pb-4">
-                  <span className="text-xs font-bold uppercase tracking-wider text-dd-forest">
+                  <span className="text-[13px] font-bold text-dd-forest">
                     Pantauan H-24
                   </span>
                   <h2
@@ -549,7 +549,7 @@ export function Dashboard({
               {operationalMetrics.length > 0 && (
                 <section aria-label="Kinerja operasional dan member" className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold uppercase tracking-wider text-dd-forest">
+                    <span className="text-[13px] font-bold text-dd-forest">
                       Indikator Utama Operasional & Member
                     </span>
                   </div>
@@ -562,7 +562,7 @@ export function Dashboard({
               {financialMetrics.length > 0 && (
                 <section aria-label="Performa finansial" className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold uppercase tracking-wider text-dd-forest">
+                    <span className="text-[13px] font-bold text-dd-forest">
                       Rincian Finansial & Transaksi
                     </span>
                     {overview.financial.completeness === 'INCOMPLETE' && (
@@ -598,7 +598,7 @@ export function Dashboard({
       <section aria-label="Analisis tren dan portofolio" className="space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-dd-line/60 pb-3">
           <div>
-            <span className="text-xs font-bold uppercase tracking-wider text-dd-forest">
+            <span className="text-[13px] font-bold text-dd-forest">
               Analisis Tren & Portofolio
             </span>
             <h2 className="mt-1 font-sans text-xl font-bold text-dd-ink sm:text-2xl">
@@ -739,7 +739,7 @@ export function Dashboard({
               <div className="mt-4 space-y-4">
                 {/* Sumber per Paket */}
                 <div>
-                  <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-dd-muted">
+                  <div className="flex items-center justify-between text-[13px] font-bold text-dd-muted">
                     <span>Paket Terlaris</span>
                     <span>Nominal & Porsi</span>
                   </div>
@@ -763,14 +763,14 @@ export function Dashboard({
 
                 {/* Sumber per Metode Pembayaran */}
                 <div className="border-t border-dd-line/60 pt-3">
-                  <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-dd-muted">
+                  <div className="flex items-center justify-between text-[13px] font-bold text-dd-muted">
                     <span>Metode Pembayaran</span>
                     <span>Nominal & Porsi</span>
                   </div>
                   <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
                     {(overview.financial.omsetBreakdown?.byPaymentMethod ?? []).map((method) => (
                       <div key={method.key} className="rounded-dd-sm border border-dd-line/60 bg-dd-surface-muted/30 p-2.5">
-                        <span className="font-bold uppercase text-dd-muted">{method.label}</span>
+                        <span className="font-bold text-dd-muted">{method.label}</span>
                         <div className="mt-1 flex items-baseline justify-between">
                           <strong className="text-dd-ink">{formatRupiah(method.totalRp)}</strong>
                           <span className="text-[11px] font-semibold text-dd-forest">{method.percentage}%</span>
@@ -899,7 +899,7 @@ export function Dashboard({
         <section aria-label="Pintasan" className="space-y-3 pt-2">
           <div className="flex items-center justify-between border-t border-dd-line/60 pt-4">
             <div>
-              <span className="text-xs font-bold uppercase tracking-wider text-dd-forest">
+              <span className="text-[13px] font-bold text-dd-forest">
                 Akses Cepat
               </span>
               <h2

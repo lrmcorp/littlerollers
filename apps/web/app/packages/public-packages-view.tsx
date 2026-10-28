@@ -445,7 +445,7 @@ export function PublicPackagesView({
         <section className="mt-4" aria-labelledby="studio-selection-heading">
           <span
             id="studio-selection-heading"
-            className="block text-xs font-bold uppercase tracking-wider text-dd-forest mb-2"
+            className="block text-[13px] font-bold text-dd-forest mb-2"
           >
             Pilih Studio
           </span>
@@ -492,7 +492,7 @@ export function PublicPackagesView({
           <section className="mt-5 space-y-3 rounded-dd-md border border-dd-line/70 bg-white p-3.5 sm:p-4" aria-label="Filter dan pengurutan paket">
             {/* Baris Tab Tipe Kelas */}
             <div>
-              <span className="block text-[13px] font-bold uppercase tracking-wider text-dd-forest mb-2">
+              <span className="block text-[13px] font-bold text-dd-forest mb-2">
                 Tipe Kelas
               </span>
               <div
@@ -809,7 +809,7 @@ export function PublicPackagesView({
                 <div className="flex items-center gap-2 border-b border-dd-line/60 pb-2 mb-4">
                   <h2
                     id="heading-coba-dulu"
-                    className="text-xs font-bold uppercase tracking-wider text-dd-forest"
+                    className="text-[13px] font-bold text-dd-forest"
                   >
                     COBA DULU, 1 SAMPAI 3 SESI
                   </h2>
@@ -839,7 +839,7 @@ export function PublicPackagesView({
                 <div className="flex items-center gap-2 border-b border-dd-line/60 pb-2 mb-4">
                   <h2
                     id="heading-paket-rutin"
-                    className="text-xs font-bold uppercase tracking-wider text-dd-forest"
+                    className="text-[13px] font-bold text-dd-forest"
                   >
                     PAKET RUTIN, 5 SESI KE ATAS
                   </h2>
@@ -913,11 +913,11 @@ function PackageCard({
       <div>
         {/* Badges Bar: Class Type & TERMURAH PER SESI */}
         <div className="flex min-h-7 flex-wrap items-center justify-between gap-2">
-          <span className="inline-flex items-center rounded-dd-sm border border-dd-forest/20 bg-[#e8f0ec] px-2.5 py-0.5 text-[13px] font-bold uppercase tracking-wider text-dd-forest">
+          <span className="inline-flex items-center rounded-dd-sm border border-dd-forest/20 bg-[#e8f0ec] px-2.5 py-0.5 text-[13px] font-bold text-dd-forest">
             {item.classType.name}
           </span>
           {isCheapest && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-dd-forest px-2.5 py-0.5 text-[13px] font-bold tracking-wider text-white uppercase">
+            <span className="inline-flex items-center gap-1 rounded-full bg-dd-forest px-2.5 py-0.5 text-[13px] font-bold text-white">
               TERMURAH PER SESI
             </span>
           )}

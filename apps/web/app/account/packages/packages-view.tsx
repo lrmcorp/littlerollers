@@ -119,7 +119,7 @@ export function CustomerPackagesView() {
                         #{cursorHistory.length * 20 + index + 1}
                       </span>
                       <div>
-                        <p className="text-xs font-bold uppercase tracking-[0.18em] text-ed-green">
+                        <p className="text-[13px] font-bold text-ed-green">
                           {item.branchName ?? 'Daily Dose'}
                         </p>
                         <h2 className="font-serif mt-1 text-xl font-normal tracking-tight text-ed-ink">
@@ -149,9 +149,7 @@ export function CustomerPackagesView() {
                   <dl className="mt-5 grid grid-cols-3 gap-2">
                     <div className="rounded-none border border-ed-line/70 bg-ed-tint/40 p-3">
                       <dt
-                        className={`text-xs uppercase tracking-wider ${
-                          expired && item.available > 0
-                            ? 'text-rose-800 font-semibold'
+                        className={`text-[13px] ${ expired && item.available > 0 ?'text-rose-800 font-semibold'
                             : 'text-ed-muted'
                         }`}
                       >
@@ -166,11 +164,11 @@ export function CustomerPackagesView() {
                       </dd>
                     </div>
                     <div className="rounded-none border border-ed-line/70 bg-ed-tint/40 p-3">
-                      <dt className="text-xs uppercase tracking-wider text-ed-muted">Dipesan</dt>
+                      <dt className="text-[13px] text-ed-muted">Dipesan</dt>
                       <dd className="mt-1 font-serif text-xl font-normal text-ed-ink">{item.reserved}</dd>
                     </div>
                     <div className="rounded-none border border-ed-line/70 bg-ed-tint/40 p-3">
-                      <dt className="text-xs uppercase tracking-wider text-ed-muted">Total</dt>
+                      <dt className="text-[13px] text-ed-muted">Total</dt>
                       <dd className="mt-1 font-serif text-xl font-normal text-ed-ink">{item.ledgerBalance}</dd>
                     </div>
                   </dl>

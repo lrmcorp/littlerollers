@@ -293,7 +293,7 @@ export function BookingDetailView({
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <article className="rounded-none border border-ed-line bg-white p-5 shadow-none">
           <CalendarDays className="size-6 text-ed-forest" />
-          <h2 className="mt-4 text-xs font-semibold uppercase tracking-wider text-ed-muted">Waktu Sesi</h2>
+          <h2 className="mt-4 text-[13px] font-bold text-ed-muted">Waktu Sesi</h2>
           <p className="font-serif mt-1 text-sm font-normal text-ed-ink leading-relaxed">
             {booking.classSlot
               ? booking.classSlot.startAt.toLocaleString('id-ID', {
@@ -313,7 +313,7 @@ export function BookingDetailView({
 
         <article className="rounded-none border border-ed-line bg-white p-5 shadow-none">
           <MapPin className="size-6 text-ed-forest" />
-          <h2 className="mt-4 text-xs font-semibold uppercase tracking-wider text-ed-muted">Studio & Lokasi</h2>
+          <h2 className="mt-4 text-[13px] font-bold text-ed-muted">Studio & Lokasi</h2>
           <p className="font-serif mt-1 text-sm font-normal text-ed-ink leading-relaxed">
             {booking.classSlot?.studio?.name
               ? `${booking.classSlot.studio.name} · ${booking.branch?.name}`
@@ -323,7 +323,7 @@ export function BookingDetailView({
 
         <article className="rounded-none border border-ed-line bg-white p-5 shadow-none">
           <User className="size-6 text-ed-forest" />
-          <h2 className="mt-4 text-xs font-semibold uppercase tracking-wider text-ed-muted">Instruktur</h2>
+          <h2 className="mt-4 text-[13px] font-bold text-ed-muted">Instruktur</h2>
           <p className="font-serif mt-1 text-sm font-normal text-ed-ink leading-relaxed">
             {booking.classSlot?.instructor?.displayName ?? 'Tim Daily Dose'}
           </p>
@@ -332,7 +332,7 @@ export function BookingDetailView({
         {booking.status === 'CANCELLED' ? (
           <article className="rounded-none border border-ed-line bg-white p-5 shadow-none">
             <CalendarX className="size-6 text-rose-800" />
-            <h2 className="mt-4 text-xs font-semibold uppercase tracking-wider text-rose-800">Status Booking</h2>
+            <h2 className="mt-4 text-[13px] font-bold text-rose-800">Status Booking</h2>
             <p className="font-serif mt-1 text-sm font-normal text-ed-ink leading-relaxed">
               Booking dibatalkan
             </p>
@@ -340,7 +340,7 @@ export function BookingDetailView({
         ) : booking.status === 'ATTENDED' ? (
           <article className="rounded-none border border-ed-line bg-white p-5 shadow-none">
             <CheckCircle className="size-6 text-ed-green" />
-            <h2 className="mt-4 text-xs font-semibold uppercase tracking-wider text-ed-muted">Status Kehadiran</h2>
+            <h2 className="mt-4 text-[13px] font-bold text-ed-muted">Status Kehadiran</h2>
             <p className="font-serif mt-1 text-sm font-normal text-ed-ink leading-relaxed">
               Selesai dihadiri
             </p>
@@ -348,7 +348,7 @@ export function BookingDetailView({
         ) : (
           <article className="rounded-none border border-ed-line bg-white p-5 shadow-none">
             <Users className="size-6 text-ed-forest" />
-            <h2 className="mt-4 text-xs font-semibold uppercase tracking-wider text-ed-muted">Kapasitas Slot</h2>
+            <h2 className="mt-4 text-[13px] font-bold text-ed-muted">Kapasitas Slot</h2>
             <p className="font-serif mt-1 text-sm font-normal text-ed-ink leading-relaxed">
               {booking.classSlot?.capacity
                 ? `${booking.classSlot.bookedCount ?? 1}/${booking.classSlot.capacity} terisi (${Math.max(0, booking.classSlot.capacity - (booking.classSlot.bookedCount ?? 1))} sisa tempat)`
@@ -390,7 +390,7 @@ export function BookingDetailView({
               )}
             </div>
             <div className="mt-4 flex-1 sm:mt-0">
-              <span className="inline-flex items-center gap-1.5 rounded-none border border-ed-line bg-ed-tint px-3 py-1 text-xs font-semibold uppercase tracking-wider text-ed-forest">
+              <span className="inline-flex items-center gap-1.5 rounded-none border border-ed-line bg-ed-tint px-3 py-1 text-[13px] font-bold text-ed-forest">
                 <QrCode className="size-3.5" />
                 Pass Check-in Studio
               </span>

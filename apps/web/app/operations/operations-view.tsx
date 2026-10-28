@@ -126,7 +126,7 @@ export function OperationsView({
       />
       <Panel className="space-y-4 p-6 sm:p-8">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.12em] text-dd-muted">Kelas</p>
+          <p className="text-[13px] font-bold text-dd-muted">Kelas</p>
           <h2 className="mt-2 text-2xl font-semibold text-dd-ink">Evaluasi kuota H-24</h2>
           <p className="mt-2 text-sm text-dd-muted">
             Kelas yang sudah masuk batas konfirmasi diperiksa: kuota terpenuhi → dikonfirmasi; kurang
@@ -195,7 +195,7 @@ export function OperationsView({
       <Panel className="p-6 sm:p-8">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.12em] text-dd-muted">
+            <p className="text-[13px] font-bold text-dd-muted">
               Email transaksional
             </p>
             <h2 className="mt-2 text-2xl font-semibold text-dd-ink">Pengiriman email</h2>

@@ -627,7 +627,7 @@ function SessionValue({
 function DetailItem({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-dd-md bg-dd-surface-muted p-4">
-      <dt className="text-xs font-bold uppercase tracking-wider text-dd-muted">{label}</dt>
+      <dt className="text-[13px] font-bold text-dd-muted">{label}</dt>
       <dd className="mt-2 break-words text-sm font-semibold text-dd-ink">{value}</dd>
     </div>
   );

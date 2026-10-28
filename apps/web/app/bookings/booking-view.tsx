@@ -752,7 +752,7 @@ export function BookingView({
         onConfirm={(reason) => void cancelBooking(reason)}
       >
         <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-3.5 space-y-2 text-xs">
-          <strong className="block text-xs font-bold text-amber-900 uppercase tracking-wider">
+          <strong className="block text-[13px] font-bold text-amber-900">
             Rincian Dampak Operasional:
           </strong>
           <ul className="list-disc pl-4 space-y-1 text-amber-800">

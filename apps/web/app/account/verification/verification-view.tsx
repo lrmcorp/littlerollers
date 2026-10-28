@@ -274,9 +274,7 @@ function ReplacementDialog({
 
       <div className="mt-5 grid gap-4 sm:grid-cols-2">
         <div>
-          <p className="mb-2 text-xs font-bold uppercase tracking-wider text-dd-muted">
-            Dokumen saat ini
-          </p>
+          <p className="mb-2 text-[13px] font-bold text-dd-muted">Dokumen saat ini</p>
           <div className="grid min-h-40 place-items-center rounded-dd-lg bg-dd-surface-muted p-3">
             {currentPreview.state === 'ready' ? (
               <img
@@ -292,9 +290,7 @@ function ReplacementDialog({
           </div>
         </div>
         <div>
-          <p className="mb-2 text-xs font-bold uppercase tracking-wider text-dd-muted">
-            Dokumen pengganti
-          </p>
+          <p className="mb-2 text-[13px] font-bold text-dd-muted">Dokumen pengganti</p>
           <div className="grid min-h-40 place-items-center rounded-dd-lg bg-dd-surface-muted p-3">
             {preview ? (
               <img
@@ -453,7 +449,7 @@ function KycSubmissionForm({ onSubmitted }: { onSubmitted: () => Promise<void> }
             <ChevronLeft className="size-5" aria-hidden="true" />
           </Link>
           <div>
-            <span className="text-[13px] font-bold uppercase tracking-[0.2em] text-dd-brass-dark">
+            <span className="text-[13px] font-bold text-dd-brass-dark">
               Verifikasi Identitas KTP
             </span>
             <h1 className="mt-2 text-2xl font-bold tracking-tight text-dd-ink sm:text-3xl">
@@ -478,10 +474,7 @@ function KycSubmissionForm({ onSubmitted }: { onSubmitted: () => Promise<void> }
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-5">
           <div>
-            <label
-              htmlFor="nik"
-              className="block text-xs font-semibold uppercase tracking-wider text-dd-forest"
-            >
+            <label htmlFor="nik" className="block text-[13px] font-bold text-dd-forest">
               Nomor Induk Kependudukan (NIK)
             </label>
             <input
@@ -499,10 +492,7 @@ function KycSubmissionForm({ onSubmitted }: { onSubmitted: () => Promise<void> }
           </div>
 
           <div>
-            <label
-              htmlFor="address"
-              className="block text-xs font-semibold uppercase tracking-wider text-dd-forest"
-            >
+            <label htmlFor="address" className="block text-[13px] font-bold text-dd-forest">
               Alamat Sesuai KTP
             </label>
             <textarea
@@ -519,10 +509,7 @@ function KycSubmissionForm({ onSubmitted }: { onSubmitted: () => Promise<void> }
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="rounded-dd-lg border border-dashed border-dd-line p-4">
-              <label
-                htmlFor="ktp"
-                className="block text-xs font-bold uppercase tracking-wider text-dd-forest"
-              >
+              <label htmlFor="ktp" className="block text-[13px] font-bold text-dd-forest">
                 Unggah Foto KTP
               </label>
               <p className="mt-1 text-[13px] text-dd-muted">
@@ -545,10 +532,7 @@ function KycSubmissionForm({ onSubmitted }: { onSubmitted: () => Promise<void> }
             </div>
 
             <div className="rounded-dd-lg border border-dashed border-dd-line p-4">
-              <label
-                htmlFor="selfie"
-                className="block text-xs font-bold uppercase tracking-wider text-dd-forest"
-              >
+              <label htmlFor="selfie" className="block text-[13px] font-bold text-dd-forest">
                 Unggah Foto Selfie
               </label>
               <p className="mt-1 text-[13px] text-dd-muted">
@@ -711,9 +695,7 @@ export function VerificationView() {
                 <ChevronLeft className="size-5" aria-hidden="true" />
               </Link>
               <div>
-                <span className="text-[13px] font-bold uppercase tracking-[0.2em] text-dd-brass-dark">
-                  {copy.eyebrow}
-                </span>
+                <span className="text-[13px] font-bold text-dd-brass-dark">{copy.eyebrow}</span>
                 <h1 className="mt-3 max-w-2xl text-3xl font-bold tracking-tight text-dd-ink sm:text-4xl">
                   {copy.title}
                 </h1>
@@ -783,9 +765,7 @@ export function VerificationView() {
       <section aria-labelledby="documents-title">
         <div className="mb-4 flex items-end justify-between gap-4">
           <div>
-            <span className="text-[13px] font-bold uppercase tracking-[0.18em] text-dd-muted">
-              Dokumen
-            </span>
+            <span className="text-[13px] font-bold text-dd-muted">Dokumen</span>
             <h2 id="documents-title" className="mt-1 text-xl font-bold">
               Status setiap dokumen
             </h2>

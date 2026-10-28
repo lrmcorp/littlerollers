@@ -311,12 +311,12 @@ export function DataTable<T>({
     <div className="overflow-hidden rounded-dd-lg border border-dd-line bg-dd-surface shadow-sm">
       <div className={mobileCard ? 'hidden overflow-x-auto md:block' : 'overflow-x-auto'}>
         <table className="w-full border-collapse text-left text-sm">
-          <thead className="sticky top-0 z-10 bg-dd-surface-muted text-xs uppercase tracking-[0.08em] text-dd-muted">
+          <thead className="sticky top-0 z-10 bg-dd-surface-muted text-[13px] text-dd-muted">
             <tr>
               {showRowNumbers && (
                 <th
                   scope="col"
-                  className="w-14 min-w-[3.5rem] border-b border-dd-line px-3 py-3 text-center text-xs font-bold uppercase tracking-[0.08em] text-dd-muted select-none"
+                  className="w-14 min-w-[3.5rem] border-b border-dd-line px-3 py-3 text-center text-[13px] font-bold text-dd-muted select-none"
                 >
                   {rowNumberHeader}
                 </th>

@@ -352,7 +352,7 @@ export function FinanceView({
               />
             </div>
 
-            <label className="grid gap-1 text-xs font-bold uppercase tracking-wider text-dd-muted">
+            <label className="grid gap-1 text-[13px] font-bold text-dd-muted">
               Dari tanggal
               <input
                 type="date"
@@ -362,7 +362,7 @@ export function FinanceView({
                 className="rounded-dd-sm border border-dd-line bg-dd-surface px-3 py-2 text-sm text-dd-ink outline-none transition focus:border-dd-forest focus:ring-2 focus:ring-dd-forest/15"
               />
             </label>
-            <label className="grid gap-1 text-xs font-bold uppercase tracking-wider text-dd-muted">
+            <label className="grid gap-1 text-[13px] font-bold text-dd-muted">
               Sampai tanggal
               <input
                 type="date"
@@ -542,13 +542,13 @@ export function FinanceView({
               </div>
 
               <Panel className="p-5 space-y-4">
-                <h3 className="text-sm font-semibold uppercase tracking-wider text-dd-muted">
+                <h3 className="text-sm font-bold text-dd-muted">
                   Distribusi Metode Pembayaran
                 </h3>
                 <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
                   {Object.entries(omsetData.byPaymentMethod).map(([method, val]) => (
                     <div key={method} className="rounded-dd-md border border-dd-line p-3">
-                      <span className="text-xs font-bold text-dd-muted uppercase">{method}</span>
+                      <span className="text-[13px] font-bold text-dd-muted">{method}</span>
                       <p className="mt-1 text-base font-semibold">{formatRupiah(val.amountRp)}</p>
                       <p className="text-xs text-dd-muted">{val.count} pembayaran</p>
                     </div>
@@ -942,13 +942,13 @@ export function FinanceView({
               )}
 
               <Panel className="p-5 space-y-3">
-                <h3 className="text-sm font-semibold uppercase tracking-wider text-dd-muted">
+                <h3 className="text-sm font-bold text-dd-muted">
                   Distribusi Kategori Beban
                 </h3>
                 <div className="grid gap-4 sm:grid-cols-3 md:grid-cols-6">
                   {Object.entries(otherCostData.byCategory).map(([cat, val]) => (
                     <div key={cat} className="rounded-dd-md border border-dd-line p-3">
-                      <span className="text-xs font-bold uppercase text-dd-muted">{cat}</span>
+                      <span className="text-[13px] font-bold text-dd-muted">{cat}</span>
                       <p className="mt-1 text-sm font-semibold">{formatRupiah(val.amountRp)}</p>
                       <p className="text-xs text-dd-muted">{val.count} transaksi</p>
                     </div>

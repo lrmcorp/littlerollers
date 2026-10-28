@@ -105,7 +105,7 @@ export function FormField({
         className={
           labelClassName ||
           (variant === 'editorial'
-            ? 'text-xs font-bold uppercase tracking-wider text-ed-ink'
+            ? 'text-[13px] font-bold text-ed-ink'
             : 'text-sm font-semibold text-dd-ink')
         }
       >

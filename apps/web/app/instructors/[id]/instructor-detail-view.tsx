@@ -199,7 +199,7 @@ export function InstructorDetailView({ id }: { id: string }) {
 
         {/* Assigned branches badge pills */}
         <div className="mt-5 border-t border-dd-line pt-4">
-          <span className="text-xs font-bold uppercase tracking-wider text-dd-muted">
+          <span className="text-[13px] font-bold text-dd-muted">
             Studio / Cabang Penugasan:
           </span>
           <div className="mt-2 flex flex-wrap gap-2">
@@ -390,7 +390,7 @@ function Metric({
 }) {
   return (
     <div className="rounded-dd-lg border border-dd-line bg-white p-5 shadow-dd-card">
-      <div className="text-xs font-bold uppercase text-dd-muted">{label}</div>
+      <div className="text-[13px] font-bold text-dd-muted">{label}</div>
       <strong className="mt-2 block text-2xl font-bold text-dd-ink">{value}</strong>
       {hint && <p className="mt-1 text-xs text-dd-muted">{hint}</p>}
     </div>

@@ -121,7 +121,7 @@ export function VouchersView() {
     <section className="grid gap-5" aria-labelledby="voucher-title">
       <header className="flex flex-wrap items-end justify-between gap-3 border-b border-dd-line pb-5">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-dd-forest">
+          <p className="text-[13px] font-bold text-dd-forest">
             Administrasi
           </p>
           <h1 id="voucher-title" className="mt-1 text-3xl font-semibold">

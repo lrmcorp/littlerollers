@@ -248,7 +248,7 @@ export function HeroCarousel({ config }: { config?: HeroCarouselPayload | null }
 
         {/* Baris bawah: catatan + kontrol */}
         <div className="mt-12 flex flex-wrap items-center justify-between gap-x-8 gap-y-5 border-t border-white/35 pt-5 sm:mt-[72px]">
-          <span className="text-[11px] tracking-[0.12em] text-white/80 uppercase">
+          <span className="text-[13px] text-white/80">
             Latihan personal dan kelompok kecil · Move with intention
           </span>
 

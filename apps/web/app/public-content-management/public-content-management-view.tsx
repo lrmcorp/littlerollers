@@ -380,7 +380,7 @@ export function PublicContentManagementView() {
               </label>
 
               <div>
-                <label className="block text-xs font-semibold text-dd-forest uppercase tracking-wider mb-1">
+                <label className="block text-[13px] font-bold text-dd-forest mb-1">
                   Durasi Tiap Slide (Detik)
                 </label>
                 <select
@@ -456,7 +456,7 @@ export function PublicContentManagementView() {
                 {/* 1. UPLOAD IMAGE MANUAL / CUSTOM DROPZONE */}
                 <div className="rounded-dd-lg border border-dashed border-dd-forest/40 bg-white p-4">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-bold text-dd-forest uppercase tracking-wider flex items-center gap-1.5">
+                    <span className="text-[13px] font-bold text-dd-forest flex items-center gap-1.5">
                       <Upload className="size-3.5 text-dd-forest" />
                       Unggah Gambar Kustom / Manual (Dari Laptop/HP)
                     </span>
@@ -540,7 +540,7 @@ export function PublicContentManagementView() {
                 {/* 2. PRESET IMAGE SELECTOR & PATH INPUT */}
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
-                    <label className="block text-xs font-semibold text-dd-forest uppercase tracking-wider mb-1">
+                    <label className="block text-[13px] font-bold text-dd-forest mb-1">
                       Atau Pilih Preset Gambar Studio
                     </label>
                     <select
@@ -566,7 +566,7 @@ export function PublicContentManagementView() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-dd-forest uppercase tracking-wider mb-1">
+                    <label className="block text-[13px] font-bold text-dd-forest mb-1">
                       Badge / Tag Promosi (Opsional)
                     </label>
                     <input
@@ -579,7 +579,7 @@ export function PublicContentManagementView() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-dd-forest uppercase tracking-wider mb-1">
+                  <label className="block text-[13px] font-bold text-dd-forest mb-1">
                     Path / URL Gambar Terpilih *
                   </label>
                   <input
@@ -595,7 +595,7 @@ export function PublicContentManagementView() {
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
-                    <label className="block text-xs font-semibold text-dd-forest uppercase tracking-wider mb-1">
+                    <label className="block text-[13px] font-bold text-dd-forest mb-1">
                       Judul Utama *
                     </label>
                     <input
@@ -608,7 +608,7 @@ export function PublicContentManagementView() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-dd-forest uppercase tracking-wider mb-1">
+                    <label className="block text-[13px] font-bold text-dd-forest mb-1">
                       Judul Highlight (Aksen Hijau)
                     </label>
                     <input
@@ -621,7 +621,7 @@ export function PublicContentManagementView() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-dd-forest uppercase tracking-wider mb-1">
+                  <label className="block text-[13px] font-bold text-dd-forest mb-1">
                     Deskripsi Ringkas *
                   </label>
                   <textarea
@@ -724,7 +724,7 @@ export function PublicContentManagementView() {
                       <div>
                         <div className="flex flex-wrap items-center gap-2">
                           {slide.badge && (
-                            <span className="rounded bg-dd-forest/10 px-2 py-0.5 text-[10px] font-bold text-dd-forest uppercase">
+                            <span className="rounded bg-dd-forest/10 px-2 py-0.5 text-[13px] font-bold text-dd-forest">
                               {slide.badge}
                             </span>
                           )}

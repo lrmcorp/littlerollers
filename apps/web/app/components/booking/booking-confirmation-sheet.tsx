@@ -343,9 +343,7 @@ export function BookingConfirmationSheet({
               {/* Header: Nama kelas 24 px & Tombol X */}
               <div className="flex items-start justify-between gap-4 pb-2 border-b border-dd-line/60">
                 <div>
-                  <span className="text-[13px] font-bold uppercase tracking-[0.2em] text-dd-forest">
-                    Konfirmasi Booking
-                  </span>
+                  <span className="text-[13px] font-bold text-dd-forest">Konfirmasi Booking</span>
                   <h2
                     id="booking-sheet-title"
                     className="mt-1 text-2xl font-bold tracking-tight text-dd-ink"
@@ -407,9 +405,7 @@ export function BookingConfirmationSheet({
 
               {/* Kotak #e8f0ec berisi nama paket dan sisa sesi setelah booking */}
               <div className="rounded-dd-md border border-dd-forest/20 bg-[#e8f0ec] p-4 space-y-2">
-                <span className="text-[13px] font-bold uppercase tracking-wider text-dd-forest">
-                  Paket yang Digunakan
-                </span>
+                <span className="text-[13px] font-bold text-dd-forest">Paket yang Digunakan</span>
 
                 {availablePackages.length > 1 ? (
                   <div className="space-y-2 pt-1">

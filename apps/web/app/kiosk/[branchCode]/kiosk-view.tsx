@@ -246,7 +246,7 @@ export function KioskView({
             <Lock className="size-7" />
           </div>
 
-          <div className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-dd-forest/10 px-3 py-1 text-xs font-bold text-dd-forest uppercase tracking-wider">
+          <div className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-dd-forest/10 px-3 py-1 text-[13px] font-bold text-dd-forest">
             <ShieldCheck className="size-3.5" />
             <span>Otorisasi Tablet Studio</span>
           </div>
@@ -371,7 +371,7 @@ export function KioskView({
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold uppercase tracking-widest text-dd-forest">
+              <span className="text-[13px] font-bold text-dd-forest">
                 Studio Kiosk Mode
               </span>
               <span className="size-2 rounded-full bg-dd-forest animate-pulse" />
@@ -395,7 +395,7 @@ export function KioskView({
               })}{' '}
               <span className="text-sm font-semibold text-dd-muted">{timezoneName}</span>
             </div>
-            <div className="text-[11px] font-semibold tracking-wider text-dd-muted uppercase">
+            <div className="text-[13px] font-bold text-dd-muted">
               {currentTime.toLocaleDateString('id-ID', {
                 weekday: 'long',
                 day: 'numeric',
@@ -569,7 +569,7 @@ export function KioskView({
                 {activeSlot && (
                   <div className="rounded-2xl border border-dd-line bg-white p-6 sm:p-8 shadow-dd-card space-y-4">
                     <div className="flex items-center justify-between border-b border-dd-line pb-3">
-                      <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-dd-forest">
+                      <span className="inline-flex items-center gap-1.5 text-[13px] font-bold text-dd-forest">
                         <Sparkles className="size-4" /> Sesi Kelas Studio
                       </span>
                       {activeSlot.roomName && (
@@ -666,7 +666,7 @@ export function KioskView({
                   {data.slots.length > 1 && (
                     <div className="pt-2 border-t border-dd-line">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-bold uppercase tracking-wider text-dd-muted">
+                        <span className="text-[13px] font-bold text-dd-muted">
                           Semua Jadwal Sesi Hari Ini ({data.slots.length})
                         </span>
                         <button

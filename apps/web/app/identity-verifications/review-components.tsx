@@ -96,9 +96,7 @@ export function SummaryButton({
             : 'border-dd-line/80 bg-white/95 text-dd-ink hover:border-dd-forest/60 hover:-translate-y-0.5'
       }`}
     >
-      <span className="block text-[11px] font-bold uppercase tracking-wider opacity-80">
-        {label}
-      </span>
+      <span className="block text-[13px] font-bold opacity-80">{label}</span>
       <strong className="mt-2.5 block text-2xl sm:text-3xl font-bold">
         {(value ?? 0).toLocaleString('id-ID')}
       </strong>
@@ -281,9 +279,7 @@ export function DocumentReviewCard({
 
         {/* Metadata & Tag Lifecycle */}
         <div className="rounded-dd-lg border border-dd-line/70 bg-dd-surface-muted/60 p-3 text-xs">
-          <span className="block text-[10px] font-bold uppercase tracking-wider text-dd-muted mb-1.5">
-            Status Berkas
-          </span>
+          <span className="block text-[13px] font-bold text-dd-muted mb-1.5">Status Berkas</span>
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="rounded-md border border-dd-line bg-white px-2 py-0.5 text-[11px] font-medium text-dd-ink shadow-2xs">
               Upload: <strong className="font-semibold">{document.uploadStatus}</strong>

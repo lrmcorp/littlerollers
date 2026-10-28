@@ -608,13 +608,13 @@ export function CustomerDetailView({ id }: { id: string }) {
             <div className="space-y-3 text-sm">
               <div className="grid grid-cols-2 gap-3">
                 <div className="rounded-dd-md border border-dd-line/70 bg-dd-surface-muted/20 p-3">
-                  <span className="text-[11px] font-semibold text-dd-muted uppercase tracking-wider block">NIK (Nomor KTP)</span>
+                  <span className="text-[13px] font-bold text-dd-muted block">NIK (Nomor KTP)</span>
                   <p className="mt-1 font-semibold text-dd-ink truncate" title={customer.profile?.nik || '—'}>
                     {customer.profile?.nik || '—'}
                   </p>
                 </div>
                 <div className="rounded-dd-md border border-dd-line/70 bg-dd-surface-muted/20 p-3">
-                  <span className="text-[11px] font-semibold text-dd-muted uppercase tracking-wider block">Jenis Kelamin</span>
+                  <span className="text-[13px] font-bold text-dd-muted block">Jenis Kelamin</span>
                   <p className="mt-1 font-semibold text-dd-ink">
                     {customer.profile?.gender === 'FEMALE' || customer.profile?.genderCode === 'F'
                       ? 'Perempuan'
@@ -627,7 +627,7 @@ export function CustomerDetailView({ id }: { id: string }) {
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="rounded-dd-md border border-dd-line/70 bg-dd-surface-muted/20 p-3">
-                  <span className="text-[11px] font-semibold text-dd-muted uppercase tracking-wider block">Tanggal Lahir</span>
+                  <span className="text-[13px] font-bold text-dd-muted block">Tanggal Lahir</span>
                   <p className="mt-1 font-semibold text-dd-ink">
                     {customer.profile?.birthDate
                       ? new Date(customer.profile.birthDate).toLocaleDateString('id-ID', {
@@ -639,7 +639,7 @@ export function CustomerDetailView({ id }: { id: string }) {
                   </p>
                 </div>
                 <div className="rounded-dd-md border border-dd-line/70 bg-dd-surface-muted/20 p-3">
-                  <span className="text-[11px] font-semibold text-dd-muted uppercase tracking-wider block">Cabang Pilihan</span>
+                  <span className="text-[13px] font-bold text-dd-muted block">Cabang Pilihan</span>
                   <p className="mt-1 font-semibold text-dd-ink truncate" title={customer.preferredBranch?.name || '—'}>
                     {customer.preferredBranch?.name || '—'}
                   </p>
@@ -647,14 +647,14 @@ export function CustomerDetailView({ id }: { id: string }) {
               </div>
 
               <div className="rounded-dd-md border border-dd-line/70 bg-dd-surface-muted/20 p-3">
-                <span className="text-[11px] font-semibold text-dd-muted uppercase tracking-wider flex items-center gap-1.5">
+                <span className="text-[13px] font-bold text-dd-muted flex items-center gap-1.5">
                   <MapPin className="size-3.5 text-dd-forest" /> Alamat Domisili
                 </span>
                 <p className="mt-1 font-semibold text-dd-ink break-words">{customer.profile?.address || '—'}</p>
               </div>
 
               <div className="rounded-dd-md border border-dd-line/70 bg-dd-surface-muted/20 p-3">
-                <span className="text-[11px] font-semibold text-dd-muted uppercase tracking-wider flex items-center gap-1.5">
+                <span className="text-[13px] font-bold text-dd-muted flex items-center gap-1.5">
                   <Phone className="size-3.5 text-dd-forest" /> Kontak Darurat
                 </span>
                 <p className="mt-1 font-semibold text-dd-ink">
@@ -790,7 +790,7 @@ export function CustomerDetailView({ id }: { id: string }) {
               return (
                 <div key={c.label} className="rounded-dd-lg border border-dd-line bg-white p-4 shadow-xs">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-dd-muted">{c.label}</span>
+                    <span className="text-[13px] font-bold text-dd-muted">{c.label}</span>
                     <Icon className="size-4 text-dd-forest/70" />
                   </div>
                   <strong className="mt-1 block text-2xl font-bold text-dd-ink">{c.value}</strong>

@@ -541,7 +541,7 @@ function SummaryFilterCard({
       onClick={onClick}
     >
       <span className={`absolute inset-x-0 top-0 h-0.5 ${accent}`} aria-hidden="true" />
-      <span className="block text-xs font-bold uppercase tracking-[0.14em] text-dd-muted">
+      <span className="block text-[13px] font-bold text-dd-muted">
         {label}
       </span>
       <strong className="mt-3 block text-2xl font-semibold tracking-tight text-dd-ink">

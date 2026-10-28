@@ -183,7 +183,7 @@ export function CustomerBookingsView({
                     }`}
                   >
                     <div>
-                      <span className="block text-[11px] uppercase tracking-[0.14em] font-semibold text-ed-green">
+                      <span className="block text-[13px] font-bold text-ed-green">
                         Waktu Sesi
                       </span>
                       <strong className="mt-0.5 block text-xs font-semibold text-ed-ink">
@@ -198,7 +198,7 @@ export function CustomerBookingsView({
                     </div>
 
                     <div>
-                      <span className="block text-[11px] uppercase tracking-[0.14em] font-semibold text-ed-green">
+                      <span className="block text-[13px] font-bold text-ed-green">
                         Instruktur
                       </span>
                       <strong className="mt-0.5 block text-xs font-semibold text-ed-ink truncate">
@@ -208,7 +208,7 @@ export function CustomerBookingsView({
 
                     {item.status === 'CANCELLED' ? (
                       <div>
-                        <span className="block text-[11px] uppercase tracking-[0.14em] font-semibold text-ed-green">
+                        <span className="block text-[13px] font-bold text-ed-green">
                           Status Booking
                         </span>
                         <strong className="mt-0.5 block text-xs font-semibold text-rose-800">
@@ -219,7 +219,7 @@ export function CustomerBookingsView({
                       timeline === 'UPCOMING' &&
                       item.status === 'BOOKED' && (
                         <div>
-                          <span className="block text-[11px] uppercase tracking-[0.14em] font-semibold text-ed-green">
+                          <span className="block text-[13px] font-bold text-ed-green">
                             Ketersediaan Slot
                           </span>
                           <strong className="mt-0.5 block text-xs font-semibold text-ed-ink">

@@ -139,7 +139,7 @@ export function CustomerNavigation({
             ['Akun', CUSTOMER_ACCOUNT_NAVIGATION],
           ].map(([group, items]) => (
             <div key={group as string}>
-              <p className="mb-2 px-3 text-[13px] font-bold uppercase tracking-wider text-dd-forest/80">
+              <p className="mb-2 px-3 text-[13px] font-bold text-dd-forest/80">
                 {group as string}
               </p>
               <div className="space-y-1">

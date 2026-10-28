@@ -17,7 +17,7 @@ export default function NotFound() {
     <main className="mx-auto flex min-h-[70vh] w-full max-w-2xl flex-col items-center justify-center px-4 py-16 text-center font-sans">
       <div className="w-full space-y-6 rounded-dd-2xl border border-dd-line/80 bg-white p-8 sm:p-12 shadow-dd-card">
         {/* Badge 404 */}
-        <div className="mx-auto inline-flex items-center gap-2 rounded-full bg-dd-forest/10 px-4 py-1 text-xs font-bold uppercase tracking-wider text-dd-forest">
+        <div className="mx-auto inline-flex items-center gap-2 rounded-full bg-dd-forest/10 px-4 py-1 text-[13px] font-bold text-dd-forest">
           <Compass className="size-3.5" />
           <span>Error 404 · Halaman Tidak Ditemukan</span>
         </div>

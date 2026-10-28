@@ -48,7 +48,7 @@ export function ResetPasswordView({ client = browserIdentityClient }: { client?:
               required
             />
             <button
-              className="absolute inset-y-0 right-1 inline-flex min-h-[44px] items-center px-3 text-xs font-bold uppercase tracking-wider text-ed-forest hover:text-ed-deep focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#09371f]"
+              className="absolute inset-y-0 right-1 inline-flex min-h-[44px] items-center px-3 text-[13px] font-bold text-ed-forest hover:text-ed-deep focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#09371f]"
               type="button"
               onClick={() => setShow((value) => !value)}
             >

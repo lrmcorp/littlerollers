@@ -337,7 +337,7 @@ export function FrontDeskTodayView({
           <span className="text-3xl font-extrabold tracking-tight text-dd-forest tabular-nums sm:text-4xl">
             {formatAttendanceTime(now, timezone)}
           </span>
-          <span className="text-xs font-bold uppercase tracking-wider text-dd-muted">
+          <span className="text-[13px] font-bold text-dd-muted">
             {timezone === 'Asia/Makassar' ? 'WITA' : timezone === 'Asia/Jayapura' ? 'WIT' : 'WIB'}
           </span>
         </div>
@@ -383,7 +383,7 @@ export function FrontDeskTodayView({
                   }`}
                 >
                   <div className="space-y-1">
-                    <p className="text-xs font-bold uppercase tracking-wider text-dd-muted">Berjalan sekarang</p>
+                    <p className="text-[13px] font-bold text-dd-muted">Berjalan sekarang</p>
                     {running ? (
                       <>
                         <button
@@ -436,7 +436,7 @@ export function FrontDeskTodayView({
                   }`}
                 >
                   <div className="space-y-1">
-                    <p className="text-xs font-bold uppercase tracking-wider text-dd-muted">
+                    <p className="text-[13px] font-bold text-dd-muted">
                       {nextClassLabel(next, now)}
                     </p>
                     {next ? (

@@ -28,7 +28,7 @@ export function AuthPageShell({
       id="main-content"
     >
       <a
-        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:px-4 focus:py-2.5 focus:bg-ed-forest focus:text-white focus:text-xs focus:font-bold focus:uppercase focus:tracking-wider focus:shadow-lg focus:outline-none focus:rounded-none"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:px-4 focus:py-2.5 focus:bg-ed-forest focus:text-white focus:text-[13px] focus:font-bold focus: focus: focus:shadow-lg focus:outline-none focus:rounded-none"
         href="#auth-form"
       >
         Langsung ke formulir pendaftaran
@@ -55,7 +55,7 @@ export function AuthPageShell({
 
         {/* Top Brand Tag */}
         <div className="flex items-center gap-2 text-white/90">
-          <span className="text-xs font-bold tracking-[0.16em] uppercase text-ed-mint">
+          <span className="text-[13px] font-bold text-ed-mint">
             Daily Dose Pilates Studio
           </span>
         </div>
@@ -97,7 +97,7 @@ export function AuthPageShell({
           <div className="mb-6 sm:mb-8 flex items-center justify-between gap-2 sm:gap-3 border-b border-ed-line pb-4 sm:pb-5">
             <BrandMark className="w-28 sm:w-36 shrink-0" priority />
             <Link
-              className="inline-flex min-h-[44px] shrink-0 items-center gap-1.5 sm:gap-2 rounded-none px-2.5 sm:px-3 text-xs font-bold uppercase tracking-wider text-ed-forest hover:bg-ed-tint transition-colors no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ed-forest"
+              className="inline-flex min-h-[44px] shrink-0 items-center gap-1.5 sm:gap-2 rounded-none px-2.5 sm:px-3 text-[13px] font-bold text-ed-forest hover:bg-ed-tint transition-colors no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ed-forest"
               href={loginHref}
             >
               <span>{loginLabel}</span>

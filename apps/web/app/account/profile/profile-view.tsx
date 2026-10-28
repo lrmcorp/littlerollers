@@ -186,7 +186,7 @@ export function ProfileView() {
         <div className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <span className="flex items-center justify-between text-xs font-semibold text-dd-forest uppercase tracking-wider">
+              <span className="flex items-center justify-between text-[13px] font-bold text-dd-forest">
                 <span>Username (ID Login)</span>
                 <span className="flex items-center gap-1 text-[13px] font-normal text-dd-muted">
                   <Lock className="size-3" /> Akun Terdaftar
@@ -208,7 +208,7 @@ export function ProfileView() {
             </div>
 
             <div>
-              <label htmlFor="displayName" className="block text-xs font-semibold text-dd-forest uppercase tracking-wider">
+              <label htmlFor="displayName" className="block text-[13px] font-bold text-dd-forest">
                 Nama Lengkap / Tampilan
               </label>
               <div className="relative mt-1.5">
@@ -231,7 +231,7 @@ export function ProfileView() {
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <span className="flex items-center justify-between text-xs font-semibold text-dd-forest uppercase tracking-wider">
+              <span className="flex items-center justify-between text-[13px] font-bold text-dd-forest">
                 <span>Email Akun</span>
                 <span className="flex items-center gap-1 text-[13px] font-normal text-dd-muted">
                   <Lock className="size-3" /> Terverifikasi
@@ -248,7 +248,7 @@ export function ProfileView() {
             </div>
 
             <div>
-              <span className="flex items-center justify-between text-xs font-semibold text-dd-forest uppercase tracking-wider">
+              <span className="flex items-center justify-between text-[13px] font-bold text-dd-forest">
                 <span>Nomor WhatsApp</span>
                 {profile.phoneMasked ? (
                   <span className="flex items-center gap-1 text-[13px] font-normal text-dd-muted">

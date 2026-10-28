@@ -835,7 +835,7 @@ function InstructorQrCanvas({
           className="my-4 rounded-dd-xl border-2 border-dd-forest/30 bg-dd-surface p-6 sm:p-8 shadow-dd-card text-center"
         >
           <div className="flex flex-col items-center justify-center">
-            <span className="text-xs font-bold uppercase tracking-wider text-dd-forest">
+            <span className="text-[13px] font-bold text-dd-forest">
               Presensi Instruktur · {branchName ?? 'Studio Daily Dose'}
             </span>
             <h3 className="mt-1 text-xl font-bold text-dd-ink">{classTypeName ?? 'Scan QR Kehadiran'}</h3>

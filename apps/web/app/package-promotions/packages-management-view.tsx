@@ -246,7 +246,7 @@ export function PackagesManagementView() {
     <section className="grid gap-5" aria-labelledby="packages-management-title">
       <header className="flex flex-wrap items-end justify-between gap-3 border-b border-dd-line pb-5">
         <div>
-          <p className="text-xs font-bold tracking-[0.16em] text-dd-forest uppercase">
+          <p className="text-[13px] font-bold text-dd-forest">
             Master data
           </p>
           <h1 id="packages-management-title" className="mt-1 text-3xl font-semibold">
@@ -739,7 +739,7 @@ function PackageCreateForm({
 
         {!isMultiBranch && (
           <div className="mt-2 grid gap-2 border-t border-dd-line pt-2">
-            <p className="text-xs font-semibold uppercase text-dd-muted">Pilih Cabang:</p>
+            <p className="text-[13px] font-bold text-dd-muted">Pilih Cabang:</p>
             {branches.map((branch) => (
               <label className="flex items-center gap-2 text-sm cursor-pointer" key={branch.id}>
                 <input

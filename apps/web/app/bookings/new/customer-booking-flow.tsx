@@ -322,7 +322,7 @@ export function CustomerBookingFlow({ client = browserBookingClient }: { client?
           <ArrowLeft className="size-4" />
           Kembali ke jadwal
         </Link>
-        <p className="mt-5 text-xs font-bold uppercase tracking-[0.16em] text-dd-forest">
+        <p className="mt-5 text-[13px] font-bold text-dd-forest">
           Booking kelas
         </p>
         <h1 id="customer-booking-title" className="mt-2 text-2xl font-semibold sm:text-3xl">
@@ -380,7 +380,7 @@ export function CustomerBookingFlow({ client = browserBookingClient }: { client?
           <div className="flex items-center gap-3">
             <CheckCircle2 className="size-8 text-dd-success shrink-0" aria-hidden="true" />
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.16em] text-dd-success">
+              <p className="text-[13px] font-bold text-dd-success">
                 Booking berhasil
               </p>
               <h2 className="text-2xl font-semibold text-dd-ink">{slot.classType.name}</h2>
@@ -648,7 +648,7 @@ export function CustomerBookingFlow({ client = browserBookingClient }: { client?
                 /* Step 2: Review Final */
                 <section className="rounded-dd-xl border border-dd-line bg-white p-5 sm:p-6 shadow-dd-card space-y-4">
                   <div>
-                    <p className="text-xs font-bold uppercase tracking-[0.14em] text-dd-forest">
+                    <p className="text-[13px] font-bold text-dd-forest">
                       Review reservasi
                     </p>
                     <h3 className="mt-1 text-xl font-semibold text-dd-ink">

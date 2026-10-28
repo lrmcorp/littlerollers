@@ -419,7 +419,7 @@ export function InstructorTodayView({
         <div className="space-y-1">
           <h2
             id="availability-card-heading"
-            className="text-xs font-bold uppercase tracking-wider text-dd-muted"
+            className="text-[13px] font-bold text-dd-muted"
           >
             Ketersediaan Mengajar
           </h2>

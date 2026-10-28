@@ -536,7 +536,7 @@ export function MasterView({
               <div className="space-y-4">
                 <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
-                  <thead className="border-b border-dd-line text-xs uppercase text-dd-muted">
+                  <thead className="border-b border-dd-line text-[13px] text-dd-muted">
                     <tr>
                       <th className="w-12 pb-3 pt-2 font-semibold">No</th>
                       <th className="pb-3 pt-2 font-semibold">Kode Kelas</th>
@@ -823,7 +823,7 @@ export function MasterView({
               <div className="mt-4 space-y-4">
                 <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
-                  <thead className="border-b border-dd-line text-xs uppercase tracking-wider text-dd-muted">
+                  <thead className="border-b border-dd-line text-[13px] text-dd-muted">
                     <tr>
                       <th className="w-12 pb-3 pt-2 text-center font-semibold">No</th>
                       <th className="pb-3 pt-2 font-semibold">Tipe kelas</th>

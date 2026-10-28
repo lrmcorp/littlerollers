@@ -193,7 +193,7 @@ export function RegisterView() {
               onFailure={handleGoogleFailure}
             />
           </div>
-          <div className="flex items-center gap-4 text-xs font-bold tracking-wider text-ed-muted uppercase before:h-px before:flex-1 before:bg-ed-line after:h-px after:flex-1 after:bg-ed-line">
+          <div className="flex items-center gap-4 text-[13px] font-bold text-ed-muted before:h-px before:flex-1 before:bg-ed-line after:h-px after:flex-1 after:bg-ed-line">
             atau isi data akun secara manual
           </div>
         </div>
@@ -245,14 +245,14 @@ export function RegisterView() {
             <User className="size-4 shrink-0 text-ed-green" />
             <span className="truncate">Pendaftaran Akun Baru</span>
           </div>
-          <span className="shrink-0 whitespace-nowrap rounded-none border border-ed-line bg-white px-2.5 py-0.5 font-bold text-ed-forest text-[13px] uppercase tracking-wider">
+          <span className="shrink-0 whitespace-nowrap rounded-none border border-ed-line bg-white px-2.5 py-0.5 font-bold text-ed-forest text-[13px]">
             Cepat &amp; Praktis
           </span>
         </div>
 
         {/* Section 1: Data Diri & Kontak */}
         <div className="space-y-4 rounded-none border border-ed-line bg-white p-4 sm:p-5">
-          <div className="flex items-center gap-2 border-b border-ed-line pb-2 text-xs font-bold uppercase tracking-[0.12em] text-ed-forest">
+          <div className="flex items-center gap-2 border-b border-ed-line pb-2 text-[13px] font-bold text-ed-forest">
             <User className="size-3.5 text-ed-green" /> 1. Data Diri &amp; Kontak
           </div>
           <TextInput
@@ -311,7 +311,7 @@ export function RegisterView() {
 
         {/* Section 2: Keamanan Akun */}
         <div className="space-y-4 rounded-none border border-ed-line bg-white p-4 sm:p-5">
-          <div className="flex items-center gap-2 border-b border-ed-line pb-2 text-xs font-bold uppercase tracking-[0.12em] text-ed-forest">
+          <div className="flex items-center gap-2 border-b border-ed-line pb-2 text-[13px] font-bold text-ed-forest">
             <Lock className="size-3.5 text-ed-green" /> 2. Keamanan Akun
           </div>
           <PasswordField

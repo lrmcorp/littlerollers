@@ -215,7 +215,7 @@ export function ScheduleDetailView({
                     {item.classProfile.equipment.map((eq) => (
                       <span
                         key={eq}
-                        className="inline-flex items-center gap-2 rounded-none border border-ed-line bg-ed-tint px-3 py-1 text-xs font-semibold uppercase tracking-wider text-ed-ink"
+                        className="inline-flex items-center gap-2 rounded-none border border-ed-line bg-ed-tint px-3 py-1 text-[13px] font-bold text-ed-ink"
                       >
                         <span className="size-1 bg-ed-green" />
                         {eq}
@@ -230,7 +230,7 @@ export function ScheduleDetailView({
             <aside className="space-y-6">
               {/* Studio Card */}
               <div className="rounded-none border border-ed-line bg-white p-6 ">
-                <div className="flex items-center gap-2 text-xs font-bold tracking-wider text-ed-green uppercase">
+                <div className="flex items-center gap-2 text-[13px] font-bold text-ed-green">
                   <MapPin className="size-4" />
                   Lokasi Studio
                 </div>
@@ -262,7 +262,7 @@ export function ScheduleDetailView({
                   </Link>
                   {item.branch.supportWhatsappE164 && (
                     <a
-                      className="inline-flex min-h-11 items-center gap-2 rounded-none border border-ed-green/30 bg-ed-tint px-4 text-xs font-semibold uppercase tracking-wider text-ed-forest no-underline transition-colors hover:bg-ed-mist"
+                      className="inline-flex min-h-11 items-center gap-2 rounded-none border border-ed-green/30 bg-ed-tint px-4 text-[13px] font-bold text-ed-forest no-underline transition-colors hover:bg-ed-mist"
                       href={`https://wa.me/${item.branch.supportWhatsappE164.replace(/\D/g, '')}?text=${encodeURIComponent(`Halo Daily Dose, saya ingin bertanya seputar jadwal ${item.classType.name} di ${item.branch.name}`)}`}
                       target="_blank"
                       rel="noopener noreferrer"

@@ -118,7 +118,7 @@ export function VoucherDetailView({ id }: { id: string }) {
       </Link>
       <header className="flex flex-wrap items-end justify-between gap-3 border-b border-dd-line pb-5">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-dd-forest">
+          <p className="text-[13px] font-bold text-dd-forest">
             Voucher & promo
           </p>
           <h1 id="voucher-detail-title" className="mt-1 text-3xl font-semibold">
