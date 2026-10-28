@@ -616,6 +616,10 @@ describe('ClassSlotView detail drawer layout', () => {
       />,
     );
     const user = userEvent.setup();
+    // Kelas batal disembunyikan dulu; staf membukanya lewat tombol "Tampilkan kelas batal".
+    if (target.status === 'CANCELLED') {
+      await user.click(await screen.findByRole('button', { name: /Tampilkan 1 kelas batal/ }));
+    }
     await screen.findAllByText('Reformer');
     await user.click(
       within(screen.getByRole('region', { name: 'Kalender kelas tujuh hari' })).getByRole(
@@ -786,6 +790,10 @@ describe('ClassSlotView duplicate and delete', () => {
     const client = fake({ discover: vi.fn().mockResolvedValue({ ...workspace, slots: [target] }) });
     render(<ClassSlotView client={client} branchOverride={branch} capabilitiesOverride={capabilities} />);
     const user = userEvent.setup();
+    // Kelas batal disembunyikan dulu; staf membukanya lewat tombol "Tampilkan kelas batal".
+    if (target.status === 'CANCELLED') {
+      await user.click(await screen.findByRole('button', { name: /Tampilkan 1 kelas batal/ }));
+    }
     await screen.findAllByText('Reformer');
     await user.click(
       within(screen.getByRole('region', { name: 'Kalender kelas tujuh hari' })).getByRole('button', {
