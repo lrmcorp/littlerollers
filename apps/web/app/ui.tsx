@@ -45,11 +45,7 @@ export function PageHeader({
           </button>
         ) : null}
         <div className="min-w-0">
-          {eyebrow && (
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-dd-forest">
-              {eyebrow}
-            </p>
-          )}
+          {eyebrow && <p className="text-[13px] font-bold text-dd-forest">{eyebrow}</p>}
           <h1
             id={titleId}
             className="mt-1 text-2xl font-semibold tracking-tight text-dd-ink sm:text-3xl"
@@ -57,7 +53,7 @@ export function PageHeader({
             {title}
           </h1>
           {description && (
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-dd-muted">{description}</p>
+            <p className="mt-2 max-w-3xl text-[17px] leading-7 text-dd-muted">{description}</p>
           )}
         </div>
       </div>

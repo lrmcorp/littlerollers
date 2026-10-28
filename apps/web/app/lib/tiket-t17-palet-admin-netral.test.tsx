@@ -128,7 +128,7 @@ describe('Tiket T-17: Ganti Palet Panel Admin ke Netral', () => {
       expect(nav.className).not.toContain('text-white');
     });
 
-    it('memastikan penanda menu aktif menggunakan latar putih dengan border kiri 3px --color-dd-forest (#0d5132)', () => {
+    it('memastikan penanda menu aktif memakai pil hijau lembut dan tidak bersandar pada warna saja', () => {
       render(
         <AppNavigation
           mobileOpen={false}
@@ -144,10 +144,12 @@ describe('Tiket T-17: Ganti Palet Panel Admin ke Netral', () => {
       // Cari tautan yang aktif atau periksa kelas penanda aktif
       const activeLink = document.querySelector('[aria-current="page"]');
       if (activeLink) {
-        expect(activeLink.className).toContain('bg-white');
-        expect(activeLink.className).toContain('border-l-[3px]');
-        expect(activeLink.className).toContain('border-l-dd-forest');
-        expect(activeLink.className).toContain('text-dd-ink');
+        // Penanda baru mengikuti referensi HR Group: pil hijau lembut, bukan garis kiri.
+        expect(activeLink.className).toContain('bg-dd-success-soft');
+        expect(activeLink.className).toContain('text-dd-forest');
+        // Aturan yang sebenarnya dijaga tetap sama: aktif harus terbaca tanpa bergantung warna,
+        // jadi tebal hurufnya ikut berubah, bukan hanya latarnya.
+        expect(activeLink.className).toContain('font-bold');
       }
     });
 

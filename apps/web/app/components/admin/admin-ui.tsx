@@ -38,7 +38,7 @@ export function Badge({ children, tone = 'neutral' }: { children: ReactNode; ton
 export function Panel({ children, className = '', ...props }: HTMLAttributes<HTMLElement>) {
   return (
     <section
-      className={`rounded-dd-lg border border-dd-line bg-dd-surface shadow-dd-card ${className}`}
+      className={`rounded-dd-md border border-dd-line bg-dd-surface ${className}`}
       {...props}
     >
       {children}
@@ -65,18 +65,27 @@ export function StatCard({
     change == null || change === 0 ? Minus : change > 0 ? ArrowUpRight : ArrowDownRight;
   return (
     <Panel className="relative overflow-hidden p-5" aria-busy={loading}>
-      <span
-        className={`absolute inset-x-0 top-0 h-0.5 ${tone === 'warning' ? 'bg-dd-brass' : tone === 'danger' ? 'bg-dd-danger' : 'bg-dd-line'}`}
-      />
-      <p className="text-xs font-bold uppercase tracking-[0.14em] text-dd-muted">{label}</p>
+      <p className="flex items-center gap-1.5 text-[15px] font-bold text-dd-muted">
+        {label}
+        {/* Nada dipakai pemanggil untuk angka yang perlu ditindaklanjuti. Ditandai ikon dan kata,
+            bukan sekadar warna, supaya tetap terbaca di cetakan hitam putih dan oleh pembaca
+            yang sulit membedakan warna. */}
+        {(tone === 'warning' || tone === 'danger') && !loading && (
+          <span
+            className={`inline-flex items-center gap-1 text-[13px] font-bold ${
+              tone === 'danger' ? 'text-dd-danger' : 'text-dd-brass'
+            }`}
+          >
+            <AlertTriangle className="size-3.5" aria-hidden="true" />
+            {tone === 'danger' ? 'perlu tindakan' : 'perlu dicek'}
+          </span>
+        )}
+      </p>
       <div className="mt-3 flex items-end justify-between gap-3">
         {loading ? (
-          <div
-            className="h-8 w-24 rounded bg-dd-line/60"
-            aria-label="Memuat nilai..."
-          />
+          <div className="h-8 w-24 rounded bg-dd-line/60" aria-label="Memuat nilai..." />
         ) : (
-          <strong className="text-2xl font-semibold tracking-tight text-dd-ink">{value}</strong>
+          <strong className="text-3xl font-semibold tracking-tight text-dd-ink">{value}</strong>
         )}
         {loading ? (
           <div className="h-4 w-12 rounded bg-dd-line/40" />

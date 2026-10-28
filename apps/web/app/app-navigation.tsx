@@ -108,10 +108,10 @@ export function AppNavigation({
   }, []);
 
   const linkClass = (active: boolean) =>
-    `group flex min-h-11 items-center gap-3 px-3 py-2 text-sm font-semibold transition ${
+    `group flex min-h-11 items-center gap-3 rounded-dd-sm px-3 py-2 text-sm transition ${
       active
-        ? 'bg-white text-dd-ink border-l-[3px] border-l-dd-forest shadow-xs font-bold'
-        : 'text-dd-ink border-l-[3px] border-l-transparent hover:bg-black/5 hover:text-dd-ink'
+        ? 'bg-dd-success-soft font-bold text-dd-forest'
+        : 'font-medium text-dd-ink hover:bg-black/5'
     }`;
 
   return (
@@ -234,7 +234,7 @@ export function AppNavigation({
                     {!collapsed && (
                       <h2
                         id={`nav-${group}`}
-                        className="px-3 pb-2 text-[13px] font-bold uppercase tracking-[0.2em] text-[#4b5563]"
+                        className="px-3 pb-2 text-[13px] font-bold text-[#4b5563]"
                       >
                         {group}
                       </h2>

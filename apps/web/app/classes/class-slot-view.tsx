@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, SlidersHorizontal, Tv } from 'lucide-react';
+import { ChevronLeft, ChevronRight, GripVertical, Lock, SlidersHorizontal, Tv } from 'lucide-react';
 import {
   browserClassSlotClient,
   classSlotFailure,
@@ -25,7 +25,7 @@ import { useSessionContext } from '../session-context';
 import { isInstructorOnlySession } from '@/lib/session-audience';
 import { CreatePanel, DetailPanel, type CreateTemplate } from './class-slot-panels';
 import { LifecycleDialog } from '../components/admin/lifecycle-dialog';
-import { classStatusTone, statusLabels, timezoneLabel } from './class-slot-presenters';
+import { classStatusTone, geserJadwal, statusLabels, timezoneLabel } from './class-slot-presenters';
 import { SearchSelect, SelectInput } from '../components/forms';
 import { Button, ButtonLink } from '../components/actions';
 import { Drawer, useAppFeedback } from '../components/app-feedback';
@@ -102,6 +102,10 @@ export function ClassSlotView({
   const [slotToDelete, setSlotToDelete] = useState<ClassSlot | null>(null);
   const [selectedMobileDay, setSelectedMobileDay] = useState<string>('ALL');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  /** Kelas yang sedang diseret di kalender; null berarti tidak ada yang diseret. */
+  const [seret, setSeret] = useState<ClassSlot | null>(null);
+  /** Sel `hari-jam` yang sedang dilewati kursor, hanya untuk menandai tujuan. */
+  const [sasaran, setSasaran] = useState<string | null>(null);
   const displayTimezone = branch?.timezone ?? branches[0]?.timezone ?? 'Asia/Jakarta';
   const week = useMemo(
     () => (branch || globalMode ? weekWindow(reference, displayTimezone) : null),
@@ -303,6 +307,124 @@ export function ClassSlotView({
       </section>
     );
   }
+
+  /** Jam mulai menurut zona waktu cabang, bukan zona server. */
+  const slotHour = (slot: ClassSlot) =>
+    Number.parseInt(formatBranchTime(slot.startAt, slot.timezone).slice(0, 2), 10);
+
+  const todayKey = localDateKey(new Date(), displayTimezone);
+
+  /**
+   * Rentang jam kalender diturunkan dari jadwal yang benar-benar ada, bukan dipatok tetap,
+   * supaya studio yang buka sampai malam tidak terpotong dan yang tutup sore tidak menyisakan
+   * baris kosong berjam-jam.
+   */
+  const gridHours = (() => {
+    const jam = visible.map(slotHour).filter((n) => Number.isFinite(n));
+    const mulai = jam.length ? Math.min(...jam) : 9;
+    const selesai = jam.length ? Math.max(...jam) : 21;
+    return Array.from({ length: selesai - mulai + 1 }, (_, i) => mulai + i);
+  })();
+
+  /** Nama depan saja; kolom hari terlalu sempit untuk nama lengkap. */
+  const firstName = (nama: string) => nama.trim().split(/\s+/)[0] ?? nama;
+
+  /**
+   * Memindahkan kelas ke hari dan jam tempat ia dilepaskan; `geserJadwal` yang menghitung waktunya.
+   *
+   * `expectedVersion` dikirim supaya pemindahan gagal terang-terangan bila ada staf lain yang baru
+   * mengubah kelas yang sama, bukan menimpa pekerjaannya diam-diam.
+   */
+  const pindahkanKelas = async (slot: ClassSlot, hariTujuan: string, jamTujuan: number) => {
+    const jadwal = geserJadwal({
+      startAt: slot.startAt,
+      endAt: slot.endAt,
+      hariAsal: localDateKey(slot.startAt, slot.timezone),
+      jamAsal: slotHour(slot),
+      hariTujuan,
+      jamTujuan,
+    });
+    if (!jadwal) return;
+
+    const jamTeks = `${String(jamTujuan).padStart(2, '0')}.00`;
+
+    await run(
+      () =>
+        client.update(slot.id, {
+          classTypeId: slot.classTypeId,
+          studioId: slot.studioId,
+          roomId: slot.roomId ?? null,
+          instructorUserId: slot.instructorUserId ?? null,
+          startAt: jadwal.startAt,
+          endAt: jadwal.endAt,
+          expectedVersion: slot.version,
+          reason: 'Dipindah lewat kalender',
+        }),
+      `${classTypeName(slot.classTypeId, slot)} dipindah ke ${formatBranchDay(
+        hariTujuan,
+        displayTimezone,
+      )} jam ${jamTeks}.`,
+    );
+  };
+
+  /**
+   * Kartu kecil di dalam sel jam. Kelas yang belum ada pesertanya ditandai titik enam dan dapat
+   * dipindah; yang sudah ada pesertanya ditandai gembok, karena memindahkannya berarti memindahkan
+   * jadwal orang yang sudah menyiapkan waktunya.
+   */
+  const hourChip = (slot: ClassSlot) => {
+    const dibatalkan = slot.status === 'CANCELLED' || slot.status === 'AUTO_CANCELLED';
+    const kosong = slot.bookedCount === 0 && !dibatalkan;
+    const penuh = slot.bookedCount >= slot.capacity;
+    return (
+      <button
+        type="button"
+        draggable={kosong && !busy}
+        onDragStart={() => setSeret(slot)}
+        onDragEnd={() => {
+          setSeret(null);
+          setSasaran(null);
+        }}
+        title={
+          dibatalkan
+            ? 'Kelas dibatalkan'
+            : kosong
+              ? 'Belum ada peserta. Seret ke jam lain untuk memindah, atau klik lalu ubah jamnya.'
+              : `${slot.bookedCount} peserta sudah booking, jadwal terkunci`
+        }
+        className={`flex min-w-0 flex-1 flex-col gap-0.5 rounded-dd-sm border p-1.5 text-left transition focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#09371f] ${
+          dibatalkan
+            ? 'border-dd-danger/40 bg-dd-danger-soft text-dd-danger'
+            : kosong
+              ? 'cursor-grab border-dd-forest bg-dd-success-soft/60'
+              : 'cursor-pointer border-dd-border-interactive bg-white hover:border-dd-forest'
+        }`}
+        key={slot.id}
+        onClick={() => openPanel({ kind: 'detail', slot })}
+      >
+        <span className="flex items-center gap-1">
+          {kosong ? (
+            <GripVertical className="size-3 shrink-0 text-dd-forest" aria-hidden="true" />
+          ) : (
+            <Lock className="size-3 shrink-0 text-dd-muted" aria-hidden="true" />
+          )}
+          <span className="truncate text-[13px] font-bold text-dd-ink">
+            {classTypeName(slot.classTypeId, slot)}
+          </span>
+        </span>
+        <span className="truncate text-[13px] text-dd-muted">
+          {firstName(instructorName(slot.instructorUserId, slot))}
+        </span>
+        <span
+          className={`text-[13px] font-bold ${
+            kosong ? 'text-dd-forest' : penuh ? 'text-dd-warning' : 'text-dd-muted'
+          }`}
+        >
+          {kosong ? `Kosong, 0/${slot.capacity}` : `${slot.bookedCount}/${slot.capacity}`}
+        </span>
+      </button>
+    );
+  };
 
   const slotCard = (slot: ClassSlot) => {
     const isCancelled = slot.status === 'CANCELLED' || slot.status === 'AUTO_CANCELLED';
@@ -554,39 +676,113 @@ export function ClassSlotView({
         />
       ) : (
         <>
-          {/* Desktop 7-Column Grid (≥ xl, 1280px+) */}
-          <div className="hidden xl:block overflow-x-auto pb-4 -mx-2 px-2 sm:mx-0 sm:px-0">
+          {/* Tipe kelas dalam satu ketuk. Dropdown di panel filter tetap ada untuk daftar panjang,
+              tetapi hari yang padat biasanya cuma perlu memisahkan group dari private. */}
+          {classTypeOptions.length > 1 && (
+            <div className="flex flex-wrap items-center gap-2" aria-label="Saring tipe kelas">
+              {[{ id: '', label: 'Semua tipe' }, ...classTypeOptions].map((opsi) => {
+                const aktif = classTypeFilter === opsi.id;
+                const jumlah = opsi.id
+                  ? slots.filter((slot) => slot.classTypeId === opsi.id).length
+                  : slots.length;
+                return (
+                  <button
+                    type="button"
+                    aria-pressed={aktif}
+                    onClick={() => setClassTypeFilter(opsi.id)}
+                    className={`flex min-h-11 items-center gap-2 rounded-dd-sm border px-3 text-sm transition focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#09371f] ${
+                      aktif
+                        ? 'border-dd-forest bg-dd-success-soft font-bold text-dd-forest'
+                        : 'border-dd-border-interactive bg-white font-medium text-dd-ink hover:border-dd-forest'
+                    }`}
+                    key={opsi.id || 'semua'}
+                  >
+                    {opsi.label}
+                    <span className="text-[13px] font-medium text-dd-muted">{jumlah}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          <p className="m-0 hidden text-[13px] text-dd-muted xl:block">
+            Kelas bertanda titik enam belum ada pesertanya dan bisa diseret ke jam lain. Yang
+            bertanda gembok sudah ada peserta; ubah jamnya dari panel detail bila memang perlu.
+          </p>
+
+          {/* Desktop: baris jam x kolom hari (≥ xl). Tinggi kalender ditentukan jam operasional,
+              bukan jumlah kelas, sehingga hari tersibuk pun tidak membuatnya memanjang. */}
+          <div className="hidden xl:block overflow-x-auto pb-4">
             <div
-              className="grid grid-cols-7 gap-3 items-start min-w-[940px] xl:min-w-0"
+              className="min-w-[980px] overflow-hidden rounded-dd-md border border-dd-line bg-white"
               role="region"
               aria-label="Kalender kelas tujuh hari"
             >
-              {week?.days.map((day) => {
-                const daySlots = grouped.get(day) ?? [];
-                return (
-                  <section
-                    className="flex flex-col gap-2 rounded-2xl border border-dd-line/80 bg-white/95 p-3 shadow-xs min-h-[380px]"
-                    aria-labelledby={`day-${day}`}
+              <div
+                className="grid border-b border-dd-line bg-white"
+                style={{ gridTemplateColumns: '68px repeat(7, minmax(0, 1fr))' }}
+              >
+                <span aria-hidden="true" />
+                {(week?.days ?? []).map((day) => (
+                  <p
+                    className={`m-0 border-l border-dd-line/60 px-1 py-2.5 text-center text-[13px] font-bold ${
+                      day === todayKey ? 'bg-dd-success-soft text-dd-forest' : 'text-dd-muted'
+                    }`}
                     key={day}
                   >
-                    <h2
-                      id={`day-${day}`}
-                      className="text-xs font-bold uppercase tracking-wider text-dd-forest pb-2.5 border-b border-dd-line text-center"
-                    >
-                      {formatBranchDay(day, displayTimezone)}
-                    </h2>
-                    <div className="flex flex-col gap-2.5 flex-1 pt-1">
-                      {daySlots.length ? (
-                        daySlots.map(slotCard)
-                      ) : (
-                        <div className="flex-1 flex items-center justify-center text-center p-3 text-xs text-dd-muted italic">
-                          Tidak ada kelas
-                        </div>
-                      )}
-                    </div>
-                  </section>
-                );
-              })}
+                    {formatBranchDay(day, displayTimezone)}
+                    {day === todayKey && <span className="block font-medium">hari ini</span>}
+                  </p>
+                ))}
+              </div>
+
+              {gridHours.map((hour) => (
+                <div
+                  className="grid min-h-[58px] border-b border-dd-line/50 last:border-b-0"
+                  style={{ gridTemplateColumns: '68px repeat(7, minmax(0, 1fr))' }}
+                  key={hour}
+                >
+                  <p className="m-0 pr-2 pt-1.5 text-right text-[13px] text-dd-muted">
+                    {String(hour).padStart(2, '0')}.00
+                  </p>
+                  {(week?.days ?? []).map((day) => {
+                    const diJam = (grouped.get(day) ?? []).filter(
+                      (slot) => slotHour(slot) === hour,
+                    );
+                    const kunci = `${day}-${hour}`;
+                    const jadiTujuan = seret !== null && sasaran === kunci;
+                    return (
+                      <div
+                        className={`flex min-w-0 gap-1 border-l border-dd-line/60 p-1 ${
+                          jadiTujuan
+                            ? 'bg-dd-success-soft outline outline-2 -outline-offset-2 outline-dd-forest'
+                            : day === todayKey
+                              ? 'bg-dd-success-soft/40'
+                              : ''
+                        }`}
+                        onDragOver={(event) => {
+                          if (!seret) return;
+                          // Tanpa preventDefault peramban menolak lepasan, jadi sel tidak pernah
+                          // jadi tujuan yang sah.
+                          event.preventDefault();
+                          setSasaran(kunci);
+                        }}
+                        onDragLeave={() => setSasaran((kini) => (kini === kunci ? null : kini))}
+                        onDrop={(event) => {
+                          event.preventDefault();
+                          const dipindah = seret;
+                          setSeret(null);
+                          setSasaran(null);
+                          if (dipindah) void pindahkanKelas(dipindah, day, hour);
+                        }}
+                        key={kunci}
+                      >
+                        {diJam.map((slot) => hourChip(slot))}
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
             </div>
           </div>
 

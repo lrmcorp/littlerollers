@@ -33,9 +33,7 @@ export function AdminPageHeader({
       <header className="flex flex-col gap-4 border-b border-dd-line pb-5 xl:flex-row xl:items-end xl:justify-between">
         <div className="min-w-0">
           {resolvedEyebrow && (
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-dd-forest">
-              {resolvedEyebrow}
-            </p>
+            <p className="text-[13px] font-bold text-dd-forest">{resolvedEyebrow}</p>
           )}
           <h1
             id={titleId}
@@ -44,7 +42,7 @@ export function AdminPageHeader({
             {title}
           </h1>
           {description && (
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-dd-muted">{description}</p>
+            <p className="mt-2 max-w-3xl text-[17px] leading-7 text-dd-muted">{description}</p>
           )}
           <div className="mt-3 flex flex-wrap items-center gap-2 empty:hidden">
             <ScopeChip />
