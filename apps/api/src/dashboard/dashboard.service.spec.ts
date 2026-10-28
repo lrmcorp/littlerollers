@@ -214,17 +214,19 @@ describe('DashboardService', () => {
     const p = principal({ userId: 'cached-user', roles: [{ role: 'CUSTOMER', branchId: null }] });
 
     const first = await service.customerOverview(p, { ttlMs: 10_000 });
-    expect(db.pemesananKelas.findMany).toHaveBeenCalledTimes(1);
+    // findMany is shared by pemesananKelas, paketPelanggan, and pembelian (3 calls total)
+    expect(db.pemesananKelas.findMany).toHaveBeenCalledTimes(3);
 
     const second = await service.customerOverview(p, { ttlMs: 10_000 });
-    expect(db.pemesananKelas.findMany).toHaveBeenCalledTimes(1);
+    // Second call within TTL should return cached object without querying database again
+    expect(db.pemesananKelas.findMany).toHaveBeenCalledTimes(3);
     expect(second).toBe(first);
 
     const third = await service.customerOverview(p, { forceRefresh: true, ttlMs: 10_000 });
-    expect(db.pemesananKelas.findMany).toHaveBeenCalledTimes(2);
+    expect(db.pemesananKelas.findMany).toHaveBeenCalledTimes(6);
 
     service.clearCustomerOverviewCache('cached-user');
     await service.customerOverview(p, { ttlMs: 10_000 });
-    expect(db.pemesananKelas.findMany).toHaveBeenCalledTimes(3);
+    expect(db.pemesananKelas.findMany).toHaveBeenCalledTimes(9);
   });
 });
