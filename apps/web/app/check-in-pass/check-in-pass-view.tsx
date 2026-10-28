@@ -120,6 +120,14 @@ async function issuePass(bookingId: string): Promise<IssuedPass> {
   return (await res.json()) as IssuedPass;
 }
 
+/** QR tetap milik akun yang sedang masuk; sama untuk setiap kelas. */
+async function staticPass(): Promise<string> {
+  const res = await fetch('/api/v1/me/check-in-pass', { credentials: 'include' });
+  if (!res.ok) throw new Error('PASS_UNAVAILABLE');
+  const data = (await res.json()) as { pass?: string };
+  return data.pass ?? '';
+}
+
 /** Booking mendatang terdekat milik pelanggan, untuk halaman yang dibuka tanpa memilih booking. */
 async function nearestBookingId(): Promise<string | null> {
   const res = await fetch('/api/v1/me/dashboard', { credentials: 'include' });
@@ -149,6 +157,8 @@ export function CheckInPassView() {
   const [error, setError] = useState('');
   const [noBooking, setNoBooking] = useState(false);
   const [saved, setSaved] = useState(false);
+  /** QR tetap milik akun (bukan QR per booking): satu untuk semua kelas, cukup disimpan sekali. */
+  const [statis, setStatis] = useState(false);
   const [now, setNow] = useState(() => Date.now());
 
   // Rincian kelas berasal dari server (atau parameter alamat bila ada); tidak ada nilai contoh sebagai pengganti.
@@ -159,7 +169,7 @@ export function CheckInPassView() {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const link = document.createElement('a');
-    link.download = 'daily-dose-qr-pass.png';
+    link.download = statis ? 'daily-dose-qr-kehadiran.png' : 'daily-dose-qr-pass.png';
     link.href = canvas.toDataURL('image/png');
     link.click();
     setSaved(true);
@@ -243,6 +253,14 @@ export function CheckInPassView() {
       }).catch(() => setError('QR tidak dapat dirender pada perangkat ini.'));
     };
 
+    const drawStatic = (value: string) => {
+      if (!value.startsWith('dd-pass:v1:')) {
+        setError(QR_UNAVAILABLE);
+        return;
+      }
+      draw(value);
+    };
+
     const showIssued = (data: IssuedPass) => {
       const value = data.qrPayload ?? (data.token ? `dd-checkin:v1:${data.token}` : '');
       if (!value.startsWith('dd-checkin:v1:')) {
@@ -272,15 +290,12 @@ export function CheckInPassView() {
           if (!cancelled) setError(QR_UNAVAILABLE);
         });
     } else {
-      // Dibuka tanpa memilih booking (menu, penanda halaman): pakai booking mendatang terdekat.
-      nearestBookingId()
-        .then(async (id) => {
+      // Dibuka dari menu: tampilkan QR tetap milik akun. Tablet studio yang mencari kelasnya.
+      staticPass()
+        .then((pass) => {
           if (cancelled) return;
-          if (!id) {
-            setNoBooking(true);
-            return;
-          }
-          showIssued(await issuePass(id));
+          setStatis(true);
+          drawStatic(pass);
         })
         .catch(() => {
           if (!cancelled) setError(QR_UNAVAILABLE);
@@ -309,10 +324,12 @@ export function CheckInPassView() {
       <header className="text-center">
         <p className="text-[13px] font-bold text-[#faeceb]">Daily Dose Pilates</p>
         <h1 className="mt-1 font-serif text-2xl font-normal tracking-tight text-white sm:text-3xl">
-          QR Pass Kelas
+          {statis ? 'QR kehadiran Anda' : 'QR Pass Kelas'}
         </h1>
         <p className="mt-2 max-w-sm text-center text-sm font-normal text-white/85">
-          Tunjukkan QR ini ke pemindai tablet di meja resepsionis atau kiosk studio.
+          {statis
+            ? 'Simpan sekali ke galeri. Tunjukkan ke tablet studio setiap datang, tanpa perlu masuk aplikasi.'
+            : 'Tunjukkan QR ini ke pemindai tablet di meja resepsionis atau kiosk studio.'}
         </p>
       </header>
 
@@ -391,7 +408,17 @@ export function CheckInPassView() {
             />
 
             <div className="mt-5 border-t border-ed-line pt-4 text-left space-y-1.5">
-              {info ? (
+              {statis ? (
+                <>
+                  {passHolder && (
+                    <h2 className="font-serif text-lg font-bold text-ed-ink">{passHolder}</h2>
+                  )}
+                  <p className="text-sm text-ed-muted">
+                    QR ini sama untuk semua kelas Anda. Kehadiran tercatat bila Anda punya kelas di
+                    studio itu, mulai 45 menit sebelum kelas sampai kelas selesai.
+                  </p>
+                </>
+              ) : info ? (
                 <>
                   <h2 className="font-serif text-lg font-bold text-ed-ink">{info.className}</h2>
                   {schedule && (
@@ -425,9 +452,11 @@ export function CheckInPassView() {
               )}
             </div>
 
-            <p className="mt-4 rounded-xl border border-[#396552]/20 bg-[#faeceb]/60 p-2.5 text-center text-xs leading-relaxed text-[#396552]">
-              Kode berlaku mulai 30 menit sebelum sesi dimulai hingga kelas selesai.
-            </p>
+            {!statis && (
+              <p className="mt-4 rounded-xl border border-[#396552]/20 bg-[#faeceb]/60 p-2.5 text-center text-xs leading-relaxed text-[#396552]">
+                Kode berlaku mulai 30 menit sebelum sesi dimulai hingga kelas selesai.
+              </p>
+            )}
 
             <button
               type="button"
@@ -440,7 +469,9 @@ export function CheckInPassView() {
             </button>
 
             <p className="mt-3 text-[11px] text-ed-muted">
-              Pass terenkripsi · jangan teruskan ke pihak lain
+              {statis
+                ? 'Jangan bagikan QR ini. Staf mencocokkan wajah Anda dengan foto selfie saat check-in.'
+                : 'Pass terenkripsi · jangan teruskan ke pihak lain'}
             </p>
           </section>
 

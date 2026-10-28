@@ -143,7 +143,7 @@ describe('InstructorTodayView (Tiket T-10 / Spesifikasi 5.4)', () => {
     expect(screen.getByText(/Studio Daily Dose Tebet/i)).toBeInTheDocument();
   });
 
-  it('renders full-width 60px "Scan QR presensi saya" action button linking to /check-in-scanner', async () => {
+  it('renders full-width 60px "Tampilkan QR presensi saya" button linking to the instructor own QR pass', async () => {
     render(
       <InstructorTodayView
         client={mockSlotClient}
@@ -153,9 +153,9 @@ describe('InstructorTodayView (Tiket T-10 / Spesifikasi 5.4)', () => {
       />,
     );
 
-    const scanButton = await screen.findByRole('link', { name: /Scan QR presensi saya/i });
+    const scanButton = await screen.findByRole('link', { name: /Tampilkan QR presensi saya/i });
     expect(scanButton).toBeInTheDocument();
-    expect(scanButton.getAttribute('href')).toBe('/check-in-scanner');
+    expect(scanButton.getAttribute('href')).toBe('/check-in-pass');
     expect(scanButton.className).toContain('h-[60px]');
   });
 

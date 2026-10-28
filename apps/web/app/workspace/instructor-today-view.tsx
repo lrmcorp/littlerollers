@@ -225,14 +225,14 @@ export function InstructorTodayView({
         </p>
       </header>
 
-      {/* 2. Tombol lebar penuh Scan QR presensi saya (tinggi 60 px) */}
+      {/* 2. QR presensi milik instruktur: ditunjukkan ke tablet studio, yang memindainya. */}
       <section aria-label="Aksi Utama Presensi">
         <Link
-          href="/check-in-scanner"
+          href="/check-in-pass"
           className="flex w-full h-[60px] min-h-[60px] items-center justify-center gap-3 rounded-xl bg-dd-forest hover:bg-[#2f5444] text-white font-bold text-base shadow-sm transition active:scale-[0.99] select-none text-center"
         >
           <QrCode className="size-6 shrink-0 stroke-[2.2]" aria-hidden="true" />
-          <span>Scan QR presensi saya</span>
+          <span>Tampilkan QR presensi saya</span>
         </Link>
       </section>
 

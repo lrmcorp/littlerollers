@@ -470,8 +470,8 @@ describe('capability-aware session shell', () => {
       await screen.findByRole('heading', { name: /Halo, Coach/ }),
     ).toBeVisible();
     expect(
-      screen.getByRole('link', { name: /Scan QR presensi saya/ }),
-    ).toHaveAttribute('href', '/check-in-scanner');
+      screen.getByRole('link', { name: /Tampilkan QR presensi saya/ }),
+    ).toHaveAttribute('href', '/check-in-pass');
     expect(screen.queryByText('Pilih cabang aktif di bagian atas', { exact: false })).not.toBeInTheDocument();
   });
 

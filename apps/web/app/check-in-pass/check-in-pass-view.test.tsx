@@ -164,42 +164,31 @@ describe('check-in pass (Tiket T-08 / Spesifikasi 5.8)', () => {
       expect(await screen.findByRole('status')).toHaveAttribute('data-pass-state', 'ENDED');
     });
 
-    it('tanpa booking terpilih memakai booking mendatang terdekat', async () => {
-      const fetchMock = vi.fn(async (url: string) =>
-        url.includes('/me/dashboard')
-          ? respond({ upcomingBookings: [{ id: 'bk-near', status: 'BOOKED' }] })
-          : respond(issued(180, 240)),
-      );
+    it('dibuka dari menu menampilkan QR tetap milik akun, bukan QR per booking', async () => {
+      const fetchMock = vi.fn(async () => respond({ pass: 'dd-pass:v1:abc' }));
       vi.stubGlobal('fetch', fetchMock);
       render(<CheckInPassView />);
 
-      expect(await screen.findByRole('heading', { name: 'Group Class' })).toBeVisible();
-      expect(fetchMock).toHaveBeenCalledWith(
-        '/api/v1/bookings/bk-near/customer-check-in-links',
-        expect.objectContaining({ method: 'POST' }),
+      expect(await screen.findByRole('heading', { name: 'QR kehadiran Anda' })).toBeVisible();
+      expect(fetchMock).toHaveBeenCalledWith('/api/v1/me/check-in-pass', expect.anything());
+      expect(fetchMock).not.toHaveBeenCalledWith(
+        expect.stringContaining('customer-check-in-links'),
+        expect.anything(),
       );
       expect(QRCode.toCanvas).toHaveBeenCalledWith(
         expect.any(HTMLCanvasElement),
-        'dd-checkin:v1:issued-pass',
+        'dd-pass:v1:abc',
         expect.anything(),
       );
+      expect(screen.getByText(/sama untuk semua kelas Anda/)).toBeVisible();
     });
 
-    it('tanpa booking mendatang menampilkan ajakan melihat jadwal, bukan pesan galat', async () => {
-      vi.stubGlobal(
-        'fetch',
-        vi.fn(async () => respond({ upcomingBookings: [] })),
-      );
+    it('menolak menggambar isi yang bukan pass Daily Dose', async () => {
+      vi.stubGlobal('fetch', vi.fn(async () => respond({ pass: 'https://contoh.palsu' })));
       render(<CheckInPassView />);
 
-      expect(
-        await screen.findByRole('heading', { name: 'Belum ada booking mendatang' }),
-      ).toBeVisible();
-      expect(screen.getByRole('link', { name: 'Lihat jadwal kelas' })).toHaveAttribute(
-        'href',
-        '/classes#schedule',
-      );
-      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+      expect(await screen.findByRole('alert')).toBeVisible();
+      expect(QRCode.toCanvas).not.toHaveBeenCalled();
     });
 
     it('tautan dari staf yang hanya membawa token mengambil rincian kelas dari server', async () => {
