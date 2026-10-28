@@ -79,6 +79,10 @@ const SUPER_OWNER_CAPABILITIES: readonly string[] = [
     'identity-verification:read',
     'identity-verification:decide',
     'identity-verification:delete',
+    // Koreksi jam mengajar instruktur dengan alasan dan bukti (masuk ke honor bulan kelasnya).
+    'instructor:hours:adjust',
+    // Mencatat pengeluaran cabang (pembelian barang dsb.) ke jurnal kas.
+    'expense:create',
   ]),
 ];
 
@@ -130,6 +134,8 @@ export const ROLE_CAPABILITIES: Record<ApplicationRole, readonly string[]> = {
     'reschedule:decide',
     'attendance:read',
     'attendance:manage',
+    // Admin mencatat pembelian barang cabangnya; mengubah atau menghapus tetap wewenang Finance/Owner.
+    'expense:create',
   ],
   MANAGER: [
     'automation:read',
@@ -162,6 +168,8 @@ export const ROLE_CAPABILITIES: Record<ApplicationRole, readonly string[]> = {
     'reschedule:decide',
     'attendance:read',
     'attendance:manage',
+    'expense:create',
+    'instructor:hours:adjust',
   ],
   OWNER: [
     'automation:read',

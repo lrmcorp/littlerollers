@@ -1,4 +1,7 @@
 import { PenyesuaianBuktiController } from './penyesuaian-bukti.controller';
+import { KoreksiJamService } from './koreksi-jam.service';
+import { RingkasanKeuanganController } from './ringkasan-keuangan.controller';
+import { RingkasanKeuanganService } from './ringkasan-keuangan.service';
 import { PenyesuaianBuktiService } from './penyesuaian-bukti.service';
 import { Module } from '@nestjs/common';
 import { DatabaseModule } from '../database/database.module';
@@ -37,6 +40,7 @@ import { PaymentExpirationWorkerService } from './payment-expiration-worker';
     PackagesController,
     LedgerController,
     PenyesuaianBuktiController,
+    RingkasanKeuanganController,
     FinanceController,
     RetentionController,
     AntreanTertinggalController,
@@ -44,6 +48,8 @@ import { PaymentExpirationWorkerService } from './payment-expiration-worker';
   ],
   providers: [
     PenyesuaianBuktiService,
+    KoreksiJamService,
+    RingkasanKeuanganService,
     CustomerOrderService,
     PackageAccessService,
     PackageCatalogService,

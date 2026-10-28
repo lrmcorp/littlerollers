@@ -7,6 +7,7 @@ import type { SessionPrincipal } from '../identity/identity.service';
 import { PolicyService } from '../identity/policy.service';
 import { ApiProblem } from '../identity/security';
 import { calculateSlotFee, summarizeInstructorFees } from './instructor-fee-calculator';
+import { koreksiHonorDalamRentang } from './koreksi-jam.service';
 import {
   financeRange,
   otherCostDay,
@@ -182,10 +183,14 @@ export class FinanceService {
     });
 
     const instructorBreakdown = summarizeInstructorFees(slots as any, fees);
-    const totalInstructorCostRp = instructorBreakdown.reduce(
-      (sum, item) => sum + item.totalFeeRp,
-      0,
-    );
+    // Koreksi jam (dengan alasan dan bukti) ikut dihitung pada bulan kelasnya.
+    const koreksi = await koreksiHonorDalamRentang(this.db, {
+      branchFilter,
+      fromDate: range.fromDate,
+      untilExclusive: range.untilExclusive,
+    });
+    const totalInstructorCostRp =
+      instructorBreakdown.reduce((sum, item) => sum + item.totalFeeRp, 0) + koreksi.totalRp;
     const totalTeachingHours = instructorBreakdown.reduce((sum, item) => sum + item.totalHours, 0);
     const totalUnverifiedFeeRp = instructorBreakdown.reduce(
       (sum, item) => sum + item.unverifiedFeeRp,
@@ -245,6 +250,9 @@ export class FinanceService {
       until: range.until,
       branchId: input.branchId ?? 'ALL',
       totalInstructorCostRp,
+      /** Bagian dari total yang berasal dari koreksi jam; bisa negatif. */
+      adjustmentRp: koreksi.totalRp,
+      adjustmentCount: koreksi.jumlah,
       totalVerifiedFeeRp: totalInstructorCostRp - totalUnverifiedFeeRp,
       totalUnverifiedFeeRp,
       unverifiedClassCount,
@@ -381,7 +389,9 @@ export class FinanceService {
       amountRp: number;
     },
   ) {
-    this.policy.requireCapability(principal.capabilities, 'finance:manage');
+    // Admin dan Manager mencatat pembelian barang cabangnya (jurnal kas); mengubah atau menghapus
+    // catatan tetap butuh `finance:manage`.
+    this.policy.requireAnyCapability(principal.capabilities, ['finance:manage', 'expense:create']);
     this.ensureBranchAccess(principal, input.branchId);
 
     if (!Number.isInteger(input.amountRp) || input.amountRp <= 0) {
@@ -943,10 +953,13 @@ export class FinanceService {
     });
 
     const instructorBreakdown = summarizeInstructorFees(slots, fees);
-    const totalInstructorFeeRp = instructorBreakdown.reduce(
-      (sum, item) => sum + item.totalFeeRp,
-      0,
-    );
+    const koreksi = await koreksiHonorDalamRentang(this.db, {
+      branchFilter: { branchId: targetBranchId },
+      fromDate: range.fromDate,
+      untilExclusive: range.untilExclusive,
+    });
+    const totalInstructorFeeRp =
+      instructorBreakdown.reduce((sum, item) => sum + item.totalFeeRp, 0) + koreksi.totalRp;
     const estimatedProfitRp = omsetRp - totalInstructorFeeRp - otherCostRp;
     const totalUnverifiedFeeRp = instructorBreakdown.reduce(
       (sum, item) => sum + item.unverifiedFeeRp,
