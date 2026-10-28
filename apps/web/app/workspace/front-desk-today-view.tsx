@@ -20,6 +20,7 @@ import {
 } from '../api-clients/dashboard-client';
 import { useSessionContext } from '../session-context';
 import { EmptyWeeksNotice } from './empty-weeks-notice';
+import { TargetCabang, ambilTargetCabang, type PaceCabang } from '../components/target-cabang';
 import { Button, ButtonLink } from '../components/actions';
 import { Modal, useAppFeedback } from '../components/app-feedback';
 import { Textarea } from '../components/forms';
@@ -48,6 +49,8 @@ export interface FrontDeskTodayViewProps {
   queues?: DashboardQueueSummary[] | null;
   /** Hanya untuk tes: jam acuan. */
   initialNow?: Date;
+  /** Target cabang dari pusat; tes mengganti pemuatnya. */
+  muatTarget?: (branchId: string) => Promise<PaceCabang>;
 }
 
 /**
@@ -65,6 +68,7 @@ export function FrontDeskTodayView({
   dashboardClient = browserDashboardClient,
   queues: queuesFromParent,
   initialNow,
+  muatTarget = ambilTargetCabang,
 }: FrontDeskTodayViewProps) {
   const feedback = useAppFeedback();
   const sessionContext = useSessionContext();
@@ -342,6 +346,8 @@ export function FrontDeskTodayView({
           </ButtonLink>
         </div>
       </header>
+
+      <TargetCabang branchId={branch?.id} muat={muatTarget} />
 
       {queues && queueTotal > 0 && (
         <section
