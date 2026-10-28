@@ -369,7 +369,7 @@ export function InstructorsView() {
           <div className="grid gap-1.5">
             <div className="flex items-center justify-between">
               <label
-                className="text-xs font-bold uppercase tracking-wider text-dd-muted"
+                className="text-[13px] font-bold text-dd-muted"
                 htmlFor="instructor-password-input"
               >
                 Kata Sandi Awal Login
@@ -410,7 +410,7 @@ export function InstructorsView() {
             </p>
           </div>
           <div className="grid gap-2">
-            <label className="text-xs font-bold uppercase tracking-wider text-dd-muted">
+            <label className="text-[13px] font-bold text-dd-muted">
               Penugasan Studio / Cabang Awal
             </label>
             <p className="text-xs text-dd-muted">

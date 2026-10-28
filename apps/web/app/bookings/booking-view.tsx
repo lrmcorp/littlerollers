@@ -600,7 +600,11 @@ export function BookingView({
         description="Pilih pelanggan, paket, dan kelas yang tersedia. Sistem otomatis memvalidasi batas waktu, saldo sesi, kapasitas kelas, dan izin akses saat konfirmasi."
         actions={
           <>
-            <StatusBadge tone="warning">Batas Reschedule H-2</StatusBadge>
+            {/* Nilai sebenarnya ada di RESCHEDULE_CUTOFF_HOURS (bawaan 24) dan belum pernah
+                dikirim ke web, jadi angka di sini masih ditulis tetap. Begitu konfigurasi itu
+                diekspos, ganti dengan nilai dari server agar label tidak bisa melenceng dari
+                aturan yang benar-benar ditegakkan. */}
+            <StatusBadge tone="warning">Batas reschedule 24 jam</StatusBadge>
             <Button
               type="button"
               variant="secondary"
@@ -748,7 +752,7 @@ export function BookingView({
         onConfirm={(reason) => void cancelBooking(reason)}
       >
         <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-3.5 space-y-2 text-xs">
-          <strong className="block text-xs font-bold text-amber-900 uppercase tracking-wider">
+          <strong className="block text-[13px] font-bold text-amber-900">
             Rincian Dampak Operasional:
           </strong>
           <ul className="list-disc pl-4 space-y-1 text-amber-800">
@@ -977,7 +981,7 @@ export function BookingView({
                 return (
                   <li
                     key={reschedule.id}
-                    className="rounded-dd-lg border border-dd-line bg-white p-4 shadow-sm"
+                    className="rounded-dd-lg border border-dd-line bg-white p-4"
                   >
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>

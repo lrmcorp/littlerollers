@@ -154,7 +154,7 @@ export function PurchaseView({
   if (!isCustomer) return null;
   if (!branch)
     return (
-      <section className="rounded-dd-xl border border-dd-line bg-dd-surface p-6 shadow-dd-card" aria-labelledby="purchase-title">
+      <section className="rounded-dd-xl border border-dd-line bg-dd-surface p-6" aria-labelledby="purchase-title">
         <PageHeader
           eyebrow="Pengajuan customer"
           title="Beli paket"
@@ -166,7 +166,7 @@ export function PurchaseView({
     );
 
   return (
-    <section className="rounded-dd-xl border border-dd-line bg-dd-surface p-6 shadow-dd-card" aria-labelledby="purchase-title">
+    <section className="rounded-dd-xl border border-dd-line bg-dd-surface p-6" aria-labelledby="purchase-title">
       <PageHeader
         eyebrow={`${branch.name} · ${timezoneLabel(branch.timezone)}`}
         title="Beli paket"

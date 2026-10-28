@@ -137,7 +137,7 @@ export function CustomerDashboard() {
     <main className="space-y-7" aria-labelledby="customer-dashboard-title">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-ed-green">
+          <p className="text-[13px] font-bold text-ed-green">
             Beranda Member
           </p>
           <h1 id="customer-dashboard-title" className="font-serif mt-2 text-2xl font-normal tracking-tight text-ed-ink sm:text-3xl">
@@ -185,7 +185,7 @@ export function CustomerDashboard() {
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="space-y-1.5">
               <div className="flex items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 border border-ed-line bg-ed-tint px-2 py-0.5 text-[13px] font-bold tracking-wider text-ed-forest uppercase">
+                <span className="inline-flex items-center gap-1.5 border border-ed-line bg-ed-tint px-2 py-0.5 text-[13px] font-bold text-ed-forest">
                   <span className="size-1.5 rounded-full bg-ed-forest" />
                   Jadwal Terdekat
                 </span>
@@ -350,7 +350,7 @@ export function CustomerDashboard() {
         <div className="grid gap-3 sm:grid-cols-2">
           {overview?.packages.map((item) => (
             <article key={item.id} className="rounded-none border border-ed-line bg-ed-tint/40 p-4">
-              <span className="text-xs font-semibold uppercase tracking-wider text-ed-muted">{item.branchName}</span>
+              <span className="text-[13px] font-bold text-ed-muted">{item.branchName}</span>
               <strong className="mt-1 block font-serif text-base font-normal text-ed-ink">{item.packageName}</strong>
               <div className="mt-4 flex items-end justify-between gap-3">
                 <span className="text-xs text-ed-muted">
@@ -396,7 +396,7 @@ function MetricCard({
       ) : (
         <strong className="mt-4 block font-serif text-3xl font-normal tracking-tight text-ed-ink">{value}</strong>
       )}
-      <span className="mt-1 block text-xs font-medium uppercase tracking-wider text-ed-muted">{label}</span>
+      <span className="mt-1 block text-[13px] font-medium text-ed-muted">{label}</span>
     </Link>
   );
 }
@@ -423,7 +423,7 @@ function DashboardSection({
           <h2 className="font-serif text-lg font-normal tracking-tight text-ed-ink">{title}</h2>
           <p className="mt-1 text-xs leading-relaxed text-ed-muted">{description}</p>
         </div>
-        <Link href={href} className="shrink-0 text-xs font-semibold uppercase tracking-wider text-ed-forest hover:text-ed-green">
+        <Link href={href} className="shrink-0 text-[13px] font-bold text-ed-forest hover:text-ed-green">
           Lihat semua
         </Link>
       </header>

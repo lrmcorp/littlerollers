@@ -307,9 +307,7 @@ export function CheckInPassView() {
       <meta name="referrer" content="no-referrer" />
 
       <header className="text-center">
-        <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#faeceb]">
-          Daily Dose Pilates
-        </p>
+        <p className="text-[13px] font-bold text-[#faeceb]">Daily Dose Pilates</p>
         <h1 className="mt-1 font-serif text-2xl font-normal tracking-tight text-white sm:text-3xl">
           QR Pass Kelas
         </h1>

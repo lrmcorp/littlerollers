@@ -55,7 +55,7 @@ export function ActivateAccountView({
               required
             />
             <button
-              className="absolute inset-y-0 right-1 px-3 text-xs font-bold uppercase tracking-wider text-ed-forest hover:text-ed-deep"
+              className="absolute inset-y-0 right-1 px-3 text-[13px] font-bold text-ed-forest hover:text-ed-deep"
               type="button"
               onClick={() => setShow((value) => !value)}
             >

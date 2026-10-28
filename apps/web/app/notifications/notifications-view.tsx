@@ -278,7 +278,7 @@ export function NotificationsView() {
 
       {/* ── Content area ── */}
       <div
-        className="overflow-hidden rounded-dd-lg border border-dd-line bg-white shadow-sm"
+        className="overflow-hidden rounded-dd-lg border border-dd-line bg-white"
         aria-live="polite"
         aria-label="Daftar notifikasi"
       >

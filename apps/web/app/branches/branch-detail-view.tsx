@@ -97,7 +97,7 @@ export function BranchDetailView({ id }: { id: string }) {
 
       {/* Hero Visual Banner */}
       {heroImageUrl && (
-        <div className="relative h-56 sm:h-72 w-full overflow-hidden rounded-dd-xl border border-dd-line/80 bg-dd-surface-muted shadow-sm group">
+        <div className="relative h-56 sm:h-72 w-full overflow-hidden rounded-dd-xl border border-dd-line/80 bg-dd-surface-muted group">
           <img
             src={heroImageUrl}
             alt={`Foto Cabang ${branch.name}`}

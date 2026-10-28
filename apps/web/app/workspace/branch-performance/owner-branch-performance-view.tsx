@@ -129,7 +129,7 @@ export function OwnerBranchPerformanceView() {
       />
 
       {/* Filter Cabang & Periode */}
-      <div className="flex flex-wrap items-center gap-6 rounded-dd-lg border border-dd-line bg-dd-surface p-4 shadow-dd-card">
+      <div className="flex flex-wrap items-center gap-6 rounded-dd-lg border border-dd-line bg-dd-surface p-4">
         {branches.length > 0 && (
           <div className="w-72">
             <SearchSelect
@@ -191,7 +191,7 @@ export function OwnerBranchPerformanceView() {
       )}
 
       {data?.instructorFeeMissing && (
-        <div className="rounded-dd-lg border border-dd-brass/40 bg-dd-warning-soft/80 p-4 text-sm font-medium text-dd-ink shadow-dd-card">
+        <div className="rounded-dd-lg border border-dd-brass/40 bg-dd-warning-soft/80 p-4 text-sm font-medium text-dd-ink">
           <div className="flex items-center gap-2">
             <span className="font-bold text-dd-forest">Perhatian Operasional:</span>
             <span className="text-dd-ink">Sebagian atau seluruh tarif honor instruktur belum dikonfigurasi di Master Data ({data.unconfiguredClassCount ?? 0} kelas).</span>

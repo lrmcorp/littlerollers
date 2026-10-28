@@ -303,7 +303,7 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
                   }}
                   className="rounded-dd-md border-dd-line bg-white text-dd-ink shadow-none"
                 >
-                  <span className="grid size-8 place-items-center rounded-dd-md bg-dd-sidebar text-white">
+                  <span className="grid size-8 place-items-center rounded-dd-md bg-dd-ink text-white">
                     <UserRound className="size-4" />
                   </span>
                 </IconButton>
@@ -570,7 +570,7 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
                   }}
                   className="rounded-dd-md border-dd-line bg-white text-dd-ink shadow-none"
                 >
-                  <span className="grid size-8 place-items-center rounded-dd-md bg-dd-sidebar text-white">
+                  <span className="grid size-8 place-items-center rounded-dd-md bg-dd-ink text-white">
                     <UserRound className="size-4" />
                   </span>
                 </IconButton>

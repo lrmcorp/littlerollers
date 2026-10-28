@@ -108,10 +108,10 @@ export function AppNavigation({
   }, []);
 
   const linkClass = (active: boolean) =>
-    `group flex min-h-11 items-center gap-3 px-3 py-2 text-sm font-semibold transition ${
+    `group flex min-h-11 items-center gap-3 rounded-dd-sm px-3 py-2 text-sm transition ${
       active
-        ? 'bg-white text-dd-ink border-l-[3px] border-l-dd-forest shadow-xs font-bold'
-        : 'text-dd-ink border-l-[3px] border-l-transparent hover:bg-black/5 hover:text-dd-ink'
+        ? 'bg-dd-success-soft font-bold text-dd-forest'
+        : 'font-medium text-dd-ink hover:bg-black/5'
     }`;
 
   return (
@@ -146,7 +146,7 @@ export function AppNavigation({
               priority
             />
             {!collapsed && !customerOnly && (
-              <span className="mt-1 block text-[13px] font-bold uppercase tracking-[0.24em] text-[#4b5563]">
+              <span className="mt-1 block text-[13px] font-bold text-[#4b5563]">
                 {instructorOnly ? 'Area instruktur' : 'Studio operations'}
               </span>
             )}
@@ -167,9 +167,7 @@ export function AppNavigation({
             <div className="flex items-center gap-2 text-xs">
               <MapPin className="size-3.5 shrink-0 text-dd-forest" aria-hidden="true" />
               <div className="min-w-0 flex-1">
-                <span className="block text-[13px] font-bold uppercase tracking-wider text-[#4b5563]">
-                  Studio Aktif
-                </span>
+                <span className="block text-[13px] font-bold text-[#4b5563]">Studio Aktif</span>
                 <span className="block truncate font-semibold text-dd-ink">
                   {context?.activeBranch ? `Studio ${context.activeBranch.name}` : 'Semua Cabang'}
                 </span>
@@ -185,10 +183,7 @@ export function AppNavigation({
         <div className="workspace-navigation-scroll min-h-0 flex-1 space-y-6 overflow-x-hidden overflow-y-auto px-3 py-5">
           {customerOnly ? (
             <section className="space-y-1" aria-labelledby="nav-customer">
-              <h2
-                id="nav-customer"
-                className="px-3 pb-2 text-[13px] font-bold uppercase tracking-[0.18em] text-[#4b5563]"
-              >
+              <h2 id="nav-customer" className="px-3 pb-2 text-[13px] font-bold text-[#4b5563]">
                 Akun Saya
               </h2>
               {customerLinks.map((item) => {
@@ -234,7 +229,7 @@ export function AppNavigation({
                     {!collapsed && (
                       <h2
                         id={`nav-${group}`}
-                        className="px-3 pb-2 text-[13px] font-bold uppercase tracking-[0.2em] text-[#4b5563]"
+                        className="px-3 pb-2 text-[13px] font-bold text-[#4b5563]"
                       >
                         {group}
                       </h2>
@@ -297,7 +292,7 @@ export function AppNavigation({
                     <button
                       type="button"
                       onClick={() => setAdvancedOpen((prev) => !prev)}
-                      className="flex min-h-[44px] w-full items-center justify-between px-3 py-2 text-[13px] font-bold uppercase tracking-[0.2em] text-[#4b5563] hover:text-dd-ink transition cursor-pointer"
+                      className="flex min-h-[44px] w-full items-center justify-between px-3 py-2 text-[13px] font-bold text-[#4b5563] hover:text-dd-ink transition cursor-pointer"
                       aria-expanded={showAdvanced}
                     >
                       <span className="flex items-center gap-2">
@@ -373,7 +368,7 @@ export function AppNavigation({
               {!collapsed && 'Ciutkan sidebar'}
             </button>
             {!collapsed && (
-              <p className="mt-3 px-3 text-[13px] font-semibold uppercase tracking-[0.12em] text-dd-muted">
+              <p className="mt-3 px-3 text-[13px] font-bold text-dd-muted">
                 Akses berbasis hak akses
               </p>
             )}

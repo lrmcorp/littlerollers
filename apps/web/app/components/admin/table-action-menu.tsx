@@ -79,7 +79,7 @@ export function TableActionMenu({
         aria-expanded={open}
         disabled={disabled}
         onClick={() => setOpen((prev) => !prev)}
-        className={`grid ${btnSizeClass} cursor-pointer place-items-center rounded-dd-md border border-dd-line bg-white text-dd-muted shadow-sm transition hover:border-dd-forest/40 hover:bg-dd-surface-muted hover:text-dd-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-dd-forest disabled:cursor-not-allowed disabled:opacity-50 disabled:pointer-events-none`}
+        className={`grid ${btnSizeClass} cursor-pointer place-items-center rounded-dd-md border border-dd-line bg-white text-dd-muted transition hover:border-dd-forest/40 hover:bg-dd-surface-muted hover:text-dd-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-dd-forest disabled:cursor-not-allowed disabled:opacity-50 disabled:pointer-events-none`}
       >
         <MoreHorizontal className="size-4" aria-hidden="true" />
       </button>

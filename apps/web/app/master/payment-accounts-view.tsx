@@ -187,13 +187,13 @@ export function PaymentAccountsView({
 
   return (
     <section
-      className="rounded-dd-lg border border-dd-line bg-dd-surface p-6 shadow-dd-card"
+      className="rounded-dd-lg border border-dd-line bg-dd-surface p-6"
       aria-labelledby="payment-account-title"
     >
       {/* Header Panel */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-dd-forest">
+          <p className="text-[13px] font-bold text-dd-forest">
             Master pembayaran
           </p>
           <div className="mt-2 flex items-center gap-3">
@@ -281,7 +281,7 @@ export function PaymentAccountsView({
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-dd-line text-xs uppercase text-dd-muted">
+            <thead className="border-b border-dd-line text-[13px] text-dd-muted">
               <tr>
                 <th className="w-12 pb-3 pt-2 font-semibold pr-4">No</th>
                 <th className="min-w-[14rem] pb-3 pt-2 font-semibold pr-6">Bank &amp; No. Rekening</th>
@@ -642,14 +642,14 @@ export function PaymentAccountsView({
         {detail && (
           <dl className="grid gap-4 sm:grid-cols-2">
             <div>
-              <dt className="text-xs font-bold uppercase tracking-wider text-dd-muted">Cabang</dt>
+              <dt className="text-[13px] font-bold text-dd-muted">Cabang</dt>
               <dd className="mt-1 font-semibold">
                 {detail.branch?.name ?? detail.branchId}
                 {detail.branch?.code ? ` · ${detail.branch.code}` : ''}
               </dd>
             </div>
             <div>
-              <dt className="text-xs font-bold uppercase tracking-wider text-dd-muted">Status</dt>
+              <dt className="text-[13px] font-bold text-dd-muted">Status</dt>
               <dd className="mt-1">
                 <StatusBadge tone={detail.active ? 'success' : 'neutral'}>
                   {detail.active ? 'Aktif' : 'Nonaktif'}
@@ -657,29 +657,29 @@ export function PaymentAccountsView({
               </dd>
             </div>
             <div>
-              <dt className="text-xs font-bold uppercase tracking-wider text-dd-muted">Bank</dt>
+              <dt className="text-[13px] font-bold text-dd-muted">Bank</dt>
               <dd className="mt-1">{detail.bankName}</dd>
             </div>
             <div>
-              <dt className="text-xs font-bold uppercase tracking-wider text-dd-muted">
+              <dt className="text-[13px] font-bold text-dd-muted">
                 Nomor rekening
               </dt>
               <dd className="mt-1 font-mono">{detail.maskedAccountNumber}</dd>
             </div>
             <div>
-              <dt className="text-xs font-bold uppercase tracking-wider text-dd-muted">
+              <dt className="text-[13px] font-bold text-dd-muted">
                 Pemilik rekening
               </dt>
               <dd className="mt-1">{detail.accountHolderName}</dd>
             </div>
             <div>
-              <dt className="text-xs font-bold uppercase tracking-wider text-dd-muted">
+              <dt className="text-[13px] font-bold text-dd-muted">
                 Batas pembayaran
               </dt>
               <dd className="mt-1">{detail.paymentWindowHours} jam</dd>
             </div>
             <div>
-              <dt className="text-xs font-bold uppercase tracking-wider text-dd-muted">
+              <dt className="text-[13px] font-bold text-dd-muted">
                 Transaksi terkait
               </dt>
               <dd className="mt-1">{detail.purchaseCount ?? 0}</dd>

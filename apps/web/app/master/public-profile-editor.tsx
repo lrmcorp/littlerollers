@@ -108,7 +108,7 @@ export function PublicProfileEditor({
     }
   };
   return (
-    <section className="rounded-dd-lg border border-dd-line bg-white p-6 shadow-dd-card">
+    <section className="rounded-dd-lg border border-dd-line bg-white p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h2>Profil Publik</h2>
@@ -120,7 +120,7 @@ export function PublicProfileEditor({
       </div>
       <div className="mt-6 grid gap-4 lg:grid-cols-3">
         <article className="rounded-dd-md border border-dd-line p-4">
-          <p className="text-xs font-bold text-dd-forest uppercase">Studio</p>
+          <p className="text-[13px] font-bold text-dd-forest">Studio</p>
           <h3 className="mt-2 text-lg font-semibold">{data.branch.name}</h3>
           <p className="mt-2 text-sm text-dd-muted">
             {String(data.branch.publicProfile?.description ?? 'Profil belum lengkap')}
@@ -137,7 +137,7 @@ export function PublicProfileEditor({
         </article>
         {data.classProfiles.map((profile) => (
           <article className="rounded-dd-md border border-dd-line p-4" key={profile.code}>
-            <p className="text-xs font-bold text-dd-forest uppercase">Kelas</p>
+            <p className="text-[13px] font-bold text-dd-forest">Kelas</p>
             <h3 className="mt-2 text-lg font-semibold">{profile.code}</h3>
             <p className="mt-2 line-clamp-3 text-sm text-dd-muted">{String(profile.summary)}</p>
             <Button
@@ -152,7 +152,7 @@ export function PublicProfileEditor({
         {data.branch.classTypes.flatMap((type) =>
           type.packages.map((pkg) => (
             <article className="rounded-dd-md border border-dd-line p-4" key={pkg.id}>
-              <p className="text-xs font-bold text-dd-forest uppercase">Paket · {type.name}</p>
+              <p className="text-[13px] font-bold text-dd-forest">Paket · {type.name}</p>
               <h3 className="mt-2 text-lg font-semibold">{pkg.name}</h3>
               <p className="mt-2 line-clamp-3 text-sm text-dd-muted">
                 {String(pkg.publicProfile?.summary ?? 'Profil belum lengkap')}

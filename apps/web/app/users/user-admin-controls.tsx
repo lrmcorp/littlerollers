@@ -68,7 +68,7 @@ export function RoleSelection({
                 <span className="flex items-center justify-between">
                   <strong className="block text-sm text-dd-ink">{roleLabel(item.role)}</strong>
                   <span
-                    className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase ${
+                    className={`rounded px-2 py-0.5 text-[13px] font-bold ${
                       item.scope === 'BRANCH'
                         ? 'bg-dd-forest/10 text-dd-forest'
                         : 'bg-dd-surface-muted text-dd-muted'

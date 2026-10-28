@@ -144,7 +144,7 @@ export function InstructorDetailView({ id }: { id: string }) {
         <span>Kembali ke Daftar Instruktur</span>
       </Link>
 
-      <div className="rounded-dd-lg border border-dd-line bg-white p-6 shadow-dd-card">
+      <div className="rounded-dd-lg border border-dd-line bg-white p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <AdminPageHeader
             title={data.displayName}
@@ -199,7 +199,7 @@ export function InstructorDetailView({ id }: { id: string }) {
 
         {/* Assigned branches badge pills */}
         <div className="mt-5 border-t border-dd-line pt-4">
-          <span className="text-xs font-bold uppercase tracking-wider text-dd-muted">
+          <span className="text-[13px] font-bold text-dd-muted">
             Studio / Cabang Penugasan:
           </span>
           <div className="mt-2 flex flex-wrap gap-2">
@@ -251,7 +251,7 @@ export function InstructorDetailView({ id }: { id: string }) {
         />
       </div>
 
-      <div className="rounded-dd-lg border border-dd-line bg-white p-6 shadow-dd-card">
+      <div className="rounded-dd-lg border border-dd-line bg-white p-6">
         <div className="flex items-center justify-between">
           <h2 className="font-semibold text-lg">Riwayat Sesi Kelas Terbaru</h2>
           <ButtonLink
@@ -389,8 +389,8 @@ function Metric({
   hint?: string;
 }) {
   return (
-    <div className="rounded-dd-lg border border-dd-line bg-white p-5 shadow-dd-card">
-      <div className="text-xs font-bold uppercase text-dd-muted">{label}</div>
+    <div className="rounded-dd-lg border border-dd-line bg-white p-5">
+      <div className="text-[13px] font-bold text-dd-muted">{label}</div>
       <strong className="mt-2 block text-2xl font-bold text-dd-ink">{value}</strong>
       {hint && <p className="mt-1 text-xs text-dd-muted">{hint}</p>}
     </div>

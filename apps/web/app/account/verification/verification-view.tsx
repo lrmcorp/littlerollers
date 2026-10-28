@@ -274,9 +274,7 @@ function ReplacementDialog({
 
       <div className="mt-5 grid gap-4 sm:grid-cols-2">
         <div>
-          <p className="mb-2 text-xs font-bold uppercase tracking-wider text-dd-muted">
-            Dokumen saat ini
-          </p>
+          <p className="mb-2 text-[13px] font-bold text-dd-muted">Dokumen saat ini</p>
           <div className="grid min-h-40 place-items-center rounded-dd-lg bg-dd-surface-muted p-3">
             {currentPreview.state === 'ready' ? (
               <img
@@ -292,9 +290,7 @@ function ReplacementDialog({
           </div>
         </div>
         <div>
-          <p className="mb-2 text-xs font-bold uppercase tracking-wider text-dd-muted">
-            Dokumen pengganti
-          </p>
+          <p className="mb-2 text-[13px] font-bold text-dd-muted">Dokumen pengganti</p>
           <div className="grid min-h-40 place-items-center rounded-dd-lg bg-dd-surface-muted p-3">
             {preview ? (
               <img
@@ -443,17 +439,17 @@ function KycSubmissionForm({ onSubmitted }: { onSubmitted: () => Promise<void> }
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <section className="rounded-dd-xl border border-dd-line bg-white p-6 shadow-dd-card sm:p-8">
+      <section className="rounded-dd-xl border border-dd-line bg-white p-6 sm:p-8">
         <div className="flex items-start gap-3.5 border-b border-dd-line/60 pb-5">
           <Link
             href="/account"
             aria-label="Kembali ke Beranda"
-            className="inline-flex size-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-dd-md border border-dd-border-interactive bg-white text-dd-forest shadow-xs transition hover:bg-dd-surface-muted focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#09371f]"
+            className="inline-flex size-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-dd-md border border-dd-border-interactive bg-white text-dd-forest transition hover:bg-dd-surface-muted focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#09371f]"
           >
             <ChevronLeft className="size-5" aria-hidden="true" />
           </Link>
           <div>
-            <span className="text-[13px] font-bold uppercase tracking-[0.2em] text-dd-brass-dark">
+            <span className="text-[13px] font-bold text-dd-brass-dark">
               Verifikasi Identitas KTP
             </span>
             <h1 className="mt-2 text-2xl font-bold tracking-tight text-dd-ink sm:text-3xl">
@@ -478,10 +474,7 @@ function KycSubmissionForm({ onSubmitted }: { onSubmitted: () => Promise<void> }
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-5">
           <div>
-            <label
-              htmlFor="nik"
-              className="block text-xs font-semibold uppercase tracking-wider text-dd-forest"
-            >
+            <label htmlFor="nik" className="block text-[13px] font-bold text-dd-forest">
               Nomor Induk Kependudukan (NIK)
             </label>
             <input
@@ -499,10 +492,7 @@ function KycSubmissionForm({ onSubmitted }: { onSubmitted: () => Promise<void> }
           </div>
 
           <div>
-            <label
-              htmlFor="address"
-              className="block text-xs font-semibold uppercase tracking-wider text-dd-forest"
-            >
+            <label htmlFor="address" className="block text-[13px] font-bold text-dd-forest">
               Alamat Sesuai KTP
             </label>
             <textarea
@@ -519,10 +509,7 @@ function KycSubmissionForm({ onSubmitted }: { onSubmitted: () => Promise<void> }
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="rounded-dd-lg border border-dashed border-dd-line p-4">
-              <label
-                htmlFor="ktp"
-                className="block text-xs font-bold uppercase tracking-wider text-dd-forest"
-              >
+              <label htmlFor="ktp" className="block text-[13px] font-bold text-dd-forest">
                 Unggah Foto KTP
               </label>
               <p className="mt-1 text-[13px] text-dd-muted">
@@ -545,10 +532,7 @@ function KycSubmissionForm({ onSubmitted }: { onSubmitted: () => Promise<void> }
             </div>
 
             <div className="rounded-dd-lg border border-dashed border-dd-line p-4">
-              <label
-                htmlFor="selfie"
-                className="block text-xs font-bold uppercase tracking-wider text-dd-forest"
-              >
+              <label htmlFor="selfie" className="block text-[13px] font-bold text-dd-forest">
                 Unggah Foto Selfie
               </label>
               <p className="mt-1 text-[13px] text-dd-muted">
@@ -681,7 +665,7 @@ export function VerificationView() {
 
   if (state === 'error' && !summary)
     return (
-      <section className="mx-auto max-w-xl rounded-dd-xl border border-dd-danger/20 bg-white p-8 text-center shadow-dd-card">
+      <section className="mx-auto max-w-xl rounded-dd-xl border border-dd-danger/20 bg-white p-8 text-center">
         <RefreshCw className="mx-auto size-9 text-dd-danger" />
         <h1 className="mt-4 text-2xl font-bold">Status verifikasi belum dapat dimuat</h1>
         <p className="mt-2 text-sm leading-6 text-dd-muted">
@@ -699,21 +683,19 @@ export function VerificationView() {
 
   return (
     <div className="space-y-6">
-      <section className="overflow-hidden rounded-dd-xl border border-dd-line bg-white shadow-dd-card">
+      <section className="overflow-hidden rounded-dd-xl border border-dd-line bg-white">
         <div className="grid gap-7 p-6 sm:p-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:p-10">
           <div>
             <div className="flex items-start gap-3.5">
               <Link
                 href="/account"
                 aria-label="Kembali ke Beranda"
-                className="inline-flex size-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-dd-md border border-dd-border-interactive bg-white text-dd-forest shadow-xs transition hover:bg-dd-surface-muted focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#09371f]"
+                className="inline-flex size-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-dd-md border border-dd-border-interactive bg-white text-dd-forest transition hover:bg-dd-surface-muted focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#09371f]"
               >
                 <ChevronLeft className="size-5" aria-hidden="true" />
               </Link>
               <div>
-                <span className="text-[13px] font-bold uppercase tracking-[0.2em] text-dd-brass-dark">
-                  {copy.eyebrow}
-                </span>
+                <span className="text-[13px] font-bold text-dd-brass-dark">{copy.eyebrow}</span>
                 <h1 className="mt-3 max-w-2xl text-3xl font-bold tracking-tight text-dd-ink sm:text-4xl">
                   {copy.title}
                 </h1>
@@ -757,7 +739,7 @@ export function VerificationView() {
               )}
             </div>
           </div>
-          <div className="rounded-dd-lg bg-dd-sidebar p-5 text-white">
+          <div className="rounded-dd-lg bg-dd-ink p-5 text-white">
             <ShieldCheck className="size-7 text-dd-brass" />
             <h2 className="mt-4 text-base font-bold text-white">Progres verifikasi</h2>
             <ol className="mt-4 grid list-none gap-3 p-0">
@@ -783,9 +765,7 @@ export function VerificationView() {
       <section aria-labelledby="documents-title">
         <div className="mb-4 flex items-end justify-between gap-4">
           <div>
-            <span className="text-[13px] font-bold uppercase tracking-[0.18em] text-dd-muted">
-              Dokumen
-            </span>
+            <span className="text-[13px] font-bold text-dd-muted">Dokumen</span>
             <h2 id="documents-title" className="mt-1 text-xl font-bold">
               Status setiap dokumen
             </h2>
@@ -801,7 +781,7 @@ export function VerificationView() {
               <article
                 id={`verification-document-${document.kind}`}
                 tabIndex={-1}
-                className={`rounded-dd-xl border bg-white p-5 shadow-dd-card outline-none transition sm:p-6 ${
+                className={`rounded-dd-xl border bg-white p-5 outline-none transition sm:p-6 ${
                   highlightedKind === document.kind
                     ? 'border-dd-brass ring-4 ring-dd-brass/25'
                     : 'border-dd-line'

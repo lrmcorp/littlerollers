@@ -93,7 +93,7 @@ export function CheckoutView() {
     return (
       <main className="space-y-6 pt-2" aria-labelledby="checkout-title">
         <header>
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-ed-green">
+          <p className="text-[13px] font-bold text-ed-green">
             Checkout aman
           </p>
           <h1 id="checkout-title" className="font-serif mt-2 text-2xl font-normal tracking-tight text-ed-ink sm:text-3xl">
@@ -129,7 +129,7 @@ export function CheckoutView() {
           <div className="mx-auto flex size-12 items-center justify-center rounded-none border border-ed-line bg-ed-tint text-ed-forest">
             <ShieldCheck className="size-6" />
           </div>
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-ed-green">
+          <p className="text-[13px] font-bold text-ed-green">
             Pembelian Paket Sesi
           </p>
           <h1 className="font-serif text-2xl font-normal tracking-tight text-ed-ink sm:text-3xl">
@@ -169,7 +169,7 @@ export function CheckoutView() {
           <div className="mx-auto flex size-12 items-center justify-center rounded-none border border-amber-800/20 bg-amber-50 text-amber-900">
             <ShieldCheck className="size-6" />
           </div>
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-900">
+          <p className="text-[13px] font-bold text-amber-900">
             Verifikasi Identitas
           </p>
           <h1 className="font-serif text-2xl font-normal tracking-tight text-ed-ink sm:text-3xl">
@@ -194,7 +194,7 @@ export function CheckoutView() {
 
     return (
       <section className="rounded-none border border-ui bg-white p-6 shadow-none">
-        <p className="text-xs font-bold uppercase tracking-[0.18em] text-ed-green">Checkout</p>
+        <p className="text-[13px] font-bold text-ed-green">Checkout</p>
         <h1 className="font-serif mt-2 text-2xl font-normal tracking-tight text-ed-ink">Paket belum tersedia</h1>
         <p className="mt-2 text-[17px] leading-relaxed text-ed-muted">
           Checkout harus dimulai dari paket dan studio yang sesuai.
@@ -221,7 +221,7 @@ export function CheckoutView() {
           <ArrowLeft className="size-4" />
           Kembali ke paket
         </Link>
-        <p className="mt-5 text-xs font-bold uppercase tracking-[0.18em] text-ed-green">
+        <p className="mt-5 text-[13px] font-bold text-ed-green">
           Checkout aman
         </p>
         <h1 id="checkout-title" className="font-serif mt-2 text-2xl font-normal tracking-tight text-ed-ink sm:text-3xl">
@@ -287,7 +287,7 @@ export function CheckoutView() {
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,.85fr)]">
         <section className="rounded-none border border-ed-line bg-white p-5 shadow-none sm:p-6">
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-ed-green">
+          <p className="text-[13px] font-bold text-ed-green">
             Paket dipilih
           </p>
           <h2 className="font-serif mt-3 text-2xl font-normal tracking-tight text-ed-ink">{options.package.name}</h2>
@@ -317,15 +317,15 @@ export function CheckoutView() {
           )}
           <dl className="mt-6 grid gap-3 sm:grid-cols-3">
             <div className="rounded-none border border-ed-line/70 bg-ed-tint/40 p-4">
-              <dt className="text-xs font-medium uppercase tracking-wider text-ed-muted">Jumlah sesi</dt>
+              <dt className="text-[13px] font-medium text-ed-muted">Jumlah sesi</dt>
               <dd className="mt-1 font-serif text-lg text-ed-ink">{options.package.sessionCount} sesi</dd>
             </div>
             <div className="rounded-none border border-ed-line/70 bg-ed-tint/40 p-4">
-              <dt className="text-xs font-medium uppercase tracking-wider text-ed-muted">Masa berlaku</dt>
+              <dt className="text-[13px] font-medium text-ed-muted">Masa berlaku</dt>
               <dd className="mt-1 font-serif text-lg text-ed-ink">{options.package.durationDays} hari</dd>
             </div>
             <div className="rounded-none border border-ed-line/70 bg-ed-tint/40 p-4">
-              <dt className="text-xs font-medium uppercase tracking-wider text-ed-muted">Harga paket</dt>
+              <dt className="text-[13px] font-medium text-ed-muted">Harga paket</dt>
               <dd className="mt-2">
                 <PackagePrice
                   priceRp={options.package.priceRp}

@@ -30,7 +30,7 @@ export function PageHeader({
           <Link
             href={backHref}
             aria-label={backLabel}
-            className="inline-flex size-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-dd-md border border-dd-border-interactive bg-white text-dd-forest shadow-xs transition hover:bg-dd-surface-muted focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#09371f]"
+            className="inline-flex size-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-dd-md border border-dd-border-interactive bg-white text-dd-forest transition hover:bg-dd-surface-muted focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#09371f]"
           >
             <ChevronLeft className="size-5" aria-hidden="true" />
           </Link>
@@ -39,17 +39,13 @@ export function PageHeader({
             type="button"
             onClick={onBack}
             aria-label={backLabel}
-            className="inline-flex size-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-dd-md border border-dd-border-interactive bg-white text-dd-forest shadow-xs transition hover:bg-dd-surface-muted focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#09371f]"
+            className="inline-flex size-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-dd-md border border-dd-border-interactive bg-white text-dd-forest transition hover:bg-dd-surface-muted focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#09371f]"
           >
             <ChevronLeft className="size-5" aria-hidden="true" />
           </button>
         ) : null}
         <div className="min-w-0">
-          {eyebrow && (
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-dd-forest">
-              {eyebrow}
-            </p>
-          )}
+          {eyebrow && <p className="text-[13px] font-bold text-dd-forest">{eyebrow}</p>}
           <h1
             id={titleId}
             className="mt-1 text-2xl font-semibold tracking-tight text-dd-ink sm:text-3xl"
@@ -57,7 +53,7 @@ export function PageHeader({
             {title}
           </h1>
           {description && (
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-dd-muted">{description}</p>
+            <p className="mt-2 max-w-3xl text-[17px] leading-7 text-dd-muted">{description}</p>
           )}
         </div>
       </div>

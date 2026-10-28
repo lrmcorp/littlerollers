@@ -424,8 +424,8 @@ export function Modal({
       data-overlay-phase={phase}
       className={`${
         drawer
-          ? 'fixed inset-0 z-[120] flex justify-end overflow-hidden bg-dd-sidebar/60 backdrop-blur-sm'
-          : 'fixed inset-0 z-[120] grid place-items-center overflow-y-auto bg-dd-sidebar/60 p-4 backdrop-blur-sm'
+          ? 'fixed inset-0 z-[120] flex justify-end overflow-hidden bg-dd-ink/60 backdrop-blur-sm'
+          : 'fixed inset-0 z-[120] grid place-items-center overflow-y-auto bg-dd-ink/60 p-4 backdrop-blur-sm'
       } transition-opacity duration-[160ms] ease-out motion-reduce:duration-75 ${visible ? 'opacity-100' : 'opacity-0'}`}
       onMouseDown={(event) => {
         if (closeOnBackdrop && event.target === event.currentTarget && isTopDialog(dialogId)) {

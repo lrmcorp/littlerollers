@@ -58,7 +58,7 @@ export function ProfileView() {
           description="Kelola informasi identitas, kontak akun, dan preferensi studio utama Anda."
           titleId="profile-loading-title"
         />
-        <section className="rounded-dd-xl border border-dd-line bg-white p-8 shadow-dd-card">
+        <section className="rounded-dd-xl border border-dd-line bg-white p-8">
           <Skeleton label="Memuat profil pengguna" />
         </section>
       </main>
@@ -121,7 +121,7 @@ export function ProfileView() {
       />
 
       {/* Profile Identity Card */}
-      <section className="rounded-dd-xl border border-dd-line bg-white p-6 shadow-dd-card">
+      <section className="rounded-dd-xl border border-dd-line bg-white p-6">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
             <div className="flex size-16 shrink-0 items-center justify-center rounded-full bg-dd-forest text-xl font-bold tracking-wider text-white shadow-sm">
@@ -144,7 +144,7 @@ export function ProfileView() {
 
       {/* Main Profile Form */}
       <form
-        className="space-y-6 rounded-dd-xl border border-dd-line bg-white p-6 shadow-dd-card"
+        className="space-y-6 rounded-dd-xl border border-dd-line bg-white p-6"
         onSubmit={async (event) => {
           event.preventDefault();
           if (state === 'saving') return;
@@ -186,7 +186,7 @@ export function ProfileView() {
         <div className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <span className="flex items-center justify-between text-xs font-semibold text-dd-forest uppercase tracking-wider">
+              <span className="flex items-center justify-between text-[13px] font-bold text-dd-forest">
                 <span>Username (ID Login)</span>
                 <span className="flex items-center gap-1 text-[13px] font-normal text-dd-muted">
                   <Lock className="size-3" /> Akun Terdaftar
@@ -208,7 +208,7 @@ export function ProfileView() {
             </div>
 
             <div>
-              <label htmlFor="displayName" className="block text-xs font-semibold text-dd-forest uppercase tracking-wider">
+              <label htmlFor="displayName" className="block text-[13px] font-bold text-dd-forest">
                 Nama Lengkap / Tampilan
               </label>
               <div className="relative mt-1.5">
@@ -231,7 +231,7 @@ export function ProfileView() {
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <span className="flex items-center justify-between text-xs font-semibold text-dd-forest uppercase tracking-wider">
+              <span className="flex items-center justify-between text-[13px] font-bold text-dd-forest">
                 <span>Email Akun</span>
                 <span className="flex items-center gap-1 text-[13px] font-normal text-dd-muted">
                   <Lock className="size-3" /> Terverifikasi
@@ -248,7 +248,7 @@ export function ProfileView() {
             </div>
 
             <div>
-              <span className="flex items-center justify-between text-xs font-semibold text-dd-forest uppercase tracking-wider">
+              <span className="flex items-center justify-between text-[13px] font-bold text-dd-forest">
                 <span>Nomor WhatsApp</span>
                 {profile.phoneMasked ? (
                   <span className="flex items-center gap-1 text-[13px] font-normal text-dd-muted">
@@ -308,7 +308,7 @@ export function ProfileView() {
       </form>
 
       {/* Studio Preference Card */}
-      <section className="rounded-dd-xl border border-dd-line bg-white p-6 shadow-dd-card">
+      <section className="rounded-dd-xl border border-dd-line bg-white p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
@@ -349,7 +349,7 @@ export function ProfileView() {
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Link
           href={kycHref}
-          className="group rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card transition hover:border-dd-forest/40 no-underline"
+          className="group rounded-dd-xl border border-dd-line bg-white p-5 transition hover:border-dd-forest/40 no-underline"
         >
           <div className="flex items-center justify-between">
             <ShieldCheck className="size-5 text-dd-forest group-hover:scale-105 transition-transform" />
@@ -363,7 +363,7 @@ export function ProfileView() {
 
         <Link
           href="/orders"
-          className="group rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card transition hover:border-dd-forest/40 no-underline"
+          className="group rounded-dd-xl border border-dd-line bg-white p-5 transition hover:border-dd-forest/40 no-underline"
         >
           <div className="flex items-center justify-between">
             <CreditCard className="size-5 text-dd-forest group-hover:scale-105 transition-transform" />
@@ -383,7 +383,7 @@ export function ProfileView() {
 
         <Link
           href="/packages"
-          className="group rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card transition hover:border-dd-forest/40 no-underline"
+          className="group rounded-dd-xl border border-dd-line bg-white p-5 transition hover:border-dd-forest/40 no-underline"
         >
           <div className="flex items-center justify-between">
             <PackageCheck className="size-5 text-dd-forest group-hover:scale-105 transition-transform" />
@@ -397,7 +397,7 @@ export function ProfileView() {
 
         <Link
           href={bookingsHref}
-          className="group rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card transition hover:border-dd-forest/40 no-underline"
+          className="group rounded-dd-xl border border-dd-line bg-white p-5 transition hover:border-dd-forest/40 no-underline"
         >
           <div className="flex items-center justify-between">
             <CalendarDays className="size-5 text-dd-forest group-hover:scale-105 transition-transform" />

@@ -672,7 +672,7 @@ export function LedgerView({
               <>
                 <div className="hidden overflow-x-auto md:block">
                   <table className="w-full border-collapse text-left text-sm">
-                    <thead className="bg-dd-surface-muted text-xs uppercase tracking-wider text-dd-muted">
+                    <thead className="bg-dd-surface-muted text-[13px] text-dd-muted">
                       <tr>
                         <th className="px-5 py-3">Pelanggan</th>
                         <th className="px-4 py-3">Paket</th>
@@ -810,7 +810,7 @@ export function LedgerView({
           {!adjustmentsOnly && (
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.14em] text-dd-forest">
+                <p className="text-[13px] font-bold text-dd-forest">
                   Kontrol saldo
                 </p>
                 <h2 className="mt-1 text-xl font-semibold text-dd-ink">Penyesuaian sesi</h2>
@@ -943,7 +943,7 @@ export function LedgerView({
                   {adjustments.map((item) => (
                     <li
                       key={item.id}
-                      className="rounded-dd-lg border border-dd-line bg-white p-4 shadow-sm"
+                      className="rounded-dd-lg border border-dd-line bg-white p-4"
                     >
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>

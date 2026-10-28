@@ -136,7 +136,7 @@ export function FaqEditor({
 
   return (
     <section className="space-y-6" aria-labelledby="faq-editor-title">
-      <div className="rounded-dd-xl border border-dd-line bg-white p-6 shadow-dd-card">
+      <div className="rounded-dd-xl border border-dd-line bg-white p-6">
         <div className="flex flex-col gap-4 border-b border-dd-line/60 pb-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 id="faq-editor-title" className="text-lg font-bold text-dd-ink">
@@ -179,7 +179,7 @@ export function FaqEditor({
         {entries.map((entry, index) => (
           <li
             key={entry.uid}
-            className="grid gap-3 rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card"
+            className="grid gap-3 rounded-dd-xl border border-dd-line bg-white p-5"
           >
             <div className="flex items-center justify-between gap-2">
               <strong className="text-sm text-dd-ink">Butir {index + 1}</strong>

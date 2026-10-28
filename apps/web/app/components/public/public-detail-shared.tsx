@@ -246,9 +246,7 @@ export function RelatedSchedules({
             )}
           </span>
           <span
-            className={`shrink-0 rounded-none border px-2.5 py-1 text-xs font-bold uppercase tracking-wider ${
-              item.available < 1
-                ? 'border-red-900/30 bg-red-50 text-red-900'
+            className={`shrink-0 rounded-none border px-2.5 py-1 text-[13px] font-bold ${ item.available < 1 ?'border-red-900/30 bg-red-50 text-red-900'
                 : item.available <= 2
                   ? 'border-amber-800/30 bg-amber-50 text-amber-900'
                   : 'border-ed-green/30 bg-ed-tint text-ed-forest'
@@ -285,7 +283,7 @@ export function DetailFactTag({
 
   return (
     <span
-      className={`inline-flex items-center gap-2 rounded-none border px-3.5 py-2 text-xs font-semibold uppercase tracking-wider ${variantClass}`}
+      className={`inline-flex items-center gap-2 rounded-none border px-3.5 py-2 text-[13px] font-bold ${variantClass}`}
     >
       {Icon && <Icon className="size-3.5 text-ed-green" />}
       {children}
@@ -305,7 +303,7 @@ export function DetailFactLedger({
     <div className="grid grid-cols-2 divide-x divide-y border border-ed-line bg-white sm:grid-cols-4 sm:divide-y-0 divide-ed-line">
       {items.map((item) => (
         <div className="p-3 sm:p-4" key={item.label}>
-          <span className="block text-xs uppercase tracking-wider text-ed-muted">
+          <span className="block text-[13px] text-ed-muted">
             {item.label}
           </span>
           <strong className="mt-1 block text-sm font-bold text-ed-ink">{item.value}</strong>

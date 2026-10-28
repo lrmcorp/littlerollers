@@ -274,7 +274,7 @@ export function FrontDeskTodayView({
 
       <section
         aria-labelledby="todo-heading"
-        className="space-y-3 rounded-dd-xl border border-dd-border-interactive bg-[#fffdf7] p-5 shadow-sm"
+        className="space-y-3 rounded-dd-xl border border-dd-border-interactive bg-[#fffdf7] p-5"
       >
         <h2 id="todo-heading" className="flex items-center gap-2 text-lg font-bold text-dd-ink">
           <ListChecks className="size-5 text-dd-forest" aria-hidden="true" /> Perlu dibereskan di cabang ini
@@ -331,13 +331,13 @@ export function FrontDeskTodayView({
           </p>
         </div>
         <div
-          className="flex items-baseline gap-2 self-start rounded-dd-lg border border-dd-border-interactive bg-white px-4 py-2 shadow-sm sm:self-auto"
+          className="flex items-baseline gap-2 self-start rounded-dd-lg border border-dd-border-interactive bg-white px-4 py-2 sm:self-auto"
           aria-label="Jam digital"
         >
           <span className="text-3xl font-extrabold tracking-tight text-dd-forest tabular-nums sm:text-4xl">
             {formatAttendanceTime(now, timezone)}
           </span>
-          <span className="text-xs font-bold uppercase tracking-wider text-dd-muted">
+          <span className="text-[13px] font-bold text-dd-muted">
             {timezone === 'Asia/Makassar' ? 'WITA' : timezone === 'Asia/Jayapura' ? 'WIT' : 'WIB'}
           </span>
         </div>
@@ -378,12 +378,12 @@ export function FrontDeskTodayView({
                 {/* Kartu 1: Berjalan sekarang */}
                 <section
                   aria-label="Berjalan sekarang"
-                  className={`flex flex-col justify-between space-y-3 rounded-dd-xl border p-5 shadow-dd-card ${
+                  className={`flex flex-col justify-between space-y-3 rounded-dd-xl border p-5 ${
                     selected?.id === running?.id ? 'border-2 border-dd-forest bg-white' : 'border-dd-border-interactive bg-white'
                   }`}
                 >
                   <div className="space-y-1">
-                    <p className="text-xs font-bold uppercase tracking-wider text-dd-muted">Berjalan sekarang</p>
+                    <p className="text-[13px] font-bold text-dd-muted">Berjalan sekarang</p>
                     {running ? (
                       <>
                         <button
@@ -431,12 +431,12 @@ export function FrontDeskTodayView({
                 {/* Kartu 2: Mulai X menit lagi / Berikutnya */}
                 <section
                   aria-label="Berikutnya"
-                  className={`flex flex-col justify-between space-y-3 rounded-dd-xl border p-5 shadow-dd-card ${
+                  className={`flex flex-col justify-between space-y-3 rounded-dd-xl border p-5 ${
                     selected?.id === next?.id ? 'border-2 border-dd-forest bg-white' : 'border-dd-border-interactive bg-white'
                   }`}
                 >
                   <div className="space-y-1">
-                    <p className="text-xs font-bold uppercase tracking-wider text-dd-muted">
+                    <p className="text-[13px] font-bold text-dd-muted">
                       {nextClassLabel(next, now)}
                     </p>
                     {next ? (
@@ -479,7 +479,7 @@ export function FrontDeskTodayView({
               {/* Daftar hadir in-place tepat di bawah kartu atas */}
               <section
                 aria-labelledby="attendance-heading"
-                className="space-y-3 rounded-dd-xl border border-dd-border-interactive bg-white p-5 shadow-dd-card"
+                className="space-y-3 rounded-dd-xl border border-dd-border-interactive bg-white p-5"
               >
                 <div className="flex flex-wrap items-center justify-between gap-2 border-b border-dd-line pb-3">
                   <h2 id="attendance-heading" className="text-lg font-bold text-dd-ink">
@@ -555,7 +555,7 @@ export function FrontDeskTodayView({
               {/* Sisa kelas hari ini / Semua kelas hari ini di bawah daftar hadir */}
               <section
                 aria-labelledby="all-classes-heading"
-                className="space-y-3 rounded-dd-xl border border-dd-border-interactive bg-white p-5 shadow-dd-card"
+                className="space-y-3 rounded-dd-xl border border-dd-border-interactive bg-white p-5"
               >
                 <div className="flex items-center justify-between">
                   <h2 id="all-classes-heading" className="text-lg font-bold text-dd-ink">
@@ -626,7 +626,7 @@ export function FrontDeskTodayView({
           <p className="text-sm text-dd-muted">
             Arahkan pelanggan untuk memindai kode QR ini dari ponsel mereka untuk konfirmasi kehadiran otomatis.
           </p>
-          <div className="flex items-center justify-center rounded-2xl border-2 border-dd-border-interactive bg-white p-4 shadow-sm">
+          <div className="flex items-center justify-center rounded-2xl border-2 border-dd-border-interactive bg-white p-4">
             <canvas ref={qrCanvasRef} className="size-[220px]" />
           </div>
           <p className="text-xs font-medium text-dd-muted">

@@ -37,7 +37,7 @@ export default function KioskPortalPage() {
         </div>
         <div className="mt-3 flex items-center justify-center gap-2">
           <span className="size-2 rounded-full bg-dd-forest animate-pulse" />
-          <span className="text-xs font-bold uppercase tracking-widest text-dd-forest">
+          <span className="text-[13px] font-bold text-dd-forest">
             Studio Public Kiosk Portal
           </span>
         </div>
@@ -53,7 +53,7 @@ export default function KioskPortalPage() {
       <div className="flex-1 p-6 lg:p-12">
         <div className="mx-auto max-w-4xl space-y-6">
           <div className="flex items-center justify-between border-b border-dd-line pb-3">
-            <h2 className="text-sm font-bold uppercase tracking-wider text-dd-ink">
+            <h2 className="text-sm font-bold text-dd-ink">
               Pilih Cabang Studio
             </h2>
             <span className="text-xs text-dd-muted font-medium">{branches.length} Cabang Aktif</span>
@@ -68,7 +68,7 @@ export default function KioskPortalPage() {
               {error}
             </div>
           ) : branches.length === 0 ? (
-            <div className="rounded-dd-xl border border-dd-line bg-dd-surface p-8 text-center text-sm text-dd-muted shadow-sm">
+            <div className="rounded-dd-xl border border-dd-line bg-dd-surface p-8 text-center text-sm text-dd-muted">
               Belum ada cabang studio aktif yang terdaftar.
             </div>
           ) : (
@@ -77,7 +77,7 @@ export default function KioskPortalPage() {
                 <Link
                   key={b.id}
                   href={`/kiosk/${encodeURIComponent(b.code.toLowerCase())}`}
-                  className="group relative flex flex-col justify-between overflow-hidden rounded-dd-2xl border border-dd-line bg-dd-surface p-6 shadow-dd-card transition hover:scale-[1.02] hover:border-dd-forest hover:shadow-dd-soft"
+                  className="group relative flex flex-col justify-between overflow-hidden rounded-dd-2xl border border-dd-line bg-dd-surface p-6 transition hover:scale-[1.02] hover:border-dd-forest hover:shadow-dd-soft"
                 >
                   <div className="space-y-3">
                     <div className="flex items-start justify-between gap-3">
@@ -114,7 +114,7 @@ export default function KioskPortalPage() {
           )}
 
           {/* Security & Instruction Card */}
-          <div className="mt-10 rounded-dd-2xl border border-dd-line bg-dd-surface-muted p-6 text-xs text-dd-muted space-y-3 shadow-sm">
+          <div className="mt-10 rounded-dd-2xl border border-dd-line bg-dd-surface-muted p-6 text-xs text-dd-muted space-y-3">
             <div className="flex items-center gap-2 font-bold text-dd-ink">
               <ShieldCheck className="size-4 text-dd-forest" />
               <span>Keamanan Tablet Kiosk Studio &amp; Integrasi Geofence:</span>

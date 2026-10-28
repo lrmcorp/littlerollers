@@ -436,7 +436,7 @@ export function PublicClassesView({
             <Link
               href={inCustomerShell ? '/account' : '/'}
               aria-label={inCustomerShell ? 'Kembali ke Beranda' : 'Kembali ke situs utama'}
-              className="inline-flex size-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-dd-md border border-dd-border-interactive bg-white text-dd-forest shadow-xs transition hover:bg-dd-surface-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-dd-forest"
+              className="inline-flex size-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-dd-md border border-dd-border-interactive bg-white text-dd-forest transition hover:bg-dd-surface-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-dd-forest"
             >
               <ChevronLeft className="size-5" aria-hidden="true" />
             </Link>
@@ -577,7 +577,7 @@ export function PublicClassesView({
             aria-haspopup="dialog"
             aria-label="Studio"
             onClick={() => setIsStudioSheetOpen(true)}
-            className="inline-flex min-h-[44px] items-center gap-2 rounded-dd-md border border-dd-border-interactive bg-white px-3.5 py-2 text-sm font-semibold text-dd-ink shadow-xs transition hover:bg-dd-surface-muted cursor-pointer"
+            className="inline-flex min-h-[44px] items-center gap-2 rounded-dd-md border border-dd-border-interactive bg-white px-3.5 py-2 text-sm font-semibold text-dd-ink transition hover:bg-dd-surface-muted cursor-pointer"
           >
             <MapPin className="size-4 text-dd-forest shrink-0" aria-hidden="true" />
             <span>Studio: {branch ? branch.name : 'Pilih studio'}</span>
@@ -593,7 +593,7 @@ export function PublicClassesView({
             aria-label="Tipe kelas"
             disabled={!branchId}
             onClick={() => setIsTypeSheetOpen(true)}
-            className="inline-flex min-h-[44px] items-center gap-2 rounded-dd-md border border-dd-border-interactive bg-white px-3.5 py-2 text-sm font-semibold text-dd-ink shadow-xs transition hover:bg-dd-surface-muted disabled:opacity-50 disabled:pointer-events-none cursor-pointer"
+            className="inline-flex min-h-[44px] items-center gap-2 rounded-dd-md border border-dd-border-interactive bg-white px-3.5 py-2 text-sm font-semibold text-dd-ink transition hover:bg-dd-surface-muted disabled:opacity-50 disabled:pointer-events-none cursor-pointer"
           >
             <SlidersHorizontal className="size-4 text-dd-forest shrink-0" aria-hidden="true" />
             <span>Tipe kelas: {classTypes.find((t) => t.id === classType)?.name ?? 'Semua'}</span>
@@ -616,7 +616,7 @@ export function PublicClassesView({
         <div className="mt-5">
           {status === 'loading' ? (
             <div
-              className="rounded-dd-xl border border-dd-line bg-white p-6 sm:p-8 shadow-dd-card space-y-4"
+              className="rounded-dd-xl border border-dd-line bg-white p-6 sm:p-8 space-y-4"
               role="status"
               aria-label={`Memuat jadwal ${activeStudioName}...`}
             >
@@ -630,7 +630,7 @@ export function PublicClassesView({
             </div>
           ) : status === 'error' ? (
             <div
-              className="rounded-dd-xl border border-red-900/20 bg-red-50 p-8 text-center text-red-900 shadow-dd-card"
+              className="rounded-dd-xl border border-red-900/20 bg-red-50 p-8 text-center text-red-900"
               role="alert"
             >
               <strong className="text-xl font-bold">Jadwal gagal dimuat</strong>
@@ -638,7 +638,7 @@ export function PublicClassesView({
                 {message || 'Jadwal gagal dimuat. Koneksi internet terputus saat mengambil data.'}
               </p>
               <button
-                className="mt-4 inline-flex min-h-[44px] items-center justify-center rounded-dd-md bg-white px-4 py-2 text-sm font-bold text-red-900 border border-red-300 shadow-xs hover:bg-red-100 cursor-pointer"
+                className="mt-4 inline-flex min-h-[44px] items-center justify-center rounded-dd-md bg-white px-4 py-2 text-sm font-bold text-red-900 border border-red-300 hover:bg-red-100 cursor-pointer"
                 type="button"
                 onClick={() => void retryCatalog()}
               >
@@ -646,7 +646,7 @@ export function PublicClassesView({
               </button>
             </div>
           ) : !branchId ? (
-            <div className="rounded-dd-xl border border-dd-line bg-white p-6 sm:p-8 text-center shadow-dd-card">
+            <div className="rounded-dd-xl border border-dd-line bg-white p-6 sm:p-8 text-center">
               <MapPin className="mx-auto size-8 text-dd-forest" />
               <strong className="mt-3 block text-lg font-bold text-dd-ink">
                 Pilih studio untuk melihat kelas
@@ -660,7 +660,7 @@ export function PublicClassesView({
                     type="button"
                     key={b.id}
                     onClick={() => handleSelectBranch(b.id)}
-                    className="min-h-[44px] rounded-dd-md border border-dd-border-interactive bg-white px-4 py-2.5 text-sm font-bold text-dd-ink shadow-xs transition hover:bg-dd-forest hover:text-white cursor-pointer"
+                    className="min-h-[44px] rounded-dd-md border border-dd-border-interactive bg-white px-4 py-2.5 text-sm font-bold text-dd-ink transition hover:bg-dd-forest hover:text-white cursor-pointer"
                   >
                     {b.name}
                   </button>
@@ -668,7 +668,7 @@ export function PublicClassesView({
               </div>
             </div>
           ) : visible.length === 0 ? (
-            <div className="rounded-dd-xl border border-dd-line bg-white p-6 sm:p-8 text-center shadow-dd-card">
+            <div className="rounded-dd-xl border border-dd-line bg-white p-6 sm:p-8 text-center">
               <strong className="text-lg font-bold text-dd-ink">
                 {day
                   ? `Tidak ada kelas pada ${formatTanggalHuman(new Date(`${day}T12:00:00Z`), { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`
@@ -721,7 +721,7 @@ export function PublicClassesView({
             <div className="grid gap-6" aria-live="polite">
               {Object.entries(grouped).map(([date, items]) => (
                 <section
-                  className="overflow-hidden rounded-dd-xl border border-dd-line bg-white shadow-dd-card"
+                  className="overflow-hidden rounded-dd-xl border border-dd-line bg-white"
                   aria-labelledby={`day-${date}`}
                   key={date}
                 >

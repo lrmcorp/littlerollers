@@ -525,7 +525,7 @@ export function GuideView() {
       <header className="border-b border-dd-line/80 bg-white pt-10 pb-12 shadow-sm">
         <div className={publicContainer}>
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <span className="inline-flex items-center gap-2 rounded-full bg-dd-forest-dark/10 px-3.5 py-1 text-xs font-bold text-dd-forest uppercase">
+            <span className="inline-flex items-center gap-2 rounded-full bg-dd-forest-dark/10 px-3.5 py-1 text-[13px] font-bold text-dd-forest">
               <BookOpen className="size-3.5" /> Pusat Panduan Resmi
             </span>
             <Link
@@ -600,7 +600,7 @@ export function GuideView() {
       {/* Content Area */}
       <section className={`${publicContainer} py-10`}>
         {/* Role Intro Banner */}
-        <div className="mb-10 rounded-dd-lg border border-dd-line bg-white p-6 shadow-dd-card sm:p-8">
+        <div className="mb-10 rounded-dd-lg border border-dd-line bg-white p-6 sm:p-8">
           <div className="flex items-start gap-4">
             <div className="grid size-12 shrink-0 place-items-center rounded-full bg-dd-success-soft text-dd-forest">
               <currentGuide.icon className="size-6" />
@@ -633,12 +633,12 @@ export function GuideView() {
               <article
                 key={section.id}
                 id={section.id}
-                className="overflow-hidden rounded-dd-lg border border-dd-line bg-white shadow-dd-card"
+                className="overflow-hidden rounded-dd-lg border border-dd-line bg-white"
               >
                 {/* Section Header */}
                 <div className="border-b border-dd-line bg-dd-surface-muted/50 p-6 sm:px-8">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="rounded-full bg-dd-forest-dark/10 px-3 py-0.5 text-[11px] font-bold tracking-wider text-dd-forest uppercase">
+                    <span className="rounded-full bg-dd-forest-dark/10 px-3 py-0.5 text-[13px] font-bold text-dd-forest">
                       {section.badge}
                     </span>
                   </div>
@@ -650,7 +650,7 @@ export function GuideView() {
                 <div className="grid gap-8 p-6 lg:grid-cols-12 lg:p-8">
                   {/* Left: Steps List */}
                   <div className="space-y-6 lg:col-span-7">
-                    <h4 className="text-xs font-bold tracking-wider text-dd-muted uppercase">
+                    <h4 className="text-[13px] font-bold text-dd-muted">
                       Langkah-demi-Langkah:
                     </h4>
                     <ol className="space-y-4 m-0 p-0 list-none">
@@ -683,7 +683,7 @@ export function GuideView() {
 
                   {/* Right: Interactive Visual Mockup / Screenshot preview */}
                   <div className="lg:col-span-5">
-                    <h4 className="mb-3 text-xs font-bold tracking-wider text-dd-muted uppercase">
+                    <h4 className="mb-3 text-[13px] font-bold text-dd-muted">
                       Pratinjau Antarmuka Aplikasi:
                     </h4>
                     <div className="rounded-dd-lg border border-dd-line bg-dd-surface p-5 shadow-dd-soft">

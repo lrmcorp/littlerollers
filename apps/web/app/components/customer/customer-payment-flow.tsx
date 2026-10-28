@@ -311,7 +311,7 @@ export function CustomerPaymentFlow({
             className="rounded-none border border-ed-line bg-white p-5 shadow-none sm:p-6"
             aria-labelledby="order-summary-title"
           >
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-ed-green">
+            <p className="text-[13px] font-bold text-ed-green">
               Ringkasan pesanan
             </p>
             <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
@@ -326,7 +326,7 @@ export function CustomerPaymentFlow({
                   {order.branchName} · {order.sessionCount} sesi · {order.durationDays} hari
                 </p>
               </div>
-              <span className="rounded-none border border-ed-line bg-ed-tint px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wider text-ed-forest">
+              <span className="rounded-none border border-ed-line bg-ed-tint px-2.5 py-0.5 text-[13px] font-bold text-ed-forest">
                 {orderStatusLabels[order.status]}
               </span>
             </div>
@@ -375,7 +375,7 @@ export function CustomerPaymentFlow({
             >
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-ed-line pb-4">
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-wider text-ed-green">
+                  <p className="text-[13px] font-bold text-ed-green">
                     LANGKAH 1, TRANSFER TEPAT SEJUMLAH INI
                   </p>
                   <h2
@@ -428,7 +428,7 @@ export function CustomerPaymentFlow({
                   {/* Nominal 30 px Poppins 600 dengan tombol Salin nominal */}
                   <div className="flex flex-wrap items-center justify-between gap-4 rounded-none border border-ed-line bg-ed-tint/30 p-4">
                     <div>
-                      <span className="block text-xs font-semibold uppercase tracking-wider text-ed-muted">
+                      <span className="block text-[13px] font-bold text-ed-muted">
                         Nominal Transfer
                       </span>
                       <strong
@@ -480,7 +480,7 @@ export function CustomerPaymentFlow({
                   <div className="rounded-none border border-ed-line bg-white p-4">
                     <div className="flex flex-wrap items-center justify-between gap-4">
                       <div>
-                        <span className="block text-xs font-semibold uppercase tracking-wider text-ed-muted">
+                        <span className="block text-[13px] font-bold text-ed-muted">
                           Rekening Tujuan ({activePaymentAccount.bankName})
                         </span>
                         <strong
@@ -550,7 +550,7 @@ export function CustomerPaymentFlow({
 
                     <div className="mt-4 flex w-full items-center justify-between rounded-none border border-ed-line bg-white p-3">
                       <div>
-                        <span className="text-[13px] font-semibold uppercase tracking-wider text-ed-muted">
+                        <span className="text-[13px] font-bold text-ed-muted">
                           Nominal Pembayaran
                         </span>
                         <strong className="block font-sans text-lg font-semibold text-ed-forest">
@@ -605,7 +605,7 @@ export function CustomerPaymentFlow({
                   <UploadCloud className="size-5" aria-hidden="true" />
                 </span>
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-wider text-ed-green">
+                  <p className="text-[13px] font-bold text-ed-green">
                     LANGKAH 2, UNGGAH BUKTI TRANSFER
                   </p>
                   <h2
@@ -770,7 +770,7 @@ export function CustomerPaymentFlow({
                   <Clock3 className="size-5" aria-hidden="true" />
                 </span>
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-wider text-amber-800">
+                  <p className="text-[13px] font-bold text-amber-800">
                     BATAS WAKTU PEMBAYARAN
                   </p>
                   <h2
@@ -783,7 +783,7 @@ export function CustomerPaymentFlow({
               </div>
 
               <div className="mt-4 rounded-none border border-amber-200 bg-white p-3.5 text-xs text-amber-950">
-                <span className="block font-semibold uppercase tracking-wider text-amber-800">
+                <span className="block font-bold text-amber-800">
                   Batas Waktu Transfer
                 </span>
                 <time

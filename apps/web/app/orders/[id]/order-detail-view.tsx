@@ -53,7 +53,7 @@ export function OrderDetailView({ id }: { id: string }) {
   if (!order)
     return (
       <section className="rounded-none border border-ed-line bg-white p-6 shadow-none">
-        <p className="text-xs font-bold uppercase tracking-[0.18em] text-ed-green">Pesanan</p>
+        <p className="text-[13px] font-bold text-ed-green">Pesanan</p>
         <h1 className="font-serif mt-2 text-2xl font-normal tracking-tight text-ed-ink">Pesanan tidak tersedia</h1>
         <p className="mt-2 text-sm text-ed-muted">
           Pesanan mungkin sudah tidak dapat diakses atau bukan milik akun ini.
@@ -104,7 +104,7 @@ export function OrderDetailView({ id }: { id: string }) {
               <PackageCheck className="size-5" aria-hidden="true" />
             </span>
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-ed-green">
+              <p className="text-[13px] font-bold text-ed-green">
                 Paket aktif
               </p>
               <h2 className="font-serif mt-1 text-xl font-normal tracking-tight text-ed-ink">{order.packageName}</h2>
@@ -124,7 +124,7 @@ export function OrderDetailView({ id }: { id: string }) {
       <section className="rounded-none border border-ed-line bg-white p-5 shadow-none sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-ed-green">
+            <p className="text-[13px] font-bold text-ed-green">
               Histori pesanan
             </p>
             <h2 className="font-serif mt-1 text-xl font-normal tracking-tight text-ed-ink">Timeline pembayaran</h2>

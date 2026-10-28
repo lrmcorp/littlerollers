@@ -439,7 +439,7 @@ export function FastReviewView({
               </h2>
 
               <div>
-                <p className="text-xs font-bold uppercase tracking-wider text-dd-muted">Nama pada akun</p>
+                <p className="text-[13px] font-bold text-dd-muted">Nama pada akun</p>
                 <p className="mt-1 text-2xl font-black text-dd-ink">{current.user.displayName}</p>
                 {current.user.profileName && current.user.profileName !== current.user.displayName && (
                   <p className="mt-1 text-xs text-dd-muted">
@@ -452,7 +452,7 @@ export function FastReviewView({
               </div>
 
               <div className="pt-3 border-t border-dd-line">
-                <p className="text-xs font-bold uppercase tracking-wider text-dd-muted">Tanggal lahir pada akun</p>
+                <p className="text-[13px] font-bold text-dd-muted">Tanggal lahir pada akun</p>
                 <p className="mt-1 text-xl font-black text-dd-ink">
                   {formatBirthDate(current.user.birthDate ?? current.user.dateOfBirth)}
                 </p>

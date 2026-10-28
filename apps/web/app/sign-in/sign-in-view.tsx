@@ -67,7 +67,7 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
       id="main-content"
     >
       <a
-        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:px-4 focus:py-2.5 focus:bg-ed-forest focus:text-white focus:text-xs focus:font-bold focus:uppercase focus:tracking-wider focus:shadow-lg focus:outline-none focus:rounded-none"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:px-4 focus:py-2.5 focus:bg-ed-forest focus:text-white focus:text-[13px] focus:font-bold focus: focus: focus:shadow-lg focus:outline-none focus:rounded-none"
         href="#auth-form"
       >
         Langsung ke formulir masuk
@@ -92,9 +92,7 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
 
         {/* Top Brand Tag */}
         <div className="flex items-center gap-2 text-white/90">
-          <span className="text-xs font-bold tracking-[0.16em] uppercase text-ed-mint">
-            Daily Dose Portal
-          </span>
+          <span className="text-[13px] font-bold text-ed-mint">Daily Dose Portal</span>
         </div>
 
         {/* Bottom Editorial Copy */}
@@ -129,7 +127,7 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
           <div className="mb-6 sm:mb-8 flex items-center justify-between gap-2 sm:gap-3 border-b border-ed-line pb-4 sm:pb-5">
             <BrandMark className="w-28 sm:w-40 shrink-0" priority />
             <Link
-              className="inline-flex min-h-[44px] shrink-0 items-center gap-1.5 sm:gap-2 rounded-none px-2.5 sm:px-3 text-xs font-bold uppercase tracking-wider text-ed-forest hover:bg-ed-tint transition-colors no-underline"
+              className="inline-flex min-h-[44px] shrink-0 items-center gap-1.5 sm:gap-2 rounded-none px-2.5 sm:px-3 text-[13px] font-bold text-ed-forest hover:bg-ed-tint transition-colors no-underline"
               href="/"
             >
               <ArrowLeft className="size-3.5 shrink-0" />
@@ -166,7 +164,7 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
                 .catch(fail);
             }}
           >
-            <label className="block space-y-1.5 text-xs font-bold uppercase tracking-wider text-ed-ink">
+            <label className="block space-y-1.5 text-[13px] font-bold text-ed-ink">
               <span>Email, Username, atau WhatsApp</span>
               <div className="relative flex items-center">
                 <input
@@ -181,7 +179,7 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
               </div>
             </label>
 
-            <label className="block space-y-1.5 text-xs font-bold uppercase tracking-wider text-ed-ink">
+            <label className="block space-y-1.5 text-[13px] font-bold text-ed-ink">
               <span>Password</span>
               <div className="relative flex items-center">
                 <input
@@ -196,7 +194,7 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
                 />
                 <button
                   aria-pressed={showPassword}
-                  className="absolute right-2 inline-flex min-h-[44px] items-center px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-ed-forest hover:text-ed-deep transition-colors focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#09371f]"
+                  className="absolute right-2 inline-flex min-h-[44px] items-center px-3 py-1.5 text-[13px] font-bold text-ed-forest hover:text-ed-deep transition-colors focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#09371f]"
                   type="button"
                   onClick={() => setShowPassword((value) => !value)}
                 >
@@ -269,7 +267,7 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
 
           {googleEnabled && (
             <>
-              <div className="my-6 flex items-center gap-4 text-xs font-bold tracking-wider text-ed-muted uppercase before:h-px before:flex-1 before:bg-ed-line after:h-px after:flex-1 after:bg-ed-line">
+              <div className="my-6 flex items-center gap-4 text-[13px] font-bold text-ed-muted before:h-px before:flex-1 before:bg-ed-line after:h-px after:flex-1 after:bg-ed-line">
                 atau
               </div>
               <GoogleIdentityButton client={client} onComplete={complete} onFailure={fail} />

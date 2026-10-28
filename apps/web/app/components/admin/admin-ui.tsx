@@ -38,7 +38,7 @@ export function Badge({ children, tone = 'neutral' }: { children: ReactNode; ton
 export function Panel({ children, className = '', ...props }: HTMLAttributes<HTMLElement>) {
   return (
     <section
-      className={`rounded-dd-lg border border-dd-line bg-dd-surface shadow-dd-card ${className}`}
+      className={`rounded-dd-md border border-dd-line bg-dd-surface ${className}`}
       {...props}
     >
       {children}
@@ -65,18 +65,27 @@ export function StatCard({
     change == null || change === 0 ? Minus : change > 0 ? ArrowUpRight : ArrowDownRight;
   return (
     <Panel className="relative overflow-hidden p-5" aria-busy={loading}>
-      <span
-        className={`absolute inset-x-0 top-0 h-0.5 ${tone === 'warning' ? 'bg-dd-brass' : tone === 'danger' ? 'bg-dd-danger' : 'bg-dd-line'}`}
-      />
-      <p className="text-xs font-bold uppercase tracking-[0.14em] text-dd-muted">{label}</p>
+      <p className="flex items-center gap-1.5 text-[15px] font-bold text-dd-muted">
+        {label}
+        {/* Nada dipakai pemanggil untuk angka yang perlu ditindaklanjuti. Ditandai ikon dan kata,
+            bukan sekadar warna, supaya tetap terbaca di cetakan hitam putih dan oleh pembaca
+            yang sulit membedakan warna. */}
+        {(tone === 'warning' || tone === 'danger') && !loading && (
+          <span
+            className={`inline-flex items-center gap-1 text-[13px] font-bold ${
+              tone === 'danger' ? 'text-dd-danger' : 'text-dd-brass'
+            }`}
+          >
+            <AlertTriangle className="size-3.5" aria-hidden="true" />
+            {tone === 'danger' ? 'perlu tindakan' : 'perlu dicek'}
+          </span>
+        )}
+      </p>
       <div className="mt-3 flex items-end justify-between gap-3">
         {loading ? (
-          <div
-            className="h-8 w-24 rounded bg-dd-line/60"
-            aria-label="Memuat nilai..."
-          />
+          <div className="h-8 w-24 rounded bg-dd-line/60" aria-label="Memuat nilai..." />
         ) : (
-          <strong className="text-2xl font-semibold tracking-tight text-dd-ink">{value}</strong>
+          <strong className="text-3xl font-semibold tracking-tight text-dd-ink">{value}</strong>
         )}
         {loading ? (
           <div className="h-4 w-12 rounded bg-dd-line/40" />
@@ -126,7 +135,7 @@ export function Tooltip({ label, children }: { label: string; children: ReactNod
       {children}
       <span
         role="tooltip"
-        className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded bg-dd-sidebar px-2 py-1 text-xs text-white shadow-lg group-hover:block group-focus-within:block"
+        className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded bg-dd-ink px-2 py-1 text-[13px] text-white shadow-lg group-hover:block group-focus-within:block"
       >
         {label}
       </span>
@@ -158,7 +167,7 @@ export function Tabs({
           role="tab"
           aria-selected={item.value === value}
           onClick={() => onChange(item.value)}
-          className={`min-h-11 whitespace-nowrap rounded-dd-sm border-0 px-3 text-sm font-bold ${item.value === value ? 'bg-white text-dd-forest shadow-sm' : 'bg-transparent text-dd-muted hover:text-dd-ink'}`}
+          className={`min-h-11 whitespace-nowrap rounded-dd-sm border-0 px-3 text-sm font-bold ${item.value === value ? 'bg-white text-dd-forest' : 'bg-transparent text-dd-muted hover:text-dd-ink'}`}
         >
           {item.label}
           {item.count != null && (
@@ -196,7 +205,7 @@ export function FilterBar({
   /** Sembunyikan "Reset" saat tidak ada filter aktif. */
   showReset?: boolean;
 }) {
-  const className = 'rounded-dd-lg border border-dd-line bg-dd-surface p-4 shadow-sm';
+  const className = 'rounded-dd-lg border border-dd-line bg-dd-surface p-4';
   const content = (
     <>
       <div className="flex flex-wrap items-end gap-3">
@@ -299,15 +308,15 @@ export function DataTable<T>({
   if (loading) return <AdminSkeleton rows={5} />;
   if (!items.length) return <AdminEmptyState title={emptyTitle} description={emptyDescription} action={emptyAction} />;
   return (
-    <div className="overflow-hidden rounded-dd-lg border border-dd-line bg-dd-surface shadow-sm">
+    <div className="overflow-hidden rounded-dd-lg border border-dd-line bg-dd-surface">
       <div className={mobileCard ? 'hidden overflow-x-auto md:block' : 'overflow-x-auto'}>
         <table className="w-full border-collapse text-left text-sm">
-          <thead className="sticky top-0 z-10 bg-dd-surface-muted text-xs uppercase tracking-[0.08em] text-dd-muted">
+          <thead className="sticky top-0 z-10 bg-dd-surface-muted text-[13px] text-dd-muted">
             <tr>
               {showRowNumbers && (
                 <th
                   scope="col"
-                  className="w-14 min-w-[3.5rem] border-b border-dd-line px-3 py-3 text-center text-xs font-bold uppercase tracking-[0.08em] text-dd-muted select-none"
+                  className="w-14 min-w-[3.5rem] border-b border-dd-line px-3 py-3 text-center text-[13px] font-bold text-dd-muted select-none"
                 >
                   {rowNumberHeader}
                 </th>
@@ -471,7 +480,7 @@ export function Pagination({
   return (
     <nav
       aria-label="Paginasi data"
-      className="flex flex-col sm:flex-row items-center justify-between gap-3 rounded-dd-lg border border-dd-line/80 bg-white/95 px-4 py-3 shadow-dd-card backdrop-blur-sm"
+      className="flex flex-col sm:flex-row items-center justify-between gap-3 rounded-dd-lg border border-dd-line/80 bg-white/95 px-4 py-3 backdrop-blur-sm"
     >
       <div className="text-xs sm:text-sm font-medium text-dd-muted">
         {showPagePrefix && (
@@ -555,7 +564,7 @@ export function BulkActionBar({
 }) {
   if (!count) return null;
   return (
-    <div className="sticky bottom-4 z-30 flex flex-wrap items-center justify-between gap-3 rounded-dd-lg border border-dd-brass/40 bg-dd-sidebar px-4 py-3 text-white shadow-dd-float">
+    <div className="sticky bottom-4 z-30 flex flex-wrap items-center justify-between gap-3 rounded-dd-lg border border-dd-brass/40 bg-dd-ink px-4 py-3 text-white shadow-dd-float">
       <strong className="text-sm">{count.toLocaleString('id-ID')} dipilih</strong>
       <div className="flex flex-wrap items-center gap-2">
         {children}
@@ -602,7 +611,7 @@ export function AdminPageState({
   return (
     <div
       role={kind === 'error' ? 'alert' : 'status'}
-      className="rounded-dd-lg border border-dd-line bg-white p-7 text-center shadow-sm"
+      className="rounded-dd-lg border border-dd-line bg-white p-7 text-center"
     >
       <AlertTriangle
         className={`mx-auto size-8 ${kind === 'error' ? 'text-dd-danger' : 'text-dd-brass'}`}
