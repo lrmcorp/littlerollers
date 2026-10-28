@@ -1,4 +1,5 @@
 import type { ClassSlot } from '../api-clients/class-slot-client';
+import type { CustomerBookingRecord } from '../api-clients/booking-client';
 
 /** Alasan cepat untuk mencatat kehadiran manual; petugas memilih satu, atau menulis sendiri. */
 export const ATTENDANCE_REASON_PRESETS = [
@@ -49,7 +50,10 @@ export function attendanceWindow(slot: ClassSlot, now: Date): { open: boolean; r
   if (slot.status !== 'CONFIRMED' && slot.status !== 'COMPLETED')
     return { open: false, reason: 'Kehadiran bisa dicatat setelah kelas dikonfirmasi.' };
   if (now.getTime() > slot.endAt.getTime() + BACKFILL_WINDOW_MS)
-    return { open: false, reason: 'Lewat 2 jam setelah kelas selesai. Ajukan penyesuaian sesi ke Manager.' };
+    return {
+      open: false,
+      reason: 'Lewat 2 jam setelah kelas selesai. Ajukan penyesuaian sesi ke Manager.',
+    };
   return { open: true };
 }
 
@@ -78,4 +82,28 @@ export function formatAttendanceTime(date: Date | string, timezone = 'Asia/Jakar
   })
     .format(d)
     .replace(':', '.');
+}
+
+/** Sisa sesi yang dianggap "hampir habis" untuk ditawari perpanjangan di meja depan. */
+export const SISA_SESI_HAMPIR_HABIS = 1;
+
+/**
+ * Member yang datang hari ini dan sesinya tinggal sedikit, satu baris per orang (kelas paling
+ * awal), urut dari sisa sesi paling sedikit. Booking yang dibatalkan tidak dihitung.
+ */
+export function pickExpiringToday(
+  bookings: readonly CustomerBookingRecord[],
+): CustomerBookingRecord[] {
+  const perOrang = new Map<string, CustomerBookingRecord>();
+  for (const booking of bookings) {
+    if (booking.status === 'CANCELLED' || !booking.sessionBalance) continue;
+    if (booking.sessionBalance.available > SISA_SESI_HAMPIR_HABIS) continue;
+    const key = booking.customer?.id ?? booking.id;
+    const ada = perOrang.get(key);
+    const mulai = (b: CustomerBookingRecord) => new Date(b.classSlot?.startAt ?? 0).getTime();
+    if (!ada || mulai(booking) < mulai(ada)) perOrang.set(key, booking);
+  }
+  return [...perOrang.values()].sort(
+    (a, b) => a.sessionBalance!.available - b.sessionBalance!.available,
+  );
 }

@@ -1,17 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import Link from 'next/link';
-import QRCode from 'qrcode';
-import {
-  AlertTriangle,
-  CalendarClock,
-  CheckCircle2,
-  ListChecks,
-  QrCode,
-  Search,
-  UserPlus,
-} from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { AlertTriangle, ScanLine, UserPlus } from 'lucide-react';
 import {
   browserClassSlotClient,
   type ClassSlot,
@@ -42,6 +32,7 @@ import {
   liveSlots,
   nextClassLabel,
   pickLastEnded,
+  pickExpiringToday,
   pickRunningAndNext,
   slotPhase,
 } from './front-desk-today';
@@ -78,7 +69,8 @@ export function FrontDeskTodayView({
   const feedback = useAppFeedback();
   const sessionContext = useSessionContext();
   const session = sessionContext?.session;
-  const branch = sessionContext?.activeBranch ?? (session?.branches?.length === 1 ? session.branches[0] : null);
+  const branch =
+    sessionContext?.activeBranch ?? (session?.branches?.length === 1 ? session.branches[0] : null);
   const timezone = branch?.timezone ?? 'Asia/Jakarta';
   const canMark = Boolean(sessionContext?.hasCapability('attendance:manage'));
 
@@ -96,8 +88,6 @@ export function FrontDeskTodayView({
   const [reason, setReason] = useState('');
   const [marking, setMarking] = useState(false);
   const [markError, setMarkError] = useState('');
-  const [qrModalSlot, setQrModalSlot] = useState<ClassSlot | null>(null);
-  const qrCanvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     if (initialNow) return;
@@ -155,7 +145,10 @@ export function FrontDeskTodayView({
   const slots = useMemo(() => liveSlots(workspace?.slots ?? []), [workspace?.slots]);
   const { running, next } = useMemo(() => pickRunningAndNext(slots, now), [slots, now]);
   const selected =
-    slots.find((slot) => slot.id === selectedSlotId) ?? running ?? next ?? pickLastEnded(slots, now);
+    slots.find((slot) => slot.id === selectedSlotId) ??
+    running ??
+    next ??
+    pickLastEnded(slots, now);
 
   const overcapacitySlots = useMemo(
     () => slots.filter((slot) => slot.bookedCount > slot.capacity),
@@ -173,7 +166,9 @@ export function FrontDeskTodayView({
       setAttendees((await bookingClient.list({ classSlotId: selected.id, limit: 50 })).items);
     } catch (cause) {
       setAttendees([]);
-      setAttendeesError(cause instanceof Error ? cause.message : 'Daftar peserta belum dapat dimuat.');
+      setAttendeesError(
+        cause instanceof Error ? cause.message : 'Daftar peserta belum dapat dimuat.',
+      );
     } finally {
       setAttendeesLoading(false);
     }
@@ -183,28 +178,46 @@ export function FrontDeskTodayView({
     void loadAttendees();
   }, [loadAttendees]);
 
+  // Member yang datang hari ini dengan paket hampir habis: kesempatan menawarkan perpanjangan
+  // saat orangnya ada di depan meja, bukan lewat WhatsApp setelah paketnya habis.
+  const [expiring, setExpiring] = useState<CustomerBookingRecord[] | null>(null);
   useEffect(() => {
-    if (!qrModalSlot || !qrCanvasRef.current) return;
-    const payload = `dd-checkin:v1:slot:${qrModalSlot.id}:branch:${branch?.id ?? ''}`;
-    void QRCode.toCanvas(qrCanvasRef.current, payload, {
-      width: 220,
-      margin: 2,
-      errorCorrectionLevel: 'M',
-      color: { dark: '#17392d', light: '#ffffff' },
-    }).catch(() => {
-      // Gracefully continue if canvas context is unavailable (e.g. test environment)
-    });
-  }, [qrModalSlot, branch?.id]);
+    if (!branch?.id) return;
+    let cancelled = false;
+    setExpiring(null);
+    Promise.resolve()
+      .then(() =>
+        bookingClient.list({
+          branchId: branch.id,
+          from: zonedLocalDateTime(todayKey, '00:00', timezone).toISOString(),
+          until: zonedLocalDateTime(todayKey, '23:59', timezone).toISOString(),
+          limit: 100,
+        }),
+      )
+      .then((page) => {
+        if (!cancelled) setExpiring(pickExpiringToday(page.items));
+      })
+      .catch(() => {
+        if (!cancelled) setExpiring([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [bookingClient, branch?.id, timezone, todayKey]);
 
   const className = (slot: ClassSlot) =>
     workspace?.classTypes.find((type) => type.id === slot.classTypeId)?.name ?? 'Kelas Pilates';
   const studioName = (slot: ClassSlot) =>
-    workspace?.studios.find((studio) => studio.id === slot.studioId)?.name ?? branch?.name ?? 'Studio';
+    workspace?.studios.find((studio) => studio.id === slot.studioId)?.name ??
+    branch?.name ??
+    'Studio';
   const instructorName = (slot: ClassSlot) =>
     (slot as { instructor?: { displayName?: string | null } | null }).instructor?.displayName ??
-    workspace?.instructors.find((instructor) => instructor.id === slot.instructorUserId)?.displayName ??
+    workspace?.instructors.find((instructor) => instructor.id === slot.instructorUserId)
+      ?.displayName ??
     'Belum ada instruktur';
-  const time = (slot: ClassSlot) => `${formatBranchTime(slot.startAt, timezone)} – ${formatBranchTime(slot.endAt, timezone)}`;
+  const time = (slot: ClassSlot) =>
+    `${formatBranchTime(slot.startAt, timezone)} – ${formatBranchTime(slot.endAt, timezone)}`;
 
   const window = selected ? attendanceWindow(selected, now) : { open: false };
 
@@ -213,7 +226,12 @@ export function FrontDeskTodayView({
     setMarking(true);
     setMarkError('');
     try {
-      await bookingClient.backfillAttendance(markTarget.id, reason.trim(), markTarget.version, crypto.randomUUID());
+      await bookingClient.backfillAttendance(
+        markTarget.id,
+        reason.trim(),
+        markTarget.version,
+        crypto.randomUUID(),
+      );
       feedback.showToast({
         tone: 'success',
         title: 'Kehadiran dicatat',
@@ -223,19 +241,13 @@ export function FrontDeskTodayView({
       setReason('');
       await loadAttendees();
     } catch {
-      setMarkError('Kehadiran belum bisa dicatat. Periksa batas waktu 2 jam setelah kelas selesai, lalu coba lagi.');
+      setMarkError(
+        'Kehadiran belum bisa dicatat. Periksa batas waktu 2 jam setelah kelas selesai, lalu coba lagi.',
+      );
     } finally {
       setMarking(false);
     }
   };
-
-  const formattedToday = new Intl.DateTimeFormat('id-ID', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    timeZone: timezone,
-  }).format(now);
 
   if (!branch)
     return (
@@ -244,104 +256,129 @@ export function FrontDeskTodayView({
       </Feedback>
     );
 
-  const aside = (
-    <aside className="space-y-5">
-      <section aria-label="Aksi cepat" className="grid gap-3">
-        <ButtonLink
-          href="/workspace/bookings"
-          className="min-h-14 justify-start text-base font-semibold"
-          leadingIcon={<UserPlus className="size-5" aria-hidden="true" />}
-        >
-          Buat booking manual
-        </ButtonLink>
-        <ButtonLink
-          href="/workspace/bookings?tab=reschedules"
-          variant="secondary"
-          className="min-h-14 justify-start text-base font-semibold"
-          leadingIcon={<CalendarClock className="size-5" aria-hidden="true" />}
-        >
-          Pindahkan jadwal booking
-        </ButtonLink>
-        <ButtonLink
-          href="/customers"
-          variant="secondary"
-          className="min-h-14 justify-start text-base font-semibold"
-          leadingIcon={<Search className="size-5" aria-hidden="true" />}
-        >
-          Cari pelanggan
-        </ButtonLink>
-      </section>
-
-      <section
-        aria-labelledby="todo-heading"
-        className="space-y-3 rounded-dd-xl border border-dd-border-interactive bg-[#fffdf7] p-5"
-      >
-        <h2 id="todo-heading" className="flex items-center gap-2 text-lg font-bold text-dd-ink">
-          <ListChecks className="size-5 text-dd-forest" aria-hidden="true" /> Perlu dibereskan di cabang ini
-        </h2>
-        {queues === null ? (
-          <Skeleton label="Memuat daftar" />
-        ) : queues.length === 0 && overcapacitySlots.length === 0 ? (
-          <p className="text-sm text-dd-muted">Tidak ada yang perlu dibereskan di cabang ini.</p>
-        ) : (
-          <ul className="m-0 grid list-none gap-2 p-0">
-            {overcapacitySlots.length > 0 && overcapacitySlots[0] && (
-              <li>
-                <button
-                  type="button"
-                  onClick={() => setSelectedSlotId(overcapacitySlots[0]!.id)}
-                  className="flex w-full items-center justify-between gap-3 rounded-dd-md border border-red-300 bg-red-50 px-3 py-3 text-left font-semibold text-red-800 transition hover:bg-red-100"
-                >
-                  <span className="flex items-center gap-2 text-sm">
-                    <AlertTriangle className="size-4 shrink-0 text-red-600" aria-hidden="true" />
-                    <span>{overcapacitySlots.length} kelas kelebihan kapasitas</span>
-                  </span>
-                  <span className="rounded-full bg-red-600 px-2.5 py-0.5 text-xs text-white">
-                    {overcapacitySlots.length}
-                  </span>
-                </button>
-              </li>
-            )}
-            {queues.map((queue) => (
-              <li key={queue.key}>
-                <Link
-                  href={queue.href}
-                  className="flex items-center justify-between gap-3 rounded-dd-md border border-dd-border-interactive bg-white px-3 py-3 font-semibold text-dd-ink no-underline transition hover:bg-dd-surface-muted"
-                >
-                  <span className="text-sm">{queue.label}</span>
-                  <span className="rounded-full bg-dd-forest px-2.5 py-0.5 text-sm text-white">
-                    {queue.count}
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-    </aside>
+  const selectedLabel = selected
+    ? selected.id === running?.id
+      ? 'Berjalan sekarang'
+      : slotPhase(selected, now) === 'Selesai'
+        ? 'Sudah selesai'
+        : nextClassLabel(selected, now)
+    : '';
+  const upcoming = slots.filter(
+    (slot) => slot.id !== selected?.id && slotPhase(slot, now) !== 'Selesai',
   );
+  const finished = slots.filter(
+    (slot) => slot.id !== selected?.id && slotPhase(slot, now) === 'Selesai',
+  );
+  const queueTotal = (queues ?? []).reduce((sum, queue) => sum + queue.count, 0);
+  const canReadRenewal = Boolean(sessionContext?.hasCapability('package:read'));
+  const kioskCode = (branch as { code?: string }).code;
+
+  const slotRow = (slot: ClassSlot) => {
+    const ended = slotPhase(slot, now) === 'Selesai';
+    const belowQuota = slot.minimumQuota > 0 && slot.bookedCount < slot.minimumQuota;
+    const isOvercapacity = slot.bookedCount > slot.capacity;
+    return (
+      <li key={slot.id}>
+        <button
+          type="button"
+          aria-pressed={selected?.id === slot.id}
+          aria-label={`Lihat peserta ${className(slot)} ${time(slot)}`}
+          onClick={() => setSelectedSlotId(slot.id)}
+          className="w-full rounded-dd-lg border border-dd-line bg-white px-5 py-4 text-left transition hover:border-dd-forest"
+        >
+          <span className="block text-lg font-semibold tabular-nums text-dd-ink">{time(slot)}</span>
+          <span className="block font-semibold text-dd-ink">{className(slot)}</span>
+          <span className="block text-sm text-dd-muted">
+            {studioName(slot)} · {slot.bookedCount} dari {slot.capacity} peserta
+            {ended ? ' · Selesai' : ''}
+          </span>
+          {belowQuota && !ended && (
+            <span className="mt-1 block text-sm font-semibold text-dd-warning">
+              Di bawah kuota minimum ({slot.bookedCount} dari {slot.minimumQuota}). Diputuskan di
+              meja check-in saat kelas mulai bila peserta tidak bertambah.
+            </span>
+          )}
+          {isOvercapacity && (
+            <span className="mt-1 flex items-center gap-1 text-sm font-semibold text-dd-danger">
+              <AlertTriangle className="size-4" aria-hidden="true" />
+              Kelebihan kapasitas ({slot.bookedCount}/{slot.capacity})
+            </span>
+          )}
+        </button>
+      </li>
+    );
+  };
+
+  const formattedDate = new Intl.DateTimeFormat('id-ID', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: timezone,
+  }).format(now);
 
   return (
-    <div className="space-y-6 font-sans text-dd-ink" aria-label="Hari ini di meja depan">
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">Hari ini</h1>
-          <p className="text-sm font-medium text-dd-muted">
-            {formattedToday} · {branch.name}
-          </p>
-        </div>
-        <div
-          className="flex items-baseline gap-2 self-start rounded-dd-lg border border-dd-border-interactive bg-white px-4 py-2 sm:self-auto"
-          aria-label="Jam digital"
-        >
-          <span className="text-3xl font-extrabold tracking-tight text-dd-forest tabular-nums sm:text-4xl">
-            {formatAttendanceTime(now, timezone)}
-          </span>
-          <span className="text-[13px] font-bold text-dd-muted">
-            {timezone === 'Asia/Makassar' ? 'WITA' : timezone === 'Asia/Jayapura' ? 'WIT' : 'WIB'}
-          </span>
+    <div className="space-y-6 font-sans text-dd-ink">
+      <header className="space-y-3">
+        <p className="m-0 text-sm font-semibold text-dd-forest">{formattedDate}</p>
+        <h1 className="m-0 text-[28px] font-semibold tracking-[-0.02em] sm:text-[32px]">
+          Hari ini di meja depan
+        </h1>
+        <p className="m-0 text-[17px] text-dd-muted">
+          Kelas yang berjalan, presensi peserta, dan antrean yang perlu Anda putuskan.
+        </p>
+        <div className="flex flex-wrap gap-3 pt-1">
+          {kioskCode && (
+            <ButtonLink
+              href={`/kiosk/${encodeURIComponent(kioskCode)}`}
+              variant="secondary"
+              leadingIcon={<ScanLine className="size-4" aria-hidden="true" />}
+            >
+              Buka layar pindai studio
+            </ButtonLink>
+          )}
+          <ButtonLink
+            href="/customers"
+            leadingIcon={<UserPlus className="size-4" aria-hidden="true" />}
+          >
+            Daftarkan member baru
+          </ButtonLink>
         </div>
       </header>
+
+      {queues && queueTotal > 0 && (
+        <section
+          aria-labelledby="decision-heading"
+          className="flex flex-col gap-4 rounded-dd-lg border border-dd-warning-line/60 bg-dd-warning-soft p-5 sm:flex-row sm:items-center"
+        >
+          <span
+            aria-hidden="true"
+            className="grid size-11 shrink-0 place-items-center rounded-dd-lg bg-dd-warning text-lg font-bold text-white"
+          >
+            {queueTotal}
+          </span>
+          <div className="min-w-0 flex-1">
+            <h2 id="decision-heading" className="m-0 text-lg font-semibold text-dd-warning">
+              {queueTotal} hal menunggu keputusan Anda
+            </h2>
+            <p className="m-0 mt-0.5 text-sm text-dd-ink">
+              {queues.map((queue) => `${queue.count} ${queue.label.toLowerCase()}`).join(', ')}.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {queues.slice(0, 2).map((queue, index) => (
+              <ButtonLink
+                key={queue.key}
+                href={queue.href}
+                size="sm"
+                variant={index === 0 ? 'primary' : 'secondary'}
+              >
+                {queue.label}
+              </ButtonLink>
+            ))}
+          </div>
+        </section>
+      )}
 
       <EmptyWeeksNotice
         branchId={branch.id}
@@ -354,7 +391,11 @@ export function FrontDeskTodayView({
       {error && (
         <Feedback kind="error">
           {error}{' '}
-          <button type="button" onClick={() => void loadClasses()} className="ml-1 font-semibold underline">
+          <button
+            type="button"
+            onClick={() => void loadClasses()}
+            className="ml-1 font-semibold underline"
+          >
             Coba lagi
           </button>
         </Feedback>
@@ -363,283 +404,215 @@ export function FrontDeskTodayView({
       {loading ? (
         <Skeleton label="Memuat jadwal hari ini" />
       ) : (
-        <div className="grid gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-          {slots.length === 0 && !error ? (
-            <section className="space-y-3 self-start rounded-dd-xl border border-dd-border-interactive bg-white p-6">
-              <p className="text-base font-medium">Tidak ada kelas hari ini di {branch.name}.</p>
-              <ButtonLink href="/workspace/classes" variant="secondary">
-                Buka jadwal kelas
-              </ButtonLink>
-            </section>
-          ) : (
-            <div className="space-y-5">
-              {/* Dua kartu utama di atas */}
-              <div className="grid gap-4 sm:grid-cols-2">
-                {/* Kartu 1: Berjalan sekarang */}
-                <section
-                  aria-label="Berjalan sekarang"
-                  className={`flex flex-col justify-between space-y-3 rounded-dd-xl border p-5 ${
-                    selected?.id === running?.id ? 'border-2 border-dd-forest bg-white' : 'border-dd-border-interactive bg-white'
-                  }`}
-                >
-                  <div className="space-y-1">
-                    <p className="text-[13px] font-bold text-dd-muted">Berjalan sekarang</p>
-                    {running ? (
-                      <>
-                        <button
-                          type="button"
-                          className="text-left"
-                          onClick={() => setSelectedSlotId(running.id)}
-                          aria-label={`Lihat peserta ${className(running)} ${time(running)}`}
-                        >
-                          <span className="block text-2xl font-bold text-dd-ink">{time(running)}</span>
-                          <span className="block text-lg font-semibold text-dd-ink">{className(running)}</span>
-                        </button>
-                        <p className="text-sm text-dd-muted">
-                          {instructorName(running)} · {studioName(running)}
-                        </p>
-                        <p className="text-sm font-semibold text-dd-ink">
-                          Terisi {running.bookedCount} dari {running.capacity}
-                          {running.bookedCount >= running.capacity ? ' (Penuh)' : ''}
-                        </p>
-                      </>
-                    ) : (
-                      <p className="text-sm text-dd-muted">Tidak ada kelas yang sedang berjalan.</p>
-                    )}
-                  </div>
-                  {running && (
-                    <div className="flex flex-wrap items-center gap-2 border-t border-dd-line pt-3">
-                      <Button
-                        size="sm"
-                        variant={selected?.id === running.id ? 'primary' : 'secondary'}
-                        onClick={() => setSelectedSlotId(running.id)}
-                      >
-                        Buka daftar hadir
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        leadingIcon={<QrCode className="size-4" aria-hidden="true" />}
-                        onClick={() => setQrModalSlot(running)}
-                      >
-                        Tampilkan QR check-in
-                      </Button>
-                    </div>
-                  )}
-                </section>
-
-                {/* Kartu 2: Mulai X menit lagi / Berikutnya */}
-                <section
-                  aria-label="Berikutnya"
-                  className={`flex flex-col justify-between space-y-3 rounded-dd-xl border p-5 ${
-                    selected?.id === next?.id ? 'border-2 border-dd-forest bg-white' : 'border-dd-border-interactive bg-white'
-                  }`}
-                >
-                  <div className="space-y-1">
-                    <p className="text-[13px] font-bold text-dd-muted">
-                      {nextClassLabel(next, now)}
-                    </p>
-                    {next ? (
-                      <>
-                        <button
-                          type="button"
-                          className="text-left"
-                          onClick={() => setSelectedSlotId(next.id)}
-                          aria-label={`Lihat peserta ${className(next)} ${time(next)}`}
-                        >
-                          <span className="block text-2xl font-bold text-dd-ink">{time(next)}</span>
-                          <span className="block text-lg font-semibold text-dd-ink">{className(next)}</span>
-                        </button>
-                        <p className="text-sm text-dd-muted">
-                          {instructorName(next)} · {studioName(next)}
-                        </p>
-                        <p className="text-sm font-semibold text-dd-ink">
-                          Terisi {next.bookedCount} dari {next.capacity}
-                          {next.bookedCount >= next.capacity ? ' (Penuh)' : ''}
-                        </p>
-                      </>
-                    ) : (
-                      <p className="text-sm text-dd-muted">Tidak ada kelas lagi hari ini.</p>
-                    )}
-                  </div>
-                  {next && (
-                    <div className="flex flex-wrap items-center gap-2 border-t border-dd-line pt-3">
-                      <Button
-                        size="sm"
-                        variant={selected?.id === next.id ? 'primary' : 'secondary'}
-                        onClick={() => setSelectedSlotId(next.id)}
-                      >
-                        Buka daftar hadir
-                      </Button>
-                    </div>
-                  )}
-                </section>
-              </div>
-
-              {/* Daftar hadir in-place tepat di bawah kartu atas */}
-              <section
-                aria-labelledby="attendance-heading"
-                className="space-y-3 rounded-dd-xl border border-dd-border-interactive bg-white p-5"
-              >
-                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-dd-line pb-3">
-                  <h2 id="attendance-heading" className="text-lg font-bold text-dd-ink">
-                    {selected ? `Daftar hadir kelas ${time(selected)} · ${className(selected)}` : 'Daftar hadir'}
-                  </h2>
-                  {selected && (
-                    <span className="text-xs font-semibold text-dd-muted">
-                      {selected.bookedCount} peserta terdaftar
-                    </span>
-                  )}
-                </div>
-                {selected && !window.open && 'reason' in window && window.reason && (
-                  <p className="text-sm text-dd-muted" role="note">
-                    {window.reason}
-                  </p>
-                )}
-                {attendeesError && <Feedback kind="error">{attendeesError}</Feedback>}
-                {attendeesLoading ? (
-                  <Skeleton label="Memuat daftar peserta" />
-                ) : attendees.length === 0 ? (
-                  <p className="text-sm text-dd-muted">Belum ada peserta terdaftar di kelas ini.</p>
-                ) : (
-                  <ul className="m-0 list-none divide-y divide-dd-line p-0">
-                    {attendees.map((booking) => {
-                      const present = Boolean(booking.attendance) || booking.status === 'ATTENDED';
-                      const cancelled = booking.status === 'CANCELLED';
-                      return (
-                        <li key={booking.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
-                          <div>
-                            <p className="font-semibold text-dd-ink">
-                              {booking.customer?.displayName ?? 'Pelanggan'}
-                            </p>
-                            <p className="text-sm text-dd-muted">
-                              {booking.package?.name ?? 'Paket'}
-                              {booking.sessionBalance ? ` · sisa ${booking.sessionBalance.available} sesi` : ''}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {present ? (
-                              <div className="flex items-center gap-2">
-                                <StatusBadge tone="success">Hadir</StatusBadge>
-                                {booking.attendance?.checkedInAt && (
-                                  <span className="text-xs font-semibold text-dd-muted tabular-nums">
-                                    {formatAttendanceTime(booking.attendance.checkedInAt, timezone)}
-                                  </span>
-                                )}
-                              </div>
-                            ) : cancelled ? (
-                              <StatusBadge tone="neutral">Dibatalkan</StatusBadge>
-                            ) : canMark && window.open && booking.status === 'BOOKED' ? (
-                              <Button
-                                size="sm"
-                                leadingIcon={<CheckCircle2 className="size-4" aria-hidden="true" />}
-                                onClick={() => {
-                                  setMarkError('');
-                                  setReason('');
-                                  setMarkTarget(booking);
-                                }}
-                              >
-                                Tandai hadir
-                              </Button>
-                            ) : (
-                              <StatusBadge tone="warning">Belum hadir</StatusBadge>
-                            )}
-                          </div>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+          <div className="min-w-0 space-y-6">
+            {slots.length === 0 && !error ? (
+              <section className="space-y-3 rounded-dd-lg border border-dd-line bg-white p-6">
+                <p className="m-0 text-base font-medium">
+                  Tidak ada kelas hari ini di {branch.name}.
+                </p>
+                <ButtonLink href="/workspace/classes" variant="secondary">
+                  Buka jadwal kelas
+                </ButtonLink>
               </section>
-
-              {/* Sisa kelas hari ini / Semua kelas hari ini di bawah daftar hadir */}
-              <section
-                aria-labelledby="all-classes-heading"
-                className="space-y-3 rounded-dd-xl border border-dd-border-interactive bg-white p-5"
-              >
-                <div className="flex items-center justify-between">
-                  <h2 id="all-classes-heading" className="text-lg font-bold text-dd-ink">
-                    Semua kelas hari ini
+            ) : (
+              selected && (
+                <section
+                  aria-label={selectedLabel}
+                  className={`rounded-dd-lg border bg-white p-5 sm:p-6 ${
+                    selected.id === running?.id ? 'border-dd-forest' : 'border-dd-line'
+                  }`}
+                >
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="m-0 text-lg font-semibold text-dd-ink">{selectedLabel}</p>
+                    <span className="rounded-full border border-dd-forest/40 bg-dd-success-soft px-2.5 py-0.5 text-sm font-semibold tabular-nums text-dd-forest">
+                      {time(selected)}
+                    </span>
+                  </div>
+                  <h2 className="m-0 mt-3 text-2xl font-semibold text-dd-ink">
+                    {className(selected)}
                   </h2>
-                  <span className="text-xs font-semibold text-dd-muted">{slots.length} kelas</span>
-                </div>
-                <ul className="m-0 grid list-none gap-2 p-0">
-                  {slots.map((slot) => {
-                    const isOvercapacity = slot.bookedCount > slot.capacity;
-                    return (
-                      <li key={slot.id}>
-                        <button
-                          type="button"
-                          aria-pressed={selected?.id === slot.id}
-                          onClick={() => setSelectedSlotId(slot.id)}
-                          className={`flex min-h-[44px] w-full flex-wrap items-center justify-between gap-2 rounded-dd-md border px-3 py-2 text-left text-sm font-semibold transition ${
-                            selected?.id === slot.id
-                              ? 'border-2 border-dd-forest bg-white text-dd-ink'
-                              : 'border-dd-border-interactive bg-white text-dd-ink hover:bg-dd-surface-muted'
-                          }`}
-                        >
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span>
-                              {time(slot)} · {className(slot)}
-                            </span>
-                            {isOvercapacity && (
-                              <span className="inline-flex items-center gap-1 rounded bg-red-100 px-2 py-0.5 text-xs font-bold text-red-700">
-                                <AlertTriangle className="size-3.5" aria-hidden="true" />
-                                Kelebihan kapasitas ({slot.bookedCount}/{slot.capacity})
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <span className="text-xs font-medium text-dd-muted underline decoration-dd-border-interactive">
-                              Lihat detail
-                            </span>
-                            <span className="text-dd-muted">{slotPhase(slot, now)}</span>
-                          </div>
-                        </button>
-                      </li>
-                    );
-                  })}
+                  <p className="m-0 mt-1 text-[15px] text-dd-muted">
+                    {studioName(selected)} · bersama {instructorName(selected)} · Terisi{' '}
+                    {selected.bookedCount} dari {selected.capacity}
+                    {selected.bookedCount >= selected.capacity ? ' (penuh)' : ''}
+                  </p>
+
+                  <h3 id="attendance-heading" className="m-0 mt-5 text-[15px] font-semibold">
+                    Presensi peserta
+                  </h3>
+                  {!window.open && 'reason' in window && window.reason && (
+                    <p className="m-0 mt-1 text-sm text-dd-muted" role="note">
+                      {window.reason}
+                    </p>
+                  )}
+                  {attendeesError && <Feedback kind="error">{attendeesError}</Feedback>}
+                  {attendeesLoading ? (
+                    <Skeleton label="Memuat daftar peserta" />
+                  ) : attendees.length === 0 ? (
+                    <p className="m-0 mt-2 text-sm text-dd-muted">
+                      Belum ada peserta terdaftar di kelas ini.
+                    </p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table
+                        aria-labelledby="attendance-heading"
+                        className="mt-2 w-full min-w-[420px] text-left text-[15px]"
+                      >
+                        <thead className="text-sm text-dd-muted">
+                          <tr className="border-b border-dd-line">
+                            <th className="py-2 pr-3 font-medium">Peserta</th>
+                            <th className="py-2 pr-3 font-medium">Status</th>
+                            <th className="py-2 text-right font-medium">Tindakan</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-dd-line">
+                          {attendees.map((booking) => {
+                            const present =
+                              Boolean(booking.attendance) || booking.status === 'ATTENDED';
+                            const cancelled = booking.status === 'CANCELLED';
+                            return (
+                              <tr key={booking.id}>
+                                <td className="py-3 pr-3">
+                                  <span className="block font-medium text-dd-ink">
+                                    {booking.customer?.displayName ?? 'Pelanggan'}
+                                  </span>
+                                  <span className="block text-sm text-dd-muted">
+                                    {booking.package?.name ?? 'Paket'}
+                                    {booking.sessionBalance
+                                      ? ` · sisa ${booking.sessionBalance.available} sesi`
+                                      : ''}
+                                  </span>
+                                </td>
+                                <td className="py-3 pr-3 text-sm font-semibold">
+                                  {present ? (
+                                    <span className="text-dd-forest">
+                                      Hadir
+                                      {booking.attendance?.checkedInAt
+                                        ? `, ${formatAttendanceTime(booking.attendance.checkedInAt, timezone)}`
+                                        : ''}
+                                    </span>
+                                  ) : cancelled ? (
+                                    <span className="text-dd-muted">Dibatalkan</span>
+                                  ) : (
+                                    <span className="text-dd-muted">Belum hadir</span>
+                                  )}
+                                </td>
+                                <td className="py-3 text-right">
+                                  {present ? (
+                                    <span className="text-sm text-dd-muted">Sudah tercatat</span>
+                                  ) : canMark && window.open && booking.status === 'BOOKED' ? (
+                                    <Button
+                                      size="sm"
+                                      variant="secondary"
+                                      onClick={() => {
+                                        setMarkError('');
+                                        setReason('');
+                                        setMarkTarget(booking);
+                                      }}
+                                    >
+                                      Tandai hadir
+                                    </Button>
+                                  ) : null}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </section>
+              )
+            )}
+
+            {upcoming.length > 0 && (
+              <section aria-labelledby="upcoming-heading" className="space-y-3">
+                <h2 id="upcoming-heading" className="m-0 text-xl font-semibold">
+                  Berikutnya hari ini
+                </h2>
+                <ul className="m-0 grid list-none gap-3 p-0">{upcoming.map(slotRow)}</ul>
+              </section>
+            )}
+
+            {finished.length > 0 && (
+              <details className="rounded-dd-lg border border-dd-line bg-white px-5 py-3">
+                <summary className="cursor-pointer font-semibold text-dd-ink">
+                  Sudah selesai hari ini ({finished.length} kelas)
+                </summary>
+                <p className="m-0 mt-2 text-sm text-dd-muted">
+                  Kehadiran masih bisa dicatat sampai 2 jam setelah kelas selesai.
+                </p>
+                <ul className="m-0 mt-3 grid list-none gap-2 p-0">{finished.map(slotRow)}</ul>
+              </details>
+            )}
+          </div>
+
+          <aside aria-labelledby="expiring-heading" className="space-y-4">
+            <h2 id="expiring-heading" className="m-0 text-xl font-semibold">
+              Paketnya akan habis
+            </h2>
+            {expiring === null ? (
+              <Skeleton label="Memuat paket member hari ini" />
+            ) : expiring.length > 0 ? (
+              <section className="rounded-dd-lg border-2 border-dd-forest bg-white p-5">
+                <p className="m-0 text-sm font-semibold text-dd-forest">
+                  Datang hari ini, jangan sampai terlewat
+                </p>
+                <ul className="m-0 mt-3 list-none divide-y divide-dd-line p-0">
+                  {expiring.map((item) => (
+                    <li key={item.id} className="py-3 first:pt-0 last:pb-0">
+                      <span className="block font-semibold text-dd-ink">
+                        {item.customer?.displayName ?? 'Member'}
+                      </span>
+                      <span className="block text-sm text-dd-muted">
+                        Kelas{' '}
+                        {item.classSlot ? formatBranchTime(item.classSlot.startAt, timezone) : ''}
+                        {item.package ? ` · ${item.package.name}` : ''}
+                      </span>
+                      <span className="block text-sm font-semibold text-dd-warning">
+                        {item.sessionBalance && item.sessionBalance.available > 0
+                          ? `Sisa ${item.sessionBalance.available} sesi`
+                          : 'Ini sesi terakhirnya'}
+                      </span>
+                    </li>
+                  ))}
                 </ul>
               </section>
-            </div>
-          )}
-
-          {aside}
+            ) : (
+              <p className="m-0 text-sm text-dd-muted">
+                Tidak ada member yang datang hari ini dengan paket hampir habis.
+              </p>
+            )}
+            {canReadRenewal && (
+              <section className="rounded-dd-lg border border-dd-line bg-white p-5">
+                <p className="m-0 text-[15px] text-dd-ink">
+                  Member yang paketnya sudah habis dan belum memperpanjang ada di daftar renewal,
+                  lengkap dengan tombol WhatsApp.
+                </p>
+                <ButtonLink
+                  href="/workspace/renewal"
+                  variant="secondary"
+                  size="sm"
+                  className="mt-3"
+                >
+                  Lihat daftarnya
+                </ButtonLink>
+              </section>
+            )}
+          </aside>
         </div>
       )}
-
-      {/* Modal QR Check-In Meja Depan */}
-      <Modal
-        open={qrModalSlot !== null}
-        title="QR Check-in Meja Depan"
-        description={qrModalSlot ? `${className(qrModalSlot)} · ${time(qrModalSlot)}` : undefined}
-        onClose={() => setQrModalSlot(null)}
-        footer={
-          <div className="flex justify-end">
-            <Button variant="secondary" onClick={() => setQrModalSlot(null)}>
-              Tutup
-            </Button>
-          </div>
-        }
-      >
-        <div className="flex flex-col items-center justify-center space-y-4 py-2 text-center">
-          <p className="text-sm text-dd-muted">
-            Arahkan pelanggan untuk memindai kode QR ini dari ponsel mereka untuk konfirmasi kehadiran otomatis.
-          </p>
-          <div className="flex items-center justify-center rounded-2xl border-2 border-dd-border-interactive bg-white p-4">
-            <canvas ref={qrCanvasRef} className="size-[220px]" />
-          </div>
-          <p className="text-xs font-medium text-dd-muted">
-            Cabang: {branch.name} · Studio: {qrModalSlot ? studioName(qrModalSlot) : ''}
-          </p>
-        </div>
-      </Modal>
 
       {/* Modal Catat Kehadiran Manual */}
       <Modal
         open={markTarget !== null}
         title="Tandai hadir"
-        description={markTarget ? `${markTarget.customer?.displayName ?? 'Pelanggan'} · alasan dicatat di audit` : undefined}
+        description={
+          markTarget
+            ? `${markTarget.customer?.displayName ?? 'Pelanggan'} · alasan dicatat di audit`
+            : undefined
+        }
         busy={marking}
         onClose={() => setMarkTarget(null)}
         footer={
@@ -647,7 +620,11 @@ export function FrontDeskTodayView({
             <Button variant="secondary" disabled={marking} onClick={() => setMarkTarget(null)}>
               Batal
             </Button>
-            <Button loading={marking} disabled={reason.trim().length < 3} onClick={() => void confirmMark()}>
+            <Button
+              loading={marking}
+              disabled={reason.trim().length < 3}
+              onClick={() => void confirmMark()}
+            >
               Catat kehadiran
             </Button>
           </div>
@@ -663,14 +640,21 @@ export function FrontDeskTodayView({
                 aria-pressed={reason === preset}
                 onClick={() => setReason(preset)}
                 className={`rounded-dd-md border px-3 py-2 text-left text-sm ${
-                  reason === preset ? 'border-dd-forest bg-dd-forest/10 font-semibold' : 'border-dd-border-interactive bg-white'
+                  reason === preset
+                    ? 'border-dd-forest bg-dd-forest/10 font-semibold'
+                    : 'border-dd-border-interactive bg-white'
                 }`}
               >
                 {preset}
               </button>
             ))}
           </div>
-          <Textarea label="Alasan" value={reason} maxLength={500} onChange={(event) => setReason(event.target.value)} />
+          <Textarea
+            label="Alasan"
+            value={reason}
+            maxLength={500}
+            onChange={(event) => setReason(event.target.value)}
+          />
           {markError && <Feedback kind="error">{markError}</Feedback>}
         </div>
       </Modal>

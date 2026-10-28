@@ -25,12 +25,6 @@ vi.mock('next/link', () => ({
   ),
 }));
 
-vi.mock('qrcode', () => ({
-  default: {
-    toCanvas: vi.fn().mockResolvedValue(undefined),
-  },
-}));
-
 vi.mock('../session-context', () => ({
   useSessionContext: () => ({
     session: {
@@ -167,61 +161,58 @@ describe('Tiket T-20: Halaman Hari Ini untuk Front Desk (Papan 14)', () => {
     capabilities.list = ['attendance:manage', 'class-slot:read', 'booking:read'];
   });
 
-  it('1. Menampilkan header real-time dengan jam digital 08.42 WIB dan nama cabang', async () => {
+  it('1. Menampilkan tanggal hari ini dan judul meja depan', async () => {
     renderView(createTestClients());
-    const clock = await screen.findByLabelText('Jam digital');
-    expect(within(clock).getByText('08.42')).toBeVisible();
-    expect(within(clock).getByText('WIB')).toBeVisible();
-    expect(screen.getByText(/Daily Dose Senopati/)).toBeVisible();
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Hari ini di meja depan' }),
+    ).toBeVisible();
+    expect(screen.getByText('Selasa, 27 Oktober 2026')).toBeVisible();
   });
 
-  it('2. Menampilkan dua kartu atas: Berjalan sekarang dan Mulai 18 menit lagi (Penuh)', async () => {
+  it('2. Menampilkan kelas yang berjalan sebagai kartu utama dan kelas berikutnya di bawahnya', async () => {
     renderView(createTestClients());
     const running = await screen.findByRole('region', { name: 'Berjalan sekarang' });
     expect(within(running).getByText('08.00 – 09.00')).toBeVisible();
     expect(within(running).getByText('Private Group')).toBeVisible();
-    expect(within(running).getByText(/Coach Sarah · Studio 1/)).toBeVisible();
-    expect(within(running).getByText('Terisi 3 dari 4')).toBeVisible();
-    expect(within(running).getByRole('button', { name: 'Buka daftar hadir' })).toBeVisible();
-    expect(within(running).getByRole('button', { name: 'Tampilkan QR check-in' })).toBeVisible();
+    expect(
+      within(running).getByText(/Studio 1 · bersama Coach Sarah · Terisi 3 dari 4/),
+    ).toBeVisible();
 
-    const next = screen.getByRole('region', { name: 'Berikutnya' });
-    expect(within(next).getByText('Mulai 18 menit lagi')).toBeVisible();
+    const next = screen.getByRole('region', { name: 'Berikutnya hari ini' });
     expect(within(next).getByText('09.00 – 10.00')).toBeVisible();
     expect(within(next).getByText('Reformer Intro')).toBeVisible();
-    expect(within(next).getByText('Terisi 6 dari 6 (Penuh)')).toBeVisible();
-    expect(within(next).getByRole('button', { name: 'Buka daftar hadir' })).toBeVisible();
+    expect(within(next).getByText(/6 dari 6 peserta/)).toBeVisible();
   });
 
-  it('3. Membuka modal QR check-in saat tombol Tampilkan QR check-in diklik', async () => {
-    const user = userEvent.setup();
+  it('3. Tidak menampilkan QR untuk dipindai member; meja depan membuka layar pindai studio', async () => {
     renderView(createTestClients());
-    const running = await screen.findByRole('region', { name: 'Berjalan sekarang' });
-    const qrBtn = within(running).getByRole('button', { name: 'Tampilkan QR check-in' });
-    await user.click(qrBtn);
-
-    const dialog = await screen.findByRole('dialog', { name: 'QR Check-in Meja Depan' });
-    expect(within(dialog).getByText(/Arahkan pelanggan untuk memindai kode QR/)).toBeVisible();
-    expect(within(dialog).getByRole('button', { name: 'Tutup' })).toBeVisible();
+    // Arah yang disepakati: member menyimpan QR statis, studio yang memindai.
+    expect(await screen.findByRole('link', { name: /Buka layar pindai studio/ })).toHaveAttribute(
+      'href',
+      '/kiosk/DD-SNP',
+    );
+    expect(screen.queryByRole('button', { name: /QR check-in/ })).toBeNull();
   });
 
-  it('4. Menampilkan daftar hadir in-place dengan jam kehadiran 07.54 dan tombol tandai hadir', async () => {
+  it('4. Menampilkan presensi peserta dengan jam kehadiran 07.54 dan tombol tandai hadir', async () => {
     const user = userEvent.setup();
     const c = createTestClients();
     renderView(c);
 
     expect(await screen.findByText('Amanda Manopo')).toBeVisible();
-    expect(screen.getByText('Hadir')).toBeVisible();
-    expect(screen.getByText('07.54')).toBeVisible();
+    expect(screen.getByText('Hadir, 07.54')).toBeVisible();
+    expect(screen.getByText('Sudah tercatat')).toBeVisible();
 
     expect(screen.getByText('Budi Hartono')).toBeVisible();
     const markBtn = screen.getByRole('button', { name: 'Tandai hadir' });
-    expect(markBtn).toBeVisible();
-
     await user.click(markBtn);
     const dialog = await screen.findByRole('dialog', { name: 'Tandai hadir' });
     expect(within(dialog).getByText(/Pilih alasan, atau tulis sendiri/)).toBeVisible();
-    await user.click(within(dialog).getByRole('button', { name: 'Petugas melihat langsung pelanggan mengikuti kelas' }));
+    await user.click(
+      within(dialog).getByRole('button', {
+        name: 'Petugas melihat langsung pelanggan mengikuti kelas',
+      }),
+    );
     await user.click(within(dialog).getByRole('button', { name: 'Catat kehadiran' }));
 
     await waitFor(() => {
@@ -234,33 +225,24 @@ describe('Tiket T-20: Halaman Hari Ini untuk Front Desk (Papan 14)', () => {
     });
   });
 
-  it('5. Mendeteksi kelas kelebihan kapasitas di daftar Semua kelas hari ini dan kartu masalah cabang', async () => {
+  it('5. Menandai kelas kelebihan kapasitas dan menampilkan keputusan yang menunggu', async () => {
     renderView(createTestClients());
-    const all = await screen.findByRole('region', { name: 'Semua kelas hari ini' });
-    expect(within(all).getByText(/Kelebihan kapasitas \(6\/4\)/)).toBeVisible();
-    expect(within(all).getAllByText('Lihat detail').length).toBeGreaterThan(0);
+    const next = await screen.findByRole('region', { name: 'Berikutnya hari ini' });
+    expect(within(next).getByText(/Kelebihan kapasitas \(6\/4\)/)).toBeVisible();
 
-    const problems = screen.getByRole('region', { name: /Perlu dibereskan di cabang ini/ });
-    expect(within(problems).getByText(/1 kelas kelebihan kapasitas/)).toBeVisible();
-    expect(within(problems).getByRole('link', { name: /Pembayaran menunggu/ })).toBeVisible();
+    const decisions = await screen.findByRole('region', { name: '2 hal menunggu keputusan Anda' });
+    expect(within(decisions).getByRole('link', { name: /Pembayaran menunggu/ })).toHaveAttribute(
+      'href',
+      '/workspace/payments?status=PENDING',
+    );
   });
 
-  it('6. Menampilkan 3 aksi besar di sebelah kanan dan bebas dari kartu statistik pasif', async () => {
+  it('6. Menyediakan pendaftaran member dan bebas dari kartu statistik pasif', async () => {
     renderView(createTestClients());
-    expect(await screen.findByRole('link', { name: /Buat booking manual/ })).toHaveAttribute(
-      'href',
-      '/workspace/bookings',
-    );
-    expect(screen.getByRole('link', { name: /Pindahkan jadwal booking/ })).toHaveAttribute(
-      'href',
-      '/workspace/bookings?tab=reschedules',
-    );
-    expect(screen.getByRole('link', { name: /Cari pelanggan/ })).toHaveAttribute(
+    expect(await screen.findByRole('link', { name: /Daftarkan member baru/ })).toHaveAttribute(
       'href',
       '/customers',
     );
-
-    // Memastikan tidak ada kartu statistik pasif hiasan
     expect(screen.queryByText(/Total Omzet|Pendapatan Harian|Rata-rata/i)).toBeNull();
   });
 });
