@@ -201,6 +201,7 @@ model Cabang {
   monthlyCloses         MonthlyClose[]
   correctionJournals    CorrectionJournal[]
   instructorAvailabilities InstructorAvailability[]
+  revenueTargets        TargetOmzet[]
   packages              Paket[]
   bookings              PemesananKelas[]
 
@@ -314,6 +315,7 @@ model User {
   requestedAdjustments  SessionAdjustRequest[] @relation("AdjustRequester")
   approvedAdjustments   SessionAdjustRequest[] @relation("AdjustApprover")
   instructorAvailabilities InstructorAvailability[]
+  revenueTargetsSet        TargetOmzet[]            @relation("TargetSetter")
 
   @@index([role, status])
   @@map("user")
@@ -1130,4 +1132,25 @@ model PackagePromotion {
 
   @@index([packageId, status, activeFrom, activeUntil])
   @@map("package_promotion")
+}
+
+/// Target omzet yang dipasang Super Owner untuk satu cabang pada satu periode.
+/// `branchId` null berarti target gabungan semua cabang.
+model TargetOmzet {
+  id         String   @id @default(uuid()) @db.Char(36)
+  branchId   String?  @db.Char(36)
+  /// Periode `YYYY-MM`.
+  period     String   @db.VarChar(7)
+  targetRp   Int
+  note       String?  @db.VarChar(255)
+  setById    String   @db.Char(36)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  branch Cabang? @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  setBy  User    @relation("TargetSetter", fields: [setById], references: [id], onDelete: Restrict)
+
+  @@unique([branchId, period])
+  @@index([period])
+  @@map("target_omzet")
 }
