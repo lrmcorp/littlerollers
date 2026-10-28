@@ -139,12 +139,13 @@ export function MobileBottomNavigation({
     );
   }
 
-  // Navigasi Bawah Instruktur: 4 item (Hari Ini | Jadwal Saya | Scan | Akun) sesuai spesifikasi 5.4 & Bagian 3
+  // Navigasi Bawah Instruktur: 4 item (Hari Ini | Jadwal Saya | QR saya | Akun) sesuai spesifikasi 5.4 & Bagian 3
   if (isInstructorOnlySession(context?.session)) {
     const instructorTabs = [
       { href: '/workspace', label: 'Hari Ini', icon: House },
       { href: '/workspace/classes', label: 'Jadwal Saya', icon: CalendarDays },
-      { href: '/check-in-scanner', label: 'Scan', icon: QrCode },
+      // Instruktur menunjukkan QR statisnya ke layar studio; bukan memindai.
+      { href: '/check-in-pass', label: 'QR saya', icon: QrCode },
       { href: '/account/profile', label: 'Akun', icon: UserRound },
     ];
 

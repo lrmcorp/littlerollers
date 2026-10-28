@@ -1,13 +1,18 @@
 'use client';
 
 import Link from 'next/link';
-import { Bell, CalendarDays, CreditCard, House, PackageCheck, QrCode, ShieldCheck } from 'lucide-react';
+import { ChevronRight, House, QrCode } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { AlertBanner } from '../components/app-feedback';
 import { ButtonLink } from '../components/actions';
 import { orderStatusLabels } from '@/lib/order-presenters';
 import { useSessionContext } from '../session-context';
 import { Skeleton } from '../ui';
+import {
+  browserPublicClassCatalogClient,
+  type PublicClassCatalogClient,
+  type PublicClassSlot,
+} from '../api-clients/public-class-catalog-client';
 
 function formatBookingSchedule(startAt: string, endAt: string, timezone: string) {
   try {
@@ -35,8 +40,8 @@ function formatBookingSchedule(startAt: string, endAt: string, timezone: string)
 
     return {
       date: dateFormatted,
-      time: `${startTime} - ${endTime} WIB`,
-      full: `${dateFormatted} · ${startTime} - ${endTime} WIB`,
+      time: `${startTime} sampai ${endTime} WIB`,
+      full: `${dateFormatted} · ${startTime} sampai ${endTime} WIB`,
     };
   } catch {
     return {
@@ -84,7 +89,9 @@ type CustomerDashboardOverview = {
 import { formatRupiah } from '../lib/formatters';
 import { VerificationStatusBanner } from '../components/verification-status-banner';
 
-export function CustomerDashboard() {
+export function CustomerDashboard({
+  classCatalogClient = browserPublicClassCatalogClient,
+}: { classCatalogClient?: PublicClassCatalogClient } = {}) {
   const session = useSessionContext()?.session;
   const [overview, setOverview] = useState<CustomerDashboardOverview | null>(null);
   const [loading, setLoading] = useState(true);
@@ -120,10 +127,7 @@ export function CustomerDashboard() {
           : 'ACTION_REQUIRED');
   const rejectionReason = overview?.verification?.rejectionReason;
 
-  const activeBranchId =
-    session.preferredBranch?.id ??
-    session.branches?.[0]?.id ??
-    '';
+  const activeBranchId = session.preferredBranch?.id ?? session.branches?.[0]?.id ?? '';
   // Member dengan paket aktif dibiarkan memilih studio di halaman jadwal: halaman itu membuka studio paketnya
   // bila studio utamanya tidak punya paket yang cocok. Tanpa paket, jadwal studio utama yang dibuka.
   const bookingHref =
@@ -132,20 +136,23 @@ export function CustomerDashboard() {
       : '/classes';
 
   const nearestBooking = overview?.upcomingBookings?.[0];
+  const otherBookings = overview?.upcomingBookings?.slice(1) ?? [];
+  const firstName = session.displayName.trim().split(/\s+/)[0] ?? session.displayName;
+  const homeStudio = session.preferredBranch?.name ?? session.branches?.[0]?.name;
+  const nearest = nearestBooking
+    ? formatBookingSchedule(nearestBooking.startAt, nearestBooking.endAt, nearestBooking.timezone)
+    : null;
 
   return (
-    <main className="space-y-7" aria-labelledby="customer-dashboard-title">
+    <main className="space-y-6 font-sans" aria-labelledby="customer-dashboard-title">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-[13px] font-bold text-ed-green">
-            Beranda Member
-          </p>
-          <h1 id="customer-dashboard-title" className="font-serif mt-2 text-2xl font-normal tracking-tight text-ed-ink sm:text-3xl">
-            Halo, {session.displayName}
+          <h1
+            id="customer-dashboard-title"
+            className="m-0 text-[26px] font-semibold tracking-[-0.02em] text-dd-ink sm:text-[30px]"
+          >
+            Halo, {firstName}
           </h1>
-          <p className="mt-2 text-sm leading-relaxed text-ed-muted">
-            Jadwal, paket, dan pembayaran yang perlu Anda perhatikan.
-          </p>
         </div>
         <ButtonLink href={bookingHref}>Booking kelas</ButtonLink>
       </header>
@@ -167,60 +174,57 @@ export function CustomerDashboard() {
         returnTo="/account"
       />
 
-      {/* Kartu Booking Terdekat di Paling Atas (Tiket T-08 / Spesifikasi 5.8) */}
-      {loading ? (
-        <section
-          aria-label="Memuat booking terdekat"
-          className="rounded-none border border-ed-line bg-white p-5 sm:p-6"
+      {overview?.actionableOrders.map((order) => (
+        <Link
+          href={`/checkout?order=${encodeURIComponent(order.id)}`}
+          key={order.id}
+          className="flex items-center justify-between gap-3 rounded-dd-lg border border-dd-warning-line/60 bg-dd-warning-soft p-4 text-dd-ink no-underline"
         >
-          <div className="h-5 w-32 rounded bg-ed-tint/60" />
-          <div className="mt-3 h-7 w-48 rounded bg-ed-tint/40" />
-          <div className="mt-2 h-4 w-64 rounded bg-ed-tint/30" />
-        </section>
-      ) : nearestBooking ? (
+          <span>
+            <strong className="block text-[15px]">{order.packageName}</strong>
+            <span className="block text-sm text-dd-muted">
+              {order.branchName} · {orderStatusLabels[order.status]}
+            </span>
+          </span>
+          <strong className="shrink-0 text-[15px] text-dd-warning">
+            {formatRupiah(order.payableAmountRp)}
+          </strong>
+        </Link>
+      ))}
+
+      {nearestBooking && nearest ? (
         <section
           aria-label="Booking terdekat"
-          className="rounded-none border-2 border-ed-forest bg-white p-5 shadow-none sm:p-6"
+          className="rounded-dd-xl border border-dd-line bg-white p-5 sm:p-6"
         >
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="space-y-1.5">
-              <div className="flex items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 border border-ed-line bg-ed-tint px-2 py-0.5 text-[13px] font-bold text-ed-forest">
-                  <span className="size-1.5 rounded-full bg-ed-forest" />
-                  Jadwal Terdekat
-                </span>
-                <span className="text-xs text-ed-muted">
-                  {nearestBooking.branchName}
-                </span>
-              </div>
-              <h2 className="font-serif text-xl font-normal tracking-tight text-ed-ink sm:text-2xl">
-                {nearestBooking.className}
-              </h2>
-              <p className="text-sm text-ed-muted">
-                {formatBookingSchedule(
-                  nearestBooking.startAt,
-                  nearestBooking.endAt,
-                  nearestBooking.timezone,
-                ).full}
-              </p>
-            </div>
-            <div className="shrink-0 pt-2 sm:pt-0">
-              <Link
-                href={`/check-in-pass?bookingId=${encodeURIComponent(nearestBooking.id)}&class=${encodeURIComponent(nearestBooking.className)}&branch=${encodeURIComponent(nearestBooking.branchName)}&start=${encodeURIComponent(nearestBooking.startAt)}&end=${encodeURIComponent(nearestBooking.endAt)}&tz=${encodeURIComponent(nearestBooking.timezone)}`}
-                className="inline-flex h-11 min-h-[44px] w-full items-center justify-center gap-2 rounded-none bg-ed-forest px-6 text-sm font-bold text-white shadow-none transition hover:bg-ed-green sm:w-auto"
-              >
-                <QrCode className="size-4" />
-                <span>Lihat QR Pass</span>
-              </Link>
-            </div>
-          </div>
+          <p className="m-0 text-sm font-semibold text-dd-forest">Booking terdekat</p>
+          <h2 className="m-0 mt-1 text-[22px] font-semibold text-dd-ink">
+            {nearestBooking.className}
+          </h2>
+          <p className="m-0 mt-2 text-[17px] text-dd-ink">{nearest.date}</p>
+          <p className="m-0 text-[17px] text-dd-ink">{nearest.time}</p>
+          <p className="m-0 mt-1 text-[15px] text-dd-muted">{nearestBooking.branchName}</p>
+          {/* QR yang sama dipakai setiap datang; studio yang memindainya. */}
+          <Link
+            href="/check-in-pass"
+            className="mt-5 flex min-h-[52px] w-full items-center justify-center gap-2 rounded-dd-lg bg-dd-forest px-6 text-base font-semibold text-white no-underline transition hover:bg-dd-forest-dark"
+          >
+            <QrCode className="size-5" aria-hidden="true" />
+            <span>Lihat QR Pass</span>
+          </Link>
+          <Link
+            href={`/bookings/${encodeURIComponent(nearestBooking.id)}`}
+            className="mt-3 block text-center text-[15px] font-semibold text-dd-forest underline"
+          >
+            Batalkan booking ini
+          </Link>
         </section>
       ) : (
         <section
           aria-label="Booking terdekat"
-          className="rounded-none border border-dashed border-ed-line bg-ed-tint/30 p-5 text-center sm:p-6"
+          className="rounded-dd-xl border border-dashed border-dd-line bg-white p-5 text-center sm:p-6"
         >
-          <p className="text-sm text-ed-muted">
+          <p className="m-0 text-[15px] text-dd-muted">
             {overview?.packages.length
               ? 'Belum ada booking mendatang. Pilih jadwal kelas untuk mulai latihan.'
               : 'Belum ada paket aktif. Kamu perlu paket sesi sebelum bisa booking kelas.'}
@@ -237,203 +241,171 @@ export function CustomerDashboard() {
         </section>
       )}
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Ringkasan akun">
-        <MetricCard
-          icon={CalendarDays}
-          label="Booking mendatang"
-          value={overview ? String(overview.upcomingBookings.length) : undefined}
-          loading={loading || !overview}
-          href="/bookings"
-        />
-        <MetricCard
-          icon={PackageCheck}
-          label="Paket aktif"
-          value={overview ? String(overview.packages.length) : undefined}
-          loading={loading || !overview}
-          href="/account/packages"
-        />
-        <MetricCard
-          icon={CreditCard}
-          label="Pesanan aktif"
-          value={overview ? String(overview.actionableOrders.length) : undefined}
-          loading={loading || !overview}
-          href="/orders"
-        />
-        <MetricCard
-          icon={Bell}
-          label="Notifikasi belum dibaca"
-          value={overview ? String(overview.unreadNotifications) : undefined}
-          loading={loading || !overview}
-          href="/account"
-        />
-      </section>
+      {otherBookings.length > 0 && (
+        <section aria-labelledby="other-bookings" className="space-y-3">
+          <h2 id="other-bookings" className="m-0 text-xl font-semibold text-dd-ink">
+            Booking lainnya
+          </h2>
+          <ul className="m-0 grid list-none gap-2 p-0">
+            {otherBookings.map((booking) => {
+              const jadwal = formatBookingSchedule(
+                booking.startAt,
+                booking.endAt,
+                booking.timezone,
+              );
+              return (
+                <li key={booking.id}>
+                  <Link
+                    href={`/bookings/${encodeURIComponent(booking.id)}`}
+                    className="flex items-center justify-between gap-3 rounded-dd-lg border border-dd-line bg-white p-4 text-dd-ink no-underline hover:border-dd-forest"
+                  >
+                    <span>
+                      <strong className="block text-[15px]">{booking.className}</strong>
+                      <span className="block text-sm text-dd-muted">
+                        {jadwal.date} · {jadwal.time}
+                      </span>
+                    </span>
+                    <ChevronRight className="size-5 shrink-0 text-dd-muted" aria-hidden="true" />
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
 
-      <div className="grid gap-5 xl:grid-cols-2">
-        <DashboardSection
-          title="Jadwal berikutnya"
-          description="Kelas yang sudah Anda booking."
-          href="/bookings"
-          empty="Belum ada booking mendatang."
-          hasItems={Boolean(overview?.upcomingBookings.length)}
-        >
-          {overview?.upcomingBookings.map((booking) => (
-            <article
-              key={booking.id}
-              className="flex flex-wrap items-center justify-between gap-3 border-t border-ed-line py-4 first:border-t-0"
-            >
-              <div>
-                <strong className="block text-sm text-ed-ink">{booking.className}</strong>
-                <span className="mt-1 block text-xs text-ed-muted">{booking.branchName}</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <time className="font-serif text-right text-sm font-normal text-ed-forest">
-                  {(() => {
-                    const date = new Date(booking.startAt);
-                    const showYear = date.getFullYear() !== new Date().getFullYear();
-                    return date.toLocaleString('id-ID', {
-                      weekday: 'short',
+      {homeStudio && activeBranchId && (
+        <WeekClasses
+          branchId={activeBranchId}
+          studioName={homeStudio}
+          client={classCatalogClient}
+          canBook={Boolean(overview?.packages.length)}
+        />
+      )}
+
+      {overview && overview.packages.length > 0 && (
+        <section aria-labelledby="my-packages" className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 id="my-packages" className="m-0 text-xl font-semibold text-dd-ink">
+              Paket saya
+            </h2>
+            <Link href="/account/packages" className="text-sm font-semibold text-dd-forest">
+              Lihat semua
+            </Link>
+          </div>
+          <ul className="m-0 grid list-none gap-2 p-0 sm:grid-cols-2">
+            {overview.packages.map((item) => (
+              <li
+                key={item.id}
+                className="flex items-end justify-between gap-3 rounded-dd-lg border border-dd-line bg-white p-4"
+              >
+                <span>
+                  <strong className="block text-[15px] text-dd-ink">{item.packageName}</strong>
+                  <span className="block text-sm text-dd-muted">
+                    {item.branchName} · berlaku sampai{' '}
+                    {new Date(item.expiryAt).toLocaleDateString('id-ID', {
                       day: 'numeric',
                       month: 'short',
-                      ...(showYear ? { year: 'numeric' } : {}),
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      timeZone: booking.timezone,
-                    });
-                  })()}
-                </time>
-                <Link
-                  href={`/check-in-pass?bookingId=${encodeURIComponent(booking.id)}&class=${encodeURIComponent(booking.className)}&branch=${encodeURIComponent(booking.branchName)}&start=${encodeURIComponent(booking.startAt)}&end=${encodeURIComponent(booking.endAt)}&tz=${encodeURIComponent(booking.timezone)}`}
-                  className="inline-flex h-11 min-h-[44px] items-center gap-1 border border-ed-forest bg-white px-3 text-xs font-semibold text-ed-forest transition hover:bg-ed-forest hover:text-white"
-                >
-                  <QrCode className="size-3.5" />
-                  <span>QR Pass</span>
-                </Link>
-              </div>
-            </article>
-          ))}
-        </DashboardSection>
-
-        <DashboardSection
-          title="Pesanan perlu perhatian"
-          description="Lanjutkan transfer atau pantau pemeriksaan Finance."
-          href="/orders"
-          empty="Tidak ada pesanan yang perlu ditindak."
-          hasItems={Boolean(overview?.actionableOrders.length)}
-        >
-          {overview?.actionableOrders.map((order) => (
-            <Link
-              href={`/checkout?order=${encodeURIComponent(order.id)}`}
-              key={order.id}
-              className="flex flex-wrap items-center justify-between gap-3 border-t border-ed-line py-4 text-ed-ink no-underline transition-colors hover:bg-ed-tint/30 first:border-t-0"
-            >
-              <div>
-                <strong className="block text-sm text-ed-ink">{order.packageName}</strong>
-                <span className="mt-1 block text-xs text-ed-muted">
-                  {order.branchName} · {orderStatusLabels[order.status]}
+                      year: 'numeric',
+                    })}
+                  </span>
                 </span>
-              </div>
-              <strong className="font-serif text-sm font-normal text-ed-forest">
-                {formatRupiah(order.payableAmountRp)}
-              </strong>
-            </Link>
-          ))}
-        </DashboardSection>
-      </div>
-
-      <DashboardSection
-        title="Paket yang dapat digunakan"
-        description="Saldo sesi dan masa berlaku paket aktif."
-        href="/account/packages"
-        empty="Belum ada paket aktif."
-        hasItems={Boolean(overview?.packages.length)}
-      >
-        <div className="grid gap-3 sm:grid-cols-2">
-          {overview?.packages.map((item) => (
-            <article key={item.id} className="rounded-none border border-ed-line bg-ed-tint/40 p-4">
-              <span className="text-[13px] font-bold text-ed-muted">{item.branchName}</span>
-              <strong className="mt-1 block font-serif text-base font-normal text-ed-ink">{item.packageName}</strong>
-              <div className="mt-4 flex items-end justify-between gap-3">
-                <span className="text-xs text-ed-muted">
-                  Berlaku sampai {new Date(item.expiryAt).toLocaleDateString('id-ID')}
-                </span>
-                <strong className="font-serif text-xl font-normal text-ed-forest">{item.available} sesi</strong>
-              </div>
-            </article>
-          ))}
-        </div>
-      </DashboardSection>
+                <strong className="shrink-0 text-xl font-semibold text-dd-forest">
+                  {item.available} sesi
+                </strong>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </main>
   );
 }
 
-function MetricCard({
-  icon: Icon,
-  label,
-  value,
-  loading = false,
-  href,
+/** Kelas tujuh hari ke depan di studio utama, supaya booking berikutnya cukup satu ketukan. */
+function WeekClasses({
+  branchId,
+  studioName,
+  client,
+  canBook,
 }: {
-  icon: typeof CalendarDays;
-  label: string;
-  value?: string;
-  loading?: boolean;
-  href: string;
+  branchId: string;
+  studioName: string;
+  client: PublicClassCatalogClient;
+  canBook: boolean;
 }) {
-  return (
-    <Link
-      href={href}
-      className="group rounded-none border border-ed-line bg-white p-5 text-ed-ink no-underline shadow-none transition-colors hover:border-ed-forest hover:bg-ed-tint/20"
-      aria-busy={loading}
-    >
-      <span className="grid size-10 place-items-center rounded-none border border-ed-line bg-ed-tint text-ed-forest">
-        <Icon className="size-5" />
-      </span>
-      {loading ? (
-        <span
-          className="mt-4 block h-9 w-16 rounded bg-ed-tint/60"
-          aria-label={`Memuat ${label}...`}
-        />
-      ) : (
-        <strong className="mt-4 block font-serif text-3xl font-normal tracking-tight text-ed-ink">{value}</strong>
-      )}
-      <span className="mt-1 block text-[13px] font-medium text-ed-muted">{label}</span>
-    </Link>
-  );
-}
+  const [slots, setSlots] = useState<PublicClassSlot[] | null>(null);
 
-function DashboardSection({
-  title,
-  description,
-  href,
-  empty,
-  hasItems,
-  children,
-}: {
-  title: string;
-  description: string;
-  href: string;
-  empty: string;
-  hasItems: boolean;
-  children: React.ReactNode;
-}) {
+  useEffect(() => {
+    let cancelled = false;
+    const from = new Date();
+    Promise.resolve()
+      .then(() => client.list({ branchId, from, until: new Date(from.getTime() + 7 * 86_400_000) }))
+      .then((result) => {
+        if (!cancelled) setSlots(Array.isArray(result?.items) ? result.items.slice(0, 5) : []);
+      })
+      .catch(() => {
+        if (!cancelled) setSlots([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [branchId, client]);
+
+  if (!slots || slots.length === 0) return null;
+
   return (
-    <section className="rounded-none border border-ed-line bg-white p-5 shadow-none sm:p-6">
-      <header className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className="font-serif text-lg font-normal tracking-tight text-ed-ink">{title}</h2>
-          <p className="mt-1 text-xs leading-relaxed text-ed-muted">{description}</p>
-        </div>
-        <Link href={href} className="shrink-0 text-[13px] font-bold text-ed-forest hover:text-ed-green">
-          Lihat semua
-        </Link>
-      </header>
-      <div className="mt-4">
-        {hasItems ? (
-          children
-        ) : (
-          <p className="rounded-none border border-ed-line bg-ed-tint/40 p-4 text-sm text-ed-muted">{empty}</p>
-        )}
-      </div>
+    <section aria-labelledby="week-classes" className="space-y-3">
+      <h2 id="week-classes" className="m-0 text-xl font-semibold text-dd-ink">
+        Kelas minggu ini di {studioName}
+      </h2>
+      <ul className="m-0 grid list-none gap-2 p-0">
+        {slots.map((slot) => {
+          const start = new Date(slot.startAt);
+          const jam = new Intl.DateTimeFormat('id-ID', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hourCycle: 'h23',
+            timeZone: slot.timezone,
+          }).format(start);
+          const hari = new Intl.DateTimeFormat('id-ID', {
+            weekday: 'short',
+            day: 'numeric',
+            month: 'short',
+            timeZone: slot.timezone,
+          }).format(start);
+          const href = canBook
+            ? `/classes?branch=${encodeURIComponent(branchId)}&slot=${encodeURIComponent(slot.id)}`
+            : '/packages';
+          return (
+            <li key={slot.id}>
+              <Link
+                href={href}
+                className="flex items-center gap-4 rounded-dd-lg border border-dd-line bg-white p-4 text-dd-ink no-underline hover:border-dd-forest"
+              >
+                <span className="w-16 shrink-0">
+                  <strong className="block text-xl font-semibold tabular-nums">{jam}</strong>
+                  <span className="block text-xs text-dd-muted">{hari}</span>
+                </span>
+                <span className="min-w-0 flex-1">
+                  <strong className="block text-[15px]">{slot.classType.name}</strong>
+                  {slot.instructor?.displayName && (
+                    <span className="block text-sm text-dd-muted">
+                      {slot.instructor.displayName}
+                    </span>
+                  )}
+                  <span
+                    className={`block text-sm font-semibold ${slot.available > 0 ? 'text-dd-forest' : 'text-dd-muted'}`}
+                  >
+                    {slot.available > 0 ? `${slot.available} slot tersisa` : 'Penuh'}
+                  </span>
+                </span>
+                <ChevronRight className="size-5 shrink-0 text-dd-muted" aria-hidden="true" />
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
     </section>
   );
 }
