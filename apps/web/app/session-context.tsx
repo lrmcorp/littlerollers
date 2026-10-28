@@ -73,6 +73,7 @@ const routeCapabilities: Array<[string, string[]]> = [
   ['/workspace/kas', ['expense:create', 'finance:read']],
   ['/workspace/koreksi-jam', ['instructor:hours:adjust']],
   ['/workspace/availability', ['availability:self:read']],
+  ['/workspace/payroll', ['attendance:self']],
   ['/operations', ['operations:read']],
   ['/bookings', ['booking:self:read']],
   ['/workspace/guide', []],

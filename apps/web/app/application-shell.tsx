@@ -510,7 +510,7 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
               >
                 <Search className="size-[18px]" />
               </IconButton>
-              {session && (
+              {session && !isInstructorOnlySession(session) && (
                 <Link
                   href="/workspace/guide"
                   aria-label="Panduan operasional (SOP)"

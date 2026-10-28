@@ -122,6 +122,18 @@ export const frontendPages: FrontendPageDefinition[] = [
     roleRelevance: ['INSTRUCTOR'],
   },
   {
+    href: '/workspace/payroll',
+    label: 'Payroll saya',
+    shortLabel: 'Payroll',
+    description: 'Honor dari kelas yang check-in Anda terverifikasi, koreksi jam, dan riwayatnya.',
+    group: 'Operasional Studio',
+    capabilities: ['attendance:self'],
+    priority: 8,
+    branchScope: 'global',
+    accent: 'brand',
+    roleRelevance: ['INSTRUCTOR'],
+  },
+  {
     href: '/workspace/reminders',
     label: 'Otomasi & Log Pengingat WhatsApp',
     shortLabel: 'Otomasi WA',
@@ -332,7 +344,7 @@ export const frontendPages: FrontendPageDefinition[] = [
   },
 
   // ==========================================
-  // 4. PENGATURAN & SISTEM (Super Admin/Owner)
+  // 4. PENGATURAN & SISTEM (Super Owner/Owner)
   // ==========================================
   {
     href: '/workspace/branches',

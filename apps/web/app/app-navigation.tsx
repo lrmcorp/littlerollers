@@ -30,6 +30,24 @@ import { iconForPage } from './lib/page-icons';
 import { roleLabel } from './lib/role-labels';
 import type { QueueCounts } from './components/use-queue-counts';
 
+/** Instruktur cukup melihat empat menu ini; halaman lain tetap tertutup oleh izinnya masing-masing. */
+export const MENU_INSTRUKTUR = [
+  '/workspace',
+  '/workspace/classes',
+  '/workspace/availability',
+  '/workspace/payroll',
+];
+
+/** Label badge di samping logo: peran tertinggi akun, bukan sekadar "Staf". */
+export function badgePeran(roles: readonly string[] | undefined, instructorOnly: boolean): string {
+  if (instructorOnly) return 'Instruktur';
+  if (roles?.includes('SUPER_OWNER')) return 'Super Owner';
+  if (roles?.includes('OWNER')) return 'Owner';
+  if (roles?.includes('MANAGER')) return 'Manager';
+  if (roles?.includes('FINANCE')) return 'Finance';
+  return 'Staf';
+}
+
 export function AppNavigation({
   mobileOpen = false,
   mobileRendered = false,
@@ -59,8 +77,10 @@ export function AppNavigation({
     )?.href;
   const [mobileViewport, setMobileViewport] = useState<boolean | null>(null);
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const customerOnly = isCustomerOnlySession(session);
+  const instructorOnly = !customerOnly && isInstructorOnlySession(session);
   const advancedPages = frontendPages
-    .filter((item) => item.isAdvanced && !item.isDormant && !item.hideFromNav)
+    .filter((item) => item.isAdvanced && !item.isDormant && !item.hideFromNav && !instructorOnly)
     .filter(
       (item) => item.capabilities.length === 0 || context?.hasCapability(...item.capabilities),
     )
@@ -69,8 +89,6 @@ export function AppNavigation({
   const isCurrentInAdvanced = advancedPages.some((item) => item.href === activeHref);
   const showAdvanced = advancedOpen || isCurrentInAdvanced;
 
-  const customerOnly = isCustomerOnlySession(session);
-  const instructorOnly = !customerOnly && isInstructorOnlySession(session);
   // Beranda staf: meja depan dan instruktur melihat "Hari ini", Owner melihat ringkasan bulanannya.
   const berandaLabel =
     instructorOnly || isFrontDeskOnlySession(session)
@@ -157,7 +175,7 @@ export function AppNavigation({
             />
             {!collapsed && !customerOnly && (
               <span className="shrink-0 rounded-[5px] bg-dd-ink px-2 py-[3px] text-xs font-bold text-white">
-                {instructorOnly ? 'Instruktur' : 'Staf'}
+                {badgePeran(session?.roles, instructorOnly)}
               </span>
             )}
           </div>
@@ -201,6 +219,7 @@ export function AppNavigation({
                 const pagesInGroup = frontendPages
                   .filter((item) => item.group === group)
                   .filter((item) => !item.isDormant && !item.isAdvanced && !item.hideFromNav)
+                  .filter((item) => !instructorOnly || MENU_INSTRUKTUR.includes(item.href))
                   .filter(
                     (item) =>
                       item.capabilities.length === 0 ||
