@@ -165,6 +165,19 @@ export const frontendPages: FrontendPageDefinition[] = [
   // 2. MEMBER & PELANGGAN (Membership)
   // ==========================================
   {
+    href: '/workspace/renewal',
+    label: 'Paket habis & renewal',
+    shortLabel: 'Paket habis & renewal',
+    description:
+      'Siapa yang paketnya habis, berapa rupiah yang belum kembali, dan siapa yang perlu dihubungi lebih dulu.',
+    group: 'Member & Pelanggan',
+    capabilities: ['package:read'],
+    priority: 1,
+    branchScope: 'topbar',
+    accent: 'warning',
+    roleRelevance: ['SUPER_OWNER', 'OWNER', 'ADMIN', 'MANAGER'],
+  },
+  {
     href: '/customers',
     label: 'Data Pelanggan',
     shortLabel: 'Pelanggan',
