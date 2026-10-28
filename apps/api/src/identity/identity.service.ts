@@ -152,6 +152,7 @@ export class IdentityService {
     return {
       id: user.id,
       displayName: user.displayName,
+      username: user.username,
       roles: effectiveRoles.map(({ role }) => role),
       customRoleCodes: [],
       branchIds: access.branchIds,
@@ -211,6 +212,7 @@ export class IdentityService {
     }
     const rawIdentifier = input.email.trim();
     const isPhone = /^(\+?[0-9\s().-]{7,20})$/.test(rawIdentifier) && !rawIdentifier.includes('@');
+    const isEmail = rawIdentifier.includes('@');
     let user: any = null;
 
     if (isPhone) {
@@ -236,7 +238,7 @@ export class IdentityService {
             },
           })
         : await this.db.user.findUnique({ where: { email: rawIdentifier } });
-    } else {
+    } else if (isEmail) {
       const email = normalizeEmail(rawIdentifier);
       const emailHash = canonicalEmailHash(email);
       await Promise.all([
@@ -245,6 +247,22 @@ export class IdentityService {
       ]);
       user = await this.db.user.findUnique({
         where: { email },
+      });
+    } else {
+      const cleanUsername = rawIdentifier.toLowerCase();
+      const usernameHash = digest(cleanUsername);
+      await Promise.all([
+        this.rateLimit.consume('PASSWORD_LOGIN_SUBJECT', usernameHash, 5, 900),
+        this.rateLimit.consume('PASSWORD_LOGIN_ORIGIN', digest(requestFingerprint), 50, 900),
+      ]);
+      user = await this.db.user.findFirst({
+        where: {
+          OR: [
+            { username: rawIdentifier },
+            { username: cleanUsername },
+            { email: rawIdentifier },
+          ],
+        },
       });
     }
 

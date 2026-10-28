@@ -19,7 +19,7 @@ import { BrandMark } from '../components/public/brand-mark';
 import { GoogleIdentityButton } from '../components/auth/google-identity-button';
 
 const messages: Record<UiFailure, string> = {
-  AUTHENTICATION_REQUIRED: 'Email/nomor WhatsApp atau password tidak valid.',
+  AUTHENTICATION_REQUIRED: 'Email, username/nomor WhatsApp, atau password tidak valid.',
   CONFIGURATION_REQUIRED: 'Layanan masuk sementara tidak tersedia. Silakan coba kembali nanti.',
   INTERNAL_ERROR: 'Layanan masuk sedang mengalami gangguan.',
   RATE_LIMITED: 'Terlalu banyak percobaan. Coba kembali nanti.',
@@ -151,8 +151,8 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
             </h2>
             <p className="text-sm leading-relaxed text-ed-muted">
               {googleEnabled
-                ? 'Masuk dengan email atau nomor WhatsApp yang terdaftar, atau lanjutkan dengan akun Google Anda.'
-                : 'Masuk dengan email atau nomor WhatsApp yang terdaftar beserta password Anda.'}
+                ? 'Masuk dengan email, username, atau nomor WhatsApp yang terdaftar, atau lanjutkan dengan akun Google Anda.'
+                : 'Masuk dengan email, username, atau nomor WhatsApp yang terdaftar beserta password Anda.'}
             </p>
           </div>
 
@@ -171,15 +171,15 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
             }}
           >
             <label className="block space-y-1.5 text-xs font-bold uppercase tracking-wider text-ed-ink">
-              <span>Email atau Nomor WhatsApp</span>
+              <span>Email, Username, atau WhatsApp</span>
               <div className="relative flex items-center">
                 <input
-                  aria-label="Email atau Nomor WhatsApp"
+                  aria-label="Email, Username, atau WhatsApp"
                   className="w-full min-h-12 rounded-none border border-ed-border-ui bg-white px-4 py-2.5 text-sm text-ed-ink transition-colors focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#24483a]"
                   name="email"
                   type="text"
                   autoComplete="username"
-                  placeholder="nama@email.com atau 0812 3456 7890"
+                  placeholder="username, nama@email.com, atau 0812..."
                   required
                 />
               </div>
@@ -221,13 +221,13 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
               disabled={state === 'loading' || !hydrated}
               type="submit"
             >
-              {state === 'loading' ? 'Memeriksa akses…' : 'Masuk dengan email atau WhatsApp'}
+              {state === 'loading' ? 'Memeriksa akses…' : 'Masuk ke Akun'}
             </button>
           </form>
 
           {state === 'invalid' && (
             <div className="mt-4">
-              <Feedback kind="error">Email/nomor WhatsApp atau password tidak valid.</Feedback>
+              <Feedback kind="error">Email, username/nomor WhatsApp, atau password tidak valid.</Feedback>
             </div>
           )}
           {state in messages && (

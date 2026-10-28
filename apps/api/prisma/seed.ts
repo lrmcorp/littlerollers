@@ -158,6 +158,36 @@ export async function seedCabangMaster(db: PrismaClient): Promise<{
   return { gg, mk, sby, untar, pik2, jkt: gg, bsd: pik2 };
 }
 
+export async function backfillUsernames(db: PrismaClient) {
+  const usersWithoutUsername = await db.user.findMany({
+    where: { username: null },
+    select: { id: true, email: true, displayName: true },
+  });
+
+  for (const u of usersWithoutUsername) {
+    let candidate = '';
+    if (u.email && u.email.includes('@')) {
+      candidate = u.email.split('@')[0].toLowerCase().replace(/[^a-z0-9_.-]/g, '');
+    } else if (u.displayName) {
+      candidate = u.displayName.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_.-]/g, '');
+    }
+    if (!candidate || candidate.length < 3) {
+      candidate = `user_${u.id.slice(0, 6)}`;
+    }
+
+    let finalUsername = candidate;
+    let counter = 1;
+    while (await db.user.findFirst({ where: { username: finalUsername, NOT: { id: u.id } } })) {
+      finalUsername = `${candidate}_${counter++}`;
+    }
+
+    await db.user.update({
+      where: { id: u.id },
+      data: { username: finalUsername },
+    });
+  }
+}
+
 // ----------------------------------------------------------------------------
 // 2. Users & Roles (Superadmin, Admin, Coaches, Customers)
 // ----------------------------------------------------------------------------
@@ -181,10 +211,11 @@ export async function seedUsersAndRoles(
   // Superadmin / Super Owner (Global access across all branches)
   const superadmin = await db.user.upsert({
     where: { email: 'ralamzah@gmail.com' },
-    update: { role: Role.SUPER_OWNER, status: UserStatus.ACTIVE },
+    update: { role: Role.SUPER_OWNER, status: UserStatus.ACTIVE, username: 'ralamzah' },
     create: {
       id: '00000000-0000-4000-8000-000000000100',
       email: 'ralamzah@gmail.com',
+      username: 'ralamzah',
       displayName: 'Ridho Alamzah',
       phone: '081234567890',
       passwordHash: defaultPasswordHash,
@@ -204,10 +235,11 @@ export async function seedUsersAndRoles(
   // Dedicated Super Owner
   await db.user.upsert({
     where: { email: 'superowner@dailydose.test' },
-    update: { role: Role.SUPER_OWNER, status: UserStatus.ACTIVE },
+    update: { role: Role.SUPER_OWNER, status: UserStatus.ACTIVE, username: 'superowner' },
     create: {
       id: '00000000-0000-4000-8000-000000000101',
       email: 'superowner@dailydose.test',
+      username: 'superowner',
       displayName: 'Super Owner',
       phone: '+628111111101',
       passwordHash: defaultPasswordHash,
@@ -306,10 +338,11 @@ export async function seedUsersAndRoles(
   // Admin
   const admin = await db.user.upsert({
     where: { email: 'adminmk@ddose.com' },
-    update: { role: Role.ADMIN, status: UserStatus.ACTIVE },
+    update: { role: Role.ADMIN, status: UserStatus.ACTIVE, username: 'adminmk' },
     create: {
       id: '10000000-0000-4000-8000-000000001548',
       email: 'adminmk@ddose.com',
+      username: 'adminmk',
       displayName: 'Admin Muara Karang',
       phone: '+6287862151824',
       passwordHash: defaultPasswordHash,
@@ -474,6 +507,8 @@ export async function seedUsersAndRoles(
       },
     },
   });
+
+  await backfillUsernames(db);
 
   return {
     superadmin,

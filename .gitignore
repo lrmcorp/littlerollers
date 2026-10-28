@@ -9,6 +9,7 @@ dist/
 .next-playwright-mock/
 .next-playwright-runs/
 .next-customer-runs/
+.next-docs/
 tsconfig.customer-e2e.*.json
 apps/web/playwright-evidence/
 apps/web/tsconfig.playwright.*.json

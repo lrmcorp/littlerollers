@@ -36,10 +36,10 @@ describe('SignInView (Poin 15)', () => {
     const view = render(<SignInView client={client} />);
 
     expect(screen.getByRole('heading', { name: 'Masuk ke Daily Dose' })).toBeVisible();
-    expect(screen.getByLabelText('Email atau Nomor WhatsApp')).toBeRequired();
-    expect(screen.getByLabelText('Email atau Nomor WhatsApp')).toHaveAttribute(
+    expect(screen.getByLabelText(/Email, Username, atau WhatsApp/i)).toBeRequired();
+    expect(screen.getByLabelText(/Email, Username, atau WhatsApp/i)).toHaveAttribute(
       'placeholder',
-      'nama@email.com atau 0812 3456 7890',
+      'username, nama@email.com, atau 0812...',
     );
     expect(screen.getByLabelText('Password')).toBeRequired();
 
@@ -83,12 +83,12 @@ describe('SignInView (Poin 15)', () => {
 
     render(<SignInView client={client} />);
 
-    await user.type(screen.getByLabelText('Email atau Nomor WhatsApp'), 'user@test.com');
+    await user.type(screen.getByLabelText(/Email, Username, atau WhatsApp/i), 'user@test.com');
     await user.type(screen.getByLabelText('Password'), 'wrongpassword');
-    await user.click(screen.getByRole('button', { name: /Masuk dengan email atau WhatsApp/i }));
+    await user.click(screen.getByRole('button', { name: /Masuk ke Akun/i }));
 
     await waitFor(() => {
-      expect(screen.getByText('Email/nomor WhatsApp atau password tidak valid.')).toBeVisible();
+      expect(screen.getByText('Email, username/nomor WhatsApp, atau password tidak valid.')).toBeVisible();
     });
   });
   it('keeps the booking destination when a new member goes to register', async () => {
