@@ -80,6 +80,20 @@ export const frontendPages: FrontendPageDefinition[] = [
     dashboardDeepLink: '/workspace/bookings?tab=reschedules&status=PENDING',
   },
   {
+    href: '/workspace/antrean',
+    label: 'Antrean yang tertinggal',
+    shortLabel: 'Antrean',
+    description:
+      'Semua pekerjaan yang menunggu, dari yang paling lama dan paling merugikan bila dibiarkan.',
+    group: 'Operasional Studio',
+    capabilities: ['payment:review', 'purchase:review', 'identity-verification:read', 'reschedule:read', 'package:read'],
+    priority: 1,
+    branchScope: 'topbar',
+    accent: 'warning',
+    roleRelevance: ['SUPER_OWNER', 'OWNER', 'ADMIN', 'MANAGER'],
+    queueBadgeSource: 'total',
+  },
+  {
     href: '/workspace/check-in',
     label: 'Check-in hari ini',
     shortLabel: 'Check-in',

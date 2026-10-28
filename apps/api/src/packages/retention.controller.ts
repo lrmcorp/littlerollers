@@ -1,5 +1,6 @@
 import { Controller, Get, Query, Req, UseGuards } from '@nestjs/common';
 import { AuthGuard, type AuthenticatedRequest } from '../identity/auth.guard';
+import { AntreanTertinggalService } from './antrean-tertinggal.service';
 import { RetentionService } from './retention.service';
 
 @Controller()
@@ -31,5 +32,17 @@ export class RetentionController {
       branchId,
       months: Number.isFinite(parsed) ? parsed : undefined,
     });
+  }
+}
+
+@Controller()
+@UseGuards(AuthGuard)
+export class AntreanTertinggalController {
+  constructor(private readonly antrean: AntreanTertinggalService) {}
+
+  /** Pekerjaan yang tertinggal lintas antrean, dari yang paling merugikan bila dibiarkan. */
+  @Get('work-queue/overdue')
+  overdue(@Req() req: AuthenticatedRequest, @Query('branchId') branchId?: string) {
+    return this.antrean.antrean(req.principal, { branchId });
   }
 }

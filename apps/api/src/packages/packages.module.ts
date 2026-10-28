@@ -22,7 +22,8 @@ import { PackagePromotionService } from './package-promotion.service';
 import { LedgerController } from './ledger.controller';
 import { LedgerService } from './ledger.service';
 import { FinanceController } from './finance.controller';
-import { RetentionController } from './retention.controller';
+import { AntreanTertinggalController, RetentionController } from './retention.controller';
+import { AntreanTertinggalService } from './antrean-tertinggal.service';
 import { TargetController } from './target.controller';
 import { TargetService } from './target.service';
 import { RetentionService } from './retention.service';
@@ -38,6 +39,7 @@ import { PaymentExpirationWorkerService } from './payment-expiration-worker';
     PenyesuaianBuktiController,
     FinanceController,
     RetentionController,
+    AntreanTertinggalController,
     TargetController,
   ],
   providers: [
@@ -56,6 +58,7 @@ import { PaymentExpirationWorkerService } from './payment-expiration-worker';
     LedgerService,
     FinanceService,
     RetentionService,
+    AntreanTertinggalService,
     TargetService,
     PaymentExpirationWorkerService,
   ],

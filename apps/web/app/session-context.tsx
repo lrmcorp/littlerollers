@@ -69,6 +69,7 @@ const routeCapabilities: Array<[string, string[]]> = [
   ['/workspace/classes/rutin', ['class-slot:manage']],
   ['/workspace/classes', ['class-slot:read']],
   ['/workspace/check-in', ['attendance:manage']],
+  ['/workspace/antrean', ['payment:review', 'purchase:review', 'identity-verification:read', 'reschedule:read', 'package:read']],
   ['/workspace/renewal', ['package:read']],
   ['/workspace/availability', ['availability:self:read']],
   ['/operations', ['operations:read']],

@@ -23,8 +23,13 @@ export function useQueueCounts(enabled: boolean): QueueCounts {
     browserDashboardClient
       .overview({ branchId: activeBranchId || undefined })
       .then((overview) => {
-        if (active)
-          setCounts(Object.fromEntries(overview.queues.map((item) => [item.key, item.count])));
+        if (!active) return;
+        const counts: QueueCounts = Object.fromEntries(
+          overview.queues.map((item) => [item.key, item.count]),
+        );
+        // Badge halaman Antrean: semua pekerjaan yang menunggu, apa pun jenisnya.
+        counts.total = overview.queues.reduce((sum, item) => sum + item.count, 0);
+        setCounts(counts);
       })
       .catch(() => {
         if (active) setCounts({});

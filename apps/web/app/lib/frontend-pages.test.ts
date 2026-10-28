@@ -14,7 +14,8 @@ describe('frontend page registry', () => {
   });
 
   it('only advertises queue badges the dashboard API can supply', () => {
-    const supplied = new Set(['payments', 'reschedules', 'adjustments']);
+    // `total` dijumlahkan oleh useQueueCounts dari antrean yang sama, untuk halaman Antrean.
+    const supplied = new Set(['payments', 'reschedules', 'adjustments', 'total']);
     const unsupported = frontendPages
       .filter((item) => item.queueBadgeSource && !supplied.has(item.queueBadgeSource))
       .map((item) => item.href);
