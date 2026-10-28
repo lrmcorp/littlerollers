@@ -38,7 +38,7 @@ export function ResetPasswordView({ client = browserIdentityClient }: { client?:
           Password baru
           <span className="relative min-w-0">
             <input
-              className="min-h-[50px] w-full min-w-0 rounded-none border border-ed-border-ui bg-white px-4 pr-24 text-sm text-ed-ink transition-colors focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#24483a]"
+              className="min-h-[50px] w-full min-w-0 rounded-none border border-ed-border-ui bg-white px-4 pr-24 text-sm text-ed-ink transition-colors focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#09371f]"
               name="password"
               type={show ? 'text' : 'password'}
               minLength={8}
@@ -48,7 +48,7 @@ export function ResetPasswordView({ client = browserIdentityClient }: { client?:
               required
             />
             <button
-              className="absolute inset-y-0 right-1 inline-flex min-h-[44px] items-center px-3 text-xs font-bold uppercase tracking-wider text-ed-forest hover:text-ed-deep focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#24483a]"
+              className="absolute inset-y-0 right-1 inline-flex min-h-[44px] items-center px-3 text-xs font-bold uppercase tracking-wider text-ed-forest hover:text-ed-deep focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#09371f]"
               type="button"
               onClick={() => setShow((value) => !value)}
             >
@@ -59,7 +59,7 @@ export function ResetPasswordView({ client = browserIdentityClient }: { client?:
         <label className="grid min-w-0 gap-2 text-sm font-bold">
           Ulangi password baru
           <input
-            className="min-h-[50px] w-full min-w-0 rounded-none border border-ed-border-ui bg-white px-4 text-sm text-ed-ink transition-colors focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#24483a]"
+            className="min-h-[50px] w-full min-w-0 rounded-none border border-ed-border-ui bg-white px-4 text-sm text-ed-ink transition-colors focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#09371f]"
             name="confirmation"
             type={show ? 'text' : 'password'}
             minLength={8}
@@ -70,7 +70,7 @@ export function ResetPasswordView({ client = browserIdentityClient }: { client?:
           />
         </label>
         <button
-          className="min-h-[50px] rounded-none bg-dd-forest px-5 font-bold text-white transition-colors hover:bg-ed-deep focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#24483a] disabled:bg-ed-line disabled:text-ed-muted"
+          className="min-h-[50px] rounded-none bg-dd-forest px-5 font-bold text-white transition-colors hover:bg-ed-deep focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#09371f] disabled:bg-ed-line disabled:text-ed-muted"
           disabled={status === 'loading'}
         >
           Simpan password baru

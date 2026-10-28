@@ -32,7 +32,8 @@ import { Drawer, useAppFeedback } from '../components/app-feedback';
 import { browserBookingClient, type BookingClient } from '@/api-clients/booking-client';
 import { EmptyWeeksNotice } from '../workspace/empty-weeks-notice';
 
-type Panel = { kind: 'create'; template?: CreateTemplate } | { kind: 'detail'; slot: ClassSlot } | null;
+type Panel =
+  { kind: 'create'; template?: CreateTemplate } | { kind: 'detail'; slot: ClassSlot } | null;
 type BranchOption = { id: string; code?: string; name: string; timezone: string };
 /** Nama yang dikirim API bersama slot (tidak ada di tipe ter-generate). */
 type SlotNames = {
@@ -138,7 +139,17 @@ export function ClassSlotView({
       setBusy(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [branch?.id, branches.length, canRead, client, displayTimezone, globalMode, statusFilter, week?.start, week?.end]);
+  }, [
+    branch?.id,
+    branches.length,
+    canRead,
+    client,
+    displayTimezone,
+    globalMode,
+    statusFilter,
+    week?.start,
+    week?.end,
+  ]);
 
   useEffect(() => {
     setSlots([]);
@@ -239,7 +250,9 @@ export function ClassSlotView({
       }))
     : [
         ...new Map(
-          slots.filter((slot) => slot.instructorUserId).map((slot) => [slot.instructorUserId!, slot]),
+          slots
+            .filter((slot) => slot.instructorUserId)
+            .map((slot) => [slot.instructorUserId!, slot]),
         ).values(),
       ].map((slot) => ({
         id: slot.instructorUserId!,
@@ -297,7 +310,7 @@ export function ClassSlotView({
     return (
       <button
         type="button"
-        className={`w-full text-left rounded-xl border p-3 shadow-xs transition-all duration-200 flex flex-col gap-1.5 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#24483a] cursor-pointer hover:shadow-md ${
+        className={`w-full text-left rounded-xl border p-3 shadow-xs transition-all duration-200 flex flex-col gap-1.5 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#09371f] cursor-pointer hover:shadow-md ${
           isCancelled
             ? 'border-dd-danger/30 bg-dd-danger-soft/40 text-dd-danger opacity-80'
             : isDraft
@@ -312,9 +325,7 @@ export function ClassSlotView({
             {formatBranchTime(slot.startAt, slot.timezone)}–
             {formatBranchTime(slot.endAt, slot.timezone)}
           </span>
-          <StatusBadge tone={classStatusTone(slot.status)}>
-            {statusLabels[slot.status]}
-          </StatusBadge>
+          <StatusBadge tone={classStatusTone(slot.status)}>{statusLabels[slot.status]}</StatusBadge>
         </div>
         <div className="font-semibold text-sm text-dd-forest leading-snug">
           {classTypeName(slot.classTypeId, slot)}
@@ -323,23 +334,25 @@ export function ClassSlotView({
           {instructorName(slot.instructorUserId, slot)}
         </div>
         {globalMode && (
-          <div className="text-[11px] text-dd-muted">
-            {branchName(slot.branchId, slot)}
-          </div>
+          <div className="text-[11px] text-dd-muted">{branchName(slot.branchId, slot)}</div>
         )}
-        <div className={`mt-1 pt-1.5 border-t border-dd-line/60 text-[11px] flex items-center justify-between ${
-          slot.bookedCount > slot.capacity
-            ? 'text-red-700 font-semibold'
-            : slot.bookedCount >= slot.capacity
-              ? 'text-amber-700 font-medium'
-              : 'text-dd-muted'
-        }`}>
+        <div
+          className={`mt-1 pt-1.5 border-t border-dd-line/60 text-[11px] flex items-center justify-between ${
+            slot.bookedCount > slot.capacity
+              ? 'text-red-700 font-semibold'
+              : slot.bookedCount >= slot.capacity
+                ? 'text-amber-700 font-medium'
+                : 'text-dd-muted'
+          }`}
+        >
           {slot.bookedCount > slot.capacity ? (
             <span className="rounded bg-red-100 text-red-700 px-1 py-0.5 font-bold inline-flex items-center gap-0.5">
               <span>⚠️</span> {slot.bookedCount}/{slot.capacity} lewat kapasitas
             </span>
           ) : (
-            <span>{slot.bookedCount}/{slot.capacity} terisi</span>
+            <span>
+              {slot.bookedCount}/{slot.capacity} terisi
+            </span>
           )}
           <span>min. {slot.minimumQuota}</span>
         </div>
@@ -366,17 +379,16 @@ export function ClassSlotView({
                 {canOperate ? 'Dapat mengelola' : 'Hanya lihat'}
               </StatusBadge>
             )}
-            {!globalMode && (
-              <StatusBadge tone="neutral">Zona waktu {branch?.timezone}</StatusBadge>
-            )}
+            {!globalMode && <StatusBadge tone="neutral">Zona waktu {branch?.timezone}</StatusBadge>}
           </>
         }
       />
 
       {globalMode && (
         <Feedback kind="info">
-          Anda sedang melihat seluruh cabang. Klik tombol &ldquo;Buat kelas&rdquo; untuk menjadwalkan
-          kelas di cabang pilihan Anda, atau pilih cabang spesifik untuk fokus operasional.
+          Anda sedang melihat seluruh cabang. Klik tombol &ldquo;Buat kelas&rdquo; untuk
+          menjadwalkan kelas di cabang pilihan Anda, atau pilih cabang spesifik untuk fokus
+          operasional.
         </Feedback>
       )}
 
@@ -408,11 +420,7 @@ export function ClassSlotView({
                   <span className="hidden sm:inline">Minggu sebelumnya</span>
                 </span>
               </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setReference(new Date())}
-              >
+              <Button variant="secondary" size="sm" onClick={() => setReference(new Date())}>
                 Hari ini
               </Button>
               <Button
@@ -439,7 +447,11 @@ export function ClassSlotView({
               <ButtonLink
                 variant="secondary"
                 size="sm"
-                href={branch?.code ? `/kiosk/${encodeURIComponent(branch.code.toLowerCase())}` : '/kiosk'}
+                href={
+                  branch?.code
+                    ? `/kiosk/${encodeURIComponent(branch.code.toLowerCase())}`
+                    : '/kiosk'
+                }
                 target="_blank"
                 rel="noopener noreferrer"
                 title="Buka Layar Kiosk Studio di tab baru untuk tablet meja resepsionis"
@@ -454,9 +466,7 @@ export function ClassSlotView({
                 className="w-full sm:w-auto min-h-11"
                 disabled={!canCreateSlot}
                 title={
-                  !canManage
-                    ? 'Akses membuat kelas memerlukan izin class-slot:manage'
-                    : undefined
+                  !canManage ? 'Akses membuat kelas memerlukan izin class-slot:manage' : undefined
                 }
                 onClick={() => openPanel({ kind: 'create' })}
               >
@@ -591,7 +601,7 @@ export function ClassSlotView({
               <button
                 type="button"
                 onClick={() => setSelectedMobileDay('ALL')}
-                className={`shrink-0 rounded-full min-h-[44px] inline-flex items-center px-3.5 py-1.5 text-xs font-semibold transition focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#24483a] ${
+                className={`shrink-0 rounded-full min-h-[44px] inline-flex items-center px-3.5 py-1.5 text-xs font-semibold transition focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#09371f] ${
                   selectedMobileDay === 'ALL'
                     ? 'bg-dd-forest text-white shadow-xs'
                     : 'bg-dd-surface-muted text-dd-muted hover:text-dd-ink border border-dd-border-interactive'
@@ -610,7 +620,7 @@ export function ClassSlotView({
                     key={day}
                     type="button"
                     onClick={() => setSelectedMobileDay(day)}
-                    className={`shrink-0 rounded-full min-h-[44px] px-3 py-1.5 text-xs font-semibold transition inline-flex items-center gap-1.5 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#24483a] ${
+                    className={`shrink-0 rounded-full min-h-[44px] px-3 py-1.5 text-xs font-semibold transition inline-flex items-center gap-1.5 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#09371f] ${
                       isSelected
                         ? 'bg-dd-forest text-white shadow-xs'
                         : 'bg-dd-surface-muted text-dd-muted hover:text-dd-ink border border-dd-border-interactive'
@@ -622,7 +632,9 @@ export function ClassSlotView({
                         title="Hari ini"
                       />
                     )}
-                    <span>{dayName}, {dayNum}</span>
+                    <span>
+                      {dayName}, {dayNum}
+                    </span>
                     <span
                       className={`text-[10px] px-1 rounded-full ${
                         isSelected ? 'bg-white/25 text-white' : 'bg-dd-line text-dd-muted'
@@ -805,7 +817,9 @@ export function ClassSlotView({
             canVerifyInstructor={canOperateAttendance && Boolean(client.verifyInstructorAttendance)}
             bookingClient={bookingClient}
             busy={busy}
-            onDuplicate={() => openPanel({ kind: 'create', template: duplicateTemplate(panel.slot) })}
+            onDuplicate={() =>
+              openPanel({ kind: 'create', template: duplicateTemplate(panel.slot) })
+            }
             onDelete={() => setSlotToDelete(panel.slot)}
             onVerifyInstructor={async (notes) => {
               const accepted = await feedback.confirm({
@@ -850,8 +864,7 @@ export function ClassSlotView({
               });
               if (accepted)
                 await run(
-                  () =>
-                    client.update(panel.slot.id, input),
+                  () => client.update(panel.slot.id, input),
                   'Draft kelas berhasil diperbarui.',
                 );
             }}

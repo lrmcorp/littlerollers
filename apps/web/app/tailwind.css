@@ -15,21 +15,21 @@
   --text-base: 1.0625rem;
   --text-base--line-height: 1.625rem;
 
-  --color-dd-forest: #285740;
-  --color-dd-forest-dark: #173d2d;
-  --color-dd-cream: #f4f2ec;
+  --color-dd-forest: #0d5132;
+  --color-dd-forest-dark: #09371f;
+  --color-dd-cream: #f6f7f9;
   --color-dd-paper: #ffffff;
-  --color-dd-ink: #17231e;
-  --color-dd-muted: #566660;
-  --color-dd-line: #827c6a;
-  --color-dd-border-interactive: #768b84;
+  --color-dd-ink: #111827;
+  --color-dd-muted: #4b5563;
+  --color-dd-line: #7a848f;
+  --color-dd-border-interactive: #7a848f;
   --color-dd-sage: #91a99a;
 
-  --color-dd-canvas: #f4f2ec;
+  --color-dd-canvas: #f6f7f9;
   --color-dd-surface: #ffffff;
-  --color-dd-surface-muted: #ebe8e0;
-  --color-dd-sidebar: #ebe8e0;
-  --color-dd-sidebar-soft: #e2dfd7;
+  --color-dd-surface-muted: #edeff2;
+  --color-dd-sidebar: #edeff2;
+  --color-dd-sidebar-soft: #e4e7ec;
   --color-dd-brass: #8a5b17;
   --color-dd-brass-dark: #6e4610;
   --color-dd-brass-soft: #eee4d1;
@@ -41,8 +41,8 @@
   --color-dd-danger-soft: #faeceb;
   --color-dd-info: #35677b;
   --color-dd-info-soft: #e7f0f3;
-  --color-admin-group: #5f6b63;
-  --color-admin-line: #827c6a;
+  --color-admin-group: #4b5563;
+  --color-admin-line: #7a848f;
 
   --radius-dd-sm: 0.5rem;
   --radius-dd-md: 0.75rem;
@@ -63,7 +63,7 @@
   --color-ed-ink: #18392c;
   --color-ed-muted: #4f6255;
   --color-ed-line: #bdcabc;
-  --color-ed-border-ui: #768b84;
+  --color-ed-border-ui: #7a848f;
   --color-ed-tint: #e9eee6;
   --color-ed-mint: #d2e6cf;
   --color-ed-mist: #e2ebe1;
@@ -90,8 +90,8 @@
     line-height: 26px;
   }
 
-  :where(button, a, input, select, textarea, [tabindex="0"], [role="button"]):focus-visible {
-    outline: 3px solid #24483a;
+  :where(button, a, input, select, textarea, [tabindex='0'], [role='button']):focus-visible {
+    outline: 3px solid #09371f;
     outline-offset: 2px;
   }
 }
@@ -136,11 +136,11 @@
 }
 
 @utility border-ui {
-  border-color: #768b84;
+  border-color: #7a848f;
 }
 
 @utility border-interactive {
-  border-color: #768b84;
+  border-color: #7a848f;
 }
 
 /* ---------------------------------------------------------------------------

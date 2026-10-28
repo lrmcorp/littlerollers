@@ -178,6 +178,9 @@ model Cabang {
   latitude            Decimal? @db.Decimal(10, 7)
   longitude           Decimal? @db.Decimal(10, 7)
   geofenceRadiusMeters Int     @default(100)
+  /// Target omzet bulanan cabang ini, rupiah. Dipasang Super Owner di menu cabang dan berlaku
+  /// terus sampai diubah. Null berarti belum dipasang, bukan nol.
+  monthlyTargetRp     Int?     @map("monthly_target_rp")
   /// HMAC dari PIN 6 digit tablet kiosk; kosong = kiosk cabang ini terkunci. PIN asli tidak pernah disimpan.
   kioskPinHash        String?  @map("kiosk_pin_hash") @db.VarChar(64)
   kioskPinUpdatedAt   DateTime? @map("kiosk_pin_updated_at")

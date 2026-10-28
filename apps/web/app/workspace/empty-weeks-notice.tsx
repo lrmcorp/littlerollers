@@ -3,7 +3,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { AlertTriangle } from 'lucide-react';
-import { browserClassSlotClient, type ClassSlot, type ClassSlotClient } from '../api-clients/class-slot-client';
+import {
+  browserClassSlotClient,
+  type ClassSlot,
+  type ClassSlotClient,
+} from '../api-clients/class-slot-client';
 import { weekWindow } from '../lib/class-time';
 import { countClassesByWeek } from './schedule-weeks';
 
@@ -41,7 +45,14 @@ export function EmptyWeeksNotice({
     setSlots(null);
     setFailed(false);
     client
-      .discover({ branchId, branches: [{ id: branchId, timezone }], timezone, from: first.start, until: last.end, slotsOnly: true })
+      .discover({
+        branchId,
+        branches: [{ id: branchId, timezone }],
+        timezone,
+        from: first.start,
+        until: last.end,
+        slotsOnly: true,
+      })
       .then((result) => {
         if (!cancelled) setSlots(result.slots);
       })
@@ -53,27 +64,35 @@ export function EmptyWeeksNotice({
     };
   }, [branchId, client, now, timezone, weeks, refreshKey]);
 
-  const counts = useMemo(() => (slots ? countClassesByWeek(slots, now, weeks, timezone) : []), [slots, now, weeks, timezone]);
+  const counts = useMemo(
+    () => (slots ? countClassesByWeek(slots, now, weeks, timezone) : []),
+    [slots, now, weeks, timezone],
+  );
   const empty = counts.filter((entry) => entry.count === 0);
 
   if (failed) return null;
-  if (!slots) return <p className="text-sm text-dd-muted">Memeriksa jadwal empat minggu ke depan…</p>;
+  if (!slots)
+    return <p className="text-sm text-dd-muted">Memeriksa jadwal empat minggu ke depan…</p>;
 
   return (
     <section aria-label="Jadwal empat minggu ke depan" className="space-y-3">
       {empty.length > 0 && (
-        <div role="alert" className="flex flex-wrap items-start gap-3 rounded-dd-md border border-dd-danger/40 bg-dd-danger-soft p-4 text-dd-danger">
+        <div
+          role="alert"
+          className="flex flex-wrap items-start gap-3 rounded-dd-md border border-dd-danger/40 bg-dd-danger-soft p-4 text-dd-danger"
+        >
           <AlertTriangle className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
           <div className="space-y-1">
             <p className="font-semibold">
-              {empty.length === 1 ? '1 minggu' : `${empty.length} minggu`} dalam empat minggu ke depan belum punya kelas.
+              {empty.length === 1 ? '1 minggu' : `${empty.length} minggu`} dalam empat minggu ke
+              depan belum punya kelas.
             </p>
             <p className="text-sm">{empty.map((entry) => entry.week.label).join('; ')}</p>
             {canFill && (
               <div className="flex flex-wrap items-center gap-2 pt-1.5">
                 <Link
                   href="/workspace/classes/rutin"
-                  className="inline-flex min-h-11 items-center justify-center rounded-dd-md bg-dd-forest px-3.5 py-1.5 text-xs font-bold text-white shadow-xs transition hover:bg-dd-forest-dark focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#24483a]"
+                  className="inline-flex min-h-11 items-center justify-center rounded-dd-md bg-dd-forest px-3.5 py-1.5 text-xs font-bold text-white shadow-xs transition hover:bg-dd-forest-dark focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#09371f]"
                 >
                   Isi pakai jadwal rutin
                 </Link>
@@ -93,7 +112,9 @@ export function EmptyWeeksNotice({
           <li
             key={entry.week.label}
             className={`rounded-dd-md border px-3 py-2 text-sm font-semibold ${
-              entry.count === 0 ? 'border-dd-danger bg-dd-danger-soft text-dd-danger' : 'border-dd-border-interactive bg-white text-dd-ink'
+              entry.count === 0
+                ? 'border-dd-danger bg-dd-danger-soft text-dd-danger'
+                : 'border-dd-border-interactive bg-white text-dd-ink'
             }`}
           >
             {entry.week.label}: {entry.count === 0 ? 'Kosong' : `${entry.count} kelas`}

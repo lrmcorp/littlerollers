@@ -64,6 +64,12 @@ export interface SegmentSummary {
   customers: number;
   packages: number;
   paidRp: number;
+  /**
+   * Nilai rata-rata satu member dalam kelompok ini. Total rupiah terasa besar tetapi abstrak;
+   * angka per orang langsung menjawab apakah menelepon sepuluh member sepadan dengan waktu staf.
+   * `null` bila tidak ada member, supaya tidak tampil sebagai Rp 0.
+   */
+  paidPerCustomerRp: number | null;
   /** Paket tanpa pembelian tercatat (mis. penjualan asistensi lama), jadi nilainya tidak masuk `paidRp`. */
   packagesWithoutValue: number;
 }
@@ -223,10 +229,13 @@ export class RetentionService {
 }
 
 function summarize(rows: RetentionRow[]): SegmentSummary {
+  const customers = countCustomers(rows);
+  const paidRp = rows.reduce((sum, row) => sum + (row.paidRp ?? 0), 0);
   return {
-    customers: countCustomers(rows),
+    customers,
     packages: rows.length,
-    paidRp: rows.reduce((sum, row) => sum + (row.paidRp ?? 0), 0),
+    paidRp,
+    paidPerCustomerRp: customers === 0 ? null : Math.round(paidRp / customers),
     packagesWithoutValue: rows.filter((row) => row.paidRp === null).length,
   };
 }

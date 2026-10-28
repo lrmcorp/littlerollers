@@ -255,6 +255,37 @@ describe('RetentionService.expiryCohort', () => {
     ).rejects.toMatchObject({ status: 403 });
   });
 
+  it('reports the average value per customer so staff can judge if chasing is worth it', async () => {
+    const { service } = setup([
+      customerPackage({
+        id: id(10),
+        userId: id(50),
+        status: 'EXPIRED',
+        validUntil: '2026-10-05',
+        paidRp: 1_500_000,
+      }),
+      customerPackage({
+        id: id(11),
+        userId: id(51),
+        status: 'EXPIRED',
+        validUntil: '2026-10-06',
+        paidRp: 2_500_000,
+      }),
+    ]);
+
+    const result = await service.expiryCohort(superOwner, { period: '2026-10' }, NOW);
+
+    expect(result.total.paidPerCustomerRp).toBe(2_000_000);
+  });
+
+  it('leaves the average empty rather than showing Rp 0 when nobody is in the group', async () => {
+    const { service } = setup([]);
+
+    const result = await service.expiryCohort(superOwner, { period: '2026-10' }, NOW);
+
+    expect(result.total.paidPerCustomerRp).toBeNull();
+  });
+
   it('returns null rather than zero percent when nobody expired that month', async () => {
     const { service } = setup([]);
 

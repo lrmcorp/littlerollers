@@ -16,11 +16,17 @@ export type AmountDifference =
   | { kind: 'MORE'; text: string; differenceRp: number };
 
 /** Selisih nominal bukti terhadap nominal paket, ditulis dengan kata supaya petugas tidak perlu menghitung sendiri. */
-export function describeAmountDifference(expectedRp: number, seenRp: number | null): AmountDifference {
+export function describeAmountDifference(
+  expectedRp: number,
+  seenRp: number | null,
+): AmountDifference {
   if (seenRp === null)
     return { kind: 'EMPTY', text: 'Isi nominal yang terlihat di bukti untuk melihat selisihnya.' };
   if (seenRp === expectedRp)
-    return { kind: 'EQUAL', text: 'Nominal pada bukti sama persis dengan nominal paket yang diminta.' };
+    return {
+      kind: 'EQUAL',
+      text: 'Nominal pada bukti sama persis dengan nominal paket yang diminta.',
+    };
   if (seenRp < expectedRp) {
     const differenceRp = expectedRp - seenRp;
     return {
@@ -38,7 +44,7 @@ export function describeAmountDifference(expectedRp: number, seenRp: number | nu
 }
 
 const toneStyles: Record<AmountDifference['kind'], string> = {
-  EMPTY: 'border-l-dd-border-interactive bg-[#f4f2ec] text-dd-muted',
+  EMPTY: 'border-l-dd-border-interactive bg-[#f6f7f9] text-dd-muted',
   EQUAL: 'border-l-dd-forest bg-[#f4f8f5] text-[#1c402e]',
   LESS: 'border-l-red-600 bg-[#fff5f5] text-red-900',
   MORE: 'border-l-amber-600 bg-[#fffbf0] text-amber-900',
@@ -68,7 +74,9 @@ export function PaymentAmountCheck({
       <div className="grid gap-6 md:grid-cols-[1fr_1fr_1.4fr] md:items-center">
         {/* Kolom 1: Nominal pada paket */}
         <div className="space-y-1">
-          <p className="text-xs font-bold uppercase tracking-wider text-dd-muted">Nominal pada paket</p>
+          <p className="text-xs font-bold uppercase tracking-wider text-dd-muted">
+            Nominal pada paket
+          </p>
           <p className="text-3xl font-black tracking-tight text-dd-ink sm:text-4xl tabular-nums">
             {formatRupiah(expectedRp)}
           </p>
@@ -95,7 +103,9 @@ export function PaymentAmountCheck({
 
         {/* Kolom 3: Penjelasan selisih dengan kata */}
         <div className="border-t border-dd-line pt-3 md:border-l md:border-t-0 md:pl-5 md:pt-0">
-          <p className="text-xs font-bold uppercase tracking-wider text-dd-muted mb-1">Status selisih</p>
+          <p className="text-xs font-bold uppercase tracking-wider text-dd-muted mb-1">
+            Status selisih
+          </p>
           <p role="status" className="text-sm font-bold leading-relaxed sm:text-base">
             {result.text}
           </p>
@@ -104,4 +114,3 @@ export function PaymentAmountCheck({
     </div>
   );
 }
-

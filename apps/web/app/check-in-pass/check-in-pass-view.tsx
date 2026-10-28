@@ -60,7 +60,10 @@ interface PassInfo {
 
 type PassWindow = 'TOO_EARLY' | 'OPEN' | 'ENDED';
 
-export function passWindow(info: Pick<PassInfo, 'startAt' | 'endAt'>, now: number): PassWindow | null {
+export function passWindow(
+  info: Pick<PassInfo, 'startAt' | 'endAt'>,
+  now: number,
+): PassWindow | null {
   const start = new Date(info.startAt).getTime();
   const end = new Date(info.endAt).getTime();
   if (Number.isNaN(start) || Number.isNaN(end)) return null;
@@ -70,7 +73,12 @@ export function passWindow(info: Pick<PassInfo, 'startAt' | 'endAt'>, now: numbe
 
 function formatOpensAt(startAt: string, timezone: string) {
   const opens = new Date(new Date(startAt).getTime() - OPENS_BEFORE_MS);
-  return new Intl.DateTimeFormat('id-ID', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: timezone })
+  return new Intl.DateTimeFormat('id-ID', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+    timeZone: timezone,
+  })
     .format(opens)
     .replace(':', '.');
 }
@@ -100,11 +108,14 @@ function infoFrom(data: IssuedPass): PassInfo | null {
 }
 
 async function issuePass(bookingId: string): Promise<IssuedPass> {
-  const res = await fetch(`/api/v1/bookings/${encodeURIComponent(bookingId)}/customer-check-in-links`, {
-    method: 'POST',
-    credentials: 'include',
-    headers: { 'content-type': 'application/json' },
-  });
+  const res = await fetch(
+    `/api/v1/bookings/${encodeURIComponent(bookingId)}/customer-check-in-links`,
+    {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'content-type': 'application/json' },
+    },
+  );
   if (!res.ok) throw new Error('CHECKIN_UNAVAILABLE');
   return (await res.json()) as IssuedPass;
 }
@@ -114,13 +125,19 @@ async function nearestBookingId(): Promise<string | null> {
   const res = await fetch('/api/v1/me/dashboard', { credentials: 'include' });
   if (!res.ok) throw new Error('DASHBOARD_UNAVAILABLE');
   const data = (await res.json()) as { upcomingBookings?: Array<{ id: string; status?: string }> };
-  return data.upcomingBookings?.find((booking) => !booking.status || booking.status === 'BOOKED')?.id ?? null;
+  return (
+    data.upcomingBookings?.find((booking) => !booking.status || booking.status === 'BOOKED')?.id ??
+    null
+  );
 }
 
 async function linkInfo(rawToken: string): Promise<PassInfo | null> {
-  const res = await fetch(`/api/v1/check-ins/customer-link-info?token=${encodeURIComponent(rawToken)}`, {
-    credentials: 'include',
-  });
+  const res = await fetch(
+    `/api/v1/check-ins/customer-link-info?token=${encodeURIComponent(rawToken)}`,
+    {
+      credentials: 'include',
+    },
+  );
   if (!res.ok) return null;
   return infoFrom((await res.json()) as IssuedPass);
 }
@@ -198,7 +215,8 @@ export function CheckInPassView() {
       hashParams.get('holder') ??
       searchParams.get('holderName') ??
       hashParams.get('holderName');
-    const paramStart = searchParams.get('start') ?? hashParams.get('start') ?? searchParams.get('startAt');
+    const paramStart =
+      searchParams.get('start') ?? hashParams.get('start') ?? searchParams.get('startAt');
     const paramEnd = searchParams.get('end') ?? hashParams.get('end') ?? searchParams.get('endAt');
     const paramTz = searchParams.get('tz') ?? hashParams.get('timezone') ?? 'Asia/Jakarta';
 
@@ -279,13 +297,15 @@ export function CheckInPassView() {
     };
   }, []);
 
-  const schedule = info?.startAt ? formatPassSchedule(info.startAt, info.endAt, info.timezone) : null;
+  const schedule = info?.startAt
+    ? formatPassSchedule(info.startAt, info.endAt, info.timezone)
+    : null;
   const state = info?.startAt && info.endAt ? passWindow(info, now) : null;
 
   return (
-    <main className="flex min-h-dvh min-w-0 flex-col items-center justify-center overflow-x-hidden bg-[#24483a] px-4 py-8 text-white">
+    <main className="flex min-h-dvh min-w-0 flex-col items-center justify-center overflow-x-hidden bg-[#0d5132] px-4 py-8 text-white">
       <meta name="referrer" content="no-referrer" />
-      
+
       <header className="text-center">
         <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#faeceb]">
           Daily Dose Pilates
@@ -301,7 +321,9 @@ export function CheckInPassView() {
       {noBooking ? (
         <section className="mt-6 box-border w-full max-w-sm rounded-2xl bg-white p-6 text-center text-ed-ink shadow-2xl">
           <CalendarX2 className="mx-auto size-12 text-ed-forest" />
-          <h2 className="mt-3 font-serif text-lg font-bold text-ed-ink">Belum ada booking mendatang</h2>
+          <h2 className="mt-3 font-serif text-lg font-bold text-ed-ink">
+            Belum ada booking mendatang
+          </h2>
           <p className="mt-2 text-sm text-ed-muted">
             QR Pass muncul setelah Anda booking kelas. Pilih kelas di jadwal, lalu kembali ke sini.
           </p>
@@ -350,7 +372,11 @@ export function CheckInPassView() {
                     : 'border-amber-800/25 bg-amber-50 text-amber-900'
                 }`}
               >
-                {state === 'OPEN' ? <QrCode className="mt-0.5 size-4 shrink-0" /> : <Clock className="mt-0.5 size-4 shrink-0" />}
+                {state === 'OPEN' ? (
+                  <QrCode className="mt-0.5 size-4 shrink-0" />
+                ) : (
+                  <Clock className="mt-0.5 size-4 shrink-0" />
+                )}
                 <span>
                   {state === 'TOO_EARLY' &&
                     `Belum aktif. QR dapat dipindai mulai pukul ${formatOpensAt(info!.startAt, info!.timezone)} WIB, 30 menit sebelum kelas.`}
@@ -377,13 +403,20 @@ export function CheckInPassView() {
                   )}
                   <div className="pt-1 space-y-1 text-xs text-ed-muted">
                     {info.studioName && (
-                      <p>Studio: <span className="font-medium text-ed-ink">{info.studioName}</span></p>
+                      <p>
+                        Studio: <span className="font-medium text-ed-ink">{info.studioName}</span>
+                      </p>
                     )}
                     {info.instructorName && (
-                      <p>Instruktur: <span className="font-medium text-ed-ink">{info.instructorName}</span></p>
+                      <p>
+                        Instruktur:{' '}
+                        <span className="font-medium text-ed-ink">{info.instructorName}</span>
+                      </p>
                     )}
                     {passHolder && (
-                      <p>Pemegang Pass: <span className="font-medium text-ed-ink">{passHolder}</span></p>
+                      <p>
+                        Pemegang Pass: <span className="font-medium text-ed-ink">{passHolder}</span>
+                      </p>
                     )}
                   </div>
                 </>

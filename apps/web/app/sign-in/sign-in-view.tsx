@@ -46,7 +46,8 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
   const complete = useCallback(async () => {
     if (sessionContext) {
       const searchParams = new URLSearchParams(window.location.search);
-      const destination = searchParams.get('returnTo') || searchParams.get('returnUrl') || '/workspace';
+      const destination =
+        searchParams.get('returnTo') || searchParams.get('returnUrl') || '/workspace';
       const completed = await sessionContext.completeSignIn(destination);
       if (!completed) throw { response: { status: 401 } };
     }
@@ -99,12 +100,9 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
         {/* Bottom Editorial Copy */}
         <div className="space-y-5 text-white max-w-lg">
           <div className="space-y-3">
-            <p className="ed-eyebrow text-ed-mint tracking-[0.18em]">
-              Move better, live better
-            </p>
+            <p className="ed-eyebrow text-ed-mint tracking-[0.18em]">Move better, live better</p>
             <h1 className="ed-display text-4xl xl:text-5xl font-normal leading-[1.02] tracking-[-0.04em] text-ed-cream">
-              Welcome back to{' '}
-              <span className="ed-serif italic text-ed-mint">your Daily Dose.</span>
+              Welcome back to <span className="ed-serif italic text-ed-mint">your Daily Dose.</span>
             </h1>
             <blockquote className="border-l border-ed-mint/60 pl-4 ed-serif text-lg italic text-ed-cream/90">
               “Stronger body. Calmer mind.”
@@ -140,9 +138,7 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
           </div>
 
           <div className="space-y-2">
-            <p className="ed-eyebrow text-ed-green">
-              Akses Member Resmi
-            </p>
+            <p className="ed-eyebrow text-ed-green">Akses Member Resmi</p>
             <h2
               className="ed-display text-2xl sm:text-3xl font-normal tracking-[-0.04em] text-ed-ink"
               id="sign-in-title"
@@ -175,7 +171,7 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
               <div className="relative flex items-center">
                 <input
                   aria-label="Email, Username, atau WhatsApp"
-                  className="w-full min-h-12 rounded-none border border-ed-border-ui bg-white px-4 py-2.5 text-sm text-ed-ink transition-colors focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#24483a]"
+                  className="w-full min-h-12 rounded-none border border-ed-border-ui bg-white px-4 py-2.5 text-sm text-ed-ink transition-colors focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#09371f]"
                   name="email"
                   type="text"
                   autoComplete="username"
@@ -189,7 +185,7 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
               <span>Password</span>
               <div className="relative flex items-center">
                 <input
-                  className="w-full min-h-12 rounded-none border border-ed-border-ui bg-white px-4 pr-24 py-2.5 text-sm text-ed-ink transition-colors focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#24483a]"
+                  className="w-full min-h-12 rounded-none border border-ed-border-ui bg-white px-4 pr-24 py-2.5 text-sm text-ed-ink transition-colors focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#09371f]"
                   name="password"
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="current-password"
@@ -200,7 +196,7 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
                 />
                 <button
                   aria-pressed={showPassword}
-                  className="absolute right-2 inline-flex min-h-[44px] items-center px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-ed-forest hover:text-ed-deep transition-colors focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#24483a]"
+                  className="absolute right-2 inline-flex min-h-[44px] items-center px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-ed-forest hover:text-ed-deep transition-colors focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#09371f]"
                   type="button"
                   onClick={() => setShowPassword((value) => !value)}
                 >
@@ -227,7 +223,9 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
 
           {state === 'invalid' && (
             <div className="mt-4">
-              <Feedback kind="error">Email, username/nomor WhatsApp, atau password tidak valid.</Feedback>
+              <Feedback kind="error">
+                Email, username/nomor WhatsApp, atau password tidak valid.
+              </Feedback>
             </div>
           )}
           {state in messages && (
@@ -244,7 +242,10 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
           <div className="mt-6 border-t border-ed-line pt-4 text-center space-y-2">
             <p className="text-xs text-ed-muted">
               Belum punya akun?{' '}
-              <Link className="font-bold text-ed-forest hover:underline" href={withReturnTo('/register')}>
+              <Link
+                className="font-bold text-ed-forest hover:underline"
+                href={withReturnTo('/register')}
+              >
                 Daftar akun baru
               </Link>
             </p>

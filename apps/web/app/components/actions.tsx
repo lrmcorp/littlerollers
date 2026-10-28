@@ -43,7 +43,7 @@ export function actionClasses({
 }) {
   return [
     'inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-dd-md border font-semibold no-underline transition duration-150',
-    'focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#24483a]',
+    'focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#09371f]',
     'disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transform-none motion-reduce:transition-none',
     variantClasses[variant],
     sizeClasses[size],
