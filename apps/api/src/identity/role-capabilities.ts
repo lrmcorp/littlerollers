@@ -21,6 +21,7 @@ const SUPER_OWNER_CAPABILITIES: readonly string[] = [
     'customer:write',
     'customer:credential:initialize',
     'customer:security:manage',
+    'customer:impersonate',
     'role-permission:manage',
     'migration:read',
     'audit:read',

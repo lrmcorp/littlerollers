@@ -241,5 +241,14 @@ export const customerClient = {
       },
     );
   },
+  impersonate(id: string) {
+    return request<{ channel: string; user: any }>(
+      `/customers/${encodeURIComponent(id)}/impersonate`,
+      {
+        method: 'POST',
+      },
+    );
+  },
 };
+
 

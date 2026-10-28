@@ -7,7 +7,7 @@ import { IdempotencyService } from '../foundation/idempotency.service';
 import { WhatsAppGatewayService } from '../notifications/whatsapp-gateway.service';
 import { hashPassword, normalizeEmail } from './credential-security';
 import { maskContactEmail, maskContactPhone, maskCustomerProfile, relatedCustomerIds } from './customer-visibility';
-import type { SessionPrincipal } from './identity.service';
+import { IdentityService, type SessionPrincipal } from './identity.service';
 import { PolicyService } from './policy.service';
 import { PRIVATE_FILE_STORAGE, type PrivateFileStorage } from './private-file-storage';
 import { ApiProblem, newId } from './security';
@@ -93,6 +93,7 @@ export class CustomerManagementService {
     @Optional() private readonly whatsapp?: WhatsAppGatewayService,
     @Optional() @Inject(PRIVATE_FILE_STORAGE) private readonly storage?: PrivateFileStorage,
     @Optional() private readonly audit?: AuditService,
+    @Optional() private readonly identities?: IdentityService,
   ) {}
 
   private require(principal: SessionPrincipal, capability: string) {
@@ -897,4 +898,43 @@ export class CustomerManagementService {
       status: updated.status,
     };
   }
+
+  async impersonate(
+    principal: SessionPrincipal,
+    targetId: string,
+    correlationId = 'unknown',
+  ) {
+    this.require(principal, 'customer:impersonate');
+
+    const target = await this.db.user.findUnique({
+      where: { id: targetId },
+    });
+    if (!target || target.role !== 'CUSTOMER') {
+      throw new ApiProblem('NOT_FOUND', HttpStatus.NOT_FOUND);
+    }
+    if (target.status !== 'ACTIVE') {
+      throw new ApiProblem('CUSTOMER_NOT_ACTIVE', HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
+    if (!this.identities) {
+      throw new ApiProblem('SERVICE_UNAVAILABLE', HttpStatus.SERVICE_UNAVAILABLE);
+    }
+
+    await this.audit?.catat(null, {
+      actorId: principal.userId,
+      correlationId,
+      action: 'auth.impersonate',
+      objectType: 'Customer',
+      objectId: target.id,
+      targetUserId: target.id,
+      afterMasked: {
+        targetDisplayName: target.displayName,
+        targetEmail: target.email,
+        targetPhone: target.phone,
+      },
+    });
+
+    return this.identities.issueSession(target.id, 'WEB');
+  }
 }
+

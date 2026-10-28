@@ -102,3 +102,70 @@ describe('customer deactivate / reactivate', () => {
     await expect(deactivate(s, principal(), 'Uji')).resolves.toMatchObject({ status: 'INACTIVE' });
   });
 });
+
+describe('customer impersonate', () => {
+  const setupImpersonate = (
+    userRow: Record<string, unknown> | null = { id: customerId, role: 'CUSTOMER', status: 'ACTIVE', displayName: 'Amanda', email: 'amanda@test.com', phone: '+62811' },
+  ) => {
+    const db = {
+      user: {
+        findUnique: jest.fn().mockResolvedValue(userRow),
+      },
+    };
+    const audit = { catat: jest.fn().mockResolvedValue(undefined) };
+    const identities = { issueSession: jest.fn().mockResolvedValue({ webCookieToken: 'token-abc', user: { id: customerId } }) };
+    const service = new CustomerManagementService(
+      db as never,
+      new PolicyService(),
+      undefined,
+      undefined,
+      undefined,
+      audit as never,
+      identities as never,
+    );
+    return { service, db, audit, identities };
+  };
+
+  it('rejects caller without customer:impersonate capability', async () => {
+    const { service } = setupImpersonate();
+    await expect(
+      service.impersonate(principal({ capabilities: ['customer:write'] }) as never, customerId, 'corr-1'),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' });
+  });
+
+  it('rejects non-customer or non-existent user with NOT_FOUND', async () => {
+    const { service } = setupImpersonate(null);
+    await expect(
+      service.impersonate(principal({ capabilities: ['customer:impersonate'] }) as never, customerId, 'corr-1'),
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  it('rejects inactive customer with CUSTOMER_NOT_ACTIVE', async () => {
+    const { service } = setupImpersonate({ id: customerId, role: 'CUSTOMER', status: 'INACTIVE' });
+    await expect(
+      service.impersonate(principal({ capabilities: ['customer:impersonate'] }) as never, customerId, 'corr-1'),
+    ).rejects.toMatchObject({ code: 'CUSTOMER_NOT_ACTIVE' });
+  });
+
+  it('successfully issues session and records audit trail for active customer', async () => {
+    const { service, audit, identities } = setupImpersonate();
+    const result = await service.impersonate(
+      principal({ capabilities: ['customer:impersonate'] }) as never,
+      customerId,
+      'corr-impersonate',
+    );
+
+    expect(identities.issueSession).toHaveBeenCalledWith(customerId, 'WEB');
+    expect(audit.catat).toHaveBeenCalledWith(
+      null,
+      expect.objectContaining({
+        action: 'auth.impersonate',
+        actorId: id(1),
+        targetUserId: customerId,
+        correlationId: 'corr-impersonate',
+      }),
+    );
+    expect(result).toMatchObject({ webCookieToken: 'token-abc' });
+  });
+});
+

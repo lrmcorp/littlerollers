@@ -19,7 +19,7 @@ vi.mock('next/navigation', () => ({
 const caps = vi.hoisted(() => ({ allow: false }));
 vi.mock('../session-context', () => ({
   useSessionContext: () => ({
-    session: { branches: [] },
+    session: { branches: [], roles: ['SUPER_OWNER'], globalCapabilities: ['customer:impersonate'] },
     hasCapability: () => caps.allow,
     activeBranch: null,
   }),
@@ -122,3 +122,26 @@ describe('CustomerDetailView contact masking (option D)', () => {
     expect(screen.queryByRole('button', { name: /Edit/i })).not.toBeInTheDocument();
   });
 });
+
+describe('CustomerDetailView impersonation', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    caps.allow = true;
+  });
+
+  it('allows Super Owner to open impersonate modal and enter customer portal', async () => {
+    vi.spyOn(customerClient, 'detail').mockResolvedValue(detail as never);
+    const impSpy = vi.spyOn(customerClient, 'impersonate').mockResolvedValue({ channel: 'WEB', user: {} } as never);
+    render(<CustomerDetailView id="c1" />);
+    const impBtn = await screen.findByRole('button', { name: /Login sebagai Pelanggan/i });
+    expect(impBtn).toBeVisible();
+
+    const user = userEvent.setup();
+    await user.click(impBtn);
+
+    expect(await screen.findByText(/Masuk sebagai Dewi/i)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Masuk Sekarang' }));
+    expect(impSpy).toHaveBeenCalledWith('c1');
+  });
+});
+

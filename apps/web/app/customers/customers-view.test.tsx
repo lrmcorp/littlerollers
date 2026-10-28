@@ -15,10 +15,12 @@ vi.mock('../session-context', () => ({
   useSessionContext: () => ({
     status: 'authenticated',
     session: {
+      roles: ['SUPER_OWNER'],
       globalCapabilities: [
         'customer:credential:initialize',
         'customer:update',
         'customer:write',
+        'customer:impersonate',
         'order:assist',
         'package-promotion:read',
       ],
@@ -135,11 +137,47 @@ describe('CustomersView create form', () => {
 
     const editItem = screen.getByRole('menuitem', { name: /Edit profil/i });
     const pwdItem = screen.getByRole('menuitem', { name: /Reset kata sandi/i });
+    const impItem = screen.getByRole('menuitem', { name: /Login sebagai Pelanggan/i });
     expect(editItem).toBeInTheDocument();
     expect(pwdItem).toBeInTheDocument();
+    expect(impItem).toBeInTheDocument();
 
     await user.click(editItem);
     expect(await screen.findByText(/Edit Cepat: Amanda/i)).toBeInTheDocument();
+  });
+
+  it('opens impersonation confirmation modal and triggers customerClient.impersonate', async () => {
+    (customerClient.list as unknown as { mockResolvedValue(v: unknown): void }).mockResolvedValue({
+      items: [
+        {
+          id: 'c-1',
+          displayName: 'Amanda',
+          email: 'amanda@example.test',
+          phoneE164: '+62811',
+          status: 'ACTIVE',
+          verificationStatus: 'APPROVED',
+          activePackageCount: 1,
+          purchasedSessions: 10,
+          _count: { purchases: 1, customerBookings: 2 },
+        },
+      ],
+      summary: { total: 1 },
+      page: { hasMore: false, nextCursor: null },
+    });
+    const impSpy = vi.spyOn(customerClient, 'impersonate').mockResolvedValue({ channel: 'WEB', user: {} } as never);
+    render(<CustomersView />);
+    expect((await screen.findAllByText('Amanda'))[0]).toBeVisible();
+
+    const menuBtns = screen.getAllByRole('button', { name: /Aksi pelanggan Amanda/i });
+    const user = userEvent.setup();
+    await user.click(menuBtns[0]!);
+
+    const impItem = screen.getByRole('menuitem', { name: /Login sebagai Pelanggan/i });
+    await user.click(impItem);
+
+    expect(await screen.findByText(/Masuk sebagai Amanda/i)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Masuk Sekarang' }));
+    expect(impSpy).toHaveBeenCalledWith('c-1');
   });
 });
 

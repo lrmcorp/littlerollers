@@ -23,9 +23,11 @@ import {
   RefreshCw,
   Upload,
   Edit3,
+  LogIn,
 } from 'lucide-react';
 import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { ActionGroup, Button, ButtonLink } from '../../components/actions';
+import { setSessionHint } from '../../api-clients/session-client';
 import { Drawer, Modal, PreviewModal } from '../../components/app-feedback';
 import { SearchSelect, TextInput } from '../../components/forms';
 import { useSessionContext } from '../../session-context';
@@ -225,6 +227,12 @@ export function CustomerDetailView({ id }: { id: string }) {
     sessionContext?.hasCapability('customer:write') ||
     sessionContext?.hasCapability('customer:manage'),
   );
+  const canImpersonate = Boolean(
+    session?.roles?.includes('SUPER_OWNER') ||
+    sessionContext?.hasCapability?.('customer:impersonate') ||
+    session?.capabilities?.includes('customer:impersonate') ||
+    session?.globalCapabilities?.includes('customer:impersonate'),
+  );
   const canSell = Boolean(sessionContext?.hasCapability('purchase:record'));
   const saleBranch = sessionContext?.activeBranch ?? null;
   const saleBranches = (session?.branches ?? []).map((item) => ({ id: item.id, name: item.name }));
@@ -235,6 +243,9 @@ export function CustomerDetailView({ id }: { id: string }) {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [busy, setBusy] = useState(false);
+  const [impersonateModalOpen, setImpersonateModalOpen] = useState(false);
+  const [impersonateBusy, setImpersonateBusy] = useState(false);
+  const [impersonateError, setImpersonateError] = useState('');
   const [zoomImage, setZoomImage] = useState<{ title: string; src: string } | null>(null);
   const [activeTab, setActiveTab] = useState<'orders' | 'packages' | 'bookings'>('packages');
 
@@ -504,6 +515,18 @@ export function CustomerDetailView({ id }: { id: string }) {
             {canSell && customer.status === 'ACTIVE' && (
               <Button disabled={saleBranches.length === 0} onClick={() => setSaleOpen(true)}>
                 Jual paket
+              </Button>
+            )}
+            {canImpersonate && customer.status === 'ACTIVE' && (
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setImpersonateError('');
+                  setImpersonateModalOpen(true);
+                }}
+                leadingIcon={<LogIn className="size-4 text-dd-forest" />}
+              >
+                Login sebagai Pelanggan
               </Button>
             )}
           </div>
@@ -1398,6 +1421,62 @@ export function CustomerDetailView({ id }: { id: string }) {
           </div>
         </form>
       </Modal>
+
+      {/* Impersonate Customer Modal */}
+      {impersonateModalOpen && (
+        <Modal
+          open={impersonateModalOpen}
+          title={`Masuk sebagai ${customer.displayName}`}
+          description={`Anda akan masuk ke portal pelanggan sebagai ${customer.displayName} tanpa kata sandi untuk melihat saldo paket, riwayat sesi, dan data lainnya.`}
+          onClose={() => {
+            if (!impersonateBusy) {
+              setImpersonateModalOpen(false);
+              setImpersonateError('');
+            }
+          }}
+        >
+          <div className="space-y-4 py-2">
+            {impersonateError && <Feedback kind="error">{impersonateError}</Feedback>}
+            <p className="text-sm text-dd-muted">
+              Sesi Super Admin di peramban ini akan dialihkan langsung ke tampilan portal pelanggan (Paket Saya).
+            </p>
+            <div className="flex justify-end gap-2 pt-3 border-t border-dd-line">
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={impersonateBusy}
+                onClick={() => {
+                  setImpersonateModalOpen(false);
+                  setImpersonateError('');
+                }}
+              >
+                Batal
+              </Button>
+              <Button
+                type="button"
+                loading={impersonateBusy}
+                onClick={async () => {
+                  setImpersonateBusy(true);
+                  setImpersonateError('');
+                  try {
+                    await customerClient.impersonate(customer.id);
+                    if (typeof sessionStorage !== 'undefined') {
+                      sessionStorage.removeItem('dd_active_branch');
+                    }
+                    setSessionHint();
+                    window.location.href = '/account/packages';
+                  } catch (cause: any) {
+                    setImpersonateError(cause?.message || 'Gagal masuk sebagai pelanggan.');
+                    setImpersonateBusy(false);
+                  }
+                }}
+              >
+                Masuk Sekarang
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </section>
   );
 }

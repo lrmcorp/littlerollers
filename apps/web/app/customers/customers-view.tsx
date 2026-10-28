@@ -12,7 +12,8 @@ import { customerClient, type CustomerSummary } from './customer-client';
 import { ADMIN_PAGE_SIZE, pageOffset } from '../lib/pagination';
 import { statusLabel } from '../lib/status-labels';
 import { AssistedSaleDrawer } from '../purchases/assisted-sale-drawer';
-import { Edit3, Eye, EyeOff, KeyRound, RefreshCw, ShoppingCart } from 'lucide-react';
+import { setSessionHint } from '../api-clients/session-client';
+import { Edit3, Eye, EyeOff, KeyRound, LogIn, RefreshCw, ShoppingCart } from 'lucide-react';
 
 export const customerStatusLabels: Record<string, string> = {
   ACTIVE: 'Aktif',
@@ -56,6 +57,10 @@ export function CustomersView() {
     session?.capabilities?.includes('purchase:record') ||
     session?.globalCapabilities?.includes('purchase:record'),
   );
+  const canImpersonate = Boolean(
+    session?.roles?.includes('SUPER_OWNER') ||
+    session?.globalCapabilities?.includes('customer:impersonate'),
+  );
   const saleBranch = sessionContext?.activeBranch ?? (session?.branches?.[0] ? { id: session.branches[0].id, name: session.branches[0].name } : null);
   const saleBranches = (session?.branches ?? []).map((item) => ({ id: item.id, name: item.name }));
 
@@ -69,6 +74,10 @@ export function CustomersView() {
   const [showPassword, setShowPassword] = useState(false);
   const [passwordBusy, setPasswordBusy] = useState(false);
   const [passwordError, setPasswordError] = useState('');
+
+  const [selectedForImpersonate, setSelectedForImpersonate] = useState<CustomerSummary | null>(null);
+  const [impersonateBusy, setImpersonateBusy] = useState(false);
+  const [impersonateError, setImpersonateError] = useState('');
 
   const [items, setItems] = useState<CustomerSummary[]>([]);
   const [total, setTotal] = useState(0);
@@ -370,26 +379,43 @@ export function CustomersView() {
                     <span className="hidden xl:inline">Jual paket</span>
                   </Button>
                 )}
-                {canWrite && !item.contactMasked && (
+                {!item.contactMasked && (canWrite || (canImpersonate && item.status === 'ACTIVE')) && (
                   <TableActionMenu
                     ariaLabel={`Aksi pelanggan ${item.displayName}`}
                     items={[
-                      {
-                        id: 'edit',
-                        label: 'Edit profil',
-                        icon: <Edit3 className="size-3.5 text-dd-muted" aria-hidden="true" />,
-                        onClick: () => setSelectedForEdit(item),
-                      },
-                      {
-                        id: 'password',
-                        label: 'Reset kata sandi',
-                        icon: <KeyRound className="size-3.5 text-dd-muted" aria-hidden="true" />,
-                        onClick: () => {
-                          setSelectedForPassword(item);
-                          setNewPassword('');
-                          setPasswordError('');
-                        },
-                      },
+                      ...(canWrite && !item.contactMasked
+                        ? [
+                            {
+                              id: 'edit',
+                              label: 'Edit profil',
+                              icon: <Edit3 className="size-3.5 text-dd-muted" aria-hidden="true" />,
+                              onClick: () => setSelectedForEdit(item),
+                            },
+                            {
+                              id: 'password',
+                              label: 'Reset kata sandi',
+                              icon: <KeyRound className="size-3.5 text-dd-muted" aria-hidden="true" />,
+                              onClick: () => {
+                                setSelectedForPassword(item);
+                                setNewPassword('');
+                                setPasswordError('');
+                              },
+                            },
+                          ]
+                        : []),
+                      ...(canImpersonate && item.status === 'ACTIVE'
+                        ? [
+                            {
+                              id: 'impersonate',
+                              label: 'Login sebagai Pelanggan',
+                              icon: <LogIn className="size-3.5 text-dd-forest" aria-hidden="true" />,
+                              onClick: () => {
+                                setSelectedForImpersonate(item);
+                                setImpersonateError('');
+                              },
+                            },
+                          ]
+                        : []),
                     ]}
                   />
                 )}
@@ -430,26 +456,43 @@ export function CustomersView() {
                   <ShoppingCart className="size-3.5 text-dd-forest" /> Jual paket
                 </Button>
               )}
-              {canWrite && !item.contactMasked && (
+              {!item.contactMasked && (canWrite || (canImpersonate && item.status === 'ACTIVE')) && (
                 <TableActionMenu
                   ariaLabel={`Aksi pelanggan ${item.displayName}`}
                   items={[
-                    {
-                      id: 'edit',
-                      label: 'Edit profil',
-                      icon: <Edit3 className="size-3.5" aria-hidden="true" />,
-                      onClick: () => setSelectedForEdit(item),
-                    },
-                    {
-                      id: 'password',
-                      label: 'Reset kata sandi',
-                      icon: <KeyRound className="size-3.5" aria-hidden="true" />,
-                      onClick: () => {
-                        setSelectedForPassword(item);
-                        setNewPassword('');
-                        setPasswordError('');
-                      },
-                    },
+                    ...(canWrite && !item.contactMasked
+                      ? [
+                          {
+                            id: 'edit',
+                            label: 'Edit profil',
+                            icon: <Edit3 className="size-3.5" aria-hidden="true" />,
+                            onClick: () => setSelectedForEdit(item),
+                          },
+                          {
+                            id: 'password',
+                            label: 'Reset kata sandi',
+                            icon: <KeyRound className="size-3.5" aria-hidden="true" />,
+                            onClick: () => {
+                              setSelectedForPassword(item);
+                              setNewPassword('');
+                              setPasswordError('');
+                            },
+                          },
+                        ]
+                      : []),
+                    ...(canImpersonate && item.status === 'ACTIVE'
+                      ? [
+                          {
+                            id: 'impersonate',
+                            label: 'Login sebagai Pelanggan',
+                            icon: <LogIn className="size-3.5 text-dd-forest" aria-hidden="true" />,
+                            onClick: () => {
+                              setSelectedForImpersonate(item);
+                              setImpersonateError('');
+                            },
+                          },
+                        ]
+                      : []),
                   ]}
                 />
               )}
@@ -681,6 +724,62 @@ export function CustomersView() {
               </Button>
             </div>
           </form>
+        </Modal>
+      )}
+
+      {/* Impersonate Customer Modal */}
+      {selectedForImpersonate && (
+        <Modal
+          open={Boolean(selectedForImpersonate)}
+          title={`Masuk sebagai ${selectedForImpersonate.displayName}`}
+          description={`Anda akan masuk ke portal pelanggan sebagai ${selectedForImpersonate.displayName} tanpa kata sandi untuk melihat saldo paket, riwayat sesi, dan data lainnya.`}
+          onClose={() => {
+            if (!impersonateBusy) {
+              setSelectedForImpersonate(null);
+              setImpersonateError('');
+            }
+          }}
+        >
+          <div className="space-y-4 py-2">
+            {impersonateError && <Feedback kind="error">{impersonateError}</Feedback>}
+            <p className="text-sm text-dd-muted">
+              Sesi Super Admin di peramban ini akan dialihkan langsung ke tampilan portal pelanggan (Paket Saya).
+            </p>
+            <div className="flex justify-end gap-2 pt-3 border-t border-dd-line">
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={impersonateBusy}
+                onClick={() => {
+                  setSelectedForImpersonate(null);
+                  setImpersonateError('');
+                }}
+              >
+                Batal
+              </Button>
+              <Button
+                type="button"
+                loading={impersonateBusy}
+                onClick={async () => {
+                  setImpersonateBusy(true);
+                  setImpersonateError('');
+                  try {
+                    await customerClient.impersonate(selectedForImpersonate.id);
+                    if (typeof sessionStorage !== 'undefined') {
+                      sessionStorage.removeItem('dd_active_branch');
+                    }
+                    setSessionHint();
+                    window.location.href = '/account/packages';
+                  } catch (cause: any) {
+                    setImpersonateError(cause?.message || 'Gagal masuk sebagai pelanggan.');
+                    setImpersonateBusy(false);
+                  }
+                }}
+              >
+                Masuk Sekarang
+              </Button>
+            </div>
+          </div>
         </Modal>
       )}
     </section>

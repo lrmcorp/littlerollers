@@ -8,8 +8,10 @@ import {
   Post,
   Query,
   Req,
+  Res,
   UseGuards,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { AuthGuard, type AuthenticatedRequest } from './auth.guard';
 import { CustomerManagementService } from './manajemen-pelanggan.service';
 
@@ -165,4 +167,36 @@ export class CustomerManagementController {
   ) {
     return this.customers.unmarkStopped(request.principal, id);
   }
+
+  @Post(':id/impersonate')
+  async impersonate(
+    @Req() request: AuthenticatedRequest,
+    @Res({ passthrough: true }) response: Response,
+    @Param('id') id: string,
+  ) {
+    const session = await this.customers.impersonate(
+      request.principal,
+      id,
+      request.correlationId ?? 'unknown',
+    );
+    if (session.webCookieToken) {
+      response.cookie('dd_session', session.webCookieToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV !== 'development',
+        sameSite: 'lax',
+        path: '/',
+      });
+    }
+    if (session.webRefreshToken) {
+      response.cookie('dd_refresh', session.webRefreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV !== 'development',
+        sameSite: 'lax',
+        path: '/api/v1/auth',
+      });
+    }
+    const { webCookieToken: _private, webRefreshToken: _privateRefresh, ...body } = session;
+    return body;
+  }
 }
+
