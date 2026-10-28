@@ -207,6 +207,18 @@ describe('timetable: peserta kelas', () => {
     );
   });
 
+  it('menggulir ke panel peserta begitu kelas ditekan, karena panelnya di bawah kalender', async () => {
+    const gulir = vi.fn();
+    const asli = HTMLElement.prototype.scrollIntoView;
+    HTMLElement.prototype.scrollIntoView = gulir;
+    try {
+      await bukaPanel(bookingClient());
+      expect(gulir).toHaveBeenCalledWith(expect.objectContaining({ block: 'start' }));
+    } finally {
+      HTMLElement.prototype.scrollIntoView = asli;
+    }
+  });
+
   it('menyebut paket yang sudah habis dan tidak menawarkan tombol Tambah', async () => {
     const { user, panel } = await bukaPanel(bookingClient());
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import {
   browserClassSlotClient,
@@ -114,6 +114,17 @@ export function ClassSlotView({
   const [selectedMobileDay, setSelectedMobileDay] = useState<string>('ALL');
   /** Kelas yang dipilih di kalender; daftar pesertanya tampil di bawah kalender. */
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  // Panel peserta ada di bawah kalender; minggu yang padat membuatnya jauh di luar layar, jadi
+  // halaman digulir ke panel begitu satu kelas ditekan.
+  const panelPesertaRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const panel = panelPesertaRef.current;
+    if (!selectedId || !panel || typeof panel.scrollIntoView !== 'function') return;
+    const tenang =
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    panel.scrollIntoView({ behavior: tenang ? 'auto' : 'smooth', block: 'start' });
+  }, [selectedId]);
   /** Pemindahan yang belum disimpan: id kelas ke posisi barunya. */
   const [tertunda, setTertunda] = useState<Record<string, PosisiKalender>>({});
   const [savingMoves, setSavingMoves] = useState(false);
@@ -653,21 +664,23 @@ export function ClassSlotView({
             )}
           </div>
 
-          {selectedSlot && (
-            <TimetableRosterPanel
-              key={selectedSlot.id}
-              slot={selectedSlot}
-              classTypeName={classTypeName(selectedSlot.classTypeId, selectedSlot)}
-              instructorName={instructorName(selectedSlot.instructorUserId, selectedSlot)}
-              studioName={studios.find((studio) => studio.id === selectedSlot.studioId)?.name}
-              client={bookingClient}
-              canAdd={canAddToRoster}
-              canRemove={canRemoveFromRoster}
-              canManageClass
-              onManage={() => openPanel({ kind: 'detail', slot: selectedSlot })}
-              onChanged={() => void load()}
-            />
-          )}
+          <div ref={panelPesertaRef} className="scroll-mt-24">
+            {selectedSlot && (
+              <TimetableRosterPanel
+                key={selectedSlot.id}
+                slot={selectedSlot}
+                classTypeName={classTypeName(selectedSlot.classTypeId, selectedSlot)}
+                instructorName={instructorName(selectedSlot.instructorUserId, selectedSlot)}
+                studioName={studios.find((studio) => studio.id === selectedSlot.studioId)?.name}
+                client={bookingClient}
+                canAdd={canAddToRoster}
+                canRemove={canRemoveFromRoster}
+                canManageClass
+                onManage={() => openPanel({ kind: 'detail', slot: selectedSlot })}
+                onChanged={() => void load()}
+              />
+            )}
+          </div>
 
           {/* Mobile & Tablet Agenda View with 1-Tap Day Filter (< xl) */}
           <div className="xl:hidden flex flex-col gap-4" aria-label="Agenda kelas mingguan">
