@@ -299,6 +299,33 @@ export const frontendPages: FrontendPageDefinition[] = [
     roleRelevance: ['SUPER_OWNER', 'OWNER', 'FINANCE'],
   },
   {
+    href: '/workspace/kas',
+    label: 'Jurnal kas',
+    shortLabel: 'Jurnal kas',
+    description:
+      'Uang masuk dari paket yang lunas dan pengeluaran cabang, termasuk pembelian barang yang dicatat admin.',
+    group: 'Penjualan & Keuangan',
+    capabilities: ['expense:create', 'finance:read'],
+    mutationCapabilities: ['expense:create', 'finance:manage'],
+    priority: 2,
+    branchScope: 'topbar',
+    accent: 'info',
+    roleRelevance: ['SUPER_OWNER', 'OWNER', 'ADMIN', 'MANAGER', 'FINANCE'],
+  },
+  {
+    href: '/workspace/koreksi-jam',
+    label: 'Koreksi jam instruktur',
+    shortLabel: 'Koreksi jam',
+    description:
+      'Tambah atau kurangi jam mengajar satu kelas dengan alasan dan bukti; masuk ke payroll bulan kelasnya.',
+    group: 'Penjualan & Keuangan',
+    capabilities: ['instructor:hours:adjust'],
+    priority: 3,
+    branchScope: 'topbar',
+    accent: 'warning',
+    roleRelevance: ['SUPER_OWNER', 'MANAGER'],
+  },
+  {
     href: '/finance',
     label: 'Keuangan',
     shortLabel: 'Keuangan',

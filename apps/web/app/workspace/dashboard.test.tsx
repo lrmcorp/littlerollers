@@ -4,7 +4,7 @@ import { Dashboard } from '@/dashboard';
 import type { DashboardClient, DashboardOverview } from '@/api-clients/dashboard-client';
 
 const sessionState = vi.hoisted(() => ({
-  roles: ['SUPER_OWNER'] as string[],
+  roles: ['FINANCE', 'MANAGER'] as string[],
   capabilities: [
     'branch:all',
     'finance:read',
@@ -75,7 +75,9 @@ const response = (): DashboardOverview =>
 
 describe('Dashboard', () => {
   beforeEach(() => {
-    sessionState.roles = ['SUPER_OWNER'];
+    // Owner dan Super Owner memakai beranda keuangan bulanan (OwnerHome); ringkasan ini untuk
+    // Finance dan Manager.
+    sessionState.roles = ['FINANCE', 'MANAGER'];
     sessionState.capabilities = [
       'branch:all',
       'finance:read',
@@ -147,7 +149,7 @@ describe('Dashboard', () => {
 
   it('shows one header per summary: both, finance only, operations only', async () => {
     const cases: Array<[string[], { finance: boolean; operations: boolean }, RegExp]> = [
-      [['SUPER_OWNER'], { finance: true, operations: true }, /Keuangan dan operasional dalam satu pandangan/],
+      [['FINANCE', 'MANAGER'], { finance: true, operations: true }, /Keuangan dan operasional dalam satu pandangan/],
       [['FINANCE'], { finance: true, operations: false }, /Arus transaksi dan pekerjaan keuangan/],
       [['MANAGER'], { finance: false, operations: true }, /Operasional cabang hari ini/],
     ];

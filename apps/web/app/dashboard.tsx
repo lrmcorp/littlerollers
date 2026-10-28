@@ -34,6 +34,7 @@ import type { BookingClient } from '@/api-clients/booking-client';
 import type { AvailabilityClient } from '@/api-clients/availability-client';
 import { EmptyWeeksNotice } from './workspace/empty-weeks-notice';
 import { OwnerExceptionsPanel } from './workspace/owner-exceptions-panel';
+import { OwnerHome } from './workspace/owner-home';
 import type { OwnerReportClient } from '@/api-clients/owner-report-client';
 
 const number = new Intl.NumberFormat('id-ID');
@@ -79,6 +80,11 @@ const dashboardCopy = {
       'Prioritaskan kelas, booking, pelanggan, dan antrean keputusan untuk cabang aktif.',
   },
 } as const;
+
+/** Owner dan Super Owner memakai beranda keuangan bulanan (`OwnerHome`), bukan ringkasan ini. */
+function isOwnerSession(session: { roles: readonly string[] }) {
+  return session.roles.some((role) => role === 'SUPER_OWNER' || role === 'OWNER');
+}
 
 /** Ringkasan yang tampil bila server belum menjawab: keuangan untuk Finance/Owner/Super Owner, operasional untuk lainnya. */
 function fallbackViews(roles: readonly string[]) {
@@ -231,7 +237,7 @@ export function Dashboard({
   const load = useCallback(async () => {
     if (!session) return;
     // Beranda instruktur tidak memakai ringkasan ini dan API menjawab 403 untuk perannya.
-    if (isInstructorOnlySession(session)) {
+    if (isInstructorOnlySession(session) || isOwnerSession(session)) {
       setLoading(false);
       return;
     }
@@ -259,6 +265,10 @@ export function Dashboard({
         availabilityClient={availabilityClient}
       />
     );
+  }
+  // Owner dan Super Owner: keputusan lebih dulu, lalu omzet, payroll, pengeluaran, dan laba bulan ini.
+  if (isOwnerSession(session)) {
+    return <OwnerHome ownerReportClient={ownerReportClient} slotClient={slotClient} />;
   }
   if (isFrontDeskOnlySession(session)) {
     return (

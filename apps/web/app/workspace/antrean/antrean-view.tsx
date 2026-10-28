@@ -14,7 +14,7 @@ import { useSessionContext } from '../../session-context';
 
 const rp = (n: number) => `Rp ${n.toLocaleString('id-ID')}`;
 
-const NAMA: Record<KunciAntrean, string> = {
+export const NAMA: Record<KunciAntrean, string> = {
   renewal: 'Member yang paketnya sudah habis dan belum renew',
   verifikasi: 'Verifikasi identitas menunggu',
   bukti: 'Bukti transfer belum diperiksa',
