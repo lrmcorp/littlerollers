@@ -1,0 +1,42 @@
+name: Production Auto Deploy
+
+on:
+  push:
+    branches:
+      - perbaikan_arsitektur
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to Production Docker
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Trigger Remote Deploy via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: ${{ secrets.SERVER_PORT || 22 }}
+          script_stop: true
+          command_timeout: 30m
+          script: |
+            TARGET_DIR="${{ secrets.PROJECT_PATH }}"
+            if [ -z "$TARGET_DIR" ]; then
+              TARGET_DIR="/var/www/dailydose_v2"
+            fi
+
+            echo "▶ [CI/CD] Navigasi ke direktori project: $TARGET_DIR"
+            cd "$TARGET_DIR"
+
+            echo "▶ [CI/CD] Memastikan permission eksekusi untuk update.sh..."
+            chmod +x update.sh
+
+            echo "▶ [CI/CD] Menjalankan update.sh..."
+            ./update.sh
