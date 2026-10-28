@@ -600,7 +600,11 @@ export function BookingView({
         description="Pilih pelanggan, paket, dan kelas yang tersedia. Sistem otomatis memvalidasi batas waktu, saldo sesi, kapasitas kelas, dan izin akses saat konfirmasi."
         actions={
           <>
-            <StatusBadge tone="warning">Batas Reschedule H-2</StatusBadge>
+            {/* Nilai sebenarnya ada di RESCHEDULE_CUTOFF_HOURS (bawaan 24) dan belum pernah
+                dikirim ke web, jadi angka di sini masih ditulis tetap. Begitu konfigurasi itu
+                diekspos, ganti dengan nilai dari server agar label tidak bisa melenceng dari
+                aturan yang benar-benar ditegakkan. */}
+            <StatusBadge tone="warning">Batas reschedule 24 jam</StatusBadge>
             <Button
               type="button"
               variant="secondary"
