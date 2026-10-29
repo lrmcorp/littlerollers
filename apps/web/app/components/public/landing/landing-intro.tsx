@@ -3,13 +3,13 @@ import { Reveal } from './reveal';
 
 /**
  * Pengantar landing: judul display + paragraf pendek (grid 2 kolom), diikuti empat
- * keunggulan studio. Anchor `#instructors` dipertahankan dari section lama.
+ * keunggulan studio. Memegang anchor `#about` (menu About dan footer) sejak seksi studio dihapus.
  */
 export function LandingIntro() {
   return (
     <section
       className="ed-scope bg-ed-cream text-ed-ink"
-      id="instructors"
+      id="about"
       aria-labelledby="landing-intro-title"
     >
       <div className="ed-wrap ed-section">

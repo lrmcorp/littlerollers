@@ -5,7 +5,6 @@ import { describe, expect, it } from 'vitest';
 import type { PublicSiteConfig } from '@/api-clients/account-client';
 import { LandingClasses } from './landing-classes';
 import { LandingPackages } from './landing-packages';
-import { LandingStudio } from './landing-studio';
 import { LandingTestimonials } from './landing-testimonials';
 
 const classes: PublicSiteConfig['classes'] = [
@@ -54,7 +53,7 @@ describe('LandingClasses', () => {
       '/classes/mat-pilates',
     );
     expect(screen.getByRole('link', { name: /See all classes/ })).toHaveAttribute('href', '/classes');
-    expect(screen.getByAltText('Reformer Pilates at Daily Dose Pilates')).toBeInTheDocument();
+    expect(screen.queryByRole('img')).not.toBeInTheDocument();
     expect((await axe(view.container)).violations).toHaveLength(0);
   });
 
@@ -97,34 +96,6 @@ describe('LandingClasses', () => {
     rerender(<LandingClasses classes={[]} />);
     expect(screen.getByText('No classes are available yet.')).toBeInTheDocument();
     expect(screen.queryByRole('list')).not.toBeInTheDocument();
-  });
-});
-
-describe('LandingStudio', () => {
-  it('keeps the showcase test id, anchor, statistics and studio link', async () => {
-    const view = render(
-      <LandingStudio
-        stats={[
-          ['Studio', '2 locations'],
-          ['Format', 'Personal & kelompok'],
-          ['Durasi', '50 minutes'],
-          ['Area', 'Jakarta & BSD'],
-        ]}
-      />,
-    );
-
-    const showcase = view.container.querySelector('[data-testid="studio-showcase"]');
-    expect(showcase).not.toBeNull();
-    expect(view.container.querySelector('#about')).not.toBeNull();
-    expect(within(showcase as HTMLElement).getByRole('heading', { level: 2 })).toHaveTextContent(
-      /A calm space designed for\s*movement/,
-    );
-    expect(view.container.querySelectorAll('dl > div')).toHaveLength(4);
-    expect(screen.getByText('2 locations')).toBeInTheDocument();
-    expect(screen.getByText('Jakarta & BSD')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Explore our studios' })).toHaveAttribute('href', '/locations');
-    expect(screen.getByAltText(/Daily Dose Pilates reception/)).toBeInTheDocument();
-    expect((await axe(view.container)).violations).toHaveLength(0);
   });
 });
 

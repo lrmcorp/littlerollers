@@ -1,36 +1,21 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight, ArrowUpRight } from 'lucide-react';
 
 import type { PublicSiteConfig } from '@/api-clients/account-client';
 import { classLevelLabel } from '@/lib/class-level';
-import { resolvePublicImageUrl } from '@/lib/public-image-url';
 import { routes } from '@/lib/routes';
 import { Reveal } from './reveal';
 
 type PublicClass = PublicSiteConfig['classes'][number];
 
-const defaultClassImages: Record<string, string> = {
-  REFORMER: '/images/public/classes/reformer-pilates.png',
-  MAT: '/images/public/classes/mat-pilates.png',
-  CADILLAC: '/images/public/classes/cadillac-pilates.png',
-  CHAIR: '/images/public/classes/chair-pilates.png',
-  GROUP_CLASS: '/images/public/classes/reformer-pilates.png',
-  PRIVATE_CLASS: '/images/public/classes/cadillac-pilates.png',
-  SEMI_PRIVATE: '/images/public/classes/reformer-pilates.png',
-};
-
-const fallbackClassImage = '/images/public/classes/reformer-pilates.png';
-
 // Satu definisi kolom dipakai baris kelas dan placeholder agar tinggi/lebar tidak melompat.
 const rowGrid =
-  'grid grid-cols-[88px_minmax(0,1fr)] items-center gap-x-5 sm:grid-cols-[120px_minmax(0,1fr)] sm:gap-x-7 lg:grid-cols-[40px_160px_minmax(0,1fr)] lg:gap-x-8';
+  'grid grid-cols-[minmax(0,1fr)] items-center lg:grid-cols-[40px_minmax(0,1fr)] lg:gap-x-8';
 const rowBody =
   'grid gap-3.5 sm:gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)_auto] lg:items-center lg:gap-8';
 
 function ClassRow({ item, index }: { item: PublicClass; index: number }) {
-  const { code, name, summary, level, heroImageKey, slug } = item;
-  const imageSrc = resolvePublicImageUrl(heroImageKey, defaultClassImages[code] ?? fallbackClassImage);
+  const { name, summary, level, slug } = item;
   return (
     <li
       className={`${rowGrid} relative border-b border-ed-line py-6 transition-colors duration-200 hover:bg-ed-tint lg:py-7`}
@@ -38,15 +23,6 @@ function ClassRow({ item, index }: { item: PublicClass; index: number }) {
       <span aria-hidden="true" className="hidden text-xs font-bold text-ed-green lg:block">
         {String(index + 1).padStart(2, '0')}
       </span>
-      <div className="relative aspect-[4/3] w-full overflow-hidden bg-ed-mist">
-        <Image
-          src={imageSrc}
-          fill
-          sizes="(max-width: 639px) 88px, 160px"
-          alt={`${name} at Daily Dose Pilates`}
-          className="object-cover"
-        />
-      </div>
       <div className={rowBody}>
         <div>
           <h3 className="m-0 text-[clamp(22px,2.2vw,30px)] leading-[1.25] font-medium tracking-[-0.02em]">
@@ -75,7 +51,6 @@ function ClassRowSkeleton() {
       className={`${rowGrid} border-b border-ed-line py-6 lg:py-7`}
     >
       <span className="hidden lg:block" />
-      <div className="aspect-[4/3] w-full animate-pulse bg-ed-mist" />
       <div className="space-y-3">
         <div className="h-6 w-2/3 animate-pulse bg-ed-mist" />
         <div className="h-4 w-full animate-pulse bg-ed-tint" />

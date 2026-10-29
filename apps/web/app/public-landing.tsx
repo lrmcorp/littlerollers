@@ -12,33 +12,7 @@ import { HeroCarousel } from './components/public/hero-carousel';
 import { LandingClasses } from './components/public/landing/landing-classes';
 import { LandingIntro } from './components/public/landing/landing-intro';
 import { LandingPackages } from './components/public/landing/landing-packages';
-import { LandingStudio } from './components/public/landing/landing-studio';
 import { LandingTestimonials } from './components/public/landing/landing-testimonials';
-
-export function studioAreaSummary(branches: PublicSiteConfig['branches']) {
-  const areas = branches
-    .map((branch) => {
-      const configured = branch.publicProfile?.city || branch.publicProfile?.area;
-      return configured?.trim() || branch.name.replace(/^Daily Dose\s+/iu, '').trim();
-    })
-    .filter(Boolean)
-    .filter((area, index, values) => values.indexOf(area) === index);
-  if (!areas.length) return 'Coming soon';
-  if (areas.length === 1) return areas[0]!;
-  if (areas.length === 2) return areas.join(' & ');
-  return `${areas.slice(0, 2).join(', ')} +${areas.length - 2}`;
-}
-
-export function classDurationSummary(classes: PublicSiteConfig['classes']) {
-  const durations = classes
-    .map(({ durationMinutes }) => durationMinutes)
-    .filter((duration) => Number.isFinite(duration) && duration > 0)
-    .filter((duration, index, values) => values.indexOf(duration) === index)
-    .sort((left, right) => left - right);
-  if (!durations.length) return 'Varies';
-  if (durations.length === 1) return `${durations[0]} minutes`;
-  return `${durations[0]}–${durations.at(-1)} minutes`;
-}
 
 export function PublicLanding() {
   const sessionContext = useSessionContext();
@@ -83,10 +57,6 @@ export function PublicLanding() {
   }
 
   const classCards = siteConfig?.classes ?? [];
-  const studioCount = siteConfig?.branches.length ?? 0;
-  const studioAreas = siteConfig ? studioAreaSummary(siteConfig.branches) : 'Loading…';
-  const classDuration = siteConfig ? classDurationSummary(siteConfig.classes ?? []) : 'Loading…';
-
   return (
     <div className="ed-scope min-w-0 overflow-hidden bg-ed-cream text-ed-ink" id="top">
       <a className="skip-link" href="#public-main">
@@ -100,16 +70,6 @@ export function PublicLanding() {
 
         {/* Intro + 4 keunggulan studio (Editorial Calm) */}
         <LandingIntro />
-
-        {/* Studio showcase (Editorial Calm) */}
-        <LandingStudio
-          stats={[
-            ['Studios', siteConfig ? `${studioCount} locations` : 'Loading…'],
-            ['Format', 'Private & small group'],
-            ['Duration', classDuration],
-            ['Areas', studioAreas],
-          ]}
-        />
 
         {/* Kelas populer */}
         <LandingClasses classes={siteConfig === null ? null : classCards} error={catalogError} />

@@ -22,6 +22,20 @@ export function classLevelLabel(
     level.trim().toUpperCase().replace(/[\s-]+/g, '_')
   ];
   if (known) return known;
+  if (lang === 'en') {
+    const kata: Record<string, string> = {
+      'semua level': 'All Levels',
+      pemula: 'Beginner',
+      menengah: 'Intermediate',
+      lanjutan: 'Advanced',
+    };
+    const terjemahan = level
+      .trim()
+      .split(/(\s*[–\-/]\s*)/)
+      .map((bagian) => kata[bagian.toLowerCase()] ?? bagian)
+      .join('');
+    if (terjemahan !== level.trim()) return terjemahan;
+  }
   const words = level.trim().replace(/_/g, ' ').toLowerCase();
   return words.charAt(0).toUpperCase() + words.slice(1);
 }

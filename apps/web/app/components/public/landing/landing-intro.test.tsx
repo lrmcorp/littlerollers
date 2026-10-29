@@ -8,7 +8,7 @@ describe('LandingIntro', () => {
     const view = render(<LandingIntro />);
 
     const section = view.container.querySelector('section');
-    expect(section).toHaveAttribute('id', 'instructors');
+    expect(section).toHaveAttribute('id', 'about');
     expect(section).toHaveClass('ed-scope');
     expect(
       screen.getByRole('heading', { level: 2, name: 'A small space to move differently.' }),
