@@ -174,9 +174,9 @@ export function HeroCarousel({ config }: { config?: HeroCarouselPayload | null }
             aria-hidden={!isActive}
           >
             <div
-              className={`absolute -inset-[3%] ${
+              className={`absolute -inset-[3%] origin-[66%_38%] will-change-transform ${
                 isActive
-                  ? '[animation:ed-drift_17s_ease-in-out_infinite_alternate] motion-reduce:[animation:none]'
+                  ? '[animation:ed-drift_14s_ease-in-out_infinite_alternate] motion-reduce:[animation:none]'
                   : ''
               }`}
             >
