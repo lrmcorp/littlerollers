@@ -209,6 +209,17 @@ describe('capability-aware session shell', () => {
     expect(breadcrumb).toHaveTextContent('Detail');
   });
 
+  it('sends a member without a WhatsApp number to complete the account first', () => {
+    const tanpaNomor: WebSession = { ...customerSession, phoneRequired: true };
+    expect(defaultSessionDestination(tanpaNomor)).toBe('/account/lengkapi');
+    expect(canAccessSessionPath(tanpaNomor, '/account/lengkapi')).toBe(true);
+    expect(canAccessSessionPath(tanpaNomor, '/account')).toBe(false);
+    expect(canAccessSessionPath(tanpaNomor, '/checkout')).toBe(false);
+    expect(canAccessSessionPath(tanpaNomor, '/packages')).toBe(true);
+    expect(defaultSessionDestination(customerSession)).toBe('/account');
+    expect(canAccessSessionPath(customerSession, '/account/lengkapi')).toBe(true);
+  });
+
   it('keeps the WhatsApp automation route capability-scoped instead of closed for everyone', () => {
     expect(canAccessSessionPath(adminSession, '/workspace/reminders')).toBe(false);
     expect(

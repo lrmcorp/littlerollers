@@ -169,7 +169,13 @@ export class IdentityService {
 
     const isCustomerOnly = projection.roles.every((r) => r === 'CUSTOMER');
     let identityVerificationStatus = 'APPROVED';
+    // Member tanpa nomor WhatsApp (biasanya daftar lewat Google) diminta melengkapinya lebih dulu.
+    let phoneRequired = false;
     if (isCustomerOnly) {
+      const pemilik = this.db.user?.findUnique
+        ? await this.db.user.findUnique({ where: { id: userId }, select: { phone: true } })
+        : null;
+      phoneRequired = Boolean(pemilik) && !pemilik?.phone;
       const profile = (this.db as any).profilPengguna?.findUnique
         ? await (this.db as any).profilPengguna.findUnique({ where: { userId } })
         : null;
@@ -180,6 +186,7 @@ export class IdentityService {
     return {
       ...projection,
       identityVerificationStatus,
+      phoneRequired,
       sessionExpiresAt: sessionExpiresAt.toISOString(),
       branches,
     };
