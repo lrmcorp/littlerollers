@@ -1,4 +1,5 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
+import { cabangPaket } from '../bookings/cabang-paket';
 import { AdjustRequestStatus, Prisma, SessionMutationType } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { AuditService } from '../foundation/audit.service';
@@ -307,6 +308,8 @@ export class LedgerService {
       classTypeName: row.package?.classType?.name ?? 'Pilates',
       classTypeId: row.package?.classTypeId ?? null,
       packageBranchId,
+      /** Semua cabang tempat paket ini boleh dipakai: cabang paket dan cabang pembelian. */
+      allowedBranchIds: cabangPaket(row as never),
       isMultiBranch: isMulti,
       customer: {
         id: row.user.id,

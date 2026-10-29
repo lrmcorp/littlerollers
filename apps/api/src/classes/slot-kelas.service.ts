@@ -373,6 +373,10 @@ export class ClassSlotService {
 
         if (!branch?.active || !classType?.active || !studio?.active)
           throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+        // Studio dan ruangan harus milik cabang kelas; tanpa ini kelas bisa tersimpan di cabang lain
+        // dan muncul di timetable yang salah.
+        if (studio.branchId !== branch.id || (room && room.studioId !== studio.id))
+          throw new ApiProblem('STUDIO_BRANCH_MISMATCH', HttpStatus.UNPROCESSABLE_ENTITY);
 
         const collisionConditions: Prisma.SlotKelasWhereInput[] = [];
         if (room?.id) {
@@ -564,6 +568,12 @@ export class ClassSlotService {
 
         const targetStudioId = input.studioId !== undefined ? input.studioId : slot.studioId;
         const targetRoomId = input.roomId !== undefined ? (input.roomId || null) : slot.roomId;
+        if (targetStudioId && targetStudioId !== slot.studioId && tx.studio?.findUnique) {
+          const studioBaru = await tx.studio.findUnique({ where: { id: targetStudioId } });
+          if (!studioBaru) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+          if (studioBaru.branchId !== slot.branchId)
+            throw new ApiProblem('STUDIO_BRANCH_MISMATCH', HttpStatus.UNPROCESSABLE_ENTITY);
+        }
 
         let room = null;
         if (targetRoomId && (tx as any).ruangan) {

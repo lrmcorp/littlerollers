@@ -45,14 +45,22 @@ const JEDA_CARI_MS = 300;
 export function pilihCalon(
   customer: BookingCustomer,
   packages: readonly CustomerPackageBalance[],
-  slot: Pick<ClassSlot, 'classTypeId' | 'startAt'>,
+  slot: Pick<ClassSlot, 'classTypeId' | 'startAt'> & { branchId?: string },
   timeZone: string,
 ): Calon {
   const milik = packages.filter(
     (item) => (item.customerUserId ?? item.customer?.id) === customer.id,
   );
-  const cocokTipe = milik.filter(
+  const cocokTipeSemua = milik.filter(
     (item) => !item.classTypeId || item.classTypeId === slot.classTypeId,
+  );
+  // Paket harus berlaku di cabang kelas ini (cabang paket atau cabang tempat dibeli).
+  const cocokTipe = cocokTipeSemua.filter(
+    (item) =>
+      !slot.branchId ||
+      !item.allowedBranchIds ||
+      item.allowedBranchIds === 'SEMUA' ||
+      item.allowedBranchIds.includes(slot.branchId),
   );
   const layak = cocokTipe
     .filter(
@@ -78,6 +86,8 @@ export function pilihCalon(
   if (terakhir && terakhir.available <= 0) {
     return { customer, paket: null, kendala: 'Sesi paket sudah habis' };
   }
+  if (cocokTipeSemua.length > cocokTipe.length)
+    return { customer, paket: null, kendala: 'Paketnya berlaku di cabang lain' };
   return { customer, paket: null, kendala: 'Belum punya paket untuk kelas ini' };
 }
 
@@ -377,8 +387,8 @@ export function TimetableRosterPanel({
             {mencari && <p className="m-0 mt-2 text-sm text-dd-muted">Mencari…</p>}
             {query.trim().length >= MIN_HURUF && hasil.length === 0 && !loading && !mencari && (
               <p className="m-0 mt-2 text-sm text-dd-muted">
-                Tidak ada member bernama &ldquo;{query.trim()}&rdquo; di cabang ini yang belum
-                terdaftar di kelas.
+                Tidak ada member aktif bernama &ldquo;{query.trim()}&rdquo; yang belum terdaftar di
+                kelas ini. Coba nomor WhatsApp atau email-nya.
               </p>
             )}
             <p className="m-0 mt-2 text-sm text-dd-muted">

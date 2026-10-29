@@ -541,6 +541,8 @@ export function classSlotFailure(error: unknown) {
     SCHEDULE_CONFLICT: 'Jadwal kelas atau ketersediaan instruktur bertabrakan dengan kelas lain.',
     SLOT_SCHEDULE_COLLISION:
       'Ruangan ini sudah memiliki jadwal kelas lain pada jam yang sama. Silakan pilih ruangan lain atau ubah jam mulai.',
+    STUDIO_BRANCH_MISMATCH:
+      'Area studio atau ruangan yang dipilih bukan milik cabang ini. Pilih ulang cabang, lalu area studionya.',
     CAPACITY_EXCEEDS_ROOM_LIMIT:
       'Kapasitas peserta melebihi batas maksimal daya tampung ruangan studio.',
     INSTRUCTOR_SCHEDULE_COLLISION:

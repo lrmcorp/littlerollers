@@ -72,6 +72,8 @@ export interface CustomerPackageBalance {
   branchName?: string | null;
   classTypeId?: string | null;
   classTypeName?: string | null;
+  /** Cabang tempat paket boleh dipakai (cabang paket dan cabang pembelian), atau 'SEMUA'. */
+  allowedBranchIds?: string[] | 'SEMUA';
   status: string;
   totalSessions?: number;
   remainingSessions?: number;
@@ -622,7 +624,8 @@ export const browserBookingClient: BookingClient = {
     };
   },
   async searchRosterCandidates(branchId, q) {
-    const params = new URLSearchParams({ branchId, q, limit: '6' });
+    // Member tanpa paket aktif ikut dicari, supaya layar menyebut alasannya alih-alih "tidak ada".
+    const params = new URLSearchParams({ branchId, q, limit: '8', includeWithoutPackage: 'true' });
     const lookup = await apiFetch<{
       items: Array<{ id: string; label?: string; description?: string }>;
     }>(`/lookups/customers?${params.toString()}`, { label: 'Mencari member…' });
