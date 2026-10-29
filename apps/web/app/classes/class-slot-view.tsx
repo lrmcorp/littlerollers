@@ -74,6 +74,10 @@ export function ClassSlotView({
         | 'searchRosterCandidates'
         | 'create'
         | 'cancelAsStaff'
+        | 'cancellationOptions'
+        | 'ajukanPembatalanTerlambat'
+        | 'pembatalanTertunda'
+        | 'putuskanPembatalan'
       >
     >;
 }) {

@@ -1,5 +1,9 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { cabangPaket } from '../bookings/cabang-paket';
+import {
+  KODE_PEMBATALAN_TERLAMBAT,
+  jalankanPembatalanTerlambat,
+} from '../bookings/pembatalan-terlambat';
 import { AdjustRequestStatus, Prisma, SessionMutationType } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { AuditService } from '../foundation/audit.service';
@@ -836,7 +840,11 @@ export class LedgerService {
 
         let ledgerEntry: ReturnType<LedgerService['ledgerEntryView']> | null = null;
         let resultingBalance: number | null = null;
-        if (decision === 'approve') {
+        if (decision === 'approve' && row.reasonCode === KODE_PEMBATALAN_TERLAMBAT) {
+          // Pembatalan H-24 dari timetable: booking dibatalkan dan sesinya dikembalikan bila terpotong.
+          resultingBalance = (await jalankanPembatalanTerlambat(tx, row, principal.userId, now))
+            .resultingBalance;
+        } else if (decision === 'approve') {
           const pkg = await tx.paketPelanggan.findUniqueOrThrow({
             where: { id: row.customerPackageId },
           });

@@ -84,6 +84,19 @@ export interface CustomerPackageBalance {
   name?: string;
 }
 
+/** Pengajuan pembatalan booking setelah batas H-24, menunggu Manager/Owner. */
+export interface PengajuanPembatalan {
+  id: string;
+  version: number;
+  bookingId: string;
+  /** Sesi yang kembali ke paket bila disetujui; 0 bila sesinya belum terpotong. */
+  sessionCount: number;
+  reason: string;
+  requestedById: string;
+  requestedByName: string | null;
+  createdAt: string;
+}
+
 export interface Reschedule {
   id: string;
   bookingId: string;
@@ -487,6 +500,14 @@ export interface BookingClient {
     supportAction: string | null;
     cutoffAt: string;
   }>;
+  /** Pengajuan pembatalan setelah batas H-24 (disetujui Manager/Owner). */
+  ajukanPembatalanTerlambat?(bookingId: string, reason: string): Promise<PengajuanPembatalan>;
+  pembatalanTertunda?(classSlotId: string): Promise<PengajuanPembatalan[]>;
+  putuskanPembatalan?(
+    requestId: string,
+    keputusan: 'approve' | 'reject',
+    expectedVersion: number,
+  ): Promise<{ status: string; sessionsReturned: number }>;
   /** Mengambil seluruh paket aktif milik pelanggan tertentu secara instan (real-time tanpa batas limit cabang). */
   getCustomerPackages?(
     customerId: string,
@@ -837,6 +858,29 @@ export const browserBookingClient: BookingClient = {
       'Membatalkan booking…',
     );
     if (!response.ok) throw { response };
+  },
+  ajukanPembatalanTerlambat(bookingId, reason) {
+    return apiFetch<PengajuanPembatalan>(
+      `/bookings/${encodeURIComponent(bookingId)}/late-cancellation`,
+      { method: 'POST', body: JSON.stringify({ reason }), label: 'Mengirim pengajuan pembatalan…' },
+    );
+  },
+  async pembatalanTertunda(classSlotId) {
+    const hasil = await apiFetch<PengajuanPembatalan[]>(
+      `/bookings/late-cancellations?${new URLSearchParams({ classSlotId })}`,
+      { label: 'Memuat pengajuan pembatalan…' },
+    );
+    return Array.isArray(hasil) ? hasil : [];
+  },
+  putuskanPembatalan(requestId, keputusan, expectedVersion) {
+    return apiFetch(
+      `/bookings/late-cancellations/${encodeURIComponent(requestId)}/${keputusan}`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ expectedVersion }),
+        label: keputusan === 'approve' ? 'Menyetujui pembatalan…' : 'Menolak pembatalan…',
+      },
+    );
   },
   async cancellationOptions(bookingId) {
     const response = await foregroundFetch(
