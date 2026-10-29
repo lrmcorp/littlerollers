@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { accountClient, type PublicSiteConfig } from './account-client';
-import { PublicLanding, sessionLengthLabel } from './public-landing';
+import { PublicLanding } from './public-landing';
 
 const siteConfig: PublicSiteConfig = {
   branches: [
@@ -67,7 +67,7 @@ const siteConfig: PublicSiteConfig = {
 describe('public landing page', () => {
   afterEach(() => vi.restoreAllMocks());
 
-  it('renders the hero, live class cards, the 1h/2h explainer and clubs', async () => {
+  it('renders the hero, the 1h/2h explainer and clubs, with no class cards', async () => {
     vi.spyOn(accountClient, 'siteConfig').mockResolvedValue(siteConfig);
     const view = render(<PublicLanding />);
 
@@ -82,12 +82,9 @@ describe('public landing page', () => {
       '/register',
     );
 
-    const movers = await screen.findByRole('link', { name: /Movers.*Ages 4 to 6.*2 hours/ });
-    expect(movers).toHaveAttribute('href', '/classes/movers');
-    expect(screen.getByRole('link', { name: /Tiny Rollers.*1 hour/ })).toHaveAttribute(
-      'href',
-      '/classes/tiny-rollers',
-    );
+    expect(await screen.findByRole('link', { name: /Little Rollers Jakarta/ })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'CLASSES' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /Movers/ })).not.toBeInTheDocument();
 
     expect(screen.getByRole('heading', { name: 'One hour or two' })).toBeVisible();
     expect(screen.getByText('Joins the first hour')).toBeVisible();
@@ -101,30 +98,24 @@ describe('public landing page', () => {
       'href',
       '/locations/jakarta',
     );
-    expect(
-      screen.getByRole('link', { name: /Little Rollers BSD.*Address coming soon/ }),
-    ).toHaveAttribute('href', '/locations');
-    expect(view.container).not.toHaveTextContent(/pilates|daily dose/i);
+    expect(screen.getByRole('link', { name: /Little Rollers BSD/ })).toHaveAttribute(
+      'href',
+      '/locations',
+    );
+    expect(view.container).not.toHaveTextContent(/pilates|daily dose|coming soon/i);
     expect((await axe(view.container)).violations).toHaveLength(0);
   }, 30_000);
 
-  it('shows a retry when the classes cannot load', async () => {
+  it('shows a retry when the clubs cannot load', async () => {
     const siteConfigSpy = vi
       .spyOn(accountClient, 'siteConfig')
       .mockRejectedValueOnce(new Error('offline'))
       .mockResolvedValue(siteConfig);
     render(<PublicLanding />);
 
-    expect(await screen.findByText('We could not load the classes.')).toBeVisible();
-    await userEvent.click(screen.getAllByRole('button', { name: 'Try again' })[0]!);
-    expect(await screen.findByRole('link', { name: /Movers/ })).toBeVisible();
+    expect(await screen.findByText('We could not load the clubs.')).toBeVisible();
+    await userEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(await screen.findByRole('link', { name: /Little Rollers Jakarta/ })).toBeVisible();
     expect(siteConfigSpy).toHaveBeenCalledTimes(2);
-  });
-
-  it('labels session lengths in hours', () => {
-    expect(sessionLengthLabel(60)).toBe('1 hour');
-    expect(sessionLengthLabel(120)).toBe('2 hours');
-    expect(sessionLengthLabel(45)).toBe('45 min');
-    expect(sessionLengthLabel(0)).toBe('Length varies');
   });
 });

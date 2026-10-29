@@ -445,7 +445,8 @@ for (const breakpoint of breakpoints) {
     } else {
       await expect(page.getByRole('button', { name: 'Open menu' })).toBeVisible();
     }
-    await expect(page.getByText('Movers', { exact: true }).first()).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Our clubs' })).toBeVisible();
+    await expect(page.locator('.lr-class-card')).toHaveCount(0);
     for (const link of await page.getByRole('link', { name: 'My account' }).all()) {
       await expect(link).toHaveAttribute('href', '/workspace');
     }

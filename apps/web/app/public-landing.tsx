@@ -30,12 +30,6 @@ const heroNavigation = [
   { href: routes.locations, label: 'Clubs' },
 ] as const;
 
-export function sessionLengthLabel(minutes: number) {
-  if (!Number.isFinite(minutes) || minutes <= 0) return 'Length varies';
-  if (minutes % 60 === 0) return minutes === 60 ? '1 hour' : `${minutes / 60} hours`;
-  return `${minutes} min`;
-}
-
 function prefersReducedMotion() {
   return typeof window.matchMedia === 'function'
     ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -154,7 +148,6 @@ export function PublicLanding() {
     playEntrance(root);
   }, []);
 
-  const classes = siteConfig?.classes.slice(0, 3) ?? [];
   const clubs = siteConfig?.branches ?? [];
 
   return (
@@ -255,66 +248,6 @@ export function PublicLanding() {
                   </Link>
                 </div>
               </div>
-
-              <section className="lr-hero__classes" aria-labelledby="hero-classes-title">
-                <h2 className="lr-hero__classes-title" id="hero-classes-title" data-enter="rise">
-                  CLASSES
-                </h2>
-                <Link className="lr-hero__classes-link" href={routes.classes} data-enter="rise">
-                  browse all classes{' '}
-                  <span className="lr-chevron" aria-hidden="true">
-                    ›
-                  </span>
-                </Link>
-                <ul className="lr-hero__cards" aria-busy={state === 'loading' || undefined}>
-                  {state === 'loading' &&
-                    [0, 1, 2].map((index) => (
-                      <li key={index} data-enter="rise">
-                        <div className="lr-class-card lr-class-card--state lr-class-card--loading">
-                          {index === 0 && <span className="sr-only">Loading classes</span>}
-                        </div>
-                      </li>
-                    ))}
-                  {state === 'error' && (
-                    <li data-enter="rise">
-                      <div className="lr-class-card lr-class-card--state" role="alert">
-                        <p className="m-0 text-base">We could not load the classes.</p>
-                        <button
-                          type="button"
-                          className="lr-pill lr-pill--mint mt-3 min-h-11 px-5 text-[15px]"
-                          onClick={() => load()}
-                        >
-                          Try again
-                        </button>
-                      </div>
-                    </li>
-                  )}
-                  {state === 'ready' && classes.length === 0 && (
-                    <li data-enter="rise">
-                      <div className="lr-class-card lr-class-card--state">
-                        <p className="m-0 text-base">
-                          Classes appear here once the club publishes them.{' '}
-                          <Link href={routes.contact}>Ask us what is coming up</Link>.
-                        </p>
-                      </div>
-                    </li>
-                  )}
-                  {classes.map((item) => (
-                    <li key={item.code} data-enter="rise">
-                      <Link className="lr-class-card" href={`/classes/${item.slug}`}>
-                        {/* eslint-disable-next-line @next/next/no-img-element -- local SVG artwork */}
-                        <img src={`/images/public/${item.heroImageKey}`} alt="" loading="lazy" />
-                        <span className="lr-class-card__label">
-                          <span className="lr-class-card__name">{item.name}</span>
-                          <span className="lr-class-card__meta">
-                            {item.level} · {sessionLengthLabel(item.durationMinutes)}
-                          </span>
-                        </span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </section>
             </div>
           </div>
         </div>
@@ -459,9 +392,7 @@ function ClubList({
               href={profile ? `/locations/${profile.slug}` : routes.locations}
             >
               <span className="font-display text-2xl text-dd-forest">{club.name}</span>
-              <span className="text-dd-muted">
-                {profile ? `${profile.address}` : 'Address coming soon'}
-              </span>
+              {profile && <span className="text-dd-muted">{profile.address}</span>}
               <span className="inline-flex items-center gap-1 font-medium text-dd-forest">
                 Club page{' '}
                 <span
