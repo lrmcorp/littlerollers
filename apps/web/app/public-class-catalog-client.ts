@@ -34,7 +34,7 @@ export const browserPublicClassCatalogClient: PublicClassCatalogClient = {
   async list(input) {
     const result = await appLoading.track(
       publicGeneratedApi.classes.listPublicClassSchedule(input),
-      { label: 'Memuat jadwal…' },
+      { label: 'Loading the timetable…' },
     );
     return {
       branches: result.branches,
@@ -55,8 +55,8 @@ export const browserPublicClassCatalogClient: PublicClassCatalogClient = {
 
 export function publicCatalogFailure(error: unknown) {
   const status = publicApiStatus(error);
-  if (status === 404) return 'Studio tidak tersedia.';
-  if (status === 422) return 'Rentang tanggal tidak valid.';
-  if (status === 503) return 'Jadwal sedang tidak tersedia. Silakan coba kembali.';
-  return 'Jadwal belum dapat dimuat. Periksa koneksi lalu coba lagi.';
+  if (status === 404) return 'This club is not available.';
+  if (status === 422) return 'That date range is not valid.';
+  if (status === 503) return 'The timetable is unavailable right now. Please try again.';
+  return 'The timetable could not load. Check your connection and try again.';
 }

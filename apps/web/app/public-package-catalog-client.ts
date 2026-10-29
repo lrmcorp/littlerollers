@@ -43,7 +43,7 @@ export const browserPublicPackageCatalogClient: PublicPackageCatalogClient = {
   async list(branchId) {
     const result = await appLoading.track(
       publicGeneratedApi.packages.listPublicPackages({ branchId }),
-      { label: 'Memuat paket…' },
+      { label: 'Loading packages…' },
     );
     return {
       branches: result.branches,
@@ -67,8 +67,8 @@ export const browserPublicPackageCatalogClient: PublicPackageCatalogClient = {
 
 export function publicPackageFailure(error: unknown) {
   const status = publicApiStatus(error);
-  if (status === 404) return 'Studio tidak tersedia.';
-  if (status === 422) return 'Studio yang dipilih tidak valid.';
-  if (status === 503) return 'Paket sedang tidak tersedia. Silakan coba kembali.';
-  return 'Paket belum dapat dimuat. Periksa koneksi lalu coba lagi.';
+  if (status === 404) return 'This club is not available.';
+  if (status === 422) return 'That club is not valid.';
+  if (status === 503) return 'Packages are unavailable right now. Please try again.';
+  return 'Packages could not load. Check your connection and try again.';
 }

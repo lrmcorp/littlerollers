@@ -13,9 +13,9 @@ export function ForgotPasswordView({
   const [status, setStatus] = useState<'idle' | 'loading' | 'sent' | 'error'>('idle');
   return (
     <AuthPageShell
-      eyebrow="Pemulihan akun"
-      title="Lupa password"
-      description="Masukkan email undangan Anda. Jika akun cocok, kami akan mengirim tautan reset yang aman."
+      eyebrow="Account help"
+      title="Forgot your password?"
+      description="Enter the email on your account. If it matches, we will send you a reset link."
     >
       <form
         className="grid gap-4"
@@ -45,16 +45,16 @@ export function ForgotPasswordView({
           className="min-h-[50px] rounded-dd-sm bg-dd-forest px-5 font-bold text-white"
           disabled={status === 'loading'}
         >
-          {status === 'loading' ? 'Mengirim…' : 'Kirim tautan reset'}
+          {status === 'loading' ? 'Sending…' : 'Send reset link'}
         </button>
       </form>
       {status === 'sent' && (
         <Feedback kind="status">
-          Jika akun cocok, tautan reset telah dikirim. Periksa inbox dan folder spam.
+          If that email has an account, we sent a reset link. Check your inbox and spam folder.
         </Feedback>
       )}
       {status === 'error' && (
-        <Feedback kind="error">Permintaan belum dapat diproses. Coba kembali nanti.</Feedback>
+        <Feedback kind="error">We could not send the link. Please try again later.</Feedback>
       )}
     </AuthPageShell>
   );

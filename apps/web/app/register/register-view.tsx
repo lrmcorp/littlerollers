@@ -86,7 +86,7 @@ function PasswordField({
         <button
           type="button"
           className="auth-visibility-toggle"
-          aria-label={`${visible ? 'Sembunyikan' : 'Tampilkan'} ${label.toLowerCase()}`}
+          aria-label={`${visible ? 'Hide' : 'Show'} ${label.toLowerCase()}`}
           aria-pressed={visible}
           disabled={disabled}
           onClick={() => setVisible((current) => !current)}
@@ -124,11 +124,11 @@ function UploadPreview({ file, kind }: { file: File | null; kind: 'selfie' | 'kt
     <figure className={`auth-upload-preview auth-upload-preview--${kind}`}>
       {/* Blob URLs are created locally and are never sent before submission. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={previewUrl} alt={`Pratinjau ${kind === 'selfie' ? 'foto selfie' : 'foto KTP'}`} />
+      <img src={previewUrl} alt={`Preview of your ${kind === 'selfie' ? 'selfie' : 'KTP photo'}`} />
       <figcaption>
         <strong>{file.name}</strong>
         <span>
-          {(file.size / 1_000_000).toLocaleString('id-ID', { maximumFractionDigits: 1 })} MB
+          {(file.size / 1_000_000).toLocaleString('en-GB', { maximumFractionDigits: 1 })} MB
         </span>
       </figcaption>
     </figure>
@@ -187,11 +187,11 @@ function UploadField({
       />
       <div className="auth-upload-actions">
         <label className="auth-upload-picker" htmlFor={id}>
-          {file ? 'Ganti foto' : 'Pilih foto'}
+          {file ? 'Change photo' : 'Choose photo'}
         </label>
         {file && (
           <button type="button" disabled={disabled} onClick={onRemove}>
-            Hapus
+            Remove
           </button>
         )}
       </div>
@@ -276,16 +276,15 @@ export function RegisterView() {
 
   return (
     <AuthPageShell
-      eyebrow="Registrasi customer"
-      title="Buat akun Daily Dose"
-      description="Akun langsung aktif. Selfie dan foto KTP akan diperiksa secara privat oleh tim kami sebelum pembelian dan booking tersedia."
+      eyebrow="Join us"
+      title="Create a parent account"
+      description="Your account works straight away. Our team checks your selfie and KTP privately before you can buy packages and book sessions."
       compactMobileVisual
-      visualSrc="/images/public/landing/register-illustration.webp"
-      loginLabel="Masuk"
+      loginLabel="Sign in"
     >
       <form
         ref={formRef}
-        aria-label="Registrasi customer"
+        aria-label="Create a parent account"
         method="post"
         noValidate
         onSubmit={async (event) => {
@@ -323,11 +322,11 @@ export function RegisterView() {
       >
         <TextInput
           id="register-display-name"
-          label="Nama lengkap"
+          label="Your full name"
           name="displayName"
           autoComplete="name"
           maxLength={160}
-          placeholder="Contoh: Nadia Putri"
+          placeholder="Your name"
           required
           disabled={loading}
           error={
@@ -341,7 +340,7 @@ export function RegisterView() {
         />
         <TextInput
           id="register-phone"
-          label="Nomor WhatsApp"
+          label="WhatsApp number"
           name="phone"
           type="tel"
           inputMode="tel"
@@ -362,7 +361,7 @@ export function RegisterView() {
           inputMode="email"
           autoComplete="email"
           maxLength={254}
-          placeholder="nama@email.com"
+          placeholder="email@example.com"
           required
           disabled={loading}
           error={errors.email ? <span id={errorId('email')}>{errors.email}</span> : undefined}
@@ -374,7 +373,7 @@ export function RegisterView() {
           id="register-password"
           label="Password"
           name="password"
-          placeholder="Minimal 8 karakter"
+          placeholder="At least 8 characters"
           error={errors.password}
           disabled={loading}
           onBlur={handleTextBlur('password')}
@@ -382,9 +381,9 @@ export function RegisterView() {
         />
         <PasswordField
           id="register-confirmation"
-          label="Ulangi password"
+          label="Password again"
           name="confirmation"
-          placeholder="Masukkan ulang password"
+          placeholder="Type it again"
           error={errors.confirmation}
           disabled={loading}
           onBlur={handleTextBlur('confirmation')}
@@ -393,8 +392,8 @@ export function RegisterView() {
         <UploadField
           id="register-selfie"
           name="selfie"
-          label="Foto selfie"
-          hint="Wajah terlihat jelas · JPG, PNG, atau WebP · maksimal 8 MB."
+          label="Selfie photo"
+          hint="Face clearly visible · JPG, PNG or WebP · up to 8 MB."
           capture="user"
           file={selfie}
           inputRef={selfieInputRef}
@@ -406,8 +405,8 @@ export function RegisterView() {
         <UploadField
           id="register-ktp"
           name="ktp"
-          label="Foto KTP bagian depan"
-          hint="Seluruh sisi KTP terlihat jelas · JPG, PNG, atau WebP · maksimal 8 MB."
+          label="Front of your KTP"
+          hint="Whole card visible · JPG, PNG or WebP · up to 8 MB."
           capture="environment"
           file={ktp}
           inputRef={ktpInputRef}
@@ -417,8 +416,8 @@ export function RegisterView() {
           onRemove={() => removeUpload('ktp')}
         />
         <div id="register-privacy-notice" className="auth-privacy-notice" role="note">
-          Selfie dan foto KTP hanya digunakan untuk verifikasi identitas, disimpan secara privat,
-          dan hanya dapat diakses oleh tim yang berwenang.
+          Your selfie and KTP photo are only used to verify your identity. They are stored
+          privately and only authorised staff can see them.
         </div>
         <div>
           <label className="auth-consent" htmlFor="register-consent">
@@ -443,12 +442,12 @@ export function RegisterView() {
                 if (errors.consent) validateOne('consent');
               }}
             />
-            <span>Saya menyetujui pemrosesan selfie dan KTP untuk verifikasi identitas.</span>
+            <span>I agree to my selfie and KTP being used to verify my identity.</span>
           </label>
           {errors.consent && <FieldError id={errorId('consent')}>{errors.consent}</FieldError>}
         </div>
-        <Button type="submit" size="lg" fullWidth loading={loading} loadingLabel="Membuat akun…">
-          Daftar dan masuk
+        <Button type="submit" size="lg" fullWidth loading={loading} loadingLabel="Creating your account…">
+          Create account
         </Button>
         {state === 'error' && <Feedback kind="error">{message}</Feedback>}
       </form>

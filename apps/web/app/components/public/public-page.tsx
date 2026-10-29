@@ -1,6 +1,10 @@
 import type { ReactNode } from 'react';
 import { publicContainer } from './public-styles';
 
+/**
+ * Inner-page opener: continues the header's sky band and ends on a meadow curve,
+ * so each page starts where the home page hillside left off.
+ */
 export function PublicPageHero({
   eyebrow,
   title,
@@ -19,24 +23,24 @@ export function PublicPageHero({
   const compact = variant === 'compact';
   return (
     <section
-      className={`relative isolate overflow-hidden border-b border-dd-line bg-dd-paper ${
-        compact ? 'py-3' : 'py-16 sm:py-20 lg:py-24'
+      className={`relative isolate overflow-hidden bg-lr-sky ${
+        compact ? 'pt-4 pb-10' : 'pt-12 pb-20 sm:pt-16 sm:pb-24'
       }`}
     >
       <div className={`${publicContainer} relative z-10`}>
-        <p className="text-xs font-bold tracking-[0.14em] text-dd-forest uppercase">{eyebrow}</p>
+        <p className="font-display text-lg text-lr-sky-deep">{eyebrow}</p>
         <h1
-          className={`font-sans font-semibold tracking-[-0.035em] ${
+          className={`font-display text-dd-forest ${
             compact
-              ? 'mt-1 max-w-5xl text-[clamp(2.15rem,3.2vw,2.8rem)] leading-[1.02]'
-              : 'mt-3 max-w-4xl text-[clamp(3rem,7vw,5.5rem)] leading-[0.93]'
+              ? 'mt-1 max-w-5xl text-[clamp(2rem,3.2vw,2.6rem)] leading-[1.02]'
+              : 'mt-3 max-w-4xl text-[clamp(2.6rem,6.5vw,5rem)] leading-[0.95]'
           }`}
           id={titleId}
         >
           {title}
         </h1>
         <p
-          className={`text-base text-dd-muted sm:text-lg ${
+          className={`text-base text-dd-ink/80 sm:text-lg ${
             compact ? 'mt-2 max-w-4xl leading-6 sm:leading-7' : 'mt-5 max-w-2xl leading-7'
           }`}
         >
@@ -44,14 +48,14 @@ export function PublicPageHero({
         </p>
         {children && <div className={compact ? 'mt-3' : 'mt-7'}>{children}</div>}
       </div>
-      <span
-        className="absolute -top-20 right-[-8rem] -z-10 size-[28rem] rounded-full border border-dd-forest/10"
+      <svg
+        className="absolute inset-x-0 bottom-0 -z-0 block h-8 w-full text-dd-cream sm:h-12"
+        viewBox="0 0 1440 48"
+        preserveAspectRatio="none"
         aria-hidden="true"
-      />
-      <span
-        className="absolute top-14 right-[-2rem] -z-10 size-56 rounded-full border border-dd-brass/20"
-        aria-hidden="true"
-      />
+      >
+        <path d="M0 48 V30 C 300 4 640 0 980 18 S 1440 34 1440 34 V48 Z" fill="currentColor" />
+      </svg>
     </section>
   );
 }
@@ -72,9 +76,9 @@ export function PublicSectionHeading({
   return (
     <header className="mb-8 flex flex-col justify-between gap-5 md:flex-row md:items-end">
       <div className="max-w-3xl">
-        <p className="text-xs font-bold tracking-[0.14em] text-dd-forest uppercase">{eyebrow}</p>
+        <p className="font-display text-lg text-dd-forest">{eyebrow}</p>
         <h2
-          className="mt-2 font-sans text-[clamp(2.25rem,5vw,3.75rem)] leading-none font-semibold"
+          className="mt-2 font-display text-[clamp(2rem,4.5vw,3.25rem)] leading-none text-dd-forest"
           id={titleId}
         >
           {title}
@@ -99,14 +103,14 @@ export function PublicStatePanel({
 }) {
   return (
     <div
-      className={`rounded-dd-lg border p-8 text-center shadow-dd-card ${
+      className={`rounded-[15px] border p-8 text-center ${
         tone === 'error'
           ? 'border-dd-danger/30 bg-dd-danger-soft text-dd-danger'
           : 'border-dd-line bg-white text-dd-muted'
       }`}
       role={role}
     >
-      {title && <h3 className="font-sans text-2xl font-semibold text-dd-ink">{title}</h3>}
+      {title && <h3 className="font-display text-2xl text-dd-forest">{title}</h3>}
       <div className={title ? 'mt-2' : ''}>{children}</div>
     </div>
   );

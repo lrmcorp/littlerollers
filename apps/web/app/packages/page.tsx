@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import { PublicPackagesView } from './public-packages-view';
 
 export const metadata: Metadata = {
-  title: 'Paket Pilates',
-  description: 'Lihat paket Pilates aktif berdasarkan studio Daily Dose Pilates pilihan Anda.',
+  title: 'Packages',
+  description: 'Compare 1-hour and 2-hour session packages at your Little Rollers club.',
 };
 
 export default function PublicPackagesPage() {

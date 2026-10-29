@@ -24,6 +24,7 @@ export type InternalPackageRecord = {
   businessKey: string;
   name: string;
   sessionCount: number;
+  sessionDurationMinutes?: number;
   durationDays: number;
   priceRp: number;
   status: 'ACTIVE' | 'INACTIVE';

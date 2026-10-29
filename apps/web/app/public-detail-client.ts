@@ -148,7 +148,7 @@ export const publicDetailClient = {
   async package(id: string): Promise<PublicPackageDetail> {
     const item = await appLoading.track(
       publicGeneratedApi.packages.getPublicPackageDetail({ id }),
-      { label: 'Memuat detail paket…' },
+      { label: 'Loading package…' },
     );
     return {
       ...item,
@@ -162,7 +162,7 @@ export const publicDetailClient = {
   async schedule(id: string): Promise<PublicScheduleDetail> {
     const item = await appLoading.track(
       publicGeneratedApi.classes.getPublicScheduleDetail({ id }),
-      { label: 'Memuat detail jadwal…' },
+      { label: 'Loading session…' },
     );
     return {
       ...item,
@@ -173,14 +173,14 @@ export const publicDetailClient = {
   async classType(slug: string): Promise<PublicClassDetail> {
     return classDetailView(
       await appLoading.track(publicGeneratedApi.classes.getPublicClassDetail({ slug }), {
-        label: 'Memuat detail kelas…',
+        label: 'Loading class…',
       }),
     );
   },
   async studio(slug: string): Promise<PublicStudioDetail> {
     return studioDetailView(
       await appLoading.track(publicGeneratedApi.master.getPublicStudioDetail({ slug }), {
-        label: 'Memuat detail studio…',
+        label: 'Loading club…',
       }),
     );
   },
@@ -189,6 +189,6 @@ export const publicDetailClient = {
 export function publicDetailFailure(error: unknown) {
   const status = publicApiStatus(error);
   if (status === 404) return 'NOT_FOUND';
-  if (status === 503) return 'Layanan sedang tidak tersedia. Silakan coba beberapa saat lagi.';
-  return 'Detail belum dapat dimuat. Periksa koneksi lalu coba lagi.';
+  if (status === 503) return 'The service is unavailable right now. Please try again shortly.';
+  return 'This page could not load. Check your connection and try again.';
 }

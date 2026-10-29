@@ -12,11 +12,12 @@ export async function generateMetadata({
   const item = await publicMetadataValue<PublicClassDetail>(
     `/public/class-types/${encodeURIComponent(slug)}`,
   );
-  const title = item
-    ? `${item.profile.code === 'CLUB' ? 'Barre' : item.profile.code === 'PLAY' ? 'Tiny Rollers' : 'Movers'} · Daily Dose`
-    : 'Detail Kelas';
+  const name = item
+    ? (item.packages[0]?.classType?.name ?? item.schedules[0]?.classType?.name ?? null)
+    : null;
+  const title = name ?? 'Class details';
   const description =
-    item?.profile.summary ?? 'Manfaat, perlengkapan, paket, dan jadwal kelas Daily Dose.';
+    item?.profile.summary ?? 'What the class covers, what to bring, packages and next sessions.';
   return {
     title,
     description,

@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import { LocationsView } from './locations-view';
 
 export const metadata: Metadata = {
-  title: 'Our Studios',
-  description: 'Temukan studio Daily Dose Pilates aktif di Jakarta dan BSD.',
+  title: 'Our clubs',
+  description: 'Addresses, arrival tips and timetables for each Little Rollers club.',
 };
 
 export default function LocationsPage() {

@@ -1,0 +1,550 @@
+/*
+ * Home page hero: one 1440 x 1280 frame that scales with the page width.
+ * Every position below is in frame units (--u = 1/1440 of the frame width), so the copy,
+ * pills and class cards stay locked to the painted hillside at any desktop width.
+ */
+
+.lr-home {
+  container-type: inline-size;
+  position: relative;
+}
+
+.lr-hero {
+  position: relative;
+  overflow: hidden;
+  color: #fff;
+  /* Shown until the plate loads, and if it never does: sky to meadow in the plate's colours. */
+  background: linear-gradient(180deg, #2f6f9f 0%, #6fa9d6 38%, #a9cfe6 56%, #8fbf6a 64%, #4f8a3c 100%);
+}
+
+.lr-hero__frame {
+  --u: calc(100cqw / 1440);
+  position: relative;
+  height: calc(1280 * var(--u));
+}
+
+.lr-hero__scene {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.lr-hero__plate,
+.lr-hero__video {
+  position: absolute;
+  left: 0;
+  display: block;
+  width: 100%;
+  object-fit: cover;
+}
+
+.lr-hero__plate {
+  top: 0;
+  height: 100%;
+}
+
+/* The loop was rendered square from the plate mirror-padded 120/1920 top and bottom,
+   so it is 12.5% taller than the plate and shifted up by half of that. */
+.lr-hero__video {
+  top: -6.25%;
+  height: 112.5%;
+}
+
+/* Keeps white copy readable over the brightest part of the sky. */
+.lr-hero__scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse calc(560 * var(--u)) calc(330 * var(--u)) at 50% calc(420 * var(--u)),
+    rgb(20 58 104 / 34%),
+    rgb(20 58 104 / 0%) 100%
+  );
+}
+
+.lr-hero__layer {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+}
+
+/* The header sits over the top of the frame and shares its units. */
+.lr-hero__bar {
+  --u: calc(100cqw / 1440);
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 3;
+  width: 100%;
+  height: calc(80 * var(--u));
+  color: #fff;
+}
+
+/* Grouping wrapper; only the phone layout gives it a box. */
+.lr-hero__classes {
+  display: contents;
+}
+
+.lr-hero__logo {
+  position: absolute;
+  top: calc(23 * var(--u));
+  left: calc(31 * var(--u));
+}
+
+.lr-hero__logo img {
+  width: calc(44 * var(--u));
+  height: calc(44 * var(--u));
+  min-width: 36px;
+  min-height: 36px;
+}
+
+.lr-hero__logo span {
+  font-size: max(18px, calc(29.5 * var(--u)));
+}
+
+.lr-hero__nav {
+  position: absolute;
+  top: calc(13 * var(--u));
+  left: calc(443 * var(--u));
+  display: flex;
+  align-items: center;
+  gap: calc(54 * var(--u));
+  width: calc(546 * var(--u));
+  height: calc(50 * var(--u));
+  min-height: 44px;
+  padding-left: calc(49 * var(--u));
+  border-radius: 999px;
+  background: rgb(173 196 174 / 45%);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.lr-hero__nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: #fff;
+  font-size: max(14px, calc(19.5 * var(--u)));
+  font-weight: 500;
+  text-decoration: none;
+  text-shadow: 0 1px 8px rgb(28 70 120 / 45%);
+  white-space: nowrap;
+}
+
+.lr-hero__nav a:hover {
+  text-decoration: underline;
+  text-underline-offset: 6px;
+}
+
+.lr-hero__account {
+  position: absolute;
+  top: calc(14 * var(--u));
+  right: calc(24 * var(--u));
+  display: flex;
+  align-items: center;
+  gap: calc(14 * var(--u));
+}
+
+.lr-hero__signin {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: #fff;
+  font-size: max(14px, calc(18.5 * var(--u)));
+  font-weight: 500;
+  text-decoration: none;
+  text-shadow: 0 1px 8px rgb(28 70 120 / 45%);
+}
+
+.lr-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(10 * var(--u));
+  border-radius: 999px;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: transform 180ms ease;
+}
+
+.lr-pill:hover {
+  transform: translateY(calc(-2 * var(--u)));
+}
+
+.lr-pill--white {
+  background: #fff;
+  color: var(--color-dd-forest);
+}
+
+/* Mint glass pill. Forest text: white on this mint would be about 1.4:1. */
+.lr-pill--mint {
+  background: rgb(204 218 173 / 60%);
+  color: var(--color-dd-forest);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.lr-hero__join {
+  min-width: calc(105 * var(--u));
+  height: calc(45 * var(--u));
+  min-height: 44px;
+  padding: 0 calc(22 * var(--u));
+  font-size: max(14px, calc(18.5 * var(--u)));
+}
+
+.lr-hero__copy {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  text-align: center;
+}
+
+.lr-hero__kicker {
+  position: absolute;
+  top: calc(196 * var(--u));
+  width: 100%;
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: calc(40.5 * var(--u));
+  line-height: 1;
+  text-shadow: 0 calc(4 * var(--u)) calc(18 * var(--u)) rgb(28 70 120 / 28%);
+}
+
+.lr-hero__headline {
+  position: absolute;
+  top: calc(248 * var(--u));
+  width: 100%;
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: calc(143.5 * var(--u));
+  font-weight: 900;
+  line-height: calc(118 * var(--u));
+  text-shadow: 0 calc(4 * var(--u)) calc(18 * var(--u)) rgb(28 70 120 / 28%);
+}
+
+.lr-hero__headline > span {
+  display: block;
+}
+
+.lr-hero__sub {
+  position: absolute;
+  top: calc(505 * var(--u));
+  left: 50%;
+  width: calc(560 * var(--u));
+  margin: 0;
+  transform: translateX(-50%);
+  font-size: calc(21.2 * var(--u));
+  line-height: calc(27 * var(--u));
+  text-shadow: 0 1px 10px rgb(20 58 104 / 55%);
+}
+
+.lr-hero__actions {
+  position: absolute;
+  top: calc(617 * var(--u));
+  left: 0;
+  display: flex;
+  justify-content: center;
+  gap: calc(13 * var(--u));
+  width: 100%;
+}
+
+.lr-hero__primary {
+  min-width: calc(144 * var(--u));
+  height: calc(59 * var(--u));
+  padding: 0 calc(28 * var(--u));
+  font-size: calc(22 * var(--u));
+}
+
+.lr-hero__secondary {
+  min-width: calc(184 * var(--u));
+  height: calc(58 * var(--u));
+  margin-top: calc(2 * var(--u));
+  padding: 0 calc(26 * var(--u));
+  font-size: calc(19.5 * var(--u));
+}
+
+.lr-hero__secondary svg {
+  width: calc(20 * var(--u));
+  height: calc(20 * var(--u));
+}
+
+.lr-hero__classes-title {
+  position: absolute;
+  top: calc(866 * var(--u));
+  left: calc(137 * var(--u));
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: calc(36 * var(--u));
+  line-height: 1;
+  text-shadow: 0 2px 12px rgb(10 40 20 / 55%);
+}
+
+.lr-hero__classes-link {
+  position: absolute;
+  top: calc(866 * var(--u));
+  right: calc(1440 * var(--u) - 1308 * var(--u));
+  display: inline-flex;
+  align-items: center;
+  gap: calc(6 * var(--u));
+  min-height: 44px;
+  margin-top: -8px;
+  color: #fff;
+  font-size: calc(22 * var(--u));
+  font-weight: 500;
+  text-decoration: none;
+  text-shadow: 0 2px 12px rgb(10 40 20 / 55%);
+}
+
+.lr-hero__classes-link .lr-chevron {
+  transition: transform 180ms ease;
+}
+
+.lr-hero__classes-link:hover .lr-chevron {
+  transform: translateX(calc(4 * var(--u)));
+}
+
+.lr-hero__cards {
+  position: absolute;
+  top: calc(913 * var(--u));
+  left: calc(133 * var(--u));
+  display: grid;
+  grid-template-columns: repeat(3, calc(378 * var(--u)));
+  gap: calc(20 * var(--u));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lr-class-card {
+  position: relative;
+  display: block;
+  height: calc(273 * var(--u));
+  overflow: hidden;
+  border-radius: 15px;
+  background: var(--color-dd-cream);
+  box-shadow: 0 calc(14 * var(--u)) calc(34 * var(--u)) rgb(10 40 20 / 28%);
+  color: var(--color-dd-forest);
+  text-decoration: none;
+  transition: transform 220ms ease;
+}
+
+.lr-class-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 320ms ease;
+}
+
+.lr-class-card:hover {
+  transform: translateY(calc(-8 * var(--u)));
+}
+
+.lr-class-card:hover img {
+  transform: scale(1.05);
+}
+
+.lr-class-card__label {
+  position: absolute;
+  bottom: calc(20 * var(--u));
+  left: calc(20 * var(--u));
+  display: grid;
+  gap: calc(4 * var(--u));
+  max-width: calc(100% - 40 * var(--u));
+  padding: calc(12 * var(--u)) calc(16 * var(--u));
+  border-radius: 12px;
+  background: #fff;
+}
+
+.lr-class-card__name {
+  font-family: var(--font-display);
+  font-size: max(16px, calc(24 * var(--u)));
+  line-height: 1.1;
+}
+
+.lr-class-card__meta {
+  color: var(--color-dd-muted);
+  font-size: max(13px, calc(15 * var(--u)));
+}
+
+.lr-class-card--state {
+  display: grid;
+  place-items: center;
+  padding: calc(24 * var(--u));
+  background: rgb(255 255 255 / 92%);
+  text-align: center;
+}
+
+.lr-class-card--loading {
+  background: rgb(255 255 255 / 55%);
+}
+
+/* Phones and small tablets: content flows; the scene keeps the boy and dog in view. */
+@media (width <= 820px) {
+  .lr-hero__frame {
+    height: auto;
+    padding: 76px 16px 28px;
+  }
+
+  .lr-hero__bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    height: auto;
+    padding: 12px 16px;
+  }
+
+  .lr-hero__scene {
+    inset: 0 auto 0 18%;
+    width: auto;
+    height: 100%;
+    aspect-ratio: 9 / 8;
+    transform: translateX(-18%);
+  }
+
+  .lr-hero__scrim {
+    background: linear-gradient(180deg, rgb(20 58 104 / 42%) 0%, rgb(20 58 104 / 18%) 55%, rgb(10 40 20 / 35%) 100%);
+  }
+
+  .lr-hero__layer {
+    position: relative;
+    display: grid;
+    gap: 22px;
+  }
+
+  .lr-hero__logo,
+  .lr-hero__account,
+  .lr-hero__copy,
+  .lr-hero__kicker,
+  .lr-hero__headline,
+  .lr-hero__sub,
+  .lr-hero__actions,
+  .lr-hero__classes-title,
+  .lr-hero__classes-link,
+  .lr-hero__cards {
+    position: static;
+    transform: none;
+  }
+
+  .lr-hero__logo img {
+    width: 40px;
+    height: 40px;
+  }
+
+  .lr-hero__nav,
+  .lr-hero__signin {
+    display: none;
+  }
+
+  .lr-hero__join {
+    padding: 0 20px;
+    font-size: 16px;
+  }
+
+  .lr-hero__copy {
+    display: grid;
+    gap: 14px;
+    padding-top: 36px;
+  }
+
+  .lr-hero__kicker {
+    font-size: 20px;
+  }
+
+  .lr-hero__headline {
+    font-size: 51px;
+    line-height: 46px;
+  }
+
+  .lr-hero__sub {
+    width: auto;
+    max-width: 34rem;
+    margin: 0 auto;
+    font-size: 16px;
+    line-height: 24px;
+  }
+
+  .lr-hero__actions {
+    flex-wrap: wrap;
+    gap: 10px;
+    padding-top: 6px;
+  }
+
+  .lr-hero__primary,
+  .lr-hero__secondary {
+    height: 52px;
+    min-width: 0;
+    margin: 0;
+    padding: 0 24px;
+    font-size: 17px;
+  }
+
+  .lr-hero__secondary svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .lr-hero__classes {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 12px;
+    padding-top: 150px;
+  }
+
+  .lr-hero__classes-title {
+    font-size: 24px;
+  }
+
+  .lr-hero__classes-link {
+    margin: 0;
+    font-size: 16px;
+  }
+
+  /* Swipeable row of cards. */
+  .lr-hero__cards {
+    grid-column: 1 / -1;
+    display: flex;
+    gap: 12px;
+    margin: 0 -16px;
+    padding: 4px 16px 12px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+
+  .lr-hero__cards > li {
+    flex: 0 0 min(78vw, 300px);
+    scroll-snap-align: start;
+  }
+
+  .lr-class-card {
+    height: 220px;
+  }
+
+  .lr-class-card__label {
+    bottom: 14px;
+    left: 14px;
+    max-width: calc(100% - 28px);
+    padding: 10px 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lr-pill,
+  .lr-class-card,
+  .lr-class-card img,
+  .lr-hero__classes-link .lr-chevron {
+    transition: none;
+  }
+
+  .lr-pill:hover,
+  .lr-class-card:hover,
+  .lr-class-card:hover img,
+  .lr-hero__classes-link:hover .lr-chevron {
+    transform: none;
+  }
+}

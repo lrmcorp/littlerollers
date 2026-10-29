@@ -18,6 +18,14 @@ import {
   publicSecondaryButton,
 } from '../../components/public/public-detail-shared';
 
+function blockSummary(startAt: string, endAt: string) {
+  const minutes = (new Date(endAt).getTime() - new Date(startAt).getTime()) / 60_000;
+  if (minutes >= 120)
+    return 'A 2-hour block: 1-hour packages join the first hour, 2-hour packages stay for both.';
+  if (minutes >= 60) return 'A 1-hour session.';
+  return '';
+}
+
 export function ScheduleDetailView({
   id,
   initialData = null,
@@ -44,11 +52,11 @@ export function ScheduleDetailView({
   return (
     <PublicDetailFrame
       breadcrumb={[
-        { label: 'Jadwal', href: '/classes#schedule' },
-        { label: item?.classType.name ?? 'Detail' },
+        { label: 'Timetable', href: '/classes#schedule' },
+        { label: item?.classType.name ?? 'Session' },
       ]}
     >
-      {!item && !failure && <DetailLoading label="jadwal" />}
+      {!item && !failure && <DetailLoading label="session" />}
       {failure && (
         <DetailFailure
           message={failure}
@@ -59,22 +67,22 @@ export function ScheduleDetailView({
       {item && start && (
         <>
           <DetailHero
-            eyebrow="Jadwal kelas"
+            eyebrow="Session"
             title={item.classType.name}
-            summary={`${new Intl.DateTimeFormat('id-ID', { dateStyle: 'full', timeZone: item.timezone }).format(start)} di ${item.branch.name}.`}
+            summary={`${new Intl.DateTimeFormat('en-GB', { dateStyle: 'full', timeZone: item.timezone }).format(start)} at ${item.branch.name}. ${blockSummary(item.startAt, item.endAt)}`}
             imageKey={item.classProfile.heroImageKey}
             facts={
               <div className="flex flex-wrap gap-3 text-sm">
                 <span className="inline-flex items-center gap-2 rounded-full border border-dd-line bg-white px-4 py-2">
-                  <CalendarDays className="size-4 text-dd-forest" />
-                  {new Intl.DateTimeFormat('id-ID', {
+                  <CalendarDays className="size-4 text-dd-forest" aria-hidden="true" />
+                  {new Intl.DateTimeFormat('en-GB', {
                     dateStyle: 'medium',
                     timeZone: item.timezone,
                   }).format(start)}
                 </span>
                 <span className="inline-flex items-center gap-2 rounded-full border border-dd-line bg-white px-4 py-2">
-                  <Clock3 className="size-4 text-dd-forest" />
-                  {new Intl.DateTimeFormat('id-ID', {
+                  <Clock3 className="size-4 text-dd-forest" aria-hidden="true" />
+                  {new Intl.DateTimeFormat('en-GB', {
                     hour: '2-digit',
                     minute: '2-digit',
                     timeZone: item.timezone,
@@ -82,8 +90,8 @@ export function ScheduleDetailView({
                   WIB
                 </span>
                 <span className="inline-flex items-center gap-2 rounded-full border border-dd-line bg-white px-4 py-2">
-                  <UsersRound className="size-4 text-dd-forest" />
-                  {item.available} dari {item.capacity} tempat tersisa
+                  <UsersRound className="size-4 text-dd-forest" aria-hidden="true" />
+                  {item.available} of {item.capacity} places left
                 </span>
               </div>
             }
@@ -91,15 +99,15 @@ export function ScheduleDetailView({
               <>
                 <AudienceAction kind="schedule" id={item.id} disabled={item.available < 1} />
                 <Link className={publicSecondaryButton} href={`/classes/${item.classProfile.slug}`}>
-                  Detail kelas
+                  About this class
                 </Link>
               </>
             }
           />
           <section className={`${publicContainer} grid gap-6 py-10 md:grid-cols-2`}>
-            <article className="rounded-dd-lg border border-dd-line bg-white p-6 shadow-dd-card">
-              <MapPin className="size-6 text-dd-forest" />
-              <h2 className="mt-4 text-2xl font-semibold">{item.branch.name}</h2>
+            <article className="rounded-[15px] border border-dd-line bg-white p-6">
+              <MapPin className="size-6 text-dd-forest" aria-hidden="true" />
+              <h2 className="mt-4 font-display text-2xl text-dd-forest">{item.branch.name}</h2>
               <p className="mt-2 text-sm leading-6 text-dd-muted">
                 {item.branch.publicProfile.address}
               </p>
@@ -110,15 +118,15 @@ export function ScheduleDetailView({
                 className={`${publicSecondaryButton} mt-5`}
                 href={`/locations/${item.branch.publicProfile.slug}`}
               >
-                Lihat detail studio
+                Club details
               </Link>
             </article>
-            <article className="rounded-dd-lg border border-dd-line bg-dd-paper p-6">
-              <h2 className="text-2xl font-semibold">Sebelum datang</h2>
-              <ul className="mt-4 grid gap-3 pl-5 text-sm leading-6 text-dd-muted">
-                <li>Datang 15 menit sebelum kelas dimulai.</li>
-                <li>Gunakan pakaian latihan yang nyaman dan grip socks.</li>
-                <li>Booking hanya dapat dilakukan selama tempat masih tersedia.</li>
+            <article className="rounded-[15px] bg-lr-sky p-6">
+              <h2 className="font-display text-2xl text-dd-forest">Before you come</h2>
+              <ul className="mt-4 grid gap-3 pl-5 text-sm leading-6 text-dd-ink">
+                <li>Arrive about 10 minutes early so your child can settle in.</li>
+                <li>Dress them in comfortable clothes and grip socks.</li>
+                <li>You can book while places are left.</li>
               </ul>
             </article>
           </section>

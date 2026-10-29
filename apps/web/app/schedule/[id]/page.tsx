@@ -13,10 +13,10 @@ export async function generateMetadata({
     `/public/class-catalog/${encodeURIComponent(id)}`,
     true,
   );
-  const title = item ? `${item.classType.name} · ${item.branch.name}` : 'Detail Jadwal';
+  const title = item ? `${item.classType.name} · ${item.branch.name}` : 'Session details';
   const description = item
-    ? `Jadwal dan ketersediaan ${item.classType.name} di ${item.branch.name}.`
-    : 'Waktu, studio, dan ketersediaan kelas Daily Dose.';
+    ? `Time and places left for ${item.classType.name} at ${item.branch.name}.`
+    : 'Time, club and places left for a Little Rollers session.';
   return {
     title,
     description,

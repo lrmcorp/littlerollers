@@ -1,6 +1,5 @@
 'use client';
 
-import Image from 'next/image';
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -12,18 +11,19 @@ import {
 } from '../identity-client';
 import { Feedback } from '../ui';
 import { useSessionContext } from '../session-context';
+import { SceneBackdrop } from '../components/public/scene-backdrop';
 import { BrandMark } from '../components/public/brand-mark';
 
 const messages: Record<UiFailure, string> = {
-  AUTHENTICATION_REQUIRED: 'Email atau password tidak valid.',
-  CONFIGURATION_REQUIRED: 'Layanan masuk sementara tidak tersedia. Silakan coba kembali nanti.',
-  INTERNAL_ERROR: 'Layanan masuk sedang mengalami gangguan.',
-  RATE_LIMITED: 'Terlalu banyak percobaan. Coba kembali nanti.',
-  SERVICE_UNAVAILABLE: 'Proses masuk sementara tidak tersedia. Silakan coba kembali nanti.',
-  FORBIDDEN: 'Akses tidak diizinkan.',
-  IDENTITY_CONFLICT: 'Identitas memerlukan tinjauan dukungan.',
-  STALE_VERSION: 'Data telah berubah. Muat ulang lalu coba kembali.',
-  SESSION_REVOKED: 'Sesi telah berakhir. Silakan masuk kembali.',
+  AUTHENTICATION_REQUIRED: 'That email or password is not right.',
+  CONFIGURATION_REQUIRED: 'Sign-in is unavailable right now. Please try again later.',
+  INTERNAL_ERROR: 'Something went wrong while signing you in.',
+  RATE_LIMITED: 'Too many attempts. Please wait a moment and try again.',
+  SERVICE_UNAVAILABLE: 'Sign-in is unavailable right now. Please try again later.',
+  FORBIDDEN: 'This account cannot sign in here.',
+  IDENTITY_CONFLICT: 'Your account needs a check by our team. Please contact your club.',
+  STALE_VERSION: 'Something changed. Reload the page and try again.',
+  SESSION_REVOKED: 'You were signed out. Please sign in again.',
 };
 
 type AuthState = 'idle' | 'loading' | 'success' | 'invalid' | UiFailure;
@@ -77,7 +77,7 @@ function GoogleIdentityButton({
         shape: 'rectangular',
         text: 'continue_with',
         width: 420,
-        locale: 'id',
+        locale: 'en',
       });
     };
     const existing = document.querySelector<HTMLScriptElement>('script[data-google-identity]');
@@ -136,32 +136,20 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
       id="main-content"
     >
       <a className="skip-link" href="#auth-form">
-        Langsung ke formulir masuk
+        Skip to the sign-in form
       </a>
 
       <section
         className="relative isolate min-h-svh overflow-hidden max-[900px]:min-h-[330px] max-[540px]:min-h-[280px]"
-        aria-label="Daily Dose Pilates"
+        aria-label="Little Rollers"
       >
-        <Image
-          className="-z-20 object-cover object-[58%_center]"
-          src="/images/public/landing/hero-pilates.png"
-          fill
-          priority
-          sizes="(max-width: 900px) 100vw, 52vw"
-          alt=""
-        />
-        <div className="absolute inset-0 -z-10 bg-[linear-gradient(180deg,rgba(14,43,31,0.05)_28%,rgba(14,43,31,0.8)_100%),linear-gradient(90deg,rgba(14,43,31,0.09),transparent_50%)]" />
+        <SceneBackdrop />
+        <div className="absolute inset-0 -z-10 bg-[linear-gradient(180deg,rgba(20,58,104,0.35)_0%,rgba(20,58,104,0.05)_45%,rgba(7,50,40,0.7)_100%)]" />
         <div className="absolute right-[clamp(28px,5vw,72px)] bottom-[clamp(38px,7vw,82px)] left-[clamp(28px,5vw,72px)] max-w-[670px] text-white max-[540px]:right-5 max-[540px]:bottom-6 max-[540px]:left-5">
-          <p className="mb-4 text-xs font-bold tracking-[0.16em] uppercase">
-            Move better, live better
-          </p>
-          <h1 className="m-0 max-w-[620px] font-sans text-[clamp(3.2rem,5.2vw,5.4rem)] leading-[0.92] font-semibold tracking-[-0.035em] max-[900px]:text-[clamp(2.7rem,8vw,4.3rem)] max-[540px]:text-[2.75rem]">
-            Welcome back to your Daily Dose.
+          <p className="mb-3 font-display text-xl">LITTLE ROLLERS</p>
+          <h1 className="m-0 max-w-[620px] font-display text-[clamp(3rem,5vw,5rem)] leading-[0.95] max-[900px]:text-[clamp(2.5rem,8vw,4rem)] max-[540px]:text-[2.5rem]">
+            Welcome back to the club.
           </h1>
-          <blockquote className="mt-6 border-l border-white/60 pl-[18px] font-sans text-[1.35rem] max-[900px]:hidden">
-            “Stronger body. Calmer mind.”
-          </blockquote>
         </div>
       </section>
 
@@ -171,25 +159,25 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
       >
         <div className="w-full max-w-[510px]" id="auth-form">
           <div className="mb-10 flex items-center justify-between gap-6">
-            <BrandMark className="w-[172px] max-[540px]:w-[145px]" priority />
-            <Link className="text-sm font-bold text-dd-forest-dark no-underline" href="/">
-              Kembali ke beranda
+            <BrandMark priority />
+            <Link
+              className="inline-flex min-h-11 items-center text-sm font-medium text-dd-forest no-underline"
+              href="/"
+            >
+              Back to home
             </Link>
           </div>
 
-          <p className="mb-3 text-xs font-bold tracking-[0.13em] text-dd-forest uppercase">
-            Secure member access
-          </p>
           <h2
-            className="m-0 font-sans text-[clamp(2.7rem,4vw,4rem)] leading-[0.98] font-semibold tracking-[-0.035em]"
+            className="m-0 font-display text-[clamp(2.4rem,4vw,3.6rem)] leading-[0.98] text-dd-forest"
             id="sign-in-title"
           >
-            Masuk ke Daily Dose
+            Sign in
           </h2>
           <p className="mt-5 text-base leading-7 text-dd-muted">
             {googleEnabled
-              ? 'Gunakan email yang terdaftar atau lanjutkan dengan identitas Google Anda.'
-              : 'Gunakan email dan password yang terdaftar.'}
+              ? 'Use the email you registered with, or continue with Google.'
+              : 'Use the email and password you registered with.'}
           </p>
 
           <form
@@ -208,11 +196,11 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
             <label className="grid gap-2 text-sm font-bold">
               Email
               <input
-                className="min-h-[50px] rounded-dd-sm border border-dd-line bg-white px-4 outline-none focus:border-dd-forest"
+                className="min-h-[50px] rounded-dd-md border border-dd-line bg-white px-4 outline-none focus:border-dd-forest"
                 name="email"
                 type="email"
                 autoComplete="username"
-                placeholder="nama@perusahaan.com"
+                placeholder="you@example.com"
                 required
               />
             </label>
@@ -220,13 +208,13 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
               Password
               <span className="relative">
                 <input
-                  className="min-h-[50px] w-full rounded-dd-sm border border-dd-line bg-white px-4 pr-24 outline-none focus:border-dd-forest"
+                  className="min-h-[50px] w-full rounded-dd-md border border-dd-line bg-white px-4 pr-24 outline-none focus:border-dd-forest"
                   name="password"
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="current-password"
                   minLength={8}
                   maxLength={128}
-                  placeholder="Masukkan password"
+                  placeholder="Your password"
                   required
                 />
                 <button
@@ -235,55 +223,50 @@ export function SignInView({ client = browserIdentityClient }: { client?: Identi
                   type="button"
                   onClick={() => setShowPassword((value) => !value)}
                 >
-                  {showPassword ? 'Sembunyikan' : 'Lihat'}
+                  {showPassword ? 'Hide' : 'Show'}
                 </button>
               </span>
             </label>
             <div className="auth-sign-in-meta flex items-center justify-between gap-4 text-sm">
               <Link className="font-bold text-dd-forest" href="/forgot-password">
-                Lupa password?
+                Forgot your password?
               </Link>
-              <span className="text-dd-muted">Akses sesuai permission</span>
             </div>
             <button
-              className="auth-primary-action min-h-[52px] w-full rounded-dd-sm bg-dd-forest px-5 font-bold text-white shadow-dd-soft hover:bg-dd-forest-dark disabled:bg-dd-sage"
+              className="auth-primary-action min-h-[52px] w-full rounded-full bg-dd-forest px-5 font-medium text-white hover:bg-dd-forest-dark disabled:bg-dd-sage"
               disabled={state === 'loading'}
               type="submit"
             >
-              {state === 'loading' ? 'Memeriksa akses…' : 'Masuk dengan email'}
+              {state === 'loading' ? 'Signing in…' : 'Sign in with email'}
             </button>
           </form>
 
           {state === 'invalid' && (
-            <Feedback kind="error">Email atau password tidak valid.</Feedback>
+            <Feedback kind="error">That email or password is not right.</Feedback>
           )}
           {state in messages && (
             <Feedback kind="error">
               {messages[state as UiFailure]}
               {reference && (state === 'INTERNAL_ERROR' || state === 'SERVICE_UNAVAILABLE')
-                ? ` Kode bantuan: ${reference}.`
+                ? ` Support code: ${reference}.`
                 : ''}
             </Feedback>
           )}
-          {state === 'success' && <Feedback kind="status">Identitas terverifikasi.</Feedback>}
+          {state === 'success' && <Feedback kind="status">Signed in.</Feedback>}
 
           {googleEnabled && (
             <>
               <div className="my-6 flex items-center gap-4 text-xs font-bold tracking-wider text-dd-muted uppercase before:h-px before:flex-1 before:bg-dd-line after:h-px after:flex-1 after:bg-dd-line">
-                atau
+                or
               </div>
               <GoogleIdentityButton client={client} onComplete={complete} onFailure={fail} />
             </>
           )}
 
-          <div className="mt-6 border-y border-dd-line py-4 text-[13px] leading-6 text-dd-muted">
-            <strong className="block text-sm text-dd-ink">Akses terlindungi</strong>
-            Seluruh akses dan tindakan dibatasi berdasarkan permission serta scope cabang.
-          </div>
           <p className="mt-6 text-center text-sm text-dd-muted">
-            Belum punya akun?{' '}
+            New to Little Rollers?{' '}
             <Link className="font-bold text-dd-forest" href="/register">
-              Daftar sebagai customer
+              Create a parent account
             </Link>
           </p>
         </div>

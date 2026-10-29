@@ -51,9 +51,9 @@ export function PackageDetailView({
 
   return (
     <PublicDetailFrame
-      breadcrumb={[{ label: 'Paket', href: '/packages' }, { label: item?.name ?? 'Detail' }]}
+      breadcrumb={[{ label: 'Packages', href: '/packages' }, { label: item?.name ?? 'Details' }]}
     >
-      {!item && !failure && <DetailLoading label="paket" />}
+      {!item && !failure && <DetailLoading label="package" />}
       {failure && (
         <DetailFailure
           message={failure}
@@ -69,14 +69,15 @@ export function PackageDetailView({
             summary={item.publicProfile.summary}
             imageKey={item.branch.publicProfile.heroImageKey}
             facts={
-              <div className="grid max-w-2xl grid-cols-2 gap-3 sm:grid-cols-4">
+              <div className="grid max-w-3xl grid-cols-2 gap-3 sm:grid-cols-5">
                 {[
-                  ['Harga', rupiah.format(item.effectivePriceRp)],
-                  ['Per sesi', rupiah.format(item.pricePerSessionRp)],
-                  ['Jumlah', `${item.sessionCount} sesi`],
-                  ['Berlaku', `${item.durationDays} hari`],
+                  ['Price', rupiah.format(item.effectivePriceRp)],
+                  ['Per session', rupiah.format(item.pricePerSessionRp)],
+                  ['Sessions', String(item.sessionCount)],
+                  ['Each session', (item.sessionDurationMinutes ?? 60) >= 120 ? '2 hours' : '1 hour'],
+                  ['Valid for', `${item.durationDays} days`],
                 ].map(([label, value]) => (
-                  <div className="rounded-dd-md border border-dd-line bg-white/80 p-3" key={label}>
+                  <div className="rounded-[12px] border border-dd-line bg-white p-3" key={label}>
                     <span className="text-xs text-dd-muted">{label}</span>
                     <strong className="mt-1 block text-sm">{value}</strong>
                   </div>
@@ -90,21 +91,21 @@ export function PackageDetailView({
                   className={publicSecondaryButton}
                   href={`/locations/${item.branch.publicProfile.slug}`}
                 >
-                  <MapPin className="size-4" /> Detail studio
+                  <MapPin className="size-4" aria-hidden="true" /> Club details
                 </Link>
               </>
             }
           />
           {item.promotion && (
-            <section className={`${publicContainer} pt-8`} aria-label="Promo paket aktif">
-              <div className="flex flex-col gap-4 rounded-dd-lg border border-dd-brass/50 bg-dd-brass-soft p-5 sm:flex-row sm:items-center sm:justify-between">
+            <section className={`${publicContainer} pt-8`} aria-label="Current offer">
+              <div className="flex flex-col gap-4 rounded-[15px] border border-lr-sun bg-lr-sun-soft p-5 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="text-xs font-bold tracking-[0.14em] text-dd-brass-dark uppercase">
+                  <p className="text-sm font-semibold text-dd-brass-dark">
                     {item.promotion.label}
                   </p>
                   <p className="mt-1 text-sm text-dd-muted">
-                    Promo berlaku sampai{' '}
-                    {new Intl.DateTimeFormat('id-ID', { dateStyle: 'long' }).format(
+                    Offer ends{' '}
+                    {new Intl.DateTimeFormat('en-GB', { dateStyle: 'long' }).format(
                       new Date(item.promotion.activeUntil),
                     )}
                     .
@@ -122,15 +123,12 @@ export function PackageDetailView({
           <section className={`${publicContainer} grid gap-8 py-10 lg:grid-cols-[1fr_0.78fr]`}>
             <div className="grid gap-8">
               <article>
-                <p className="text-xs font-bold tracking-[0.14em] text-dd-forest uppercase">
-                  Tentang paket
-                </p>
-                <h2 className="mt-2 text-3xl font-semibold">Ritme latihan yang lebih konsisten</h2>
+                <h2 className="font-display text-3xl text-dd-forest">About this package</h2>
                 <p className="mt-4 leading-7 text-dd-muted">{item.publicProfile.description}</p>
                 <ul className="mt-6 grid list-none gap-3 p-0 sm:grid-cols-2">
                   {item.publicProfile.highlights.map((highlight) => (
                     <li
-                      className="flex items-start gap-3 rounded-dd-md border border-dd-line bg-white p-4"
+                      className="flex items-start gap-3 rounded-[15px] border border-dd-line bg-white p-4"
                       key={highlight}
                     >
                       <Check className="mt-0.5 size-4 shrink-0 text-dd-forest" />
@@ -140,7 +138,7 @@ export function PackageDetailView({
                 </ul>
               </article>
               <article>
-                <h2 className="text-2xl font-semibold">Jadwal terkait</h2>
+                <h2 className="font-display text-2xl text-dd-forest">Upcoming sessions</h2>
                 <div className="mt-4">
                   <RelatedSchedules
                     items={item.schedules.map((schedule) => ({ ...schedule, branch: item.branch }))}
@@ -149,15 +147,15 @@ export function PackageDetailView({
               </article>
             </div>
             <aside className="grid content-start gap-5">
-              <div className="rounded-dd-lg border border-dd-line bg-white p-6 shadow-dd-card">
-                <Clock3 className="size-6 text-dd-forest" />
-                <h2 className="mt-4 text-xl font-semibold">Cara menggunakan</h2>
-                <p className="mt-3 text-sm leading-6 text-dd-muted">
+              <div className="rounded-[15px] bg-lr-sky p-6">
+                <Clock3 className="size-6 text-dd-forest" aria-hidden="true" />
+                <h2 className="mt-4 font-display text-xl text-dd-forest">How to use it</h2>
+                <p className="mt-3 text-sm leading-6 text-dd-ink">
                   {item.publicProfile.usageGuidance}
                 </p>
               </div>
-              <div className="rounded-dd-lg border border-dd-line bg-dd-paper p-6">
-                <h2 className="text-xl font-semibold">Ketentuan paket</h2>
+              <div className="rounded-[15px] border border-dd-line bg-dd-paper p-6">
+                <h2 className="font-display text-xl text-dd-forest">Package terms</h2>
                 <ul className="mt-4 grid gap-3 pl-5 text-sm leading-6 text-dd-muted">
                   {item.publicProfile.terms.map((term) => (
                     <li key={term}>{term}</li>

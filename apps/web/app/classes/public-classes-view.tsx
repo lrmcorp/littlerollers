@@ -20,6 +20,7 @@ import {
 } from '../components/public/public-styles';
 import { useSessionContext } from '../session-context';
 import { SearchSelect } from '../components/forms';
+import { accountClient } from '../account-client';
 
 function dayKey(value: string, timezone: string) {
   return new Intl.DateTimeFormat('en-CA', {
@@ -31,7 +32,7 @@ function dayKey(value: string, timezone: string) {
 }
 
 function dateLabel(value: string, timezone: string) {
-  return new Intl.DateTimeFormat('id-ID', {
+  return new Intl.DateTimeFormat('en-GB', {
     timeZone: timezone,
     weekday: 'long',
     day: 'numeric',
@@ -40,7 +41,7 @@ function dateLabel(value: string, timezone: string) {
 }
 
 function timeLabel(value: string, timezone: string) {
-  return new Intl.DateTimeFormat('id-ID', {
+  return new Intl.DateTimeFormat('en-GB', {
     timeZone: timezone,
     hour: '2-digit',
     minute: '2-digit',
@@ -53,7 +54,16 @@ function durationLabel(startAt: string, endAt: string) {
     0,
     Math.round((new Date(endAt).getTime() - new Date(startAt).getTime()) / 60_000),
   );
-  return `${minutes} menit`;
+  if (minutes > 0 && minutes % 60 === 0) return minutes === 60 ? '1-hour block' : `${minutes / 60}-hour block`;
+  return `${minutes} min`;
+}
+
+/** Which package lengths fit a slot: 1-hour packages use the first hour of a longer block. */
+function lengthsLabel(startAt: string, endAt: string) {
+  const minutes = (new Date(endAt).getTime() - new Date(startAt).getTime()) / 60_000;
+  if (minutes >= 120) return 'Book 1 hour or 2 hours';
+  if (minutes >= 60) return 'Book 1 hour';
+  return null;
 }
 
 export function PublicClassesView({
@@ -72,6 +82,22 @@ export function PublicClassesView({
   const [classType, setClassType] = useState('');
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const [message, setMessage] = useState('');
+  const [classSlugs, setClassSlugs] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    let active = true;
+    accountClient
+      .siteConfig()
+      .then((config) => {
+        if (active)
+          setClassSlugs(Object.fromEntries(config.classes.map(({ code, slug }) => [code, slug])));
+      })
+      // Without the lookup the timetable still works; rows just omit the class link.
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -90,7 +116,7 @@ export function PublicClassesView({
         const requestedBranch = result.branches.find(
           ({ id, name }) =>
             id === requestedBranchId ||
-            name.toLocaleLowerCase('id-ID') === requestedStudio?.toLocaleLowerCase('id-ID'),
+            name.toLocaleLowerCase('en-GB') === requestedStudio?.toLocaleLowerCase('en-GB'),
         );
         const preferredBranch =
           requestedBranch ?? result.branches.find(({ id }) => id === session?.preferredBranch?.id);
@@ -161,15 +187,15 @@ export function PublicClassesView({
   return (
     <div className="min-w-0 overflow-x-clip bg-dd-cream font-sans text-dd-ink">
       <a className="skip-link" href="#catalog-main">
-        Langsung ke jadwal
+        Skip to the timetable
       </a>
       {!inCustomerShell && <PublicHeader />}
 
       <main id="catalog-main">
         <PublicPageHero
-          eyebrow="Jadwal Daily Dose"
-          title="Bergerak sesuai ritme Anda."
-          description="Pilih studio dan temukan kelas aktif untuk dua minggu ke depan. Waktu dan kapasitas ditampilkan langsung dari sistem."
+          eyebrow="Timetable"
+          title="Find a session that fits your week."
+          description="Choose your club to see the next two weeks. Every slot is a 2-hour block: 1-hour packages use the first hour, 2-hour packages the whole block."
           variant={inCustomerShell ? 'compact' : 'default'}
         />
         <section
@@ -179,18 +205,18 @@ export function PublicClassesView({
         >
           <div className={publicContainer}>
             <PublicSectionHeading
-              eyebrow="01 — Pilih jadwal"
-              title="Kelas dua minggu ke depan"
+              eyebrow="Next two weeks"
+              title="Pick a session"
               titleId="catalog-filter-title"
-              description="Temukan kelas berdasarkan studio, tanggal, dan tipe latihan."
+              description="Filter by club, date and class."
               aside={
                 inCustomerShell ? undefined : branch ? (
-                  <p className="rounded-dd-md border border-dd-line bg-white px-4 py-3 text-sm shadow-sm">
+                  <p className="rounded-[15px] border border-dd-line bg-white px-4 py-3 text-sm">
                     <strong className="block">{branch.name}</strong>
                     <span className="text-dd-muted">{branch.timezone}</span>
                   </p>
                 ) : (
-                  <p className="text-sm text-dd-muted">Pilih studio tanpa pilihan otomatis.</p>
+                  <p className="text-sm text-dd-muted">Choose a club to start.</p>
                 )
               }
             />
@@ -199,7 +225,7 @@ export function PublicClassesView({
               <div
                 className="mb-4 flex gap-2 overflow-x-auto pb-1"
                 role="group"
-                aria-label="Pilih tanggal cepat"
+                aria-label="Quick date"
               >
                 <button
                   type="button"
@@ -209,7 +235,7 @@ export function PublicClassesView({
                     updateQuery({ date: '' });
                   }}
                 >
-                  Semua
+                  All dates
                 </button>
                 {availableDays.map((date) => (
                   <button
@@ -230,11 +256,11 @@ export function PublicClassesView({
               </div>
             )}
 
-            <div className="grid gap-4 rounded-dd-lg border border-dd-line bg-white p-4 shadow-dd-card md:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_auto] lg:items-end">
+            <div className="grid gap-4 rounded-[15px] border border-dd-line bg-white p-4 md:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_auto] lg:items-end">
               <SearchSelect
-                label="Studio"
+                label="Club"
                 value={branchId}
-                placeholder="Pilih studio"
+                placeholder="Choose a club"
                 options={branches.map((item) => ({
                   id: item.id,
                   label: item.name,
@@ -250,10 +276,10 @@ export function PublicClassesView({
                 }}
               />
               <label className="grid gap-2 text-sm font-semibold">
-                Tanggal
+                Date
                 <input
                   className={publicField}
-                  aria-label="Tanggal"
+                  aria-label="Date"
                   type="date"
                   value={day}
                   disabled={!branchId}
@@ -264,10 +290,10 @@ export function PublicClassesView({
                 />
               </label>
               <SearchSelect
-                label="Tipe kelas"
+                label="Class"
                 value={classType}
                 disabled={!branchId}
-                placeholder="Semua tipe"
+                placeholder="All classes"
                 options={classTypes.map((item) => ({ id: item.id, label: item.name }))}
                 onChange={(value) => {
                   setClassType(value);
@@ -284,23 +310,23 @@ export function PublicClassesView({
                   updateQuery({ date: '', classType: '' });
                 }}
               >
-                Reset filter
+                Clear filters
               </button>
             </div>
 
             {status === 'loading' ? (
               <div
-                className="mt-8 rounded-dd-lg border border-dd-line bg-white p-10 text-center shadow-dd-card"
+                className="mt-8 rounded-[15px] border border-dd-line bg-white p-10 text-center"
                 role="status"
               >
-                Memuat jadwal authoritative…
+                Loading the timetable…
               </div>
             ) : status === 'error' ? (
               <div
-                className="mt-8 rounded-dd-lg border border-dd-danger/30 bg-dd-danger-soft p-10 text-center"
+                className="mt-8 rounded-[15px] border border-dd-danger/30 bg-dd-danger-soft p-10 text-center"
                 role="alert"
               >
-                <strong className="font-sans text-2xl">Jadwal belum tersedia</strong>
+                <strong className="font-display text-2xl">The timetable did not load</strong>
                 <p className="mt-2">{message}</p>
                 <button
                   className={`${publicSecondaryButton} mt-5`}
@@ -314,35 +340,35 @@ export function PublicClassesView({
                         }))
                   }
                 >
-                  Coba lagi
+                  Try again
                 </button>
               </div>
             ) : !branchId ? (
-              <div className="mt-8 rounded-dd-lg border border-dd-line bg-white p-10 text-center shadow-dd-card">
-                <strong className="font-sans text-2xl">Pilih studio untuk melihat kelas</strong>
+              <div className="mt-8 rounded-[15px] border border-dd-line bg-white p-10 text-center">
+                <strong className="font-display text-2xl text-dd-forest">
+                  Choose a club to see sessions
+                </strong>
                 <p className="mt-2 text-dd-muted">
-                  Kami tidak memilih lokasi pertama secara otomatis agar jadwal selalu sesuai
-                  pilihan Anda.
+                  Pick the club you will visit and its next two weeks appear here.
                 </p>
               </div>
             ) : visible.length === 0 ? (
-              <div className="mt-8 rounded-dd-lg border border-dd-line bg-white p-10 text-center shadow-dd-card">
-                <strong className="font-sans text-2xl">Belum ada kelas pada filter ini</strong>
-                <p className="mt-2 text-dd-muted">
-                  Ubah tanggal atau tipe kelas untuk melihat pilihan lain.
-                </p>
+              <div className="mt-8 rounded-[15px] border border-dd-line bg-white p-10 text-center">
+                <strong className="font-display text-2xl text-dd-forest">
+                  No sessions match these filters
+                </strong>
+                <p className="mt-2 text-dd-muted">Try another date or class.</p>
               </div>
             ) : (
               <div className="mt-8 grid gap-6" aria-live="polite">
                 {Object.entries(grouped).map(([date, items]) => (
                   <section
-                    className="overflow-hidden rounded-dd-lg border border-dd-line bg-white shadow-dd-card"
+                    className="overflow-hidden rounded-[15px] border border-dd-line bg-white"
                     aria-labelledby={`day-${date}`}
                     key={date}
                   >
-                    <header className="border-b border-dd-line bg-dd-paper px-5 py-4">
-                      <span className="text-xs font-bold tracking-wider text-dd-brass">{date}</span>
-                      <h3 className="mt-1 font-sans text-2xl font-semibold" id={`day-${date}`}>
+                    <header className="border-b border-dd-line bg-lr-sky px-5 py-4">
+                      <h3 className="font-display text-2xl text-dd-forest" id={`day-${date}`}>
                         {dateLabel(items[0]!.startAt, items[0]!.timezone)}
                       </h3>
                     </header>
@@ -357,25 +383,22 @@ export function PublicClassesView({
                               {timeLabel(slot.startAt, slot.timezone)}
                             </strong>
                             <span className="text-sm text-dd-muted">
-                              sampai {timeLabel(slot.endAt, slot.timezone)} ·{' '}
+                              to {timeLabel(slot.endAt, slot.timezone)} ·{' '}
                               {durationLabel(slot.startAt, slot.endAt)}
                             </span>
                           </div>
                           <div>
-                            <span className="text-xs font-bold text-dd-forest">
-                              {slot.classType.code}
-                            </span>
-                            <h4 className="mt-1 font-sans text-xl font-semibold">
+                            <h4 className="font-display text-xl text-dd-forest">
                               {slot.classType.name}
                             </h4>
                             <p className="mt-1 text-sm text-dd-muted">
-                              {slot.status === 'CONFIRMED'
-                                ? 'Kelas dikonfirmasi'
-                                : 'Terbuka untuk booking'}
+                              {slot.status === 'CONFIRMED' ? 'Confirmed' : 'Open for booking'}
+                              {lengthsLabel(slot.startAt, slot.endAt) &&
+                                ` · ${lengthsLabel(slot.startAt, slot.endAt)}`}
                             </p>
                             {slot.instructor?.displayName && (
                               <p className="mt-1 text-xs font-semibold text-dd-muted">
-                                Instruktur · {slot.instructor.displayName}
+                                Coach · {slot.instructor.displayName}
                               </p>
                             )}
                             <div className="mt-2 flex flex-wrap gap-3 text-xs font-bold">
@@ -383,28 +406,24 @@ export function PublicClassesView({
                                 href={`/schedule/${slot.id}`}
                                 className="text-dd-forest underline-offset-4 hover:underline"
                               >
-                                Detail jadwal
+                                Session details
                               </Link>
-                              <Link
-                                href={`/classes/${
-                                  slot.classType.code === 'MOVERS'
-                                    ? 'movers'
-                                    : slot.classType.code === 'PLAY'
-                                      ? 'tiny-rollers'
-                                      : 'barre'
-                                }`}
-                                className="text-dd-forest underline-offset-4 hover:underline"
-                              >
-                                Detail kelas
-                              </Link>
+                              {classSlugs[slot.classType.code] && (
+                                <Link
+                                  href={`/classes/${classSlugs[slot.classType.code]}`}
+                                  className="text-dd-forest underline-offset-4 hover:underline"
+                                >
+                                  About this class
+                                </Link>
+                              )}
                             </div>
                           </div>
                           <div>
-                            <span className="block text-xs text-dd-muted">Ketersediaan</span>
+                            <span className="block text-xs text-dd-muted">Places</span>
                             <strong className="mt-1 block">
                               {slot.available > 0
-                                ? `${slot.available}/${slot.capacity} tempat`
-                                : `Penuh · 0/${slot.capacity}`}
+                                ? `${slot.available} of ${slot.capacity} left`
+                                : `Full · 0 of ${slot.capacity}`}
                             </strong>
                           </div>
                           <a
@@ -423,12 +442,12 @@ export function PublicClassesView({
                             }
                           >
                             {slot.available < 1
-                              ? 'Penuh'
+                              ? 'Full'
                               : session?.roles.some((role) => role !== 'CUSTOMER')
-                                ? 'Buka workspace kelas'
+                                ? 'Open class workspace'
                                 : session && session.identityVerificationStatus !== 'APPROVED'
-                                  ? 'Selesaikan verifikasi'
-                                  : 'Lanjutkan booking'}
+                                  ? 'Finish verification'
+                                  : 'Book this session'}
                           </a>
                         </article>
                       ))}

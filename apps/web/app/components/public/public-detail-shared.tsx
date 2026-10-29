@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { ArrowRight, CalendarDays, MapPin } from 'lucide-react';
+import { CalendarDays, MapPin } from 'lucide-react';
 import { PublicFooter } from './public-footer';
 import { PublicHeader } from './public-header';
 import { PublicStatePanel } from './public-page';
@@ -26,10 +26,10 @@ export function PublicDetailFrame({
       <main id="public-detail-main">
         <nav
           aria-label="Breadcrumb"
-          className={`${publicContainer} flex flex-wrap items-center gap-2 py-4 text-xs text-dd-muted`}
+          className={`${publicContainer} flex flex-wrap items-center gap-2 py-4 text-sm text-dd-muted`}
         >
           <Link href="/" className="font-semibold text-dd-forest no-underline">
-            Beranda
+            Home
           </Link>
           {breadcrumb.map((item) => (
             <span className="flex items-center gap-2" key={`${item.label}:${item.href ?? ''}`}>
@@ -57,10 +57,10 @@ export function DetailLoading({ label }: { label: string }) {
       <div className="h-4 w-32 animate-pulse rounded bg-dd-line" />
       <div className="mt-4 h-12 max-w-xl animate-pulse rounded bg-dd-line" />
       <div className="mt-8 grid gap-6 lg:grid-cols-2">
-        <div className="min-h-80 animate-pulse rounded-dd-lg bg-dd-line" />
-        <div className="min-h-80 animate-pulse rounded-dd-lg bg-dd-line" />
+        <div className="min-h-80 animate-pulse rounded-[15px] bg-dd-line" />
+        <div className="min-h-80 animate-pulse rounded-[15px] bg-dd-line" />
       </div>
-      <span className="sr-only">Memuat {label}</span>
+      <span className="sr-only">Loading {label}</span>
     </div>
   );
 }
@@ -77,22 +77,22 @@ export function DetailFailure({
   return (
     <div className={`${publicContainer} py-16`}>
       <PublicStatePanel
-        title={message === 'NOT_FOUND' ? 'Detail tidak ditemukan' : 'Belum dapat memuat detail'}
+        title={message === 'NOT_FOUND' ? 'Page not found' : 'This page did not load'}
         tone={message === 'NOT_FOUND' ? 'neutral' : 'error'}
       >
         <p>
           {message === 'NOT_FOUND'
-            ? 'Konten mungkin sudah tidak aktif atau alamat yang Anda buka tidak valid.'
+            ? 'It may no longer be available, or the link is not right.'
             : message}
         </p>
         <div className="mt-5 flex flex-wrap justify-center gap-3">
           {message !== 'NOT_FOUND' && (
             <button type="button" className={publicPrimaryButton} onClick={onRetry}>
-              Coba lagi
+              Try again
             </button>
           )}
           <Link href={listHref} className={publicSecondaryButton}>
-            Kembali ke daftar
+            Back to the list
           </Link>
         </div>
       </PublicStatePanel>
@@ -116,23 +116,23 @@ export function DetailHero({
   actions?: ReactNode;
 }) {
   return (
-    <section className="border-y border-dd-line bg-dd-paper">
+    <section className="bg-lr-sky">
       <div
         className={`${publicContainer} grid items-center gap-8 py-8 lg:grid-cols-[1fr_0.88fr] lg:py-12`}
       >
         <div>
-          <p className="text-xs font-bold tracking-[0.14em] text-dd-forest uppercase">{eyebrow}</p>
-          <h1 className="mt-3 max-w-3xl text-[clamp(2.5rem,5vw,4.8rem)] leading-[0.98] font-semibold tracking-[-0.04em]">
+          <p className="font-display text-lg text-lr-sky-deep">{eyebrow}</p>
+          <h1 className="mt-3 max-w-3xl font-display text-[clamp(2.4rem,5vw,4.4rem)] leading-[0.98] text-dd-forest">
             {title}
           </h1>
-          <p className="mt-5 max-w-2xl text-base leading-7 text-dd-muted sm:text-lg">{summary}</p>
+          <p className="mt-5 max-w-2xl text-base leading-7 text-dd-ink/80 sm:text-lg">{summary}</p>
           {facts && <div className="mt-6">{facts}</div>}
           {actions && <div className="mt-7 flex flex-wrap gap-3">{actions}</div>}
         </div>
-        <div className="relative min-h-[300px] overflow-hidden rounded-dd-lg border border-dd-line bg-dd-surface-muted shadow-dd-card sm:min-h-[400px]">
+        <div className="relative min-h-[260px] overflow-hidden rounded-[22px] bg-dd-cream sm:min-h-[380px]">
           <Image
             src={`/images/public/${imageKey}`}
-            alt={`Visual ${title}`}
+            alt=""
             fill
             priority
             sizes="(max-width: 1024px) 100vw, 44vw"
@@ -162,16 +162,16 @@ export function AudienceAction({
   if (disabled)
     return (
       <span
-        className="inline-flex min-h-11 items-center rounded-dd-sm bg-dd-line px-5 text-sm font-bold text-dd-muted"
+        className="inline-flex min-h-11 items-center rounded-full bg-dd-line px-5 text-sm font-medium text-dd-ink"
         aria-disabled="true"
       >
-        Tempat tidak tersedia
+        No places left
       </span>
     );
   if (audience === 'STAFF')
     return (
       <Link className={publicPrimaryButton} href="/workspace">
-        Buka Workspace <ArrowRight className="size-4" />
+        Open workspace
       </Link>
     );
   const destination =
@@ -187,17 +187,16 @@ export function AudienceAction({
     return (
       <Link className={publicPrimaryButton} href={destination}>
         {kind === 'package'
-          ? 'Pilih paket'
+          ? 'Buy this package'
           : kind === 'schedule'
-            ? 'Booking kelas'
-            : 'Lihat jadwal'}{' '}
-        <ArrowRight className="size-4" />
+            ? 'Book this session'
+            : 'See the timetable'}
       </Link>
     );
   if (audience === 'CUSTOMER_UNVERIFIED')
     return (
       <Link className={publicPrimaryButton} href="/account/verification">
-        Verifikasi untuk melanjutkan <ArrowRight className="size-4" />
+        Verify to continue
       </Link>
     );
   return (
@@ -205,7 +204,7 @@ export function AudienceAction({
       className={publicPrimaryButton}
       href={`/sign-in?returnTo=${encodeURIComponent(destination)}`}
     >
-      Masuk untuk melanjutkan <ArrowRight className="size-4" />
+      Sign in to continue
     </Link>
   );
 }
@@ -222,19 +221,19 @@ export function RelatedSchedules({
   }>;
 }) {
   if (!items.length)
-    return <p className="text-sm text-dd-muted">Jadwal berikutnya belum tersedia.</p>;
+    return <p className="text-sm text-dd-muted">No upcoming sessions are scheduled yet.</p>;
   return (
     <div className="grid gap-3 md:grid-cols-2">
       {items.map((item) => (
         <Link
           key={item.id}
           href={`/schedule/${item.id}`}
-          className="flex items-center justify-between gap-4 rounded-dd-md border border-dd-line bg-white p-4 text-dd-ink no-underline hover:border-dd-forest"
+          className="flex min-h-16 items-center justify-between gap-4 rounded-[15px] border border-dd-line bg-white p-4 text-dd-ink no-underline hover:border-dd-forest"
         >
           <span>
             <strong className="flex items-center gap-2 text-sm">
-              <CalendarDays className="size-4 text-dd-forest" />
-              {new Intl.DateTimeFormat('id-ID', {
+              <CalendarDays className="size-4 text-dd-forest" aria-hidden="true" />
+              {new Intl.DateTimeFormat('en-GB', {
                 dateStyle: 'medium',
                 timeStyle: 'short',
                 timeZone: item.timezone,
@@ -242,12 +241,14 @@ export function RelatedSchedules({
             </strong>
             {item.branch && (
               <span className="mt-1 flex items-center gap-1 text-xs text-dd-muted">
-                <MapPin className="size-3" />
+                <MapPin className="size-3" aria-hidden="true" />
                 {item.branch.name}
               </span>
             )}
           </span>
-          <span className="text-xs font-bold text-dd-forest">{item.available} tempat</span>
+          <span className="text-xs font-bold text-dd-forest">
+            {item.available === 1 ? '1 place' : `${item.available} places`}
+          </span>
         </Link>
       ))}
     </div>

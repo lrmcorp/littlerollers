@@ -26,6 +26,15 @@ function isCurrent(pathname: string, hash: string, href: string) {
   );
 }
 
+const pillLink =
+  'inline-flex min-h-11 items-center justify-center rounded-full px-5 text-[15px] font-medium no-underline transition motion-reduce:transition-none';
+const drawerButton =
+  'inline-flex min-h-12 items-center justify-center rounded-full border px-5 text-[15px] font-medium no-underline';
+
+/**
+ * Header for every public page except the home page, which draws its own nav over the
+ * hillside scene. The sky band and sage pill carry the hero's daylight onto inner pages.
+ */
 export function PublicHeader() {
   const pathname = usePathname() ?? '/';
   const sessionContext = useSessionContext();
@@ -37,6 +46,8 @@ export function PublicHeader() {
   const [hash, setHash] = useState('');
   const triggerRef = useRef<HTMLButtonElement>(null);
   const drawerRef = useRef<HTMLDivElement>(null);
+  const accountHref = customerOnly ? routes.account : routes.workspace;
+  const accountLabel = customerOnly ? 'My account' : 'Open workspace';
 
   useEffect(() => {
     const update = () => setHash(window.location.hash);
@@ -50,111 +61,98 @@ export function PublicHeader() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 border-b border-dd-line/80 bg-dd-paper/95 pt-[env(safe-area-inset-top)] backdrop-blur-xl">
-        <div className="mx-auto flex min-h-[72px] w-full max-w-[1440px] items-center gap-5 px-4 sm:px-6 lg:min-h-[78px] lg:px-8">
-          <BrandMark className="w-[142px] shrink-0 sm:w-40" priority />
+      <header className="sticky top-0 z-50 border-b border-dd-forest/10 bg-lr-sky pt-[env(safe-area-inset-top)]">
+        <div className="mx-auto flex min-h-16 w-full max-w-[1440px] items-center gap-4 px-4 sm:px-6 lg:min-h-[76px] lg:px-8">
+          <BrandMark className="shrink-0" priority />
 
           <nav
-            className="ml-auto hidden items-center gap-[clamp(1rem,1.8vw,2rem)] lg:flex"
-            aria-label="Navigasi publik"
+            className="mx-auto hidden min-h-[50px] items-center gap-1 rounded-full bg-[rgba(173,196,174,0.45)] px-2 backdrop-blur-md lg:flex"
+            aria-label="Main"
           >
-            {publicNavigation.map((item) => (
-              <Link
-                className={`relative whitespace-nowrap py-2 text-sm font-semibold no-underline transition-colors after:absolute after:inset-x-0 after:-bottom-1 after:h-0.5 after:origin-left after:bg-dd-forest after:transition-transform ${
-                  isCurrent(pathname, hash, item.href)
-                    ? 'text-dd-forest after:scale-x-100'
-                    : 'text-dd-ink after:scale-x-0 hover:text-dd-forest hover:after:scale-x-100'
-                }`}
-                key={`${item.href}-${item.label}`}
-                href={item.href}
-                aria-current={isCurrent(pathname, hash, item.href) ? 'page' : undefined}
-              >
-                {item.label}
-              </Link>
-            ))}
+            {publicNavigation.map((item) => {
+              const current = isCurrent(pathname, hash, item.href);
+              return (
+                <Link
+                  className={`${pillLink} px-4 whitespace-nowrap text-dd-forest ${
+                    current ? 'bg-white' : 'hover:bg-white/60'
+                  }`}
+                  key={`${item.href}-${item.label}`}
+                  href={item.href}
+                  aria-current={current ? 'page' : undefined}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
           </nav>
 
-          <div className="ml-auto flex shrink-0 items-center gap-2 lg:ml-2">
+          <div className="ml-auto flex shrink-0 items-center gap-2 lg:ml-0">
+            <Link
+              className="grid size-11 place-items-center rounded-full bg-white text-dd-forest no-underline sm:hidden"
+              href={session ? accountHref : routes.signIn}
+              aria-label={session ? accountLabel : 'Sign in'}
+            >
+              <UserRound className="size-5" aria-hidden="true" />
+            </Link>
             {!session ? (
-              <Link
-                className="grid size-11 place-items-center rounded-full border border-dd-line bg-white text-dd-forest no-underline transition hover:border-dd-forest lg:hidden"
-                href={routes.signIn}
-                aria-label="Masuk ke akun"
-              >
-                <UserRound className="size-5" aria-hidden="true" />
-              </Link>
-            ) : (
-              <Link
-                className="grid size-11 place-items-center rounded-full border border-dd-line bg-white text-dd-forest no-underline transition hover:border-dd-forest lg:hidden"
-                href={customerOnly ? routes.account : routes.workspace}
-                aria-label={customerOnly ? 'Akun Saya' : 'Buka workspace'}
-              >
-                <UserRound className="size-5" aria-hidden="true" />
-              </Link>
-            )}
-            {!session ? (
-              <Link
-                className="hidden min-h-11 items-center justify-center rounded-dd-sm px-3 text-sm font-bold text-dd-forest no-underline hover:bg-white sm:inline-flex"
-                href={routes.signIn}
-              >
-                Masuk
-              </Link>
+              <>
+                <Link
+                  className={`${pillLink} hidden text-dd-forest hover:bg-white/60 sm:inline-flex`}
+                  href={routes.signIn}
+                >
+                  Sign in
+                </Link>
+                <Link
+                  className={`${pillLink} hidden bg-dd-forest text-white hover:-translate-y-0.5 hover:bg-dd-forest-dark motion-reduce:transform-none sm:inline-flex`}
+                  href={routes.register}
+                >
+                  Join us
+                </Link>
+              </>
             ) : (
               <details className="relative hidden sm:block">
-                <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-dd-sm border border-dd-line bg-white px-3 text-sm font-bold text-dd-forest">
-                  <UserRound className="size-4" /> Akun Saya
+                <summary
+                  className={`${pillLink} cursor-pointer list-none gap-2 bg-white text-dd-forest`}
+                >
+                  <UserRound className="size-4" aria-hidden="true" /> My account
                 </summary>
-                <div className="absolute right-0 mt-2 grid w-56 gap-1 rounded-dd-lg border border-dd-line bg-white p-2 shadow-dd-float">
+                <div className="absolute right-0 mt-2 grid w-56 gap-1 rounded-[15px] border border-dd-line bg-white p-2 shadow-dd-float">
                   <Link
-                    href={customerOnly ? routes.account : routes.workspace}
-                    className="rounded-dd-md px-3 py-2 text-sm font-semibold text-dd-ink no-underline hover:bg-dd-surface-muted"
+                    href={accountHref}
+                    className="rounded-dd-md px-3 py-2.5 text-sm font-medium text-dd-ink no-underline hover:bg-dd-surface-muted"
                   >
-                    {customerOnly ? 'Akun Saya' : 'Buka Workspace'}
+                    {accountLabel}
                   </Link>
                   <Link
                     href="/account/profile"
-                    className="rounded-dd-md px-3 py-2 text-sm font-semibold text-dd-ink no-underline hover:bg-dd-surface-muted"
+                    className="rounded-dd-md px-3 py-2.5 text-sm font-medium text-dd-ink no-underline hover:bg-dd-surface-muted"
                   >
-                    Profil Saya
+                    My profile
                   </Link>
                   {customerOnly && (
                     <button
                       type="button"
                       onClick={() => studioPreference?.openStudioPreference()}
-                      className="min-h-10 rounded-dd-md border-0 bg-transparent px-3 text-left text-sm font-semibold text-dd-ink hover:bg-dd-surface-muted"
+                      className="min-h-10 rounded-dd-md border-0 bg-transparent px-3 text-left text-sm font-medium text-dd-ink hover:bg-dd-surface-muted"
                     >
-                      Ganti studio
+                      Change club
                     </button>
                   )}
                   <button
                     type="button"
                     onClick={() => void sessionContext?.logout()}
-                    className="min-h-10 rounded-dd-md border-0 bg-transparent px-3 text-left text-sm font-semibold text-dd-danger hover:bg-dd-danger-soft"
+                    className="min-h-10 rounded-dd-md border-0 bg-transparent px-3 text-left text-sm font-medium text-dd-danger hover:bg-dd-danger-soft"
                   >
-                    Keluar
+                    Sign out
                   </button>
                 </div>
               </details>
             )}
-            {!session && (
-              <Link
-                className="hidden min-h-11 items-center justify-center rounded-dd-sm border border-dd-forest/40 bg-white px-3 text-sm font-bold text-dd-forest no-underline hover:border-dd-forest sm:inline-flex"
-                href={routes.register}
-              >
-                Daftar
-              </Link>
-            )}
-            <Link
-              className="hidden min-h-11 items-center justify-center rounded-dd-sm border border-dd-forest bg-dd-forest px-5 text-sm font-bold text-white no-underline shadow-dd-soft transition hover:-translate-y-px hover:bg-dd-forest-dark lg:inline-flex"
-              href={`${routes.classes}#schedule`}
-            >
-              Lihat Jadwal
-            </Link>
             <IconButton
               ref={triggerRef}
-              label="Buka menu navigasi"
+              label="Open menu"
               variant="secondary"
-              className="rounded-full border-dd-line bg-white text-dd-forest shadow-none lg:hidden"
+              className="rounded-full border-transparent bg-white text-dd-forest shadow-none lg:hidden"
               aria-expanded={open}
               aria-controls="public-mobile-navigation"
               onClick={() => setOpen(true)}
@@ -183,12 +181,12 @@ export function PublicHeader() {
             }`}
             role="dialog"
             aria-modal="true"
-            aria-label="Menu navigasi"
+            aria-label="Menu"
           >
             <div className="flex items-center justify-between gap-4 border-b border-dd-line pb-5">
-              <BrandMark className="w-36" />
+              <BrandMark />
               <IconButton
-                label="Tutup menu navigasi"
+                label="Close menu"
                 variant="secondary"
                 className="rounded-full border-dd-line bg-white text-dd-forest shadow-none"
                 onClick={() => {
@@ -200,86 +198,74 @@ export function PublicHeader() {
               </IconButton>
             </div>
 
-            <nav className="grid py-6" aria-label="Navigasi publik mobile">
-              {publicNavigation.map((item) => (
-                <Link
-                  className={`flex min-h-14 items-center justify-between border-b border-dd-line/75 text-base font-semibold no-underline ${
-                    isCurrent(pathname, hash, item.href) ? 'text-dd-forest' : 'text-dd-ink'
-                  }`}
-                  key={`${item.href}-${item.label}-mobile`}
-                  href={item.href}
-                  aria-current={isCurrent(pathname, hash, item.href) ? 'page' : undefined}
-                  onClick={close}
-                >
-                  {item.label}
-                  <span aria-hidden="true">›</span>
-                </Link>
-              ))}
+            <nav className="grid py-6" aria-label="Main menu">
+              {publicNavigation.map((item) => {
+                const current = isCurrent(pathname, hash, item.href);
+                return (
+                  <Link
+                    className={`flex min-h-14 items-center justify-between border-b border-dd-line/75 font-display text-xl no-underline ${
+                      current ? 'text-dd-forest' : 'text-dd-ink'
+                    }`}
+                    key={`${item.href}-${item.label}-mobile`}
+                    href={item.href}
+                    aria-current={current ? 'page' : undefined}
+                    onClick={close}
+                  >
+                    {item.label}
+                    <span aria-hidden="true">›</span>
+                  </Link>
+                );
+              })}
             </nav>
 
             <div className="mt-auto grid gap-3 border-t border-dd-line pt-5">
-              {!session && (
+              {!session ? (
                 <>
                   <Link
-                    className="inline-flex min-h-12 items-center justify-center rounded-dd-sm border border-dd-line bg-white px-5 text-sm font-bold text-dd-forest no-underline"
-                    href={routes.signIn}
-                    onClick={close}
-                  >
-                    Masuk
-                  </Link>
-                  <Link
-                    className="inline-flex min-h-12 items-center justify-center rounded-dd-sm border border-dd-forest/40 bg-white px-5 text-sm font-bold text-dd-forest no-underline"
+                    className={`${drawerButton} border-dd-forest bg-dd-forest text-white`}
                     href={routes.register}
                     onClick={close}
                   >
-                    Daftar
+                    Join us
+                  </Link>
+                  <Link
+                    className={`${drawerButton} border-dd-line bg-white text-dd-forest`}
+                    href={routes.signIn}
+                    onClick={close}
+                  >
+                    Sign in
                   </Link>
                 </>
-              )}
-              {session && (
+              ) : (
                 <Link
-                  className="inline-flex min-h-12 items-center justify-center rounded-dd-sm border border-dd-line bg-white px-5 text-sm font-bold text-dd-forest no-underline"
-                  href={customerOnly ? routes.account : routes.workspace}
+                  className={`${drawerButton} border-dd-forest bg-dd-forest text-white`}
+                  href={accountHref}
                   onClick={close}
                 >
-                  {customerOnly ? 'Akun Saya' : 'Buka Workspace'}
+                  {accountLabel}
                 </Link>
               )}
               {customerOnly && (
                 <button
                   type="button"
-                  className="min-h-12 rounded-dd-sm border border-dd-line bg-white px-5 text-sm font-bold text-dd-forest"
+                  className={`${drawerButton} border-dd-line bg-white text-dd-forest`}
                   onClick={() => {
                     close();
                     studioPreference?.openStudioPreference();
                   }}
                 >
-                  Ganti studio
+                  Change club
                 </button>
               )}
-              <Link
-                className="inline-flex min-h-12 items-center justify-center rounded-dd-sm border border-dd-forest bg-dd-forest px-5 text-sm font-bold text-white no-underline"
-                href={`${routes.classes}#schedule`}
-                onClick={close}
-              >
-                Lihat Jadwal
-              </Link>
               {session && (
                 <button
                   type="button"
-                  className="min-h-12 rounded-dd-sm border border-dd-danger/30 bg-white px-5 text-sm font-bold text-dd-danger"
+                  className={`${drawerButton} border-dd-danger/30 bg-white text-dd-danger`}
                   onClick={() => void sessionContext?.logout()}
                 >
-                  Keluar
+                  Sign out
                 </button>
               )}
-              <Link
-                className="inline-flex min-h-12 items-center justify-center rounded-dd-sm border border-dd-forest/40 bg-white px-5 text-sm font-bold text-dd-forest no-underline"
-                href={routes.packages}
-                onClick={close}
-              >
-                Lihat Paket
-              </Link>
             </div>
           </div>
         </div>

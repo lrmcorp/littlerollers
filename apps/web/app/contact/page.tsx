@@ -2,80 +2,60 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { PublicFooter } from '../components/public/public-footer';
 import { PublicHeader } from '../components/public/public-header';
-import { PublicPageHero, PublicSectionHeading } from '../components/public/public-page';
+import { PublicPageHero } from '../components/public/public-page';
 import { publicContainer } from '../components/public/public-styles';
+import { ContactClubs } from './contact-clubs';
 
 export const metadata: Metadata = {
-  title: 'Hubungi Kami',
-  description: 'Hubungi tim Daily Dose Pilates untuk bantuan kelas, paket, dan kunjungan studio.',
+  title: 'Contact',
+  description: 'Message your Little Rollers club on WhatsApp about classes, packages or a visit.',
 };
 
 export default function ContactPage() {
   return (
     <div className="min-w-0 overflow-x-clip bg-dd-cream font-sans text-dd-ink">
       <a className="skip-link" href="#contact-main">
-        Langsung ke kontak
+        Skip to contact options
       </a>
       <PublicHeader />
       <main id="contact-main">
         <PublicPageHero
-          eyebrow="Kami siap membantu"
-          title="Ada yang ingin Anda tanyakan?"
-          description="Tim Daily Dose siap membantu memilih kelas, paket, atau studio yang sesuai dengan kebutuhan Anda."
+          eyebrow="Contact"
+          title="Questions before your first session?"
+          description="Each club answers on WhatsApp. Pick yours below, or check the timetable and packages first."
         />
-        <section className="py-12 sm:py-16" aria-labelledby="contact-options-title">
-          <div className={publicContainer}>
-            <PublicSectionHeading
-              eyebrow="01 — Pilih kebutuhan"
-              title="Mulai dari jalur yang tepat."
-              titleId="contact-options-title"
-              description="Pilih kebutuhan Anda agar kami dapat mengarahkan ke informasi yang relevan."
-            />
-            <div className="grid gap-5 md:grid-cols-3">
-              <article className="rounded-dd-lg border border-dd-line bg-white p-6 shadow-dd-card">
-                <span className="text-xs font-bold text-dd-brass">01</span>
-                <h3 className="mt-3 font-sans text-2xl font-semibold">Jadwal kelas</h3>
-                <p className="mt-3 min-h-16 leading-7 text-dd-muted">
-                  Lihat jadwal publik yang tersedia menurut studio dan zona waktunya.
-                </p>
-                <Link className="mt-5 inline-flex font-bold text-dd-forest" href="/classes">
-                  Jelajahi jadwal →
-                </Link>
-              </article>
-              <article className="rounded-dd-lg border border-dd-line bg-white p-6 shadow-dd-card">
-                <span className="text-xs font-bold text-dd-brass">02</span>
-                <h3 className="mt-3 font-sans text-2xl font-semibold">Paket Pilates</h3>
-                <p className="mt-3 min-h-16 leading-7 text-dd-muted">
-                  Bandingkan paket aktif, jumlah sesi, harga, dan masa berlaku.
-                </p>
-                <Link className="mt-5 inline-flex font-bold text-dd-forest" href="/packages">
-                  Jelajahi paket →
-                </Link>
-              </article>
-              <article className="rounded-dd-lg border border-dd-line bg-white p-6 shadow-dd-card">
-                <span className="text-xs font-bold text-dd-brass">03</span>
-                <h3 className="mt-3 font-sans text-2xl font-semibold">Bantuan lainnya</h3>
-                <p className="mt-3 min-h-16 leading-7 text-dd-muted">
-                  Gunakan kanal kontak resmi Daily Dose Pilates untuk bantuan personal.
-                </p>
-                <a
-                  className="mt-5 inline-flex font-bold text-dd-forest"
-                  href="https://dailydosepilates.com/contact-us"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Buka kontak resmi ↗
-                </a>
-              </article>
-            </div>
-            <div className="mt-8 rounded-dd-lg border border-dd-line bg-dd-paper p-6">
-              <strong className="text-dd-forest">Privasi Anda tetap penting.</strong>
-              <p className="mt-2 leading-7 text-dd-muted">
-                Halaman ini tidak meminta atau menyimpan data pribadi. Formulir kontak baru akan
-                ditambahkan setelah kebijakan privasi, retensi, dan anti-spam disetujui.
-              </p>
-            </div>
+        <section className={`${publicContainer} grid gap-8 py-10 lg:grid-cols-[1.3fr_1fr]`}>
+          <div>
+            <h2 className="font-display text-3xl text-dd-forest" id="contact-clubs-title">
+              Message a club
+            </h2>
+            <ContactClubs />
           </div>
+          <aside className="grid content-start gap-4 rounded-[22px] bg-lr-sky p-6">
+            <h2 className="font-display text-2xl text-dd-forest">Answers on the site</h2>
+            <Link
+              className="flex min-h-12 items-center justify-between rounded-full bg-white px-5 font-medium text-dd-forest no-underline"
+              href="/classes#schedule"
+            >
+              Session times <span aria-hidden="true">›</span>
+            </Link>
+            <Link
+              className="flex min-h-12 items-center justify-between rounded-full bg-white px-5 font-medium text-dd-forest no-underline"
+              href="/packages"
+            >
+              Package prices <span aria-hidden="true">›</span>
+            </Link>
+            <Link
+              className="flex min-h-12 items-center justify-between rounded-full bg-white px-5 font-medium text-dd-forest no-underline"
+              href="/locations"
+            >
+              Club addresses <span aria-hidden="true">›</span>
+            </Link>
+            <p className="m-0 text-sm leading-6 text-dd-ink/80">
+              This page does not collect any personal details. Messages go straight to the club
+              through WhatsApp.
+            </p>
+          </aside>
         </section>
       </main>
       <PublicFooter />

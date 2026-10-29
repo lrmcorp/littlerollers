@@ -15,12 +15,11 @@ export const routes = {
 } as const;
 
 export const publicNavigation = [
-  { href: '/#about', label: 'Tentang' },
-  { href: routes.classes, label: 'Kelas' },
-  { href: '/classes#schedule', label: 'Jadwal' },
-  { href: routes.packages, label: 'Paket' },
-  { href: routes.locations, label: 'Studio' },
-  { href: routes.contact, label: 'Kontak' },
+  { href: routes.classes, label: 'Classes' },
+  { href: '/classes#schedule', label: 'Timetable' },
+  { href: routes.packages, label: 'Packages' },
+  { href: routes.locations, label: 'Clubs' },
+  { href: routes.contact, label: 'Contact' },
 ] as const;
 
 export function signInReturnTo(returnTo: string): string {

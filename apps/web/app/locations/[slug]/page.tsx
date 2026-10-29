@@ -12,10 +12,10 @@ export async function generateMetadata({
   const item = await publicMetadataValue<PublicStudioDetail>(
     `/public/studios/${encodeURIComponent(slug)}`,
   );
-  const title = item?.name ?? 'Detail Studio';
+  const title = item?.name ?? 'Club details';
   const description =
     item?.publicProfile.description ??
-    'Alamat, fasilitas, kelas, paket, dan jadwal studio Daily Dose.';
+    'Address, arrival tips, classes, packages and timetable for this Little Rollers club.';
   return {
     title,
     description,

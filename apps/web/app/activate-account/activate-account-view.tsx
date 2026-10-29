@@ -16,9 +16,9 @@ export function ActivateAccountView({
   const [status, setStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
   return (
     <AuthPageShell
-      eyebrow="Aktivasi undangan"
-      title="Buat password"
-      description="Aktifkan akses undangan dengan password pribadi. Tautan hanya dapat digunakan sekali."
+      eyebrow="Activate your account"
+      title="Choose a password"
+      description="Set a password to activate your invitation. The link works once."
     >
       <form
         className="grid gap-4"
@@ -58,12 +58,12 @@ export function ActivateAccountView({
               type="button"
               onClick={() => setShow((value) => !value)}
             >
-              {show ? 'Sembunyikan' : 'Lihat'}
+              {show ? 'Hide' : 'Show'}
             </button>
           </span>
         </label>
         <label className="grid gap-2 text-sm font-bold">
-          Ulangi password
+          Password again
           <input
             className="min-h-[50px] rounded-dd-sm border border-dd-line px-4"
             name="confirmation"
@@ -78,13 +78,13 @@ export function ActivateAccountView({
           className="min-h-[50px] rounded-dd-sm bg-dd-forest px-5 font-bold text-white"
           disabled={status === 'loading'}
         >
-          {status === 'loading' ? 'Mengaktifkan…' : 'Aktifkan akun'}
+          {status === 'loading' ? 'Activating…' : 'Activate account'}
         </button>
       </form>
-      {status === 'done' && <Feedback kind="status">Akun berhasil diaktifkan.</Feedback>}
+      {status === 'done' && <Feedback kind="status">Your account is active.</Feedback>}
       {status === 'error' && (
         <Feedback kind="error">
-          Password harus sama, dan tautan aktivasi harus masih berlaku.
+          The passwords must match and the activation link must still be valid.
         </Feedback>
       )}
     </AuthPageShell>

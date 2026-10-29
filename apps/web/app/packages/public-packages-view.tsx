@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight, CalendarDays, Check, MapPin, Sparkles } from 'lucide-react';
+import { CalendarDays, Check, Clock, MapPin } from 'lucide-react';
 import {
   browserPublicPackageCatalogClient,
   publicPackageFailure,
@@ -30,10 +30,16 @@ import { useSessionContext } from '../session-context';
 import { SearchSelect } from '../components/forms';
 
 const packageBenefits = [
-  'Harga terbaru dan transparan',
-  'Masa aktif jelas di setiap paket',
-  'Riwayat sesi tersedia di akun',
+  'Prices are set per club',
+  'Each package shows how long it stays valid',
+  'Your session balance is in your account',
 ] as const;
+
+type LengthFilter = '' | '60' | '120';
+
+export function sessionLengthText(minutes: number | undefined) {
+  return (minutes ?? 60) >= 120 ? '2 hours' : '1 hour';
+}
 
 export function recommendedPackageId(items: PublicPackage[]) {
   if (items.length < 2) return null;
@@ -53,7 +59,7 @@ export function recommendedFirst(items: PublicPackage[], recommendedId: string |
 }
 
 export function publicBranchLocation(branch: PublicPackageBranch) {
-  const location = branch.name.replace(/^Daily Dose\s+/i, '').trim() || branch.name;
+  const location = branch.name.replace(/^Little Rollers\s+/i, '').trim() || branch.name;
   const timezone = branch.timezone === 'Asia/Jakarta' ? 'WIB' : branch.timezone;
   return `${location} · ${timezone}`;
 }
@@ -63,29 +69,27 @@ export function packageDescriptor(
   items: PublicPackage[],
   recommendedId: string | null,
 ) {
-  if (item.id === recommendedId) return 'Nilai terbaik untuk latihan rutin';
+  if (item.id === recommendedId) return 'Lowest price per session here';
   const minimumSessions = Math.min(...items.map((candidate) => candidate.sessionCount));
   return item.sessionCount === minimumSessions
-    ? 'Cocok untuk mulai mencoba'
-    : 'Fleksibel untuk latihan mingguan';
+    ? 'A short run to try the club'
+    : 'For a regular weekly session';
 }
 
 export function packageCtaLabel(session: WebSession | null) {
   const audience = packageAudienceState(session);
-  if (audience === 'GUEST') return 'Masuk untuk memilih';
-  if (audience === 'CUSTOMER_UNVERIFIED') return 'Verifikasi untuk memilih';
-  if (audience === 'CUSTOMER_APPROVED') return 'Pilih paket';
-  return 'Buka Workspace';
+  if (audience === 'GUEST') return 'Sign in to buy';
+  if (audience === 'CUSTOMER_UNVERIFIED') return 'Verify to buy';
+  if (audience === 'CUSTOMER_APPROVED') return 'Buy this package';
+  return 'Open workspace';
 }
 
 export function packageJourneyCopy(session: WebSession | null) {
   const audience = packageAudienceState(session);
-  if (audience === 'GUEST') return 'Masuk atau buat akun untuk melanjutkan pembelian.';
-  if (audience === 'CUSTOMER_UNVERIFIED')
-    return 'Selesaikan verifikasi akun untuk melanjutkan pembelian.';
-  if (audience === 'CUSTOMER_APPROVED')
-    return 'Pilih paket yang sesuai, lalu lanjutkan ke pembayaran.';
-  return 'Anda sedang menggunakan akun staf. Pembelian paket menggunakan akun customer.';
+  if (audience === 'GUEST') return 'Sign in or create an account to buy a package.';
+  if (audience === 'CUSTOMER_UNVERIFIED') return 'Finish verifying your account to buy a package.';
+  if (audience === 'CUSTOMER_APPROVED') return 'Pick a package, then continue to payment.';
+  return 'You are signed in as staff. Packages are bought from a parent account.';
 }
 
 export function packageCtaHref(audience: PackageAudienceState, purchase: string): string {
@@ -125,6 +129,7 @@ export function PublicPackagesView({
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const [message, setMessage] = useState('');
   const [continuationSlot, setContinuationSlot] = useState('');
+  const [length, setLength] = useState<LengthFilter>('');
 
   const loadBranch = async (selected: string) => {
     if (!selected) {
@@ -210,7 +215,11 @@ export function PublicPackagesView({
     () => [...new Map(items.map((item) => [item.classType.id, item.classType])).values()],
     [items],
   );
-  const visible = items.filter((item) => !classTypeId || item.classType.id === classTypeId);
+  const visible = items.filter(
+    (item) =>
+      (!classTypeId || item.classType.id === classTypeId) &&
+      (!length || String(item.sessionDurationMinutes ?? 60) === length),
+  );
   const recommendedId = recommendedPackageId(visible);
   const orderedVisible = recommendedFirst(visible, recommendedId);
   const ctaLabel = packageCtaLabel(session ?? null);
@@ -220,14 +229,14 @@ export function PublicPackagesView({
   return (
     <div className="min-w-0 overflow-x-clip bg-dd-cream font-sans text-dd-ink">
       <a className="skip-link" href="#packages-main">
-        Langsung ke paket
+        Skip to packages
       </a>
       {!inCustomerShell && <PublicHeader />}
       <main id="packages-main">
         <PublicPageHero
-          eyebrow="Paket Daily Dose"
-          title="Komitmen yang sesuai dengan ritme Anda."
-          description="Pilih studio, bandingkan paket yang tersedia, lalu temukan ritme latihan yang paling sesuai untuk Anda."
+          eyebrow="Packages"
+          title="1-hour or 2-hour sessions, your choice."
+          description="Choose your club, then compare packages. Each booking uses one session, and the package sets whether that session is 1 hour or 2 hours."
           variant="compact"
         >
           <ul className="grid max-w-3xl list-none gap-2 p-0 text-sm text-dd-muted sm:grid-cols-3 sm:gap-4">
@@ -243,22 +252,19 @@ export function PublicPackagesView({
         <section className="py-0 sm:py-1" aria-labelledby="package-discovery-title">
           <div className={publicContainer}>
             <header className="mb-2 max-w-3xl">
-              <p className="text-xs font-bold tracking-[0.14em] text-dd-forest uppercase">
-                01 — Pilih studio
-              </p>
               <h2
-                className="mt-1 text-[clamp(1.75rem,3.2vw,2.25rem)] leading-tight font-semibold"
+                className="font-display text-[clamp(1.75rem,3.2vw,2.25rem)] leading-tight text-dd-forest"
                 id="package-discovery-title"
               >
-                Pilih studio tempat Anda berlatih.
+                Which club will you visit?
               </h2>
               <p className="mt-1 max-w-2xl leading-6 text-dd-muted">
-                Harga dan ketersediaan paket mengikuti studio pilihan Anda.
+                Prices and packages depend on the club.
               </p>
             </header>
 
             {status === 'loading' && !branches.length ? (
-              <div className="grid grid-cols-2 gap-3" role="status" aria-label="Memuat studio">
+              <div className="grid grid-cols-2 gap-3" role="status" aria-label="Loading clubs">
                 {[0, 1].map((item) => (
                   <div
                     className="h-20 animate-pulse rounded-dd-md border border-dd-line bg-white"
@@ -273,7 +279,7 @@ export function PublicPackagesView({
                   return (
                     <button
                       type="button"
-                      className={`flex min-h-14 items-center gap-3 rounded-dd-md border p-3 text-left shadow-dd-card transition sm:p-4 ${
+                      className={`flex min-h-14 items-center gap-3 rounded-[15px] border p-3 text-left transition sm:p-4 ${
                         selected
                           ? 'border-dd-forest bg-dd-forest text-white'
                           : 'border-dd-line bg-white text-dd-ink hover:-translate-y-0.5 hover:border-dd-forest/50'
@@ -305,14 +311,14 @@ export function PublicPackagesView({
               </div>
             )}
 
-            <div className="mt-3 grid gap-3 rounded-dd-md border border-dd-line bg-white p-3 shadow-dd-card sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+            <div className="mt-3 grid gap-3 rounded-[15px] border border-dd-line bg-white p-3 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-end">
               <div className="min-w-0">
                 <SearchSelect
-                  label="Tipe kelas"
+                  label="Class"
                   compact
                   value={classTypeId}
                   disabled={!branchId}
-                  placeholder="Semua tipe kelas"
+                  placeholder="All classes"
                   options={classTypes.map((item) => ({ id: item.id, label: item.name }))}
                   onChange={(selected) => {
                     setClassTypeId(selected);
@@ -320,16 +326,42 @@ export function PublicPackagesView({
                   }}
                 />
               </div>
-              {classTypeId && (
+              <fieldset className="m-0 grid gap-1.5 border-0 p-0">
+                <legend className="mb-1.5 text-sm font-semibold">Session length</legend>
+                <div className="flex gap-1 rounded-full bg-dd-surface-muted p-1">
+                  {(
+                    [
+                      ['', 'Any'],
+                      ['60', '1 hour'],
+                      ['120', '2 hours'],
+                    ] as const
+                  ).map(([value, label]) => (
+                    <button
+                      type="button"
+                      key={value || 'any'}
+                      aria-pressed={length === value}
+                      disabled={!branchId}
+                      onClick={() => setLength(value)}
+                      className={`min-h-10 rounded-full px-4 text-sm font-medium ${
+                        length === value ? 'bg-dd-forest text-white' : 'text-dd-forest'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
+              {(classTypeId || length) && (
                 <button
                   type="button"
-                  className="min-h-12 rounded-dd-sm border border-dd-line bg-dd-surface-muted px-5 text-sm font-bold text-dd-forest"
+                  className="min-h-12 rounded-full border border-dd-line bg-white px-5 text-sm font-medium text-dd-forest"
                   onClick={() => {
                     setClassTypeId('');
+                    setLength('');
                     syncCatalogQuery(branchId, '');
                   }}
                 >
-                  Reset filter
+                  Clear filters
                 </button>
               )}
             </div>
@@ -340,33 +372,32 @@ export function PublicPackagesView({
                   <div className="grid gap-5 md:grid-cols-2" role="status">
                     {[0, 1].map((item) => (
                       <div
-                        className="h-72 animate-pulse rounded-dd-lg border border-dd-line bg-white"
+                        className="h-72 animate-pulse rounded-[15px] border border-dd-line bg-white"
                         key={item}
                       />
                     ))}
                   </div>
                 )}
                 {status === 'error' && (
-                  <PublicStatePanel title="Paket belum dapat dimuat" tone="error" role="alert">
+                  <PublicStatePanel title="Packages did not load" tone="error" role="alert">
                     <p>{message}</p>
                     <button
                       type="button"
-                      className="mt-4 min-h-11 rounded-dd-sm border border-dd-danger/30 bg-white px-5 font-bold"
+                      className="mt-4 min-h-11 rounded-full border border-dd-danger/30 bg-white px-5 font-medium"
                       onClick={() => void retryCatalog()}
                     >
-                      Coba lagi
+                      Try again
                     </button>
                   </PublicStatePanel>
                 )}
                 {status === 'ready' && !branchId && (
-                  <PublicStatePanel title="Pilih studio untuk melihat paket">
-                    Harga, tipe kelas, dan masa berlaku paket akan muncul setelah Anda menentukan
-                    lokasi latihan.
+                  <PublicStatePanel title="Choose a club to see packages">
+                    Prices, classes and how long each package lasts appear once you pick a club.
                   </PublicStatePanel>
                 )}
                 {status === 'ready' && branchId && visible.length === 0 && (
-                  <PublicStatePanel title="Belum ada paket aktif">
-                    Coba tipe kelas lain atau pilih studio berbeda.
+                  <PublicStatePanel title="No packages match">
+                    Try another class or session length, or a different club.
                   </PublicStatePanel>
                 )}
               </div>
@@ -377,30 +408,28 @@ export function PublicPackagesView({
                 <p className="mt-3 pr-20 text-sm text-dd-muted sm:pr-0">
                   {packageJourneyCopy(session ?? null)}
                 </p>
-                <div className="mt-3 grid gap-5 md:grid-cols-2" aria-label="Daftar paket aktif">
+                <div className="mt-3 grid gap-5 md:grid-cols-2" aria-label="Packages">
                   {orderedVisible.map((item) => {
                     const recommended = item.id === recommendedId;
                     const purchase = `/checkout?package=${item.id}&branch=${item.branchId}${classTypeId ? `&classType=${encodeURIComponent(classTypeId)}` : ''}${continuationSlot ? `&slot=${encodeURIComponent(continuationSlot)}` : ''}`;
                     const href = packageCtaHref(audience, purchase);
                     return (
                       <article
-                        className={`flex min-h-[320px] flex-col rounded-dd-lg border bg-white p-5 shadow-dd-card sm:p-6 ${
-                          recommended ? 'border-dd-brass ring-1 ring-dd-brass/30' : 'border-dd-line'
+                        className={`flex min-h-[320px] flex-col rounded-[15px] border bg-white p-5 sm:p-6 ${
+                          recommended ? 'border-lr-sun ring-2 ring-lr-sun/40' : 'border-dd-line'
                         }`}
                         key={item.id}
                       >
                         <div className="flex min-h-7 flex-wrap items-start justify-between gap-2">
-                          <span className="text-xs font-bold tracking-[0.12em] text-dd-forest uppercase">
+                          <span className="text-sm font-semibold text-dd-forest">
                             {item.classType.name}
                           </span>
-                          {recommended && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-dd-brass-soft px-3 py-1 text-xs font-bold text-dd-brass-dark">
-                              <Sparkles className="size-3.5" aria-hidden="true" />
-                              Direkomendasikan
-                            </span>
-                          )}
+                          <span className="inline-flex items-center gap-1 rounded-full bg-lr-sky px-3 py-1 text-xs font-semibold text-dd-forest">
+                            <Clock className="size-3.5" aria-hidden="true" />
+                            {sessionLengthText(item.sessionDurationMinutes)} per session
+                          </span>
                         </div>
-                        <h3 className="mt-2 text-[1.375rem] leading-tight font-semibold sm:text-2xl">
+                        <h3 className="mt-2 font-display text-[1.5rem] leading-tight text-dd-forest sm:text-[1.75rem]">
                           {item.name}
                         </h3>
                         <p className="mt-1 text-sm text-dd-muted">
@@ -414,49 +443,55 @@ export function PublicPackagesView({
                             sessionCount={item.sessionCount}
                           />
                         </div>
-                        <dl className="mt-4 grid grid-cols-2 gap-3 border-y border-dd-line py-4">
+                        <dl className="mt-4 grid grid-cols-3 gap-3 border-y border-dd-line py-4">
                           <div>
-                            <dt className="text-xs text-dd-muted">Jumlah sesi</dt>
-                            <dd className="mt-1 font-bold">{item.sessionCount} sesi</dd>
+                            <dt className="text-xs text-dd-muted">Sessions</dt>
+                            <dd className="mt-1 font-bold">{item.sessionCount}</dd>
                           </div>
                           <div>
-                            <dt className="text-xs text-dd-muted">Masa berlaku</dt>
-                            <dd className="mt-1 font-bold">{item.durationDays} hari</dd>
+                            <dt className="text-xs text-dd-muted">Each session</dt>
+                            <dd className="mt-1 font-bold">
+                              {sessionLengthText(item.sessionDurationMinutes)}
+                            </dd>
+                          </div>
+                          <div>
+                            <dt className="text-xs text-dd-muted">Valid for</dt>
+                            <dd className="mt-1 font-bold">{item.durationDays} days</dd>
                           </div>
                         </dl>
                         <div className="mt-auto grid gap-3 pt-4">
                           <p className="flex items-center gap-2 text-xs text-dd-muted">
                             <CalendarDays className="size-4 shrink-0" aria-hidden="true" />
                             {item.effectiveUntil
-                              ? `Tersedia sampai ${new Intl.DateTimeFormat('id-ID', {
+                              ? `On sale until ${new Intl.DateTimeFormat('en-GB', {
                                   dateStyle: 'medium',
                                 }).format(new Date(item.effectiveUntil))}`
-                              : 'Tersedia untuk pembelian'}
+                              : 'On sale now'}
                           </p>
                           {audience === 'STAFF' && (
                             <p className="rounded-dd-sm bg-dd-surface-muted px-3 py-2 text-xs leading-5 text-dd-muted">
-                              Pembelian paket menggunakan akun customer.
+                              Packages are bought from a parent account.
                             </p>
                           )}
                           <Link
                             className={`${publicSecondaryButton} w-full`}
                             href={`/packages/${item.id}`}
                           >
-                            Lihat detail paket
+                            Package details
                           </Link>
                           <Link className={`${publicPrimaryButton} w-full`} href={href}>
-                            {ctaLabel} <ArrowRight className="size-4" aria-hidden="true" />
+                            {ctaLabel}
                           </Link>
                         </div>
                       </article>
                     );
                   })}
                 </div>
-                <div className="mt-6 grid gap-3 rounded-dd-md border border-dd-line bg-white p-4 text-sm text-dd-muted shadow-dd-card sm:grid-cols-3">
+                <div className="mt-6 grid gap-3 rounded-[15px] border border-dd-line bg-white p-4 text-sm text-dd-muted sm:grid-cols-3">
                   {[
-                    'Harga final mengikuti studio pilihan.',
-                    'Paket aktif setelah pembayaran disetujui.',
-                    'Sisa sesi dapat dipantau melalui akun.',
+                    'Timetable slots are 2-hour blocks. 1-hour packages use the first hour.',
+                    'A package starts once we approve your payment.',
+                    'Track the sessions you have left in your account.',
                   ].map((item) => (
                     <p className="flex items-start gap-2" key={item}>
                       <Check className="mt-0.5 size-4 shrink-0 text-dd-forest" aria-hidden="true" />

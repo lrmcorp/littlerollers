@@ -12,8 +12,8 @@ export async function generateMetadata({
   const item = await publicMetadataValue<PublicPackageDetail>(
     `/public/package-catalog/${encodeURIComponent(id)}`,
   );
-  const title = item ? `${item.name} · ${item.branch.name}` : 'Detail Paket';
-  const description = item?.publicProfile.summary ?? 'Detail paket Pilates aktif Daily Dose.';
+  const title = item ? `${item.name} · ${item.branch.name}` : 'Package details';
+  const description = item?.publicProfile.summary ?? 'A Little Rollers package: price, sessions and terms.';
   return {
     title,
     description,

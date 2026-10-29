@@ -26,10 +26,10 @@ export function normalizeRegistrationPhone(value: string): string {
 }
 
 function validateIdentityFile(file: File | null, label: string): string | undefined {
-  if (!file || file.size === 0) return `${label} wajib dipilih.`;
+  if (!file || file.size === 0) return `Please choose a ${label.toLowerCase()}.`;
   if (!IDENTITY_IMAGE_TYPES.includes(file.type as (typeof IDENTITY_IMAGE_TYPES)[number]))
-    return `${label} harus berformat JPG, PNG, atau WebP.`;
-  if (file.size > MAX_IDENTITY_FILE_BYTES) return `${label} maksimal berukuran 8 MB.`;
+    return `The ${label.toLowerCase()} must be a JPG, PNG or WebP image.`;
+  if (file.size > MAX_IDENTITY_FILE_BYTES) return `The ${label.toLowerCase()} must be 8 MB or smaller.`;
   return undefined;
 }
 
@@ -40,35 +40,35 @@ export function validateRegisterField(
   switch (name) {
     case 'displayName': {
       const displayName = values.displayName.trim();
-      if (!displayName) return 'Nama lengkap wajib diisi.';
-      if (displayName.length > 160) return 'Nama lengkap maksimal 160 karakter.';
+      if (!displayName) return 'Please enter your full name.';
+      if (displayName.length > 160) return 'Your name can be up to 160 characters.';
       return undefined;
     }
     case 'phone':
-      if (!values.phone.trim()) return 'Nomor WhatsApp wajib diisi.';
+      if (!values.phone.trim()) return 'Please enter your WhatsApp number.';
       if (!e164Pattern.test(normalizeRegistrationPhone(values.phone)))
-        return 'Masukkan nomor WhatsApp yang valid, misalnya 0812 3456 7890.';
+        return 'Enter a valid WhatsApp number, for example 0812 3456 7890.';
       return undefined;
     case 'email':
-      if (!values.email.trim()) return 'Email wajib diisi.';
-      if (!emailPattern.test(values.email.trim())) return 'Masukkan alamat email yang valid.';
-      if (values.email.trim().length > 254) return 'Email maksimal 254 karakter.';
+      if (!values.email.trim()) return 'Please enter your email.';
+      if (!emailPattern.test(values.email.trim())) return 'Enter a valid email address.';
+      if (values.email.trim().length > 254) return 'Email can be up to 254 characters.';
       return undefined;
     case 'password':
-      if (!values.password) return 'Password wajib diisi.';
-      if (values.password.length < 8) return 'Password minimal 8 karakter.';
-      if (values.password.length > 128) return 'Password maksimal 128 karakter.';
+      if (!values.password) return 'Please enter a password.';
+      if (values.password.length < 8) return 'Use at least 8 characters.';
+      if (values.password.length > 128) return 'Use 128 characters or fewer.';
       return undefined;
     case 'confirmation':
-      if (!values.confirmation) return 'Ulangi password wajib diisi.';
-      if (values.confirmation !== values.password) return 'Konfirmasi password tidak sama.';
+      if (!values.confirmation) return 'Please type the password again.';
+      if (values.confirmation !== values.password) return 'The passwords do not match.';
       return undefined;
     case 'selfie':
-      return validateIdentityFile(values.selfie, 'Foto selfie');
+      return validateIdentityFile(values.selfie, 'Selfie photo');
     case 'ktp':
-      return validateIdentityFile(values.ktp, 'Foto KTP');
+      return validateIdentityFile(values.ktp, 'KTP photo');
     case 'consent':
-      return values.consent ? undefined : 'Persetujuan verifikasi identitas wajib diberikan.';
+      return values.consent ? undefined : 'Please agree to the identity check to continue.';
   }
 }
 
@@ -92,7 +92,7 @@ export function validateRegistration(values: RegisterValues): RegisterErrors {
 }
 
 export function registrationRequestErrorMessage(status?: number): string {
-  if (status === 409) return 'Email atau nomor WhatsApp sudah digunakan.';
-  if (status === 422) return 'Periksa kembali data dan format foto yang dipilih.';
-  return 'Registrasi belum dapat diproses. Coba kembali.';
+  if (status === 409) return 'That email or WhatsApp number already has an account.';
+  if (status === 422) return 'Check your details and the photo formats, then try again.';
+  return 'We could not create your account. Please try again.';
 }

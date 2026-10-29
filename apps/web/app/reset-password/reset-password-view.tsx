@@ -11,9 +11,9 @@ export function ResetPasswordView({ client = browserIdentityClient }: { client?:
   const [status, setStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
   return (
     <AuthPageShell
-      eyebrow="Kredensial baru"
+      eyebrow="Account help"
       title="Reset password"
-      description="Gunakan password baru sepanjang 8–128 karakter. Seluruh sesi lama akan dicabut."
+      description="Choose a new password of 8 to 128 characters. You will be signed out on other devices."
     >
       <form
         className="grid min-w-0 max-w-full gap-4 overflow-x-clip"
@@ -34,7 +34,7 @@ export function ResetPasswordView({ client = browserIdentityClient }: { client?:
         }}
       >
         <label className="grid min-w-0 gap-2 text-sm font-bold">
-          Password baru
+          New password
           <span className="relative min-w-0">
             <input
               className="min-h-[50px] w-full min-w-0 rounded-dd-sm border border-dd-line px-4 pr-24"
@@ -50,12 +50,12 @@ export function ResetPasswordView({ client = browserIdentityClient }: { client?:
               type="button"
               onClick={() => setShow((value) => !value)}
             >
-              {show ? 'Sembunyikan' : 'Lihat'}
+              {show ? 'Hide' : 'Show'}
             </button>
           </span>
         </label>
         <label className="grid min-w-0 gap-2 text-sm font-bold">
-          Ulangi password baru
+          New password again
           <input
             className="min-h-[50px] w-full min-w-0 rounded-dd-sm border border-dd-line px-4"
             name="confirmation"
@@ -70,16 +70,16 @@ export function ResetPasswordView({ client = browserIdentityClient }: { client?:
           className="min-h-[50px] rounded-dd-sm bg-dd-forest px-5 font-bold text-white"
           disabled={status === 'loading'}
         >
-          Simpan password baru
+          Save new password
         </button>
       </form>
       {status === 'done' && (
         <Feedback kind="status">
-          Password berhasil diperbarui. <Link href="/sign-in">Masuk kembali</Link>.
+          Your password is updated. <Link href="/sign-in">Sign in</Link>.
         </Feedback>
       )}
       {status === 'error' && (
-        <Feedback kind="error">Password harus sama, dan tautan harus masih berlaku.</Feedback>
+        <Feedback kind="error">The passwords must match and the link must still be valid.</Feedback>
       )}
     </AuthPageShell>
   );

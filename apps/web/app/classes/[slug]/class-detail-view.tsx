@@ -20,6 +20,14 @@ import {
 } from '../../components/public/public-detail-shared';
 import { PackagePrice } from '../../components/public/package-price';
 
+/** The profile carries no display name, so read it from the class's own packages or sessions. */
+export function classDisplayName(item: PublicClassDetail) {
+  const named = item.packages[0]?.classType?.name ?? item.schedules[0]?.classType?.name;
+  if (named) return named;
+  const code = item.profile.code.toLowerCase();
+  return code.charAt(0).toUpperCase() + code.slice(1);
+}
+
 export function ClassDetailView({
   slug,
   initialData = null,
@@ -45,19 +53,11 @@ export function ClassDetailView({
   return (
     <PublicDetailFrame
       breadcrumb={[
-        { label: 'Kelas', href: '/classes' },
-        {
-          label: item?.profile.slug
-            ? item.profile.code === 'CLUB'
-              ? 'Barre'
-              : item.profile.code === 'PLAY'
-                ? 'Tiny Rollers'
-                : 'Movers'
-            : 'Detail',
-        },
+        { label: 'Classes', href: '/classes' },
+        { label: item ? classDisplayName(item) : 'Class' },
       ]}
     >
-      {!item && !failure && <DetailLoading label="kelas" />}
+      {!item && !failure && <DetailLoading label="class" />}
       {failure && (
         <DetailFailure
           message={failure}
@@ -68,14 +68,8 @@ export function ClassDetailView({
       {item && (
         <>
           <DetailHero
-            eyebrow="Kelas Daily Dose"
-            title={
-              item.profile.code === 'CLUB'
-                ? 'Barre'
-                : item.profile.code === 'PLAY'
-                  ? 'Tiny Rollers'
-                  : 'Movers'
-            }
+            eyebrow="Class"
+            title={classDisplayName(item)}
             summary={item.profile.summary}
             imageKey={item.profile.heroImageKey}
             facts={
@@ -86,11 +80,13 @@ export function ClassDetailView({
                 </span>
                 <span className="inline-flex items-center gap-2 rounded-full border border-dd-line bg-white px-4 py-2">
                   <Clock3 className="size-4 text-dd-forest" />
-                  {item.profile.durationMinutes} menit
+                  {item.profile.durationMinutes % 60 === 0
+                    ? `${item.profile.durationMinutes / 60}-hour sessions`
+                    : `${item.profile.durationMinutes} min sessions`}
                 </span>
                 <span className="inline-flex items-center gap-2 rounded-full border border-dd-line bg-white px-4 py-2">
                   <MapPin className="size-4 text-dd-forest" />
-                  {item.studios.length} studio
+                  {item.studios.length} {item.studios.length === 1 ? 'club' : 'clubs'}
                 </span>
               </div>
             }
@@ -98,23 +94,20 @@ export function ClassDetailView({
               <>
                 <AudienceAction kind="class" id={item.profile.slug} classType={item.profile.code} />
                 <Link className={publicSecondaryButton} href="/packages">
-                  Lihat paket
+                  See packages
                 </Link>
               </>
             }
           />
           <section className={`${publicContainer} grid gap-10 py-10 lg:grid-cols-[1fr_0.8fr]`}>
             <article>
-              <p className="text-xs font-bold tracking-[0.14em] text-dd-forest uppercase">
-                Tentang kelas
-              </p>
-              <h2 className="mt-2 text-3xl font-semibold">Bergerak dengan tujuan</h2>
+              <h2 className="font-display text-3xl text-dd-forest">About this class</h2>
               <p className="mt-4 leading-7 text-dd-muted">{item.profile.description}</p>
-              <h3 className="mt-8 text-xl font-semibold">Manfaat</h3>
+              <h3 className="mt-8 font-display text-xl text-dd-forest">What children practise</h3>
               <ul className="mt-4 grid list-none gap-3 p-0 sm:grid-cols-2">
                 {item.profile.benefits.map((benefit) => (
                   <li
-                    className="flex gap-3 rounded-dd-md border border-dd-line bg-white p-4"
+                    className="flex gap-3 rounded-[15px] border border-dd-line bg-white p-4"
                     key={benefit}
                   >
                     <Check className="size-4 shrink-0 text-dd-forest" />
@@ -123,18 +116,18 @@ export function ClassDetailView({
                 ))}
               </ul>
             </article>
-            <aside className="rounded-dd-lg border border-dd-line bg-dd-paper p-6">
-              <h2 className="text-xl font-semibold">Perlengkapan</h2>
-              <ul className="mt-4 grid gap-3 pl-5 text-sm text-dd-muted">
+            <aside className="rounded-[15px] bg-lr-sky p-6">
+              <h2 className="font-display text-xl text-dd-forest">What to bring</h2>
+              <ul className="mt-4 grid gap-3 pl-5 text-sm text-dd-ink">
                 {item.profile.equipment.map((value) => (
                   <li key={value}>{value}</li>
                 ))}
               </ul>
-              <h2 className="mt-8 text-xl font-semibold">Studio tersedia</h2>
+              <h2 className="mt-8 font-display text-xl text-dd-forest">Where it runs</h2>
               <div className="mt-4 grid gap-2">
                 {item.studios.map((studio) => (
                   <Link
-                    className="rounded-dd-sm border border-dd-line bg-white px-4 py-3 text-sm font-semibold text-dd-ink no-underline"
+                    className="flex min-h-11 items-center rounded-full bg-white px-4 text-sm font-medium text-dd-forest no-underline"
                     href={`/locations/${studio.publicProfile.slug}`}
                     key={studio.id}
                   >
@@ -146,15 +139,15 @@ export function ClassDetailView({
           </section>
           <section className="border-y border-dd-line bg-white py-10">
             <div className={publicContainer}>
-              <h2 className="text-3xl font-semibold">Paket terkait</h2>
+              <h2 className="font-display text-3xl text-dd-forest">Packages for this class</h2>
               <div className="mt-5 grid gap-4 md:grid-cols-2">
                 {item.packages.slice(0, 4).map((pkg) => (
                   <article
-                    className="rounded-dd-lg border border-dd-line bg-dd-cream p-5"
+                    className="rounded-[15px] border border-dd-line bg-dd-cream p-5"
                     key={pkg.id}
                   >
-                    <p className="text-xs font-bold text-dd-forest uppercase">{pkg.branch.name}</p>
-                    <h3 className="mt-2 text-xl font-semibold">{pkg.name}</h3>
+                    <p className="text-sm font-semibold text-dd-forest">{pkg.branch.name}</p>
+                    <h3 className="mt-1 font-display text-xl text-dd-forest">{pkg.name}</h3>
                     <p className="mt-2 text-sm text-dd-muted">{pkg.publicProfile.summary}</p>
                     <div className="mt-4">
                       <PackagePrice
@@ -165,7 +158,7 @@ export function ClassDetailView({
                       />
                     </div>
                     <Link className={`${publicSecondaryButton} mt-4`} href={`/packages/${pkg.id}`}>
-                      Lihat detail
+                      Package details
                     </Link>
                   </article>
                 ))}
@@ -173,7 +166,7 @@ export function ClassDetailView({
             </div>
           </section>
           <section className={`${publicContainer} py-10`}>
-            <h2 className="text-3xl font-semibold">Jadwal berikutnya</h2>
+            <h2 className="font-display text-3xl text-dd-forest">Next sessions</h2>
             <div className="mt-5">
               <RelatedSchedules items={item.schedules} />
             </div>

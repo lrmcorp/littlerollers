@@ -2,50 +2,47 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { MapPin } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { accountClient, type PreferredStudio } from '../account-client';
 import { PublicFooter } from '../components/public/public-footer';
 import { PublicHeader } from '../components/public/public-header';
-import { SearchSelect, SelectInput } from '../components/forms';
+import { PublicPageHero, PublicStatePanel } from '../components/public/public-page';
+import { SearchSelect } from '../components/forms';
 import {
   publicContainer as container,
   publicPrimaryButton as primary,
   publicSecondaryButton as secondary,
 } from '../components/public/public-styles';
 
-const studioBenefits = [
-  ['▱', 'Peralatan premium', 'Peralatan Pilates berkualitas untuk latihan yang terarah.'],
-  ['◉', 'Kelas berukuran kecil', 'Suasana latihan yang nyaman dan lebih personal.'],
-  ['◎', 'Instruktur berpengalaman', 'Pendampingan instruktur dalam setiap sesi.'],
-  ['▦', 'Dua pilihan studio', 'Pilihan studio aktif di Jakarta dan BSD.'],
-] as const;
+const ALL_AREAS = '';
 
 export function LocationsView() {
   const [studios, setStudios] = useState<PreferredStudio[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState('');
-  const [region, setRegion] = useState('Semua lokasi');
+  const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [region, setRegion] = useState(ALL_AREAS);
   const [query, setQuery] = useState('');
-  const [sort, setSort] = useState<'recommended' | 'az'>('recommended');
 
-  useEffect(() => {
+  const load = useCallback(() => {
     let active = true;
+    setState('loading');
     accountClient
       .siteConfig()
       .then((result) => {
-        if (active) setStudios(result.branches.filter((branch) => branch.publicProfile));
+        if (!active) return;
+        setStudios(result.branches.filter((branch) => branch.publicProfile));
+        setState('ready');
       })
       .catch(() => {
-        if (active) setLoadError('Daftar studio belum dapat dimuat. Silakan coba lagi.');
-      })
-      .finally(() => {
-        if (active) setLoading(false);
+        if (active) setState('error');
       });
     return () => {
       active = false;
     };
   }, []);
+
+  useEffect(() => load(), [load]);
 
   const regions = useMemo(
     () =>
@@ -58,251 +55,140 @@ export function LocationsView() {
   );
 
   const visibleLocations = useMemo(() => {
-    const normalized = query.trim().toLocaleLowerCase('id-ID');
-    const filtered = studios.filter(
+    const normalized = query.trim().toLocaleLowerCase('en-GB');
+    return studios.filter(
       ({ name, publicProfile }) =>
         publicProfile &&
-        (region === 'Semua lokasi' || publicProfile.area === region) &&
+        (region === ALL_AREAS || publicProfile.area === region) &&
         (!normalized ||
           `${name} ${publicProfile.area} ${publicProfile.city}`
-            .toLocaleLowerCase('id-ID')
+            .toLocaleLowerCase('en-GB')
             .includes(normalized)),
     );
-    return sort === 'az'
-      ? [...filtered].sort((left, right) => left.name.localeCompare(right.name, 'id-ID'))
-      : filtered;
-  }, [query, region, sort, studios]);
+  }, [query, region, studios]);
 
   return (
     <div className="min-w-0 overflow-hidden bg-dd-cream font-sans text-dd-ink">
       <a className="skip-link" href="#studios-main">
-        Langsung ke daftar studio
+        Skip to the club list
       </a>
       <PublicHeader />
 
       <main id="studios-main">
-        <section
-          className="relative isolate min-h-[360px] overflow-hidden"
-          aria-labelledby="studio-hero-title"
-        >
-          <Image
-            className="-z-20 object-cover object-[68%_53%]"
-            src="/images/public/studios/studio-reception.png"
-            fill
-            priority
-            sizes="100vw"
-            alt="Interior studio Daily Dose Pilates yang hangat dan terang"
-          />
-          <div className="absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgba(248,246,241,0.98)_0%,rgba(248,246,241,0.9)_39%,rgba(248,246,241,0.12)_72%)]" />
-          <div className={`${container} flex min-h-[360px] items-center`}>
-            <div className="max-w-[520px] py-12">
-              <p className="text-xs font-bold tracking-[0.13em] text-dd-forest uppercase">
-                Daily Dose Pilates
-              </p>
-              <h1
-                className="mt-3 font-sans text-[clamp(3.6rem,7vw,6rem)] leading-none font-semibold"
-                id="studio-hero-title"
-              >
-                Studio Kami
-              </h1>
-              <p className="mt-5 text-base leading-7">
-                Temukan studio Daily Dose Pilates terdekat. Setiap ruang dirancang untuk
-                menginspirasi gerak dan mendukung perjalanan wellness Anda.
-              </p>
-            </div>
-          </div>
-        </section>
+        <PublicPageHero
+          eyebrow="Clubs"
+          title="Find your club"
+          titleId="studio-hero-title"
+          description="Each club has its own timetable and packages. Pick the one you will visit to see sessions and prices."
+        />
 
-        <section
-          className="border-y border-dd-line bg-white/65 py-5"
-          aria-label="Cari dan filter studio"
-        >
-          <div
-            className={`${container} grid grid-cols-[1fr_1fr_1fr_auto] gap-4 max-[900px]:grid-cols-2 max-[540px]:grid-cols-1`}
-          >
+        <section className={`${container} py-8`} aria-label="Search clubs">
+          <div className="grid gap-4 rounded-[15px] border border-dd-line bg-white p-4 sm:grid-cols-2">
             <SearchSelect
-              label="Wilayah"
-              value={region === 'Semua lokasi' ? '' : region}
-              placeholder="Semua lokasi"
+              label="Area"
+              value={region}
+              placeholder="All areas"
               options={regions.map((item) => ({ id: item, label: item }))}
-              onChange={(value) => setRegion(value || 'Semua lokasi')}
+              onChange={(value) => setRegion(value || ALL_AREAS)}
             />
-            <label className="flex min-h-[50px] items-center gap-3 rounded-dd-md border border-dd-line bg-white px-4">
-              <span aria-hidden="true">⌕</span>
-              <span className="sr-only">Cari studio</span>
+            <label className="grid gap-2 text-sm font-semibold">
+              Search
               <input
-                className="min-h-11 w-full border-0 bg-transparent"
+                className="min-h-12 w-full rounded-dd-md border border-dd-line bg-white px-4 text-sm font-normal"
                 type="search"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Cari nama atau area"
+                placeholder="Club name or area"
               />
             </label>
-            <div className="flex min-h-[50px] items-center gap-3 rounded-dd-md border border-dd-line bg-white px-4 text-sm text-dd-muted">
-              <span aria-hidden="true">▱</span>
-              <span>Private · Semi Private · Group</span>
-            </div>
-            <Link className={primary} href="/classes#schedule">
-              Lihat Jadwal <span aria-hidden="true">▦</span>
-            </Link>
           </div>
-        </section>
 
-        <section className={`${container} grid gap-7 py-10 lg:grid-cols-[minmax(0,1fr)_280px]`}>
-          <div>
-            <div className="mb-5 flex items-center justify-between gap-4">
-              <p className="m-0 text-sm">
-                <strong>{visibleLocations.length}</strong> studio tersedia
-              </p>
-              <SelectInput
-                compact
-                wrapperClassName="min-w-48"
-                label="Urutkan"
-                value={sort}
-                onChange={(event) => setSort(event.target.value as 'recommended' | 'az')}
-              >
-                <option value="recommended">Rekomendasi</option>
-                <option value="az">A–Z</option>
-              </SelectInput>
-            </div>
-
-            {loading ? (
-              <div className="rounded-dd-lg border border-dd-line bg-white p-10 text-center text-dd-muted">
-                Memuat studio aktif…
-              </div>
-            ) : loadError ? (
-              <div className="rounded-dd-lg border border-dd-line bg-white p-10 text-center">
-                <h2 className="font-sans text-2xl font-semibold">Studio belum dapat dimuat</h2>
-                <p className="mt-2 text-dd-muted">{loadError}</p>
-              </div>
-            ) : visibleLocations.length ? (
-              <div className="grid gap-4">
+          <div className="mt-6" aria-live="polite">
+            {state === 'loading' ? (
+              <PublicStatePanel role="status">Loading clubs…</PublicStatePanel>
+            ) : state === 'error' ? (
+              <PublicStatePanel title="The clubs did not load" tone="error" role="alert">
+                <p>Check your connection and try again.</p>
+                <button type="button" className={`${secondary} mt-4`} onClick={() => load()}>
+                  Try again
+                </button>
+              </PublicStatePanel>
+            ) : studios.length === 0 ? (
+              <PublicStatePanel title="No clubs are open yet">
+                <p>
+                  <Link href="/contact">Contact us</Link> to hear when a club opens near you.
+                </p>
+              </PublicStatePanel>
+            ) : visibleLocations.length === 0 ? (
+              <PublicStatePanel title="No clubs match your search">
+                <button
+                  type="button"
+                  className={`${secondary} mt-2`}
+                  onClick={() => {
+                    setQuery('');
+                    setRegion(ALL_AREAS);
+                  }}
+                >
+                  Show all clubs
+                </button>
+              </PublicStatePanel>
+            ) : (
+              <ul className="m-0 grid list-none gap-5 p-0">
                 {visibleLocations.map(({ code, id, name, publicProfile }) => {
                   if (!publicProfile) return null;
                   return (
-                    <article
-                      className="grid overflow-hidden rounded-dd-md border border-dd-line bg-white shadow-dd-card md:grid-cols-[220px_minmax(0,1fr)_170px]"
-                      key={code}
-                    >
-                      <div className="relative min-h-[190px]">
-                        <Image
-                          className="object-cover"
-                          src={`/images/public/${publicProfile.heroImageKey}`}
-                          fill
-                          sizes="(max-width: 768px) 100vw, 220px"
-                          alt={`Studio Daily Dose Pilates ${name}`}
-                        />
-                      </div>
-                      <div className="p-5">
-                        <p className="text-xs font-bold tracking-wider text-dd-forest uppercase">
-                          Daily Dose Pilates
-                        </p>
-                        <h2 className="mt-1 font-sans text-2xl font-semibold">{name}</h2>
-                        <p className="mt-3 text-sm text-dd-muted">⌖ {publicProfile.area}</p>
-                        <p className="mt-2 text-sm leading-6 text-dd-muted">
-                          {publicProfile.description}
-                        </p>
-                        <p className="mt-2 text-sm text-dd-muted">
-                          ◷ Jadwal tersedia pada halaman kelas
-                        </p>
-                        <ul
-                          className="mt-4 flex list-none flex-wrap gap-2 p-0 text-xs text-dd-muted"
-                          aria-label={`Format latihan di ${name}`}
-                        >
-                          {['Reformer', 'Private', 'Semi Private', 'Group'].map((format) => (
-                            <li className="rounded-full bg-[#edf1ec] px-2.5 py-1" key={format}>
-                              {format}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                      <div className="grid content-center gap-3 border-l border-dd-line p-4 max-[768px]:grid-cols-2 max-[768px]:border-t max-[768px]:border-l-0">
-                        <Link className={secondary} href={`/locations/${publicProfile.slug}`}>
-                          Lihat detail ›
-                        </Link>
-                        <Link className={secondary} href="/contact">
-                          Hubungi studio ›
-                        </Link>
-                        <Link
-                          className={primary}
-                          href={`/classes?branch=${encodeURIComponent(id)}#schedule`}
-                        >
-                          Lihat Jadwal ▦
-                        </Link>
-                      </div>
-                    </article>
+                    <li key={code}>
+                      <article className="grid overflow-hidden rounded-[15px] border border-dd-line bg-white md:grid-cols-[260px_minmax(0,1fr)_200px]">
+                        <div className="relative min-h-[180px] bg-lr-sky">
+                          <Image
+                            className="object-cover"
+                            src={`/images/public/${publicProfile.heroImageKey}`}
+                            fill
+                            sizes="(max-width: 768px) 100vw, 260px"
+                            alt=""
+                          />
+                        </div>
+                        <div className="p-5 sm:p-6">
+                          <h2 className="font-display text-2xl text-dd-forest">{name}</h2>
+                          <p className="mt-2 flex items-start gap-2 text-sm text-dd-muted">
+                            <MapPin className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+                            {publicProfile.address}
+                          </p>
+                          <p className="mt-3 leading-7">{publicProfile.description}</p>
+                        </div>
+                        <div className="grid content-center gap-3 border-t border-dd-line p-5 md:border-t-0 md:border-l">
+                          <Link
+                            className={primary}
+                            href={`/classes?branch=${encodeURIComponent(id)}#schedule`}
+                          >
+                            Timetable
+                          </Link>
+                          <Link className={secondary} href={`/locations/${publicProfile.slug}`}>
+                            Club details
+                          </Link>
+                        </div>
+                      </article>
+                    </li>
                   );
                 })}
-              </div>
-            ) : (
-              <div className="rounded-dd-lg border border-dd-line bg-white p-10 text-center">
-                <h2 className="font-sans text-3xl">Studio belum ditemukan</h2>
-                <p className="mt-2 text-dd-muted">
-                  Coba ubah pencarian atau tampilkan semua lokasi.
-                </p>
-                <button
-                  className={`${secondary} mt-5`}
-                  onClick={() => {
-                    setQuery('');
-                    setRegion('Semua lokasi');
-                  }}
-                >
-                  Reset pencarian
-                </button>
-              </div>
+              </ul>
             )}
-
-            <p className="mt-6 rounded-dd-md border border-dd-line bg-white/60 p-4 text-[13px] leading-6 text-dd-muted">
-              Alamat lengkap, jam operasional, dan petunjuk kedatangan belum ditampilkan sebelum
-              sumber operasionalnya disetujui. Hubungi tim Daily Dose untuk konfirmasi kunjungan.
-            </p>
           </div>
+        </section>
 
-          <aside className="grid content-start gap-5" aria-label="Informasi studio">
-            <div className="relative min-h-[210px] overflow-hidden rounded-dd-lg border border-dd-line bg-[#eef0e8]">
-              <span className="absolute top-1/2 left-0 h-2 w-full -rotate-12 bg-white" />
-              <span className="absolute top-0 left-1/2 h-full w-2 rotate-12 bg-white" />
-              {['top-12 left-16', 'top-24 right-16', 'bottom-10 left-1/2'].map((position) => (
-                <i
-                  className={`absolute ${position} grid size-7 place-items-center rounded-full bg-dd-forest text-sm text-white not-italic`}
-                  key={position}
-                >
-                  ●
-                </i>
-              ))}
-              <strong className="absolute inset-x-4 bottom-4 text-sm">Jakarta · BSD</strong>
+        <section className={`${container} pb-4`}>
+          <div className="flex flex-col items-start justify-between gap-4 rounded-[22px] bg-dd-forest p-6 text-dd-cream sm:flex-row sm:items-center sm:p-8">
+            <div>
+              <h2 className="font-display text-2xl">No club near you yet?</h2>
+              <p className="mt-2 text-dd-cream/85">Tell us your area and we will let you know.</p>
             </div>
-
-            <div className="rounded-dd-lg bg-white p-5 shadow-dd-card">
-              <h2 className="font-sans text-2xl font-semibold">Mengapa Daily Dose?</h2>
-              <div className="mt-5 grid gap-5">
-                {studioBenefits.map(([icon, title, description]) => (
-                  <article className="grid grid-cols-[34px_1fr] gap-3" key={title}>
-                    <span className="text-2xl text-dd-forest" aria-hidden="true">
-                      {icon}
-                    </span>
-                    <div>
-                      <h3 className="text-sm font-bold">{title}</h3>
-                      <p className="mt-1 text-[13px] leading-5 text-dd-muted">{description}</p>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            </div>
-
-            <div className="rounded-dd-lg bg-dd-forest p-6 text-white">
-              <h2 className="font-sans text-2xl">Belum menemukan studio terdekat?</h2>
-              <p className="mt-3 text-sm leading-6 text-white/80">
-                Sampaikan area Anda dan tim kami akan membantu menemukan pilihan terdekat.
-              </p>
-              <Link
-                className="mt-5 inline-flex min-h-11 items-center rounded-dd-sm border border-white/50 px-5 text-sm font-bold text-white"
-                href="/contact"
-              >
-                Hubungi kami ›
-              </Link>
-            </div>
-          </aside>
+            <Link
+              className="inline-flex min-h-11 items-center rounded-full bg-lr-sun px-6 font-medium text-dd-forest no-underline"
+              href="/contact"
+            >
+              Contact us
+            </Link>
+          </div>
         </section>
       </main>
 
