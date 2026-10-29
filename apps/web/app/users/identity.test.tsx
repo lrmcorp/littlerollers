@@ -192,7 +192,8 @@ describe('identity UI', () => {
     expect(password).toHaveAttribute('type', 'text');
     expect(screen.queryByText(/synthetic non-production/i)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/Email Google synthetic/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/Google|konfigurasi|production|client ID/i)).not.toBeInTheDocument();
+    // Tombol Google boleh tampil; yang tidak boleh adalah teks konfigurasi teknis.
+    expect(screen.queryByText(/konfigurasi|production|client ID/i)).not.toBeInTheDocument();
   });
 
   it('supports authoritative invite and links every user to a dedicated detail route', async () => {
