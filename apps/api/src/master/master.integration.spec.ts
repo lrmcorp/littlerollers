@@ -10,8 +10,8 @@ const databaseDescribe = process.env.DATABASE_URL ? describe : describe.skip;
 databaseDescribe('effective master MySQL integration', () => {
   const db = new PrismaClient();
   const namespace = `mst-${Date.now()}`;
-  const primaryClassTypeCode = `REFORMER-${namespace}`.toUpperCase();
-  const lifecycleClassTypeCode = `BARRE-${namespace}`.toUpperCase();
+  const primaryClassTypeCode = `MOVERS-${namespace}`.toUpperCase();
+  const lifecycleClassTypeCode = `CLUB-${namespace}`.toUpperCase();
   const actorId = randomUUID();
   const instructorId = randomUUID();
   let catalog: MasterCatalogService;

@@ -1,8 +1,8 @@
 :root {
   color-scheme: light;
-  --font-sans: var(--font-ui), 'Poppins', ui-sans-serif, system-ui, sans-serif;
-  --color-brand: #396552;
-  --color-brand-strong: #24483a;
+  --font-sans: var(--font-ui), ui-sans-serif, system-ui, sans-serif;
+  --color-brand: #073228;
+  --color-brand-strong: #04231c;
   --color-brand-soft: #e8f0ec;
   --color-canvas: #f3f6f4;
   --color-surface: #ffffff;
@@ -32,7 +32,7 @@
   --space-6: 24px;
   --space-8: 32px;
   --space-10: 40px;
-  --focus-ring: 0 0 0 3px rgb(57 101 82 / 24%);
+  --focus-ring: 0 0 0 3px rgb(7 50 40 / 24%);
   --text-caption: 0.75rem;
   --text-small: 0.8125rem;
   --text-control: 0.875rem;

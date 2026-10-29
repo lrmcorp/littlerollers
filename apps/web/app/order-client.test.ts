@@ -10,9 +10,9 @@ import {
 const order: CustomerOrder = {
   id: 'order-1',
   branchId: 'branch-1',
-  branchName: 'Daily Dose BSD',
+  branchName: 'Little Rollers BSD',
   packageId: 'package-1',
-  packageName: 'Reformer Pilates 10',
+  packageName: 'Movers 10',
   priceRp: 1_730_000,
   baseAmountRp: 1_730_000,
   paymentUniqueCode: 377,

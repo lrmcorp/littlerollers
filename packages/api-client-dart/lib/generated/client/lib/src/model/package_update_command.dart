@@ -3,6 +3,7 @@
 //
 
 // ignore_for_file: unused_element
+import 'package:openapi/src/model/session_duration_minutes.dart';
 import 'package:openapi/src/model/date.dart';
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
@@ -14,6 +15,7 @@ part 'package_update_command.g.dart';
 /// Properties:
 /// * [name] 
 /// * [sessionCount] 
+/// * [sessionDurationMinutes] 
 /// * [durationDays] 
 /// * [priceRp] 
 /// * [effectiveFrom] 
@@ -27,6 +29,10 @@ abstract class PackageUpdateCommand implements Built<PackageUpdateCommand, Packa
 
   @BuiltValueField(wireName: r'sessionCount')
   int? get sessionCount;
+
+  @BuiltValueField(wireName: r'sessionDurationMinutes')
+  SessionDurationMinutes? get sessionDurationMinutes;
+  // enum sessionDurationMinutesEnum {  60,  120,  };
 
   @BuiltValueField(wireName: r'durationDays')
   int? get durationDays;
@@ -81,6 +87,13 @@ class _$PackageUpdateCommandSerializer implements PrimitiveSerializer<PackageUpd
       yield serializers.serialize(
         object.sessionCount,
         specifiedType: const FullType(int),
+      );
+    }
+    if (object.sessionDurationMinutes != null) {
+      yield r'sessionDurationMinutes';
+      yield serializers.serialize(
+        object.sessionDurationMinutes,
+        specifiedType: const FullType(SessionDurationMinutes),
       );
     }
     if (object.durationDays != null) {
@@ -157,6 +170,13 @@ class _$PackageUpdateCommandSerializer implements PrimitiveSerializer<PackageUpd
             specifiedType: const FullType(int),
           ) as int;
           result.sessionCount = valueDes;
+          break;
+        case r'sessionDurationMinutes':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(SessionDurationMinutes),
+          ) as SessionDurationMinutes;
+          result.sessionDurationMinutes = valueDes;
           break;
         case r'durationDays':
           final valueDes = serializers.deserialize(

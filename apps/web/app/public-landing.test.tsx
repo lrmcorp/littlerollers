@@ -12,46 +12,46 @@ describe('public landing page', () => {
       branches: [
         {
           id: 'branch-jakarta',
-          code: 'DD-JKT',
-          name: 'Daily Dose Jakarta',
+          code: 'LR-JKT',
+          name: 'Little Rollers Jakarta',
           timezone: 'Asia/Jakarta',
           supportWhatsappE164: null,
         },
         {
           id: 'branch-bsd',
-          code: 'DD-BSD',
-          name: 'Daily Dose BSD',
+          code: 'LR-BSD',
+          name: 'Little Rollers BSD',
           timezone: 'Asia/Jakarta',
           supportWhatsappE164: null,
         },
       ],
       classes: [
         {
-          code: 'REFORMER',
-          name: 'Reformer Pilates',
-          slug: 'reformer-pilates',
+          code: 'MOVERS',
+          name: 'Movers',
+          slug: 'movers',
           summary: 'Latihan seluruh tubuh dengan reformer.',
           description: 'Latihan terarah.',
           level: 'Semua level',
           durationMinutes: 50,
           equipment: ['Reformer'],
           benefits: ['Kekuatan'],
-          heroImageKey: 'classes/reformer-pilates.png',
+          heroImageKey: 'classes/movers.svg',
         },
         {
-          code: 'MAT',
-          name: 'Mat Pilates',
-          slug: 'mat-pilates',
+          code: 'PLAY',
+          name: 'Tiny Rollers',
+          slug: 'tiny-rollers',
           summary: 'Gerak presisi di atas mat.',
           description: 'Bangun kontrol tubuh.',
           level: 'Semua level',
           durationMinutes: 50,
           equipment: ['Mat'],
           benefits: ['Kontrol'],
-          heroImageKey: 'classes/mat-pilates.png',
+          heroImageKey: 'classes/tiny-rollers.svg',
         },
         {
-          code: 'BARRE',
+          code: 'CLUB',
           name: 'Barre',
           slug: 'barre',
           summary: 'Latihan stabilitas dan daya tahan.',
@@ -60,7 +60,7 @@ describe('public landing page', () => {
           durationMinutes: 50,
           equipment: ['Barre'],
           benefits: ['Stabilitas'],
-          heroImageKey: 'landing/studio-showcase.png',
+          heroImageKey: 'classes/rollers-club.svg',
         },
       ],
       fallbackWhatsappE164: null,
@@ -73,8 +73,8 @@ describe('public landing page', () => {
       }),
     ).toBeInTheDocument();
     expect(screen.getByRole('navigation', { name: 'Navigasi publik' })).toBeInTheDocument();
-    expect(await screen.findByRole('heading', { name: 'Reformer Pilates' })).toBeInTheDocument();
-    expect(await screen.findByRole('heading', { name: 'Mat Pilates' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Movers' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Tiny Rollers' })).toBeInTheDocument();
     expect(await screen.findByRole('heading', { name: 'Barre' })).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Cadillac Pilates' })).not.toBeInTheDocument();
     expect(screen.queryByText(/Customer Demo|Synthetic/i)).not.toBeInTheDocument();
@@ -94,8 +94,8 @@ describe('public landing page', () => {
     expect(
       screen.getByText('Gunakan paket aktif untuk memilih jadwal yang tersedia.'),
     ).toBeInTheDocument();
-    expect(screen.getByAltText('Reformer Pilates di Daily Dose Pilates')).toBeInTheDocument();
-    expect(screen.getByAltText('Mat Pilates di Daily Dose Pilates')).toBeInTheDocument();
+    expect(screen.getByAltText('Movers di Daily Dose Pilates')).toBeInTheDocument();
+    expect(screen.getByAltText('Tiny Rollers di Daily Dose Pilates')).toBeInTheDocument();
     expect(screen.getByAltText('Barre di Daily Dose Pilates')).toBeInTheDocument();
     expect(screen.getAllByRole('link', { name: 'Lihat Jadwal' })).toHaveLength(3);
     screen.getAllByRole('link', { name: 'Lihat Jadwal' }).forEach((link) => {
@@ -111,14 +111,14 @@ describe('public landing page', () => {
         {
           id: 'one',
           code: 'ONE',
-          name: 'Daily Dose Jakarta',
+          name: 'Little Rollers Jakarta',
           timezone: 'Asia/Jakarta',
           supportWhatsappE164: null,
         },
         {
           id: 'two',
           code: 'TWO',
-          name: 'Daily Dose BSD',
+          name: 'Little Rollers BSD',
           timezone: 'Asia/Jakarta',
           supportWhatsappE164: null,
         },

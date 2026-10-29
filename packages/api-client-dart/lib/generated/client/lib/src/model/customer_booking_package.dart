@@ -3,6 +3,7 @@
 //
 
 // ignore_for_file: unused_element
+import 'package:openapi/src/model/session_duration_minutes.dart';
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
 
@@ -14,6 +15,7 @@ part 'customer_booking_package.g.dart';
 /// * [id] 
 /// * [packageId] 
 /// * [name] 
+/// * [sessionDurationMinutes] 
 /// * [available] 
 /// * [projectedAvailable] 
 /// * [expiryAt] 
@@ -27,6 +29,10 @@ abstract class CustomerBookingPackage implements Built<CustomerBookingPackage, C
 
   @BuiltValueField(wireName: r'name')
   String get name;
+
+  @BuiltValueField(wireName: r'sessionDurationMinutes')
+  SessionDurationMinutes? get sessionDurationMinutes;
+  // enum sessionDurationMinutesEnum {  60,  120,  };
 
   @BuiltValueField(wireName: r'available')
   int get available;
@@ -75,6 +81,13 @@ class _$CustomerBookingPackageSerializer implements PrimitiveSerializer<Customer
       object.name,
       specifiedType: const FullType(String),
     );
+    if (object.sessionDurationMinutes != null) {
+      yield r'sessionDurationMinutes';
+      yield serializers.serialize(
+        object.sessionDurationMinutes,
+        specifiedType: const FullType(SessionDurationMinutes),
+      );
+    }
     yield r'available';
     yield serializers.serialize(
       object.available,
@@ -133,6 +146,13 @@ class _$CustomerBookingPackageSerializer implements PrimitiveSerializer<Customer
             specifiedType: const FullType(String),
           ) as String;
           result.name = valueDes;
+          break;
+        case r'sessionDurationMinutes':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(SessionDurationMinutes),
+          ) as SessionDurationMinutes;
+          result.sessionDurationMinutes = valueDes;
           break;
         case r'available':
           final valueDes = serializers.deserialize(

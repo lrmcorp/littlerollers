@@ -15,9 +15,9 @@ import { bsdQuotaJobFixture } from '../prisma/seed/scenarios';
 
 describe('seed factory foundation', () => {
   it('creates stable UUID-shaped IDs by namespace and key', () => {
-    expect(deterministicId('branch', 'DD-JKT')).toBe(deterministicId('branch', 'DD-JKT'));
-    expect(deterministicId('branch', 'DD-JKT')).not.toBe(deterministicId('branch', 'DD-BSD'));
-    expect(deterministicId('branch', 'DD-JKT')).toMatch(
+    expect(deterministicId('branch', 'LR-JKT')).toBe(deterministicId('branch', 'LR-JKT'));
+    expect(deterministicId('branch', 'LR-JKT')).not.toBe(deterministicId('branch', 'LR-BSD'));
+    expect(deterministicId('branch', 'LR-JKT')).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
     );
   });

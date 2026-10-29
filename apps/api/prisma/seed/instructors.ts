@@ -1,8 +1,8 @@
 import type { SeedContext } from './context';
 
 export const instructorKeysByBranch = {
-  'DD-JKT': ['instructor', 'instructor-jkt-2'],
-  'DD-BSD': ['instructor', 'instructor-bsd-2'],
+  'LR-JKT': ['instructor', 'instructor-jkt-2'],
+  'LR-BSD': ['instructor', 'instructor-bsd-2'],
 } as const;
 
 export function resolveInstructorIdsByBranch(
@@ -47,15 +47,15 @@ export async function seedInstructorAvailability(
         branchId: branches[branchCode]!,
         sourceAssignmentId: ctx.id(
           'assignment',
-          userKey === 'instructor' ? `instructor-${branchCode === 'DD-JKT' ? 'jkt' : 'bsd'}` : userKey,
+          userKey === 'instructor' ? `instructor-${branchCode === 'LR-JKT' ? 'jkt' : 'bsd'}` : userKey,
         ),
         startAt: ctx.at(
           day,
-          6 + instructorIndex * 4 + periodIndex + (branchCode === 'DD-BSD' ? 8 : 0),
+          6 + instructorIndex * 4 + periodIndex + (branchCode === 'LR-BSD' ? 8 : 0),
         ),
         endAt: ctx.at(
           day,
-          9 + instructorIndex * 4 + periodIndex + (branchCode === 'DD-BSD' ? 8 : 0),
+          9 + instructorIndex * 4 + periodIndex + (branchCode === 'LR-BSD' ? 8 : 0),
         ),
       })),
     ),

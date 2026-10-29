@@ -23,7 +23,7 @@ const session = (
 
 describe('public detail routing and audience', () => {
   it.each([
-    '/classes/reformer-pilates',
+    '/classes/movers',
     '/packages/package-id',
     '/schedule/slot-id',
     '/locations/jakarta',

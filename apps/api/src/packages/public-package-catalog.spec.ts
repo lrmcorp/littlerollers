@@ -17,7 +17,7 @@ describe('PublicPackageQueryService', () => {
           id: '00000000-0000-4000-8000-000000000004',
           branchId,
           businessKey: 'PRIVATE-4',
-          name: 'Pilates Starter',
+          name: 'Movers Starter',
           sessionCount: 4,
           durationDays: 30,
           priceRp: 1200000,
@@ -60,7 +60,7 @@ describe('PublicPackageQueryService', () => {
     expect(result.items).toEqual([
       expect.objectContaining({
         branchId,
-        name: 'Pilates Starter',
+        name: 'Movers Starter',
         priceRp: 1200000,
         classTypes: [
           expect.objectContaining({ name: 'Private Class' }),
@@ -88,7 +88,7 @@ describe('PublicPackageQueryService', () => {
         id: '00000000-0000-4000-8000-000000000004',
         branchId,
         businessKey: 'PRIVATE-4',
-        name: 'Pilates Starter',
+        name: 'Movers Starter',
         sessionCount: 4,
         durationDays: 30,
         priceRp: 1200000,
@@ -128,7 +128,7 @@ describe('PublicPackageQueryService', () => {
 
     const result = await service.list(branchId);
     expect(result.items).toHaveLength(1);
-    expect(result.items[0]?.name).toBe('Pilates Starter');
+    expect(result.items[0]?.name).toBe('Movers Starter');
   });
 
   it('rejects malformed and unavailable branch identifiers', async () => {

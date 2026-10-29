@@ -54,7 +54,7 @@ function routeTable() {
       }),
     ],
     [`GET /api/v1/public/package-catalog/${fixtureIds.package}`, json(200, packageDetail)],
-    ['GET /api/v1/public/class-types/reformer-pilates', json(200, classDetail)],
+    ['GET /api/v1/public/class-types/movers', json(200, classDetail)],
     ['GET /api/v1/public/studios/jakarta', json(200, studioDetail)],
     [`GET /api/v1/public/class-catalog/${fixtureIds.schedule}`, json(200, schedule)],
   ]);

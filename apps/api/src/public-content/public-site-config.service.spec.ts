@@ -7,8 +7,8 @@ describe('PublicSiteConfigService', () => {
         findMany: jest.fn().mockResolvedValue([
           {
             id: 'branch-jakarta',
-            code: 'DD-JKT',
-            name: 'Daily Dose Jakarta',
+            code: 'LR-JKT',
+            name: 'Little Rollers Jakarta',
             timezone: 'Asia/Jakarta',
             supportWhatsappE164: null,
             publicProfile: { slug: 'jakarta', area: 'Jakarta', city: 'Jakarta' },
@@ -16,20 +16,20 @@ describe('PublicSiteConfigService', () => {
         ]),
       },
       classType: {
-        findMany: jest.fn().mockResolvedValue([{ code: 'REFORMER', name: 'Reformer Pilates' }]),
+        findMany: jest.fn().mockResolvedValue([{ code: 'MOVERS', name: 'Movers' }]),
       },
       publicClassProfile: {
         findMany: jest.fn().mockResolvedValue([
           {
-            code: 'REFORMER',
-            slug: 'reformer-pilates',
+            code: 'MOVERS',
+            slug: 'movers',
             summary: 'Latihan reformer.',
             description: 'Latihan seluruh tubuh.',
             level: 'Semua level',
             durationMinutes: 50,
             equipment: ['Reformer'],
             benefits: ['Kekuatan'],
-            heroImageKey: 'classes/reformer-pilates.png',
+            heroImageKey: 'classes/movers.svg',
           },
         ]),
       },
@@ -52,8 +52,8 @@ describe('PublicSiteConfigService', () => {
     );
 
     await expect(service.get()).resolves.toMatchObject({
-      branches: [{ code: 'DD-JKT', publicProfile: { slug: 'jakarta' } }],
-      classes: [{ code: 'REFORMER', name: 'Reformer Pilates' }],
+      branches: [{ code: 'LR-JKT', publicProfile: { slug: 'jakarta' } }],
+      classes: [{ code: 'MOVERS', name: 'Movers' }],
       fallbackWhatsappE164: '+622100000000',
       mobileFeatures: {
         accountRecovery: false,
@@ -71,7 +71,7 @@ describe('PublicSiteConfigService', () => {
     );
     expect(db.publicClassProfile.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { active: true, code: { in: ['REFORMER'] } },
+        where: { active: true, code: { in: ['MOVERS'] } },
       }),
     );
   });

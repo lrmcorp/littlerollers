@@ -308,7 +308,7 @@ test('master creates quota without a production default and exposes overlap safe
           {
             id: 'class-1',
             branchId: 'branch-1',
-            code: 'REFORMER',
+            code: 'MOVERS',
             name: 'Reformer',
             active: true,
             version: 0,

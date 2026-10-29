@@ -11,7 +11,7 @@ export async function seedPackagePromotions(
   const definitions = [
     {
       key: 'jkt-reformer-live',
-      packageKey: 'DD-JKT:REFORMER:10',
+      packageKey: 'LR-JKT:MOVERS:10',
       name: 'Reformer Routine 10%',
       label: 'Promo 10%',
       status: 'ACTIVE' as const,
@@ -22,7 +22,7 @@ export async function seedPackagePromotions(
     },
     {
       key: 'bsd-reformer-live',
-      packageKey: 'DD-BSD:REFORMER:10',
+      packageKey: 'LR-BSD:MOVERS:10',
       name: 'BSD Reformer Special',
       label: 'Hemat Rp120.000',
       status: 'ACTIVE' as const,
@@ -33,8 +33,8 @@ export async function seedPackagePromotions(
     },
     {
       key: 'jkt-mat-scheduled',
-      packageKey: 'DD-JKT:MAT:8',
-      name: 'Mat Pilates Agustus',
+      packageKey: 'LR-JKT:PLAY:8',
+      name: 'Tiny Rollers August',
       label: 'Segera hadir',
       status: 'ACTIVE' as const,
       discountType: 'PERCENTAGE' as const,
@@ -44,7 +44,7 @@ export async function seedPackagePromotions(
     },
     {
       key: 'jkt-barre-paused',
-      packageKey: 'DD-JKT:BARRE:8',
+      packageKey: 'LR-JKT:CLUB:8',
       name: 'Barre Weekend',
       label: 'Promo akhir pekan',
       status: 'PAUSED' as const,
@@ -55,7 +55,7 @@ export async function seedPackagePromotions(
     },
     {
       key: 'bsd-reformer-expired',
-      packageKey: 'DD-BSD:REFORMER:5',
+      packageKey: 'LR-BSD:MOVERS:5',
       name: 'BSD Opening Promo',
       label: 'Opening promo',
       status: 'ACTIVE' as const,

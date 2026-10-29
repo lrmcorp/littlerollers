@@ -36,8 +36,8 @@ describe('branch management client', () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
       json({
         id: 'branch-1',
-        code: 'DD-BSD',
-        name: 'Daily Dose BSD',
+        code: 'LR-BSD',
+        name: 'Little Rollers BSD',
         timezone: 'Asia/Jakarta',
         supportWhatsappE164: null,
         active: false,

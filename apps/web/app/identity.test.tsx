@@ -337,7 +337,7 @@ describe('identity UI', () => {
                     adjustmentDelta: 0,
                   },
                   packageName: 'Reformer 10',
-                  branchName: 'Daily Dose BSD',
+                  branchName: 'Little Rollers BSD',
                   classTypeName: 'Reformer',
                 },
               ],
@@ -772,8 +772,8 @@ describe('effective master UI', () => {
         items: [
           {
             id: 'branch-1',
-            code: 'DD-JKT',
-            name: 'Daily Dose Jakarta',
+            code: 'LR-JKT',
+            name: 'Little Rollers Jakarta',
             timezone: 'Asia/Jakarta',
             active: true,
             version: 0,
@@ -785,7 +785,7 @@ describe('effective master UI', () => {
       listClassTypes: vi
         .fn()
         .mockResolvedValue([
-          { id: 'class-1', code: 'REFORMER', name: 'Reformer Pilates', active: true, version: 0 },
+          { id: 'class-1', code: 'MOVERS', name: 'Movers', active: true, version: 0 },
         ]),
     });
     render(
@@ -794,7 +794,7 @@ describe('effective master UI', () => {
       </AppFeedbackProvider>,
     );
     await userEvent.click(screen.getByRole('button', { name: 'Muat master data' }));
-    await screen.findByText('Daily Dose Jakarta');
+    await screen.findByText('Little Rollers Jakarta');
     await userEvent.click(screen.getByRole('tab', { name: 'Kuota/Kapasitas' }));
     await userEvent.type(screen.getByLabelText(/Minimum peserta/), '4');
     await userEvent.type(screen.getByLabelText(/Kapasitas maksimum/), '8');

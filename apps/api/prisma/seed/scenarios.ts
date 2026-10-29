@@ -61,7 +61,7 @@ export function bsdQuotaJobFixture(
 
 export async function seedOperationalScenarios(ctx: SeedContext, master: SeedMasterResult, users: Record<string, string>) {
   const customerId = users.customer!; const financeId = users.finance!; const managerId = users.manager!; const instructorId = users.instructor!;
-  const branchId = master.branches['DD-JKT']!; const studioId = master.studios['DD-JKT']!; const classTypeId = master.classTypes['DD-JKT:REFORMER']!; const packageId = master.packages['DD-JKT:REFORMER:10']!;
+  const branchId = master.branches['LR-JKT']!; const studioId = master.studios['LR-JKT']!; const classTypeId = master.classTypes['LR-JKT:MOVERS']!; const packageId = master.packages['LR-JKT:MOVERS:10']!;
   const pkg = await ctx.db.package.findUniqueOrThrow({ where: { id: packageId } });
   const paymentAccount = await ctx.db.paymentAccount.findFirstOrThrow({
     where: { branchId, active: true },
@@ -290,10 +290,10 @@ async function seedBsdOperationalScenarios(
   master: SeedMasterResult,
   users: Record<string, string>,
 ) {
-  const branchId = master.branches['DD-BSD']!;
-  const classTypeId = master.classTypes['DD-BSD:REFORMER']!;
-  const packageId = master.packages['DD-BSD:REFORMER:10']!;
-  const studioId = master.studios['DD-BSD']!;
+  const branchId = master.branches['LR-BSD']!;
+  const classTypeId = master.classTypes['LR-BSD:MOVERS']!;
+  const packageId = master.packages['LR-BSD:MOVERS:10']!;
+  const studioId = master.studios['LR-BSD']!;
   const customerId = users.customer!;
   const managerId = users['manager-bsd']!;
   const financeId = users.finance!;
@@ -588,7 +588,7 @@ async function seedBsdOperationalScenarios(
 }
 
 export async function seedVolume(ctx: SeedContext, master: SeedMasterResult, users: Record<string, string>, count = 500) {
-  const branchId = master.branches['DD-JKT']!; const studioId = master.studios['DD-JKT']!; const classTypeId = master.classTypes['DD-JKT:MAT']!; const packageId = master.packages['DD-JKT:MAT:8']!;
+  const branchId = master.branches['LR-JKT']!; const studioId = master.studios['LR-JKT']!; const classTypeId = master.classTypes['LR-JKT:PLAY']!; const packageId = master.packages['LR-JKT:PLAY:8']!;
   const pkg = await ctx.db.package.findUniqueOrThrow({ where: { id: packageId } });
   for (let index = 0; index < count; index++) {
     const customerId = ctx.id('volume-user', index); const purchaseId = ctx.id('volume-purchase', index); const customerPackageId = ctx.id('volume-customer-package', index);

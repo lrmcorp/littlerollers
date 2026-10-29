@@ -25,7 +25,7 @@ async function main() {
       const customerEmail = `e2e.customer+${runId
         .toLowerCase()
         .replace(/[^a-z0-9-]/g, '-')
-        .slice(0, 42)}@dailydose.local`;
+        .slice(0, 42)}@littlerollers.local`;
       const customer = await database.user.findUnique({ where: { email: customerEmail } });
       if (customer) {
         await database.$transaction([
@@ -63,15 +63,15 @@ async function main() {
     } else {
       const actorSubjectHashes = [
         'ralamzah@gmail.com',
-        'finance@dailydose.local',
-        'manager@dailydose.local',
-        'customer@dailydose.local',
+        'finance@littlerollers.local',
+        'manager@littlerollers.local',
+        'customer@littlerollers.local',
       ].map((email) => createHash('sha256').update(`email:${email}`).digest('hex'));
       await database.rateLimitCounter.deleteMany({
         where: { scope: 'PASSWORD_LOGIN_SUBJECT', subjectHash: { in: actorSubjectHashes } },
       });
       const branch = await database.branch.findFirstOrThrow({
-        where: { code: 'DD-JKT', active: true },
+        where: { code: 'LR-JKT', active: true },
         include: {
           studios: {
             where: { code: 'MAIN', active: true, historical: false },
@@ -84,7 +84,7 @@ async function main() {
       if (!studio) throw new Error('CUSTOMER_E2E_STUDIO_REQUIRED');
       const classType = await database.classType.findFirstOrThrow({
         where: {
-          code: 'REFORMER',
+          code: 'MOVERS',
           active: true,
           historical: false,
           branchScopes: {

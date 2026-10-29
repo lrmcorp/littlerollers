@@ -1,7 +1,7 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * Daily Dose API
+ * Little Rollers API
  * Gate-4 contract baseline. Operations marked x-blocked-by cannot enter production until the decision is approved.
  *
  * The version of the OpenAPI document: 1.21.0-draft
@@ -34,6 +34,13 @@ import {
     PublicPackagePromotionToJSON,
     PublicPackagePromotionToJSONTyped,
 } from './PublicPackagePromotion';
+import type { SessionDurationMinutes } from './SessionDurationMinutes';
+import {
+    SessionDurationMinutesFromJSON,
+    SessionDurationMinutesFromJSONTyped,
+    SessionDurationMinutesToJSON,
+    SessionDurationMinutesToJSONTyped,
+} from './SessionDurationMinutes';
 import type { PublicClassTypeRef } from './PublicClassTypeRef';
 import {
     PublicClassTypeRefFromJSON,
@@ -72,6 +79,12 @@ export interface PublicPackageSummary {
      * @memberof PublicPackageSummary
      */
     sessionCount: number;
+    /**
+     * 
+     * @type {SessionDurationMinutes}
+     * @memberof PublicPackageSummary
+     */
+    sessionDurationMinutes?: SessionDurationMinutes;
     /**
      * 
      * @type {number}
@@ -122,6 +135,8 @@ export interface PublicPackageSummary {
     branch?: PublicBranch;
 }
 
+
+
 /**
  * Check if a given object implements the PublicPackageSummary interface.
  */
@@ -150,6 +165,7 @@ export function PublicPackageSummaryFromJSONTyped(json: any, ignoreDiscriminator
         'branchId': json['branchId'] == null ? undefined : json['branchId'],
         'name': json['name'],
         'sessionCount': json['sessionCount'],
+        'sessionDurationMinutes': json['sessionDurationMinutes'] == null ? undefined : SessionDurationMinutesFromJSON(json['sessionDurationMinutes']),
         'durationDays': json['durationDays'],
         'priceRp': json['priceRp'],
         'effectivePriceRp': json['effectivePriceRp'],
@@ -176,6 +192,7 @@ export function PublicPackageSummaryToJSONTyped(value?: PublicPackageSummary | n
         'branchId': value['branchId'],
         'name': value['name'],
         'sessionCount': value['sessionCount'],
+        'sessionDurationMinutes': SessionDurationMinutesToJSON(value['sessionDurationMinutes']),
         'durationDays': value['durationDays'],
         'priceRp': value['priceRp'],
         'effectivePriceRp': value['effectivePriceRp'],

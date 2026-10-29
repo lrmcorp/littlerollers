@@ -97,6 +97,11 @@ void main() {
       // TODO
     });
 
+    // SessionDurationMinutes sessionDurationMinutesSnapshot
+    test('to test the property `sessionDurationMinutesSnapshot`', () async {
+      // TODO
+    });
+
     // int durationDaysSnapshot
     test('to test the property `durationDaysSnapshot`', () async {
       // TODO

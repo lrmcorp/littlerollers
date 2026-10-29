@@ -8,6 +8,7 @@ import type { SessionPrincipal } from '../identity/identity.service';
 import { PolicyService } from '../identity/policy.service';
 import { ApiProblem } from '../identity/security';
 import { PilotRollbackOutboxService } from '../migration/pilot-rollback-outbox.service';
+import { sessionFitsSlot } from '../packages/session-duration';
 
 export type BookingCommand = {
   classSlotId: string;
@@ -435,13 +436,17 @@ export class BookingsService {
           id: item.id,
           packageId: item.packageId,
           name: item.package.name,
+          sessionDurationMinutes: item.sessionDurationMinutesSnapshot,
           available,
           projectedAvailable: Math.max(0, available - 1),
           expiryAt: item.expiryAt,
         };
       }),
     );
-    const packages = packageOptions.filter(({ available }) => available > 0);
+    const packages = packageOptions.filter(
+      ({ available, sessionDurationMinutes }) =>
+        available > 0 && sessionFitsSlot(sessionDurationMinutes, slot),
+    );
     let reasonCode: BookingEligibilityReason | null = null;
     let requiredAction:
       'COMPLETE_IDENTITY_VERIFICATION' | 'BUY_MATCHING_PACKAGE' | 'CONTACT_STUDIO' | null = null;
@@ -897,6 +902,8 @@ export class BookingsService {
             throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
           if (customerPackage.status !== 'ACTIVE' || customerPackage.expiryAt <= new Date())
             throw new ApiProblem('INSUFFICIENT_AVAILABLE_SESSIONS', HttpStatus.CONFLICT);
+          if (!sessionFitsSlot(customerPackage.sessionDurationMinutesSnapshot, slot))
+            throw new ApiProblem('VALIDATION_ERROR', HttpStatus.UNPROCESSABLE_ENTITY);
           if (!['PUBLISHED', 'CONFIRMED'].includes(slot.status))
             throw new ApiProblem('INVALID_STATE_TRANSITION', HttpStatus.CONFLICT);
           const now = new Date();
@@ -959,6 +966,7 @@ export class BookingsService {
               reservationId,
               createdById: principal.userId,
               source: input.source,
+              sessionDurationMinutes: customerPackage.sessionDurationMinutesSnapshot,
             },
           });
           await tx.classSlot.update({
@@ -976,7 +984,12 @@ export class BookingsService {
                 objectType: 'Booking',
                 objectId: booking.id,
                 correlationId,
-                afterMasked: { status: 'BOOKED', source: input.source, reservedQuantity: 1 },
+                afterMasked: {
+                  status: 'BOOKED',
+                  source: input.source,
+                  reservedQuantity: 1,
+                  sessionDurationMinutes: customerPackage.sessionDurationMinutesSnapshot,
+                },
               },
             }),
             tx.outboxEvent.create({

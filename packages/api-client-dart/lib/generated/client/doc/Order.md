@@ -21,6 +21,7 @@ Name | Type | Description | Notes
 **paymentUniqueCode** | **int** |  | [optional] 
 **payableAmountRp** | **int** |  | 
 **sessionCount** | **int** |  | 
+**sessionDurationMinutes** | [**SessionDurationMinutes**](SessionDurationMinutes.md) |  | [optional] 
 **durationDays** | **int** |  | 
 **status** | **String** |  | 
 **submittedAt** | [**DateTime**](DateTime.md) |  | 

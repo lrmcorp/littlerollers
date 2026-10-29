@@ -103,7 +103,7 @@ describe('capability-aware session shell', () => {
     const superOwnerSession: WebSession = {
       ...adminSession,
       id: 'super-owner-1',
-      displayName: 'Super Owner Daily Dose',
+      displayName: 'Super Owner Little Rollers',
       roles: ['SUPER_OWNER'],
       branchIds: [],
       branches: [],

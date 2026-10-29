@@ -46,7 +46,7 @@ export async function seedVouchers(
     },
     {
       key: 'reformer-150k',
-      code: 'REFORMER150',
+      code: 'MOVERS150',
       name: 'Reformer hemat Rp150.000',
       status: 'ACTIVE' as const,
       discountType: 'FIXED_AMOUNT' as const,
@@ -57,14 +57,14 @@ export async function seedVouchers(
     },
     {
       key: 'bsd-special',
-      code: 'BSDPILATES',
+      code: 'BSDROLLERS',
       name: 'Promo studio BSD',
       status: 'ACTIVE' as const,
       discountType: 'PERCENTAGE' as const,
       discountValue: 15,
       activeFrom: ctx.at(-10),
       activeUntil: ctx.at(20),
-      branchId: master.branches['DD-BSD'],
+      branchId: master.branches['LR-BSD'],
       packageIds: [],
     },
     {
@@ -82,14 +82,14 @@ export async function seedVouchers(
     {
       key: 'mat-class-type',
       code: 'MATCLASS',
-      name: 'Voucher khusus Mat Pilates',
+      name: 'Tiny Rollers voucher',
       status: 'ACTIVE' as const,
       discountType: 'PERCENTAGE' as const,
       discountValue: 12,
       activeFrom: ctx.at(-5),
       activeUntil: ctx.at(45),
-      branchId: master.branches['DD-JKT'],
-      classTypeId: master.classTypes['DD-JKT:MAT'],
+      branchId: master.branches['LR-JKT'],
+      classTypeId: master.classTypes['LR-JKT:PLAY'],
       packageIds: [],
     },
     {

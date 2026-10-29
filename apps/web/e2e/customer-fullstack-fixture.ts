@@ -29,8 +29,8 @@ export interface CustomerE2EContext {
 
 const actorCredentials: Record<CustomerActor, { email: string; password: string }> = {
   reviewer: { email: 'ralamzah@gmail.com', password: 'ridho123' },
-  finance: { email: 'finance@dailydose.local', password: 'DailyDose#2026' },
-  manager: { email: 'manager@dailydose.local', password: 'DailyDose#2026' },
+  finance: { email: 'finance@littlerollers.local', password: 'LittleRollers#2026' },
+  manager: { email: 'manager@littlerollers.local', password: 'LittleRollers#2026' },
 };
 
 function crc32(input: Buffer): number {
@@ -109,7 +109,7 @@ export const test = base.extend<{ customerE2E: CustomerE2EContext }>({
       runId: safeRunId,
       customer: {
         displayName: `E2E Customer ${safeRunId}`,
-        email: `e2e.customer+${safeRunId}@dailydose.local`,
+        email: `e2e.customer+${safeRunId}@littlerollers.local`,
         phone: `0813${String(Date.now()).slice(-8)}`,
         password: 'CustomerE2E#2026',
       },

@@ -1,7 +1,7 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * Daily Dose API
+ * Little Rollers API
  * Gate-4 contract baseline. Operations marked x-blocked-by cannot enter production until the decision is approved.
  *
  * The version of the OpenAPI document: 1.21.0-draft

@@ -13,8 +13,8 @@ describe('public information pages', () => {
       branches: [
         {
           id: 'branch-jakarta',
-          code: 'DD-JKT',
-          name: 'Daily Dose Jakarta',
+          code: 'LR-JKT',
+          name: 'Little Rollers Jakarta',
           timezone: 'Asia/Jakarta',
           supportWhatsappE164: null,
           publicProfile: {
@@ -27,14 +27,14 @@ describe('public information pages', () => {
             parkingInformation: null,
             openingHours: [],
             amenities: ['Reformer'],
-            heroImageKey: 'studios/studio-reception.png',
+            heroImageKey: 'studios/jakarta.svg',
             galleryImageKeys: [],
           },
         },
         {
           id: 'branch-bsd',
-          code: 'DD-BSD',
-          name: 'Daily Dose BSD',
+          code: 'LR-BSD',
+          name: 'Little Rollers BSD',
           timezone: 'Asia/Jakarta',
           supportWhatsappE164: null,
           publicProfile: {
@@ -47,7 +47,7 @@ describe('public information pages', () => {
             parkingInformation: null,
             openingHours: [],
             amenities: ['Reformer'],
-            heroImageKey: 'studios/studio-interior-reformer.png',
+            heroImageKey: 'studios/bsd.svg',
             galleryImageKeys: [],
           },
         },
@@ -56,8 +56,8 @@ describe('public information pages', () => {
       fallbackWhatsappE164: null,
     });
     const view = render(<LocationsPage />);
-    expect(await screen.findByRole('heading', { name: 'Daily Dose Jakarta' })).toBeVisible();
-    expect(await screen.findByRole('heading', { name: 'Daily Dose BSD' })).toBeVisible();
+    expect(await screen.findByRole('heading', { name: 'Little Rollers Jakarta' })).toBeVisible();
+    expect(await screen.findByRole('heading', { name: 'Little Rollers BSD' })).toBeVisible();
     expect(screen.queryByText(/Surabaya|PIK 2/)).not.toBeInTheDocument();
     expect(screen.getByText(/Alamat lengkap, jam operasional/)).toBeVisible();
     expect(screen.getAllByRole('link', { name: /Lihat Jadwal/ }).length).toBeGreaterThanOrEqual(3);

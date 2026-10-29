@@ -8,6 +8,7 @@ import 'package:openapi/src/model/public_branch.dart';
 import 'package:openapi/src/model/public_package_profile.dart';
 import 'package:built_collection/built_collection.dart';
 import 'package:openapi/src/model/public_package_summary.dart';
+import 'package:openapi/src/model/session_duration_minutes.dart';
 import 'package:openapi/src/model/public_package_promotion.dart';
 import 'package:openapi/src/model/public_class_type_ref.dart';
 import 'package:built_value/built_value.dart';
@@ -22,6 +23,7 @@ part 'public_package_detail.g.dart';
 /// * [branchId] 
 /// * [name] 
 /// * [sessionCount] 
+/// * [sessionDurationMinutes] 
 /// * [durationDays] 
 /// * [priceRp] 
 /// * [effectivePriceRp] 
@@ -103,6 +105,13 @@ class _$PublicPackageDetailSerializer implements PrimitiveSerializer<PublicPacka
       object.sessionCount,
       specifiedType: const FullType(int),
     );
+    if (object.sessionDurationMinutes != null) {
+      yield r'sessionDurationMinutes';
+      yield serializers.serialize(
+        object.sessionDurationMinutes,
+        specifiedType: const FullType(SessionDurationMinutes),
+      );
+    }
     yield r'schedules';
     yield serializers.serialize(
       object.schedules,
@@ -217,6 +226,13 @@ class _$PublicPackageDetailSerializer implements PrimitiveSerializer<PublicPacka
             specifiedType: const FullType(int),
           ) as int;
           result.sessionCount = valueDes;
+          break;
+        case r'sessionDurationMinutes':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(SessionDurationMinutes),
+          ) as SessionDurationMinutes;
+          result.sessionDurationMinutes = valueDes;
           break;
         case r'schedules':
           final valueDes = serializers.deserialize(

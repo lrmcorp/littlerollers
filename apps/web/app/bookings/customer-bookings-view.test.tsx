@@ -21,7 +21,7 @@ const record = (overrides: Partial<CustomerBookingRecord> = {}): CustomerBooking
     idempotentReplay: false,
     branch: {
       id: '00000000-0000-4000-8000-000000000202',
-      name: 'Daily Dose BSD',
+      name: 'Little Rollers BSD',
       timezone: 'Asia/Jakarta',
     },
     classSlot: {
@@ -32,7 +32,7 @@ const record = (overrides: Partial<CustomerBookingRecord> = {}): CustomerBooking
       status: 'CONFIRMED',
       classType: {
         id: '00000000-0000-4000-8000-000000000207',
-        name: 'Reformer Pilates',
+        name: 'Movers',
       },
     },
     ...overrides,
@@ -60,7 +60,7 @@ describe('customer booking timeline', () => {
     } as unknown as BookingClient;
 
     render(<CustomerBookingsView client={client} />);
-    expect(await screen.findByText('Reformer Pilates')).toBeVisible();
+    expect(await screen.findByText('Movers')).toBeVisible();
     expect(client.list).toHaveBeenCalledWith({
       timeline: 'UPCOMING',
       cursor: undefined,

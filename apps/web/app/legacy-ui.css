@@ -4,8 +4,8 @@
  */
 :root {
   color-scheme: light;
-  --color-brand: #396552;
-  --color-brand-strong: #24483a;
+  --color-brand: #073228;
+  --color-brand-strong: #04231c;
   --color-brand-soft: #e8f0ec;
   --color-canvas: #f3f6f4;
   --color-surface: #ffffff;
@@ -35,7 +35,7 @@
   --space-6: 24px;
   --space-8: 32px;
   --space-10: 40px;
-  --focus-ring: 0 0 0 3px rgb(57 101 82 / 24%);
+  --focus-ring: 0 0 0 3px rgb(7 50 40 / 24%);
   font-family: var(--font-sans);
   font-synthesis: none;
 }
@@ -190,7 +190,7 @@
 
 /* Unified Daily Dose typography and interface layer */
 :root {
-  --font-sans: var(--font-ui), 'Poppins', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-ui), ui-sans-serif, system-ui, sans-serif;
   --text-caption: 0.75rem;
   --text-small: 0.8125rem;
   --text-control: 0.875rem;
@@ -660,8 +660,8 @@ label,
 
 /* Daily Dose public marketing pages */
 .marketing-site {
-  --marketing-forest: #285740;
-  --marketing-forest-dark: #173d2d;
+  --marketing-forest: #073228;
+  --marketing-forest-dark: #04231c;
   --marketing-cream: #f8f5ef;
   --marketing-ink: #20231f;
   --marketing-muted: #667069;
@@ -1633,7 +1633,7 @@ label,
 /* Public brand experience */
 .public-site {
   --public-ink: #173329;
-  --public-forest: #396552;
+  --public-forest: #073228;
   --public-forest-deep: #1f4435;
   --public-sage: #a8b9a9;
   --public-mist: #e9efea;

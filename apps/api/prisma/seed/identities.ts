@@ -20,28 +20,28 @@ export const demoUsers = [
     role: 'SUPER_OWNER',
     password: 'ridho123',
   },
-  { key: 'super-owner', name: 'Super Owner Daily Dose', email: 'owner@dailydose.local', role: 'SUPER_OWNER' as ApplicationRole },
-  { key: 'owner-jkt', name: 'Owner Cabang Jakarta', email: 'branch.owner@dailydose.local', role: 'OWNER' as ApplicationRole, branch: 'DD-JKT' },
-  { key: 'owner-bsd', name: 'Owner Cabang BSD', email: 'bsd.owner@dailydose.local', role: 'OWNER' as ApplicationRole, branch: 'DD-BSD' },
-  { key: 'admin', name: 'Admin Cabang Jakarta', email: 'admin@dailydose.local', role: 'ADMIN' as ApplicationRole, branch: 'DD-JKT' },
-  { key: 'manager', name: 'Manager Cabang Jakarta', email: 'manager@dailydose.local', role: 'MANAGER' as ApplicationRole, branch: 'DD-JKT' },
-  { key: 'manager-bsd', name: 'Manager Cabang BSD', email: 'manager.bsd@dailydose.local', role: 'MANAGER' as ApplicationRole, branch: 'DD-BSD' },
-  { key: 'instructor', name: 'Instructor Daily Dose', email: 'instructor@dailydose.local', role: 'INSTRUCTOR' as ApplicationRole, branch: 'DD-JKT' },
-  { key: 'instructor-jkt-2', name: 'Instructor Jakarta Dua', email: 'instructor.jakarta.2@dailydose.local', role: 'INSTRUCTOR' as ApplicationRole, branch: 'DD-JKT' },
-  { key: 'instructor-bsd-2', name: 'Instructor BSD Dua', email: 'instructor.bsd.2@dailydose.local', role: 'INSTRUCTOR' as ApplicationRole, branch: 'DD-BSD' },
-  { key: 'finance', name: 'Finance Daily Dose', email: 'finance@dailydose.local', role: 'FINANCE' as ApplicationRole },
-  { key: 'ops', name: 'Operations Daily Dose', email: 'ops@dailydose.local', role: 'OPS' as ApplicationRole },
+  { key: 'super-owner', name: 'Super Owner Little Rollers', email: 'owner@littlerollers.local', role: 'SUPER_OWNER' as ApplicationRole },
+  { key: 'owner-jkt', name: 'Owner Cabang Jakarta', email: 'branch.owner@littlerollers.local', role: 'OWNER' as ApplicationRole, branch: 'LR-JKT' },
+  { key: 'owner-bsd', name: 'Owner Cabang BSD', email: 'bsd.owner@littlerollers.local', role: 'OWNER' as ApplicationRole, branch: 'LR-BSD' },
+  { key: 'admin', name: 'Admin Cabang Jakarta', email: 'admin@littlerollers.local', role: 'ADMIN' as ApplicationRole, branch: 'LR-JKT' },
+  { key: 'manager', name: 'Manager Cabang Jakarta', email: 'manager@littlerollers.local', role: 'MANAGER' as ApplicationRole, branch: 'LR-JKT' },
+  { key: 'manager-bsd', name: 'Manager Cabang BSD', email: 'manager.bsd@littlerollers.local', role: 'MANAGER' as ApplicationRole, branch: 'LR-BSD' },
+  { key: 'instructor', name: 'Instructor Little Rollers', email: 'instructor@littlerollers.local', role: 'INSTRUCTOR' as ApplicationRole, branch: 'LR-JKT' },
+  { key: 'instructor-jkt-2', name: 'Instructor Jakarta Dua', email: 'instructor.jakarta.2@littlerollers.local', role: 'INSTRUCTOR' as ApplicationRole, branch: 'LR-JKT' },
+  { key: 'instructor-bsd-2', name: 'Instructor BSD Dua', email: 'instructor.bsd.2@littlerollers.local', role: 'INSTRUCTOR' as ApplicationRole, branch: 'LR-BSD' },
+  { key: 'finance', name: 'Finance Little Rollers', email: 'finance@littlerollers.local', role: 'FINANCE' as ApplicationRole },
+  { key: 'ops', name: 'Operations Little Rollers', email: 'ops@littlerollers.local', role: 'OPS' as ApplicationRole },
   {
     key: 'customer',
     name: 'Customer Demo',
-    email: 'customer@dailydose.local',
+    email: 'customer@littlerollers.local',
     role: 'CUSTOMER' as ApplicationRole,
     phoneE164: '+6281234567890',
   },
   {
     key: 'customer-no-phone',
     name: 'Customer Tanpa WhatsApp',
-    email: 'customer.no.phone@dailydose.local',
+    email: 'customer.no.phone@littlerollers.local',
     role: 'CUSTOMER' as ApplicationRole,
   },
 ] satisfies readonly DemoUser[];
@@ -77,7 +77,7 @@ export async function seedIdentities(ctx: SeedContext, branchIds: Record<string,
     const emailHash = canonicalEmailHash(user.email);
     await ctx.db.identity.upsert({ where: { provider_subjectHash: { provider: 'EMAIL_PASSWORD', subjectHash: emailHash } }, update: { userId }, create: { id: ctx.id('identity', user.key), userId, provider: 'EMAIL_PASSWORD', subjectHash: emailHash, verifiedAt: new Date('2026-01-01') } });
     const password =
-      user.password ?? (user.key === 'customer' ? 'Customer#2026' : 'DailyDose#2026');
+      user.password ?? (user.key === 'customer' ? 'Customer#2026' : 'LittleRollers#2026');
     const passwordHash = await hashPassword(password);
     await ctx.db.passwordCredential.upsert({ where: { emailHash }, update: { userId, passwordHash, verifiedAt: new Date('2026-01-01'), passwordChangedAt: new Date('2026-01-01') }, create: { id: ctx.id('password', user.key), userId, emailHash, passwordHash, verifiedAt: new Date('2026-01-01'), passwordChangedAt: new Date('2026-01-01') } });
     if (user.role !== 'OWNER' && user.role !== 'INSTRUCTOR') {
@@ -86,12 +86,12 @@ export async function seedIdentities(ctx: SeedContext, branchIds: Record<string,
     }
   }
   const assignments: { key: string; user: string; branch: string; type: AssignmentType; role: ApplicationRole }[] = [
-    { key: 'owner-jkt', user: 'owner-jkt', branch: 'DD-JKT', type: 'OWNER', role: 'OWNER' },
-    { key: 'owner-bsd', user: 'owner-bsd', branch: 'DD-BSD', type: 'OWNER', role: 'OWNER' },
-    { key: 'instructor-jkt', user: 'instructor', branch: 'DD-JKT', type: 'INSTRUCTOR', role: 'INSTRUCTOR' },
-    { key: 'instructor-bsd', user: 'instructor', branch: 'DD-BSD', type: 'INSTRUCTOR', role: 'INSTRUCTOR' },
-    { key: 'instructor-jkt-2', user: 'instructor-jkt-2', branch: 'DD-JKT', type: 'INSTRUCTOR', role: 'INSTRUCTOR' },
-    { key: 'instructor-bsd-2', user: 'instructor-bsd-2', branch: 'DD-BSD', type: 'INSTRUCTOR', role: 'INSTRUCTOR' },
+    { key: 'owner-jkt', user: 'owner-jkt', branch: 'LR-JKT', type: 'OWNER', role: 'OWNER' },
+    { key: 'owner-bsd', user: 'owner-bsd', branch: 'LR-BSD', type: 'OWNER', role: 'OWNER' },
+    { key: 'instructor-jkt', user: 'instructor', branch: 'LR-JKT', type: 'INSTRUCTOR', role: 'INSTRUCTOR' },
+    { key: 'instructor-bsd', user: 'instructor', branch: 'LR-BSD', type: 'INSTRUCTOR', role: 'INSTRUCTOR' },
+    { key: 'instructor-jkt-2', user: 'instructor-jkt-2', branch: 'LR-JKT', type: 'INSTRUCTOR', role: 'INSTRUCTOR' },
+    { key: 'instructor-bsd-2', user: 'instructor-bsd-2', branch: 'LR-BSD', type: 'INSTRUCTOR', role: 'INSTRUCTOR' },
   ];
   for (const item of assignments) {
     if (!ids[item.user]) continue;

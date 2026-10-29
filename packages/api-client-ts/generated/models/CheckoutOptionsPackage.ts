@@ -1,7 +1,7 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * Daily Dose API
+ * Little Rollers API
  * Gate-4 contract baseline. Operations marked x-blocked-by cannot enter production until the decision is approved.
  *
  * The version of the OpenAPI document: 1.21.0-draft
@@ -20,6 +20,13 @@ import {
     PublicPackagePromotionToJSON,
     PublicPackagePromotionToJSONTyped,
 } from './PublicPackagePromotion';
+import type { SessionDurationMinutes } from './SessionDurationMinutes';
+import {
+    SessionDurationMinutesFromJSON,
+    SessionDurationMinutesFromJSONTyped,
+    SessionDurationMinutesToJSON,
+    SessionDurationMinutesToJSONTyped,
+} from './SessionDurationMinutes';
 
 /**
  * 
@@ -71,6 +78,12 @@ export interface CheckoutOptionsPackage {
     sessionCount: number;
     /**
      * 
+     * @type {SessionDurationMinutes}
+     * @memberof CheckoutOptionsPackage
+     */
+    sessionDurationMinutes?: SessionDurationMinutes;
+    /**
+     * 
      * @type {number}
      * @memberof CheckoutOptionsPackage
      */
@@ -100,6 +113,8 @@ export interface CheckoutOptionsPackage {
      */
     classTypeName: string;
 }
+
+
 
 /**
  * Check if a given object implements the CheckoutOptionsPackage interface.
@@ -137,6 +152,7 @@ export function CheckoutOptionsPackageFromJSONTyped(json: any, ignoreDiscriminat
         'promotion': PublicPackagePromotionFromJSON(json['promotion']),
         'version': json['version'],
         'sessionCount': json['sessionCount'],
+        'sessionDurationMinutes': json['sessionDurationMinutes'] == null ? undefined : SessionDurationMinutesFromJSON(json['sessionDurationMinutes']),
         'durationDays': json['durationDays'],
         'branchId': json['branchId'],
         'branchName': json['branchName'],
@@ -163,6 +179,7 @@ export function CheckoutOptionsPackageToJSONTyped(value?: CheckoutOptionsPackage
         'promotion': PublicPackagePromotionToJSON(value['promotion']),
         'version': value['version'],
         'sessionCount': value['sessionCount'],
+        'sessionDurationMinutes': SessionDurationMinutesToJSON(value['sessionDurationMinutes']),
         'durationDays': value['durationDays'],
         'branchId': value['branchId'],
         'branchName': value['branchName'],

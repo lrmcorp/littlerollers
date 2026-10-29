@@ -363,6 +363,7 @@ export 'package:openapi/src/model/session_adjustment_decision_command.dart';
 export 'package:openapi/src/model/session_adjustment_page.dart';
 export 'package:openapi/src/model/session_adjustment_summary.dart';
 export 'package:openapi/src/model/session_branch.dart';
+export 'package:openapi/src/model/session_duration_minutes.dart';
 export 'package:openapi/src/model/studio.dart';
 export 'package:openapi/src/model/studio_command.dart';
 export 'package:openapi/src/model/studio_page.dart';

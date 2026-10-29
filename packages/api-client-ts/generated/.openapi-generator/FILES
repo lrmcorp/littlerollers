@@ -353,6 +353,7 @@ models/SessionAdjustmentDecisionCommand.ts
 models/SessionAdjustmentPage.ts
 models/SessionAdjustmentSummary.ts
 models/SessionBranch.ts
+models/SessionDurationMinutes.ts
 models/Studio.ts
 models/StudioCommand.ts
 models/StudioPage.ts

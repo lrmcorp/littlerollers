@@ -21,8 +21,8 @@ test.beforeEach(async ({ page }) => {
         branches: [
           {
             id: 'branch-jkt',
-            code: 'DD-JKT',
-            name: 'Daily Dose Jakarta',
+            code: 'LR-JKT',
+            name: 'Little Rollers Jakarta',
             timezone: 'Asia/Jakarta',
             supportWhatsappE164: '+628111111111',
           },
@@ -41,14 +41,14 @@ test.beforeEach(async ({ page }) => {
         branches: [
           {
             id: 'branch-jkt',
-            code: 'DD-JKT',
-            name: 'Daily Dose Jakarta',
+            code: 'LR-JKT',
+            name: 'Little Rollers Jakarta',
             timezone: 'Asia/Jakarta',
           },
           {
             id: 'branch-bsd',
-            code: 'DD-BSD',
-            name: 'Daily Dose BSD',
+            code: 'LR-BSD',
+            name: 'Little Rollers BSD',
             timezone: 'Asia/Jakarta',
           },
         ],
@@ -57,7 +57,7 @@ test.beforeEach(async ({ page }) => {
               {
                 id: 'package-reformer-10',
                 branchId,
-                name: 'Reformer Pilates 10',
+                name: 'Movers 10',
                 sessionCount: 10,
                 durationDays: 90,
                 priceRp: 1_600_000,
@@ -77,33 +77,33 @@ test.beforeEach(async ({ page }) => {
                 effectiveUntil: null,
                 classType: {
                   id: 'type-reformer',
-                  code: 'REFORMER',
-                  name: 'Reformer Pilates',
+                  code: 'MOVERS',
+                  name: 'Movers',
                 },
               },
               {
                 id: 'package-reformer-5',
                 branchId,
-                name: 'Reformer Pilates 5',
+                name: 'Movers 5',
                 sessionCount: 5,
                 durationDays: 45,
                 priceRp: 850_000,
                 effectiveUntil: null,
                 classType: {
                   id: 'type-reformer',
-                  code: 'REFORMER',
-                  name: 'Reformer Pilates',
+                  code: 'MOVERS',
+                  name: 'Movers',
                 },
               },
               {
                 id: 'package-mat-8',
                 branchId,
-                name: 'Mat Pilates 8',
+                name: 'Tiny Rollers 8',
                 sessionCount: 8,
                 durationDays: 60,
                 priceRp: 720_000,
                 effectiveUntil: null,
-                classType: { id: 'type-mat', code: 'MAT', name: 'Mat Pilates' },
+                classType: { id: 'type-mat', code: 'PLAY', name: 'Tiny Rollers' },
               },
               {
                 id: 'package-barre-8',
@@ -113,7 +113,7 @@ test.beforeEach(async ({ page }) => {
                 durationDays: 60,
                 priceRp: 760_000,
                 effectiveUntil: null,
-                classType: { id: 'type-barre', code: 'BARRE', name: 'Barre' },
+                classType: { id: 'type-barre', code: 'CLUB', name: 'Barre' },
               },
             ]
           : [],
@@ -128,14 +128,14 @@ test.beforeEach(async ({ page }) => {
         branches: [
           {
             id: 'branch-jkt',
-            code: 'DD-JKT',
-            name: 'Daily Dose Jakarta',
+            code: 'LR-JKT',
+            name: 'Little Rollers Jakarta',
             timezone: 'Asia/Jakarta',
           },
           {
             id: 'branch-bsd',
-            code: 'DD-BSD',
-            name: 'Daily Dose BSD',
+            code: 'LR-BSD',
+            name: 'Little Rollers BSD',
             timezone: 'Asia/Jakarta',
           },
         ],
@@ -245,7 +245,7 @@ for (const viewport of [
   }, testInfo) => {
     await page.setViewportSize({ width: viewport.width, height: viewport.height });
     await page.goto('/packages?branch=branch-jkt&slot=slot-1');
-    const recommended = page.getByRole('heading', { name: 'Reformer Pilates 10' });
+    const recommended = page.getByRole('heading', { name: 'Movers 10' });
     await expect(recommended).toBeVisible();
     const firstCard = page.locator('main article').first();
     await expect(firstCard.locator('del')).toContainText('1.600.000');
@@ -293,11 +293,11 @@ for (const viewport of [
       fullPage: true,
     });
 
-    await selectSearchOption(page, 'Tipe kelas', 'Mat Pilates');
+    await selectSearchOption(page, 'Tipe kelas', 'Tiny Rollers');
     await expect(page).toHaveURL(/branch=branch-jkt/);
     await expect(page).toHaveURL(/classType=type-mat/);
     await expect(page).toHaveURL(/slot=slot-1/);
-    await expect(page.getByRole('heading', { name: 'Mat Pilates 8' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Tiny Rollers 8' })).toBeVisible();
   });
 }
 

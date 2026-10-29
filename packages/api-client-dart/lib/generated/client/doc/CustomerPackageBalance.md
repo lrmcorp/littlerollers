@@ -26,6 +26,7 @@ Name | Type | Description | Notes
 **usage** | [**CustomerSessionUsageSummary**](CustomerSessionUsageSummary.md) |  | 
 **salePriceRp** | **int** |  | 
 **sessionCountSnapshot** | **int** |  | 
+**sessionDurationMinutesSnapshot** | [**SessionDurationMinutes**](SessionDurationMinutes.md) |  | [optional] 
 **durationDaysSnapshot** | **int** |  | 
 **projectionRateRp** | **int** |  | 
 **version** | **int** |  | 

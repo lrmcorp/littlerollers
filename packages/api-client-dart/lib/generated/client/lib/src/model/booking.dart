@@ -5,6 +5,7 @@
 // ignore_for_file: unused_element
 import 'package:openapi/src/model/booking_branch.dart';
 import 'package:built_collection/built_collection.dart';
+import 'package:openapi/src/model/session_duration_minutes.dart';
 import 'package:openapi/src/model/booking_class_slot.dart';
 import 'package:openapi/src/model/booking_attendance.dart';
 import 'package:openapi/src/model/booking_customer.dart';
@@ -28,6 +29,7 @@ part 'booking.g.dart';
 /// * [source_] 
 /// * [status] 
 /// * [reservedQuantity] 
+/// * [sessionDurationMinutes] 
 /// * [cancellationReasonCode] 
 /// * [cancelledAt] 
 /// * [createdAt] 
@@ -73,6 +75,10 @@ abstract class Booking implements Built<Booking, BookingBuilder> {
   @BuiltValueField(wireName: r'reservedQuantity')
   BookingReservedQuantityEnum get reservedQuantity;
   // enum reservedQuantityEnum {  1,  };
+
+  @BuiltValueField(wireName: r'sessionDurationMinutes')
+  SessionDurationMinutes? get sessionDurationMinutes;
+  // enum sessionDurationMinutesEnum {  60,  120,  };
 
   @BuiltValueField(wireName: r'cancellationReasonCode')
   BookingCancellationReasonCodeEnum? get cancellationReasonCode;
@@ -181,6 +187,13 @@ class _$BookingSerializer implements PrimitiveSerializer<Booking> {
       object.reservedQuantity,
       specifiedType: const FullType(BookingReservedQuantityEnum),
     );
+    if (object.sessionDurationMinutes != null) {
+      yield r'sessionDurationMinutes';
+      yield serializers.serialize(
+        object.sessionDurationMinutes,
+        specifiedType: const FullType(SessionDurationMinutes),
+      );
+    }
     if (object.cancellationReasonCode != null) {
       yield r'cancellationReasonCode';
       yield serializers.serialize(
@@ -344,6 +357,13 @@ class _$BookingSerializer implements PrimitiveSerializer<Booking> {
             specifiedType: const FullType(BookingReservedQuantityEnum),
           ) as BookingReservedQuantityEnum;
           result.reservedQuantity = valueDes;
+          break;
+        case r'sessionDurationMinutes':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(SessionDurationMinutes),
+          ) as SessionDurationMinutes;
+          result.sessionDurationMinutes = valueDes;
           break;
         case r'cancellationReasonCode':
           final valueDes = serializers.deserialize(

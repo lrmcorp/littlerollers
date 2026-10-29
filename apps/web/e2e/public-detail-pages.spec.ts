@@ -3,22 +3,22 @@ import { expect, test } from '@playwright/test';
 const routes = [
   {
     path: '/packages/6f6dca0c-74fe-4c6f-8982-33db678a0b7a',
-    heading: 'Reformer Pilates 10',
+    heading: 'Movers 10',
     parent: 'Paket',
   },
   {
     path: '/schedule/4669d2c4-cc55-40ff-8759-10bd8369371c',
-    heading: 'Reformer Pilates',
+    heading: 'Movers',
     parent: 'Jadwal',
   },
   {
-    path: '/classes/reformer-pilates',
-    heading: 'Reformer Pilates',
+    path: '/classes/movers',
+    heading: 'Movers',
     parent: 'Kelas',
   },
   {
     path: '/locations/jakarta',
-    heading: 'Daily Dose Jakarta',
+    heading: 'Little Rollers Jakarta',
     parent: 'Studio',
   },
 ] as const;

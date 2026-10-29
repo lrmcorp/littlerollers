@@ -13,6 +13,7 @@ Name | Type | Description | Notes
 **businessKey** | **String** |  | 
 **name** | **String** |  | 
 **sessionCount** | **int** |  | 
+**sessionDurationMinutes** | [**SessionDurationMinutes**](SessionDurationMinutes.md) |  | [optional] 
 **durationDays** | **int** |  | 
 **priceRp** | **int** |  | 
 **effectiveFrom** | [**Date**](Date.md) |  | 

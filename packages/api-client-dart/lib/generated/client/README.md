@@ -635,6 +635,7 @@ Class | Method | HTTP request | Description
  - [SessionAdjustmentPage](doc/SessionAdjustmentPage.md)
  - [SessionAdjustmentSummary](doc/SessionAdjustmentSummary.md)
  - [SessionBranch](doc/SessionBranch.md)
+ - [SessionDurationMinutes](doc/SessionDurationMinutes.md)
  - [Studio](doc/Studio.md)
  - [StudioCommand](doc/StudioCommand.md)
  - [StudioPage](doc/StudioPage.md)

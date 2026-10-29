@@ -13,6 +13,7 @@ import type { SessionPrincipal } from '../identity/identity.service';
 import { PolicyService } from '../identity/policy.service';
 import { ApiProblem } from '../identity/security';
 import { PilotRollbackOutboxService } from '../migration/pilot-rollback-outbox.service';
+import { sessionFitsSlot } from '../packages/session-duration';
 
 export type RescheduleRequestCommand = {
   bookingId: string;
@@ -168,7 +169,12 @@ export class ReschedulesService {
         availableCapacity:
           slot.capacity - reservations.reduce((sum, item) => sum + item.quantity, 0),
       }))
-      .filter(({ id, availableCapacity }) => availableCapacity > 0 && !duplicated.has(id));
+      .filter(
+        (slot) =>
+          slot.availableCapacity > 0 &&
+          !duplicated.has(slot.id) &&
+          sessionFitsSlot(booking.sessionDurationMinutes, slot),
+      );
     const unavailableReason = canRequest
       ? targets.length
         ? null
@@ -391,6 +397,7 @@ export class ReschedulesService {
             source.branchId !== target.branchId ||
             source.classTypeId !== target.classTypeId ||
             customerPackage.classTypeId !== target.classTypeId ||
+            !sessionFitsSlot(booking.sessionDurationMinutes, target) ||
             !['PUBLISHED', 'CONFIRMED'].includes(target.status) ||
             now >= targetCutoffAt ||
             customerPackage.status !== 'ACTIVE' ||
@@ -617,6 +624,7 @@ export class ReschedulesService {
             customerPackage.classTypeId !== target.classTypeId ||
             customerPackage.status !== 'ACTIVE' ||
             customerPackage.expiryAt <= now ||
+            !sessionFitsSlot(booking.sessionDurationMinutes, target) ||
             !['PUBLISHED', 'CONFIRMED'].includes(target.status) ||
             now >= new Date(target.startAt.getTime() - policy.bookingCutoffHours * 3_600_000)
           )

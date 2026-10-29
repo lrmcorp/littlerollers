@@ -42,8 +42,8 @@ describe('Tailwind form primitives', () => {
         label="Cabang"
         name="branchId"
         options={[
-          { id: 'jkt', label: 'Daily Dose Jakarta', description: 'Jakarta · WIB' },
-          { id: 'bsd', label: 'Daily Dose BSD', description: 'BSD · WIB' },
+          { id: 'jkt', label: 'Little Rollers Jakarta', description: 'Jakarta · WIB' },
+          { id: 'bsd', label: 'Little Rollers BSD', description: 'BSD · WIB' },
         ]}
         onChange={onChange}
       />,

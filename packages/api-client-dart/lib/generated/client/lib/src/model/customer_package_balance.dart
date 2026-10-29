@@ -6,6 +6,7 @@
 import 'package:openapi/src/model/adjustment_customer.dart';
 import 'package:built_collection/built_collection.dart';
 import 'package:openapi/src/model/customer_session_usage_summary.dart';
+import 'package:openapi/src/model/session_duration_minutes.dart';
 import 'package:openapi/src/model/date.dart';
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
@@ -33,6 +34,7 @@ part 'customer_package_balance.g.dart';
 /// * [usage] 
 /// * [salePriceRp] 
 /// * [sessionCountSnapshot] 
+/// * [sessionDurationMinutesSnapshot] 
 /// * [durationDaysSnapshot] 
 /// * [projectionRateRp] 
 /// * [version] 
@@ -92,6 +94,10 @@ abstract class CustomerPackageBalance implements Built<CustomerPackageBalance, C
 
   @BuiltValueField(wireName: r'sessionCountSnapshot')
   int get sessionCountSnapshot;
+
+  @BuiltValueField(wireName: r'sessionDurationMinutesSnapshot')
+  SessionDurationMinutes? get sessionDurationMinutesSnapshot;
+  // enum sessionDurationMinutesSnapshotEnum {  60,  120,  };
 
   @BuiltValueField(wireName: r'durationDaysSnapshot')
   int get durationDaysSnapshot;
@@ -223,6 +229,13 @@ class _$CustomerPackageBalanceSerializer implements PrimitiveSerializer<Customer
       object.sessionCountSnapshot,
       specifiedType: const FullType(int),
     );
+    if (object.sessionDurationMinutesSnapshot != null) {
+      yield r'sessionDurationMinutesSnapshot';
+      yield serializers.serialize(
+        object.sessionDurationMinutesSnapshot,
+        specifiedType: const FullType(SessionDurationMinutes),
+      );
+    }
     yield r'durationDaysSnapshot';
     yield serializers.serialize(
       object.durationDaysSnapshot,
@@ -386,6 +399,13 @@ class _$CustomerPackageBalanceSerializer implements PrimitiveSerializer<Customer
             specifiedType: const FullType(int),
           ) as int;
           result.sessionCountSnapshot = valueDes;
+          break;
+        case r'sessionDurationMinutesSnapshot':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(SessionDurationMinutes),
+          ) as SessionDurationMinutes;
+          result.sessionDurationMinutesSnapshot = valueDes;
           break;
         case r'durationDaysSnapshot':
           final valueDes = serializers.deserialize(

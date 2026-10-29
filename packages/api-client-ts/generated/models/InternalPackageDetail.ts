@@ -1,7 +1,7 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * Daily Dose API
+ * Little Rollers API
  * Gate-4 contract baseline. Operations marked x-blocked-by cannot enter production until the decision is approved.
  *
  * The version of the OpenAPI document: 1.21.0-draft
@@ -48,6 +48,13 @@ import {
     PackageToJSON,
     PackageToJSONTyped,
 } from './Package';
+import type { SessionDurationMinutes } from './SessionDurationMinutes';
+import {
+    SessionDurationMinutesFromJSON,
+    SessionDurationMinutesFromJSONTyped,
+    SessionDurationMinutesToJSON,
+    SessionDurationMinutesToJSONTyped,
+} from './SessionDurationMinutes';
 
 /**
  * 
@@ -97,6 +104,12 @@ export interface InternalPackageDetail {
      * @memberof InternalPackageDetail
      */
     sessionCount: number;
+    /**
+     * 
+     * @type {SessionDurationMinutes}
+     * @memberof InternalPackageDetail
+     */
+    sessionDurationMinutes?: SessionDurationMinutes;
     /**
      * 
      * @type {number}
@@ -217,6 +230,7 @@ export function InternalPackageDetailFromJSONTyped(json: any, ignoreDiscriminato
         'businessKey': json['businessKey'],
         'name': json['name'],
         'sessionCount': json['sessionCount'],
+        'sessionDurationMinutes': json['sessionDurationMinutes'] == null ? undefined : SessionDurationMinutesFromJSON(json['sessionDurationMinutes']),
         'durationDays': json['durationDays'],
         'priceRp': json['priceRp'],
         'status': json['status'],
@@ -248,6 +262,7 @@ export function InternalPackageDetailToJSONTyped(value?: InternalPackageDetail |
         'businessKey': value['businessKey'],
         'name': value['name'],
         'sessionCount': value['sessionCount'],
+        'sessionDurationMinutes': SessionDurationMinutesToJSON(value['sessionDurationMinutes']),
         'durationDays': value['durationDays'],
         'priceRp': value['priceRp'],
         'status': value['status'],

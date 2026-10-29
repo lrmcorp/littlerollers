@@ -140,13 +140,13 @@ export class AttendanceService {
     const payload = rawToken ? `dd-checkin:v1:${rawToken}` : null;
     const base = (process.env.PUBLIC_WEB_BASE_URL ?? 'http://127.0.0.1:32120').replace(/\/$/u, '');
     const passUrl = payload ? `${base}/check-in-pass#token=${encodeURIComponent(payload)}` : null;
-    const schedule = new Intl.DateTimeFormat('id-ID', {
+    const schedule = new Intl.DateTimeFormat('en-GB', {
       dateStyle: 'medium',
       timeStyle: 'short',
       timeZone: booking.classSlot.timezone,
     }).format(booking.classSlot.startAt);
     const message = passUrl
-      ? `Halo ${booking.customer.displayName}, berikut QR check-in Daily Dose untuk kelas ${schedule}. Buka pass ini saat tiba di studio: ${passUrl}`
+      ? `Hi ${booking.customer.displayName}, here is the Little Rollers check-in QR for ${schedule}. Open this pass when you arrive at the club: ${passUrl}`
       : null;
     const digits = booking.customer.phoneE164?.replace(/\D/gu, '') ?? '';
     return {

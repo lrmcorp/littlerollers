@@ -3,6 +3,7 @@
 //
 
 // ignore_for_file: unused_element
+import 'package:openapi/src/model/session_duration_minutes.dart';
 import 'package:openapi/src/model/public_package_promotion.dart';
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
@@ -19,6 +20,7 @@ part 'checkout_options_package.g.dart';
 /// * [promotion] 
 /// * [version] 
 /// * [sessionCount] 
+/// * [sessionDurationMinutes] 
 /// * [durationDays] 
 /// * [branchId] 
 /// * [branchName] 
@@ -46,6 +48,10 @@ abstract class CheckoutOptionsPackage implements Built<CheckoutOptionsPackage, C
 
   @BuiltValueField(wireName: r'sessionCount')
   int get sessionCount;
+
+  @BuiltValueField(wireName: r'sessionDurationMinutes')
+  SessionDurationMinutes? get sessionDurationMinutes;
+  // enum sessionDurationMinutesEnum {  60,  120,  };
 
   @BuiltValueField(wireName: r'durationDays')
   int get durationDays;
@@ -120,6 +126,13 @@ class _$CheckoutOptionsPackageSerializer implements PrimitiveSerializer<Checkout
       object.sessionCount,
       specifiedType: const FullType(int),
     );
+    if (object.sessionDurationMinutes != null) {
+      yield r'sessionDurationMinutes';
+      yield serializers.serialize(
+        object.sessionDurationMinutes,
+        specifiedType: const FullType(SessionDurationMinutes),
+      );
+    }
     yield r'durationDays';
     yield serializers.serialize(
       object.durationDays,
@@ -217,6 +230,13 @@ class _$CheckoutOptionsPackageSerializer implements PrimitiveSerializer<Checkout
             specifiedType: const FullType(int),
           ) as int;
           result.sessionCount = valueDes;
+          break;
+        case r'sessionDurationMinutes':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(SessionDurationMinutes),
+          ) as SessionDurationMinutes;
+          result.sessionDurationMinutes = valueDes;
           break;
         case r'durationDays':
           final valueDes = serializers.deserialize(

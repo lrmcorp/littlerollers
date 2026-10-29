@@ -228,7 +228,8 @@ export function PackagesManagementView() {
                 <div>
                   <strong>{item.name}</strong>
                   <p className="text-xs text-dd-muted">
-                    {item.sessionCount} sesi · {item.durationDays} hari
+                    {item.sessionCount} sesi × {(item.sessionDurationMinutes ?? 60) / 60} jam ·{' '}
+                    {item.durationDays} hari
                   </p>
                 </div>
               ),
@@ -424,6 +425,7 @@ function PackageCreateForm({
           businessKey: String(data.get('businessKey')),
           name: String(data.get('name')),
           sessionCount: Number(data.get('sessionCount')),
+          sessionDurationMinutes: Number(data.get('sessionDurationMinutes')),
           durationDays: Number(data.get('durationDays')),
           priceRp: Number(data.get('priceRp')),
           effectiveFrom: String(data.get('effectiveFrom')),
@@ -480,6 +482,18 @@ function PackageCreateForm({
       <TextInput name="businessKey" label="Business key" required />
       <TextInput name="name" label="Nama paket" required />
       <TextInput name="sessionCount" label="Jumlah sesi" type="number" min={1} required />
+      <fieldset className="grid gap-2 rounded-dd-md border border-dd-line p-3">
+        <legend className="px-1 text-sm font-semibold">Durasi per sesi</legend>
+        <p className="text-xs text-dd-muted">
+          Jadwal dibuat per blok 2 jam. Paket 1 jam memakai jam pertama blok tersebut.
+        </p>
+        <label className="flex items-center gap-2 text-sm">
+          <input type="radio" name="sessionDurationMinutes" value="60" required />1 jam
+        </label>
+        <label className="flex items-center gap-2 text-sm">
+          <input type="radio" name="sessionDurationMinutes" value="120" required />2 jam
+        </label>
+      </fieldset>
       <TextInput name="durationDays" label="Masa berlaku (hari)" type="number" min={1} required />
       <TextInput name="priceRp" label="Harga normal" type="number" min={1} required />
       <TextInput name="effectiveFrom" label="Mulai berlaku" type="date" required />

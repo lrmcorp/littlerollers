@@ -392,7 +392,7 @@ test('public package catalog requires a studio and uses authoritative commercial
               {
                 id: 'package-1',
                 branchId: 'branch-1',
-                name: 'Pilates Starter',
+                name: 'Movers Starter',
                 sessionCount: 4,
                 durationDays: 30,
                 priceRp: 1200000,
@@ -407,7 +407,7 @@ test('public package catalog requires a studio and uses authoritative commercial
   await page.goto('/packages');
   await expect(page.getByText('Pilih studio untuk melihat paket')).toBeVisible();
   await page.getByRole('button', { name: /Green Garden/ }).click();
-  await expect(page.getByRole('heading', { name: 'Pilates Starter' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Movers Starter' })).toBeVisible();
   await expect(page.getByText(/Rp\s*1\.200\.000/)).toBeVisible();
   await expect(page.getByRole('link', { name: 'Masuk untuk memilih' })).toHaveAttribute(
     'href',
@@ -419,8 +419,8 @@ test('public information routes expose approved content and official support onl
   page,
 }) => {
   await page.goto('/locations');
-  await expect(page.getByRole('heading', { name: 'Daily Dose Jakarta' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Daily Dose BSD' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Little Rollers Jakarta' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Little Rollers BSD' })).toBeVisible();
   await expect(page.getByText(/Surabaya|PIK 2/)).toHaveCount(0);
   await expect(page.getByText(/Alamat lengkap, jam operasional/)).toBeVisible();
   await page.goto('/contact');
@@ -447,7 +447,7 @@ for (const breakpoint of breakpoints) {
       await expect(page.getByRole('button', { name: 'Buka menu navigasi' })).toBeVisible();
     }
     await expect(
-      page.getByRole('heading', { name: 'Reformer Pilates', exact: true }),
+      page.getByRole('heading', { name: 'Movers', exact: true }),
     ).toBeVisible();
     if (breakpoint.width >= 1024) {
       await expect(page.getByText('Akun Saya', { exact: true }).first()).toBeVisible();

@@ -18,6 +18,7 @@ Name | Type | Description | Notes
 **source_** | **String** |  | 
 **status** | **String** |  | 
 **reservedQuantity** | **int** |  | 
+**sessionDurationMinutes** | [**SessionDurationMinutes**](SessionDurationMinutes.md) |  | [optional] 
 **cancellationReasonCode** | **String** |  | [optional] 
 **cancelledAt** | [**DateTime**](DateTime.md) |  | [optional] 
 **createdAt** | [**DateTime**](DateTime.md) |  | 

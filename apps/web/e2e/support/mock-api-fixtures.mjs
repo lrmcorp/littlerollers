@@ -6,21 +6,21 @@ export const fixtureIds = {
 };
 
 export const classProfile = {
-  code: 'REFORMER',
-  slug: 'reformer-pilates',
+  code: 'MOVERS',
+  slug: 'movers',
   summary: 'Latihan seluruh tubuh menggunakan reformer.',
   description: 'Kelas terarah untuk kekuatan, kontrol, dan mobilitas.',
   level: 'Semua level',
   durationMinutes: 50,
   equipment: ['Reformer'],
   benefits: ['Kekuatan inti', 'Postur'],
-  heroImageKey: 'classes/reformer-pilates.png',
+  heroImageKey: 'classes/movers.svg',
 };
 
 export const branch = {
   id: fixtureIds.branch,
-  code: 'DD-JKT',
-  name: 'Daily Dose Jakarta',
+  code: 'LR-JKT',
+  name: 'Little Rollers Jakarta',
   timezone: 'Asia/Jakarta',
   supportWhatsappE164: null,
   publicProfile: {
@@ -33,15 +33,15 @@ export const branch = {
     arrivalInformation: 'Datang 15 menit sebelum kelas.',
     parkingInformation: 'Area parkir tersedia.',
     amenities: ['Ruang ganti', 'Loker'],
-    heroImageKey: 'studios/studio-reception.png',
+    heroImageKey: 'studios/jakarta.svg',
     galleryImageKeys: [],
   },
 };
 
 export const bsdBranch = {
   id: '00000000-0000-4000-8000-000000000002',
-  code: 'DD-BSD',
-  name: 'Daily Dose BSD',
+  code: 'LR-BSD',
+  name: 'Little Rollers BSD',
   timezone: 'Asia/Jakarta',
   supportWhatsappE164: null,
   publicProfile: {
@@ -54,15 +54,15 @@ export const bsdBranch = {
     arrivalInformation: null,
     parkingInformation: null,
     amenities: ['Reformer'],
-    heroImageKey: 'studios/studio-interior-reformer.png',
+    heroImageKey: 'studios/bsd.svg',
     galleryImageKeys: [],
   },
 };
 
 export const classType = {
   id: fixtureIds.classType,
-  code: 'REFORMER',
-  name: 'Reformer Pilates',
+  code: 'MOVERS',
+  name: 'Movers',
 };
 
 export const schedule = {
@@ -82,7 +82,7 @@ export const schedule = {
 export const packageDetail = {
   id: fixtureIds.package,
   branchId: fixtureIds.branch,
-  name: 'Reformer Pilates 10',
+  name: 'Movers 10',
   sessionCount: 10,
   durationDays: 60,
   priceRp: 2_500_000,
@@ -91,7 +91,7 @@ export const packageDetail = {
   effectiveUntil: null,
   classType,
   publicProfile: {
-    summary: 'Sepuluh sesi Reformer Pilates.',
+    summary: 'Sepuluh sesi Movers.',
     description: 'Paket latihan terarah untuk membangun kebiasaan bergerak.',
     highlights: ['10 sesi', 'Berlaku 60 hari'],
     usageGuidance: 'Reservasi jadwal sebelum datang.',
@@ -124,7 +124,7 @@ export const siteConfig = {
   classes: [
     {
       ...classProfile,
-      code: 'BARRE',
+      code: 'CLUB',
       name: 'Barre',
       slug: 'barre',
       summary: 'Latihan stabilitas dan daya tahan.',
@@ -132,18 +132,18 @@ export const siteConfig = {
       level: 'Pemula–menengah',
       equipment: ['Barre'],
       benefits: ['Stabilitas'],
-      heroImageKey: 'landing/studio-showcase.png',
+      heroImageKey: 'classes/rollers-club.svg',
     },
     {
       ...classProfile,
-      code: 'MAT',
-      name: 'Mat Pilates',
-      slug: 'mat-pilates',
+      code: 'PLAY',
+      name: 'Tiny Rollers',
+      slug: 'tiny-rollers',
       summary: 'Gerak presisi di atas mat.',
       description: 'Bangun kontrol tubuh.',
       equipment: ['Mat'],
       benefits: ['Kontrol'],
-      heroImageKey: 'classes/mat-pilates.png',
+      heroImageKey: 'classes/tiny-rollers.svg',
     },
     { ...classProfile, name: classType.name },
   ],

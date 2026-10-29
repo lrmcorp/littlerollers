@@ -13,7 +13,7 @@ export async function generateMetadata({
     `/public/class-types/${encodeURIComponent(slug)}`,
   );
   const title = item
-    ? `${item.profile.code === 'BARRE' ? 'Barre' : item.profile.code === 'MAT' ? 'Mat Pilates' : 'Reformer Pilates'} · Daily Dose`
+    ? `${item.profile.code === 'CLUB' ? 'Barre' : item.profile.code === 'PLAY' ? 'Tiny Rollers' : 'Movers'} · Daily Dose`
     : 'Detail Kelas';
   const description =
     item?.profile.summary ?? 'Manfaat, perlengkapan, paket, dan jadwal kelas Daily Dose.';

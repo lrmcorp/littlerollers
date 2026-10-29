@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" role="img" aria-label="Little Rollers BSD artwork">
+  <rect width="800" height="600" fill="#E8F1F6"/>
+  <circle cx="300" cy="280" r="150" fill="#EBAA28"/>
+  <path d="M0 360 C 180 300 360 330 520 360 S 760 400 800 380 V600 H0 Z" fill="#CFE3C4"/>
+  <path d="M-20 600 C 120 470 300 420 470 410 C 560 404 600 380 560 356 C 520 334 430 330 360 336 C 470 318 610 322 660 352 C 720 390 650 430 560 444 C 400 468 300 520 250 600 Z" fill="#073228"/>
+</svg>

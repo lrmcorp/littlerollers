@@ -88,7 +88,7 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
       data: {
         id: classTypeId,
         branchId,
-        code: `REFORMER-${namespace.toUpperCase()}`,
+        code: `MOVERS-${namespace.toUpperCase()}`,
         name: 'Reformer',
       },
     });

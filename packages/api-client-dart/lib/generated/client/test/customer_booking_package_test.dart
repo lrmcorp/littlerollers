@@ -22,6 +22,11 @@ void main() {
       // TODO
     });
 
+    // SessionDurationMinutes sessionDurationMinutes
+    test('to test the property `sessionDurationMinutes`', () async {
+      // TODO
+    });
+
     // int available
     test('to test the property `available`', () async {
       // TODO

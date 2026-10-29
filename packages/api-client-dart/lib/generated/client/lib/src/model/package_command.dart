@@ -4,6 +4,7 @@
 
 // ignore_for_file: unused_element
 import 'package:built_collection/built_collection.dart';
+import 'package:openapi/src/model/session_duration_minutes.dart';
 import 'package:openapi/src/model/date.dart';
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
@@ -18,6 +19,7 @@ part 'package_command.g.dart';
 /// * [businessKey] 
 /// * [name] 
 /// * [sessionCount] 
+/// * [sessionDurationMinutes] 
 /// * [durationDays] 
 /// * [priceRp] 
 /// * [effectiveFrom] 
@@ -39,6 +41,10 @@ abstract class PackageCommand implements Built<PackageCommand, PackageCommandBui
 
   @BuiltValueField(wireName: r'sessionCount')
   int get sessionCount;
+
+  @BuiltValueField(wireName: r'sessionDurationMinutes')
+  SessionDurationMinutes? get sessionDurationMinutes;
+  // enum sessionDurationMinutesEnum {  60,  120,  };
 
   @BuiltValueField(wireName: r'durationDays')
   int get durationDays;
@@ -103,6 +109,13 @@ class _$PackageCommandSerializer implements PrimitiveSerializer<PackageCommand> 
       object.sessionCount,
       specifiedType: const FullType(int),
     );
+    if (object.sessionDurationMinutes != null) {
+      yield r'sessionDurationMinutes';
+      yield serializers.serialize(
+        object.sessionDurationMinutes,
+        specifiedType: const FullType(SessionDurationMinutes),
+      );
+    }
     yield r'durationDays';
     yield serializers.serialize(
       object.durationDays,
@@ -187,6 +200,13 @@ class _$PackageCommandSerializer implements PrimitiveSerializer<PackageCommand> 
             specifiedType: const FullType(int),
           ) as int;
           result.sessionCount = valueDes;
+          break;
+        case r'sessionDurationMinutes':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(SessionDurationMinutes),
+          ) as SessionDurationMinutes;
+          result.sessionDurationMinutes = valueDes;
           break;
         case r'durationDays':
           final valueDes = serializers.deserialize(

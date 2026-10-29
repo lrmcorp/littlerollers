@@ -21,8 +21,8 @@ export interface BranchMasterTemplate {
 
 export const branchTemplates: BranchMasterTemplate[] = [
   {
-    code: 'DD-JKT',
-    name: 'Daily Dose Jakarta',
+    code: 'LR-JKT',
+    name: 'Little Rollers Jakarta',
     timezone: 'Asia/Jakarta',
     supportWhatsappE164: '+628111000001',
     priceMultiplier: 1,
@@ -33,13 +33,13 @@ export const branchTemplates: BranchMasterTemplate[] = [
       bankCode: 'BCA',
       bankName: 'Bank Central Asia',
       accountNumber: '000012345678',
-      holder: 'Daily Dose Pilates Jakarta',
+      holder: 'Little Rollers Jakarta',
       windowHours: 24,
     },
   },
   {
-    code: 'DD-BSD',
-    name: 'Daily Dose BSD',
+    code: 'LR-BSD',
+    name: 'Little Rollers BSD',
     timezone: 'Asia/Jakarta',
     supportWhatsappE164: '+628111000002',
     priceMultiplier: 1.08,
@@ -50,137 +50,126 @@ export const branchTemplates: BranchMasterTemplate[] = [
       bankCode: 'MANDIRI',
       bankName: 'Bank Mandiri',
       accountNumber: '100023456789',
-      holder: 'Daily Dose Pilates BSD',
+      holder: 'Little Rollers BSD',
       windowHours: 18,
     },
   },
 ];
 
+// Demo content for local and staging databases. Replace with the club's real
+// addresses, copy and photos before launch.
 const branchPublicProfiles = {
-  'DD-JKT': {
+  'LR-JKT': {
     slug: 'jakarta',
-    area: 'Jakarta Selatan',
+    area: 'South Jakarta',
     city: 'Jakarta',
-    address: 'Jl. Wijaya II, Kebayoran Baru, Jakarta Selatan',
+    address: 'Jl. Wijaya II, Kebayoran Baru, South Jakarta',
     latitude: -6.2446,
     longitude: 106.8006,
     description:
-      'Studio Daily Dose yang hangat dan tenang di Jakarta Selatan untuk latihan personal maupun kelompok kecil.',
+      'Our Jakarta club room, with soft flooring, low equipment sized for small bodies and space for grown-ups to watch.',
     arrivalInformation:
-      'Datang 15 menit sebelum kelas untuk registrasi, mengganti pakaian, dan menyiapkan perlengkapan.',
+      'Arrive 10 minutes early so your child can take off their shoes, use the toilet and meet the coach before the session starts.',
     parkingInformation:
-      'Parkir mobil dan motor tersedia terbatas di area gedung. Transportasi daring disarankan pada jam sibuk.',
-    heroImageKey: 'studios/studio-reception.png',
-    galleryImageKeys: [
-      'studios/studio-reception.png',
-      'studios/studio-lobby-wide.png',
-      'studios/studio-interior-reformer.png',
-    ],
+      'Limited car and motorbike parking in the building. Drop-off by ride-hailing is easiest at peak hours.',
+    heroImageKey: 'studios/jakarta.svg',
+    galleryImageKeys: ['studios/jakarta.svg', 'studios/club-room.svg', 'studios/bsd.svg'],
   },
-  'DD-BSD': {
+  'LR-BSD': {
     slug: 'bsd',
     area: 'BSD City',
-    city: 'Tangerang Selatan',
-    address: 'Kawasan BSD City, Tangerang Selatan',
+    city: 'South Tangerang',
+    address: 'BSD City, South Tangerang',
     latitude: -6.3017,
     longitude: 106.6527,
-    description: 'Studio modern dengan suasana tenang untuk komunitas BSD dan Tangerang Selatan.',
+    description:
+      'Our BSD club room for families in BSD and South Tangerang, with a separate waiting area for parents.',
     arrivalInformation:
-      'Datang 15 menit sebelum kelas. Tim studio akan membantu proses check-in dan orientasi pertama.',
-    parkingInformation: 'Area parkir mobil dan motor tersedia di kompleks studio.',
-    heroImageKey: 'studios/studio-interior-reformer.png',
-    galleryImageKeys: [
-      'studios/studio-interior-reformer.png',
-      'studios/studio-lobby-wide.png',
-      'studios/studio-reception.png',
-    ],
+      'Arrive 10 minutes early. A coach will check your child in and show first-timers around.',
+    parkingInformation: 'Car and motorbike parking is available in the complex.',
+    heroImageKey: 'studios/bsd.svg',
+    galleryImageKeys: ['studios/bsd.svg', 'studios/club-room.svg', 'studios/jakarta.svg'],
   },
 } as const;
 
 const classPublicProfiles = {
-  REFORMER: {
-    slug: 'reformer-pilates',
-    summary:
-      'Latihan seluruh tubuh dengan resistance terukur untuk membangun kekuatan, kontrol, dan mobilitas.',
+  MOVERS: {
+    slug: 'movers',
+    summary: 'Running, jumping, rolling and balancing games for children who move on their own.',
     description:
-      'Reformer Pilates memadukan gerak terkontrol, resistance, dan presisi untuk membantu memperbaiki postur, keseimbangan, dan kekuatan inti.',
-    level: 'Semua level',
-    durationMinutes: 50,
-    equipment: ['Mesin reformer', 'Grip socks'],
+      'Movers sessions build basic movement skills through games: running and stopping, jumping and landing, rolling, climbing and balancing. Children work in small groups with one coach.',
+    level: 'Ages 4 to 6',
+    durationMinutes: 120,
+    equipment: ['Comfortable clothes', 'Grip socks', 'Water bottle'],
     benefits: [
-      'Memperbaiki postur dan alignment',
-      'Membangun kekuatan inti',
-      'Meningkatkan fleksibilitas dan mobilitas',
-      'Mengembangkan kontrol tubuh',
+      'Practises balance and coordination',
+      'Builds confidence on climbing and rolling equipment',
+      'Teaches taking turns in a small group',
     ],
-    heroImageKey: 'classes/reformer-pilates.png',
+    heroImageKey: 'classes/movers.svg',
   },
-  MAT: {
-    slug: 'mat-pilates',
-    summary:
-      'Gerak Pilates presisi di atas matras untuk memperkuat inti, stabilitas, dan kesadaran tubuh.',
+  PLAY: {
+    slug: 'tiny-rollers',
+    summary: 'Short, playful movement sessions where a grown-up joins in.',
     description:
-      'Mat Pilates menggunakan berat tubuh dan gerak terkontrol untuk meningkatkan kekuatan, fleksibilitas, dan kualitas pola gerak.',
-    level: 'Semua level',
-    durationMinutes: 50,
-    equipment: ['Matras Pilates', 'Grip socks'],
+      'Tiny Rollers is for the youngest members. A parent or carer stays on the mat and joins the songs, crawling tunnels and soft-play obstacles.',
+    level: 'Ages 2 to 3, with a grown-up',
+    durationMinutes: 60,
+    equipment: ['Comfortable clothes for child and grown-up', 'Grip socks'],
     benefits: [
-      'Menguatkan otot inti',
-      'Meningkatkan keseimbangan',
-      'Memperkuat kesadaran tubuh',
-      'Mendukung pola gerak yang sehat',
+      'Crawling, climbing and rolling practice',
+      'Time to play together with a grown-up',
+      'A first taste of group sessions',
     ],
-    heroImageKey: 'classes/mat-pilates.png',
+    heroImageKey: 'classes/tiny-rollers.svg',
   },
-  BARRE: {
-    slug: 'barre',
-    summary:
-      'Perpaduan Pilates dan gerak fungsional untuk membangun stabilitas, postur, dan daya tahan.',
+  CLUB: {
+    slug: 'rollers-club',
+    summary: 'Longer sessions with skill challenges and team games for older children.',
     description:
-      'Barre memadukan latihan terkontrol di barre dengan prinsip Pilates untuk menciptakan sesi yang seimbang dan energik.',
-    level: 'Pemula–menengah',
-    durationMinutes: 50,
-    equipment: ['Ballet barre', 'Matras', 'Grip socks'],
+      'Rollers Club mixes skill stations (agility ladders, balance beams, ball skills) with team games. Each block ends with a cool-down.',
+    level: 'Ages 7 to 10',
+    durationMinutes: 120,
+    equipment: ['Sports clothes', 'Trainers or grip socks', 'Water bottle'],
     benefits: [
-      'Memperbaiki postur',
-      'Menguatkan tubuh bagian bawah',
-      'Meningkatkan daya tahan',
-      'Meningkatkan kesadaran tubuh',
+      'Agility and ball skills practice',
+      'Team games with clear rules',
+      'Time to try harder skills at their own pace',
     ],
-    heroImageKey: 'landing/studio-showcase.png',
+    heroImageKey: 'classes/rollers-club.svg',
   },
 } as const;
 
 export const masterCatalog = [
   {
-    code: 'REFORMER',
-    name: 'Reformer Pilates',
+    code: 'MOVERS',
+    name: 'Movers',
     quota: 3,
     capacity: 10,
     projection: 175_000,
     fee: 250_000,
     packages: [
-      { key: '5', sessions: 5, days: 45, price: 850_000 },
-      { key: '10', sessions: 10, days: 90, price: 1_600_000 },
+      { key: '5', sessions: 5, days: 45, price: 850_000, sessionMinutes: 60 },
+      { key: '10', sessions: 10, days: 90, price: 1_600_000, sessionMinutes: 120 },
     ],
   },
   {
-    code: 'MAT',
-    name: 'Mat Pilates',
+    code: 'PLAY',
+    name: 'Tiny Rollers',
     quota: 3,
-    capacity: 14,
+    capacity: 8,
     projection: 125_000,
     fee: 200_000,
-    packages: [{ key: '8', sessions: 8, days: 60, price: 720_000 }],
+    packages: [{ key: '8', sessions: 8, days: 60, price: 720_000, sessionMinutes: 60 }],
   },
   {
-    code: 'BARRE',
-    name: 'Barre',
+    code: 'CLUB',
+    name: 'Rollers Club',
     quota: 3,
-    capacity: 14,
+    capacity: 12,
     projection: 125_000,
     fee: 200_000,
-    packages: [{ key: '8', sessions: 8, days: 60, price: 760_000 }],
+    packages: [{ key: '8', sessions: 8, days: 60, price: 960_000, sessionMinutes: 120 }],
   },
 ];
 
@@ -549,8 +538,9 @@ export async function seedCommercialMaster(
             branchId,
             classTypeId,
             businessKey: `${item.code}-${pkg.key}`,
-            name: `${item.name} ${pkg.key}`,
+            name: `${item.name} ${pkg.key} x ${pkg.sessionMinutes / 60}h`,
             sessionCount: pkg.sessions,
+            sessionDurationMinutes: pkg.sessionMinutes,
             durationDays: pkg.days,
             priceRp,
             status: 'ACTIVE',
@@ -561,8 +551,9 @@ export async function seedCommercialMaster(
             branchId,
             classTypeId,
             businessKey: `${item.code}-${pkg.key}`,
-            name: `${item.name} ${pkg.key}`,
+            name: `${item.name} ${pkg.key} x ${pkg.sessionMinutes / 60}h`,
             sessionCount: pkg.sessions,
+            sessionDurationMinutes: pkg.sessionMinutes,
             durationDays: pkg.days,
             priceRp,
             effectiveFrom: new Date('2026-01-01'),
@@ -578,34 +569,24 @@ export async function seedCommercialMaster(
           priceRp,
           effectiveFrom: new Date('2026-01-01'),
         });
-        const sessionsLabel = `${pkg.sessions} sesi`;
+        const hours = pkg.sessionMinutes / 60;
+        const sessionsLabel = `${pkg.sessions} sessions of ${hours} ${hours === 1 ? 'hour' : 'hours'}`;
+        const publicProfile = {
+          summary: `${sessionsLabel} of ${item.name}.`,
+          description: `A ${item.name} package with ${sessionsLabel}, to use at ${template.name} while the package is valid.`,
+          highlights: [sessionsLabel, `Valid for ${pkg.days} days`, `${template.name} only`],
+          usageGuidance:
+            'Pick a session from the timetable once your payment is approved. Bookings and session history are in your account.',
+          terms: [
+            'The package is valid for the stated number of days from activation.',
+            'Sessions can only be used at the club and class type of the package.',
+            'Cancellation follows the Little Rollers booking policy.',
+          ],
+        };
         await ctx.db.packagePublicProfile.upsert({
           where: { packageId },
-          update: {
-            summary: `${sessionsLabel} ${item.name} untuk membangun ritme latihan yang konsisten.`,
-            description: `Paket ${item.name} dengan ${sessionsLabel} yang dapat digunakan di ${template.name} selama masa berlaku paket.`,
-            highlights: [`${sessionsLabel}`, `Berlaku ${pkg.days} hari`, `Khusus ${template.name}`],
-            usageGuidance:
-              'Pilih jadwal yang tersedia setelah pembayaran disetujui. Reservasi dan riwayat sesi dapat dilihat dari akun.',
-            terms: [
-              'Paket berlaku sesuai periode yang tercantum sejak aktivasi.',
-              'Sesi hanya dapat digunakan pada studio dan tipe kelas paket.',
-              'Ketentuan pembatalan mengikuti kebijakan booking Daily Dose.',
-            ],
-          },
-          create: {
-            packageId,
-            summary: `${sessionsLabel} ${item.name} untuk membangun ritme latihan yang konsisten.`,
-            description: `Paket ${item.name} dengan ${sessionsLabel} yang dapat digunakan di ${template.name} selama masa berlaku paket.`,
-            highlights: [`${sessionsLabel}`, `Berlaku ${pkg.days} hari`, `Khusus ${template.name}`],
-            usageGuidance:
-              'Pilih jadwal yang tersedia setelah pembayaran disetujui. Reservasi dan riwayat sesi dapat dilihat dari akun.',
-            terms: [
-              'Paket berlaku sesuai periode yang tercantum sejak aktivasi.',
-              'Sesi hanya dapat digunakan pada studio dan tipe kelas paket.',
-              'Ketentuan pembatalan mengikuti kebijakan booking Daily Dose.',
-            ],
-          },
+          update: publicProfile,
+          create: { packageId, ...publicProfile },
         });
       }
       const inactiveId = ctx.id('package', `${template.code}:${item.code}:inactive`);
@@ -639,11 +620,11 @@ export async function seedCommercialMaster(
       });
     }
 
-    const revisionClassTypeId = catalog.classTypes[`${template.code}:REFORMER`];
+    const revisionClassTypeId = catalog.classTypes[`${template.code}:MOVERS`];
     if (revisionClassTypeId) {
-      const revisionBusinessKey = 'REFORMER-REVISION-DEMO';
-      const historicalId = ctx.id('package', `${template.code}:REFORMER:revision-history`);
-      const scheduledId = ctx.id('package', `${template.code}:REFORMER:revision-scheduled`);
+      const revisionBusinessKey = 'MOVERS-REVISION-DEMO';
+      const historicalId = ctx.id('package', `${template.code}:MOVERS:revision-history`);
+      const scheduledId = ctx.id('package', `${template.code}:MOVERS:revision-scheduled`);
       await ctx.db.package.upsert({
         where: { id: historicalId },
         update: {

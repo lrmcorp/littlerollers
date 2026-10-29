@@ -55,7 +55,6 @@ export class CustomerOrderService {
       throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
     const effectiveBranchId = selectedScope.branchId;
 
-    
     // Paket dapat tersedia untuk beberapa jenis kelas. Ambil hanya jenis kelas
     // yang aktif untuk paket dan tersedia pada cabang checkout yang dipilih.
     const packageClassTypeIds = pkg.classTypeScopes.map((scope) => scope.classTypeId);
@@ -88,8 +87,7 @@ export class CustomerOrderService {
         })
       : [];
 
-    if (classTypes.length === 0)
-      throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+    if (classTypes.length === 0) throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
     const account = await this.db.paymentAccount.findFirst({
       where: { branchId: effectiveBranchId, active: true },
       orderBy: { createdAt: 'desc' },
@@ -105,6 +103,7 @@ export class CustomerOrderService {
         promotion: packagePricing.promotion,
         version: pkg.version,
         sessionCount: pkg.sessionCount,
+        sessionDurationMinutes: pkg.sessionDurationMinutes,
         durationDays: pkg.durationDays,
         branchId: effectiveBranchId,
         branchName: selectedScope.branch.name,
@@ -190,6 +189,7 @@ export class CustomerOrderService {
       paymentUniqueCode: order.paymentUniqueCode,
       payableAmountRp,
       sessionCount: order.sessionCountSnapshot,
+      sessionDurationMinutes: order.sessionDurationMinutesSnapshot,
       durationDays: order.durationDaysSnapshot,
       status: order.status,
       submittedAt: order.submittedAt,
@@ -313,29 +313,27 @@ export class CustomerOrderService {
         )
           throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
 
+        // Flow modern wajib membawa jenis kelas yang dipilih customer.
+        // Package.classTypeId tidak lagi menjadi fallback transaksi.
+        const effectiveClassTypeId =
+          typeof input.classTypeId === 'string' ? input.classTypeId.trim() : '';
 
-          // Flow modern wajib membawa jenis kelas yang dipilih customer.
-          // Package.classTypeId tidak lagi menjadi fallback transaksi.
-          const effectiveClassTypeId =
-            typeof input.classTypeId === 'string' ? input.classTypeId.trim() : '';
+        if (!effectiveClassTypeId) throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
 
-          if (!effectiveClassTypeId)
-            throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+        if (!pkg.classTypeScopes.some((scope) => scope.classTypeId === effectiveClassTypeId))
+          throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
 
-          if (!pkg.classTypeScopes.some((scope) => scope.classTypeId === effectiveClassTypeId))
-            throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+        const classTypeAvailableAtBranch = await tx.classTypeBranchScope.findFirst({
+          where: {
+            branchId: effectiveBranchId,
+            classTypeId: effectiveClassTypeId,
+            active: true,
+          },
+          select: { id: true },
+        });
 
-          const classTypeAvailableAtBranch = await tx.classTypeBranchScope.findFirst({
-            where: {
-              branchId: effectiveBranchId,
-              classTypeId: effectiveClassTypeId,
-              active: true,
-            },
-            select: { id: true },
-          });
-
-          if (!classTypeAvailableAtBranch)
-            throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
+        if (!classTypeAvailableAtBranch)
+          throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
         const account = await tx.paymentAccount.findFirst({
           where: { branchId: effectiveBranchId, active: true },
           orderBy: { createdAt: 'desc' },
@@ -460,6 +458,7 @@ export class CustomerOrderService {
             priceAfterDiscountRpSnapshot:
               voucher?.priceAfterDiscountRp ?? packagePricing.effectivePriceRp,
             sessionCountSnapshot: pkg.sessionCount,
+            sessionDurationMinutesSnapshot: pkg.sessionDurationMinutes,
             durationDaysSnapshot: pkg.durationDays,
             status: 'AWAITING_PAYMENT',
             timelineComplete: true,
@@ -818,8 +817,7 @@ export class CustomerOrderService {
     const branchId = typeof input.branchId === 'string' ? input.branchId.trim() : '';
     const classTypeId = typeof input.classTypeId === 'string' ? input.classTypeId.trim() : '';
 
-    if (!branchId || !classTypeId)
-      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+    if (!branchId || !classTypeId) throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
 
     syntheticConfigSeconds('PURCHASE_IDEMPOTENCY_TTL_SECONDS', 86400);
     return this.idem.execute(
@@ -886,6 +884,7 @@ export class CustomerOrderService {
             packageNameSnapshot: pkg.name,
             priceRpSnapshot: pkg.priceRp,
             sessionCountSnapshot: pkg.sessionCount,
+            sessionDurationMinutesSnapshot: pkg.sessionDurationMinutes,
             durationDaysSnapshot: pkg.durationDays,
             timelineComplete: true,
             idempotencyKeyHash: digest(key),

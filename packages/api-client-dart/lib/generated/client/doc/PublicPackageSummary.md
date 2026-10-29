@@ -12,6 +12,7 @@ Name | Type | Description | Notes
 **branchId** | **String** |  | [optional] 
 **name** | **String** |  | 
 **sessionCount** | **int** |  | 
+**sessionDurationMinutes** | [**SessionDurationMinutes**](SessionDurationMinutes.md) |  | [optional] 
 **durationDays** | **int** |  | 
 **priceRp** | **int** |  | 
 **effectivePriceRp** | **int** |  | 

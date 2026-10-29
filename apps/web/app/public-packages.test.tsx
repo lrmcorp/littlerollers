@@ -18,8 +18,8 @@ import type { WebSession } from './session-client';
 
 const branch = {
   id: 'branch-1',
-  code: 'DD-JKT',
-  name: 'Daily Dose Jakarta',
+  code: 'LR-JKT',
+  name: 'Little Rollers Jakarta',
   timezone: 'Asia/Jakarta',
 };
 
@@ -27,7 +27,7 @@ const packages: PublicPackage[] = [
   {
     id: 'package-starter',
     branchId: branch.id,
-    name: 'Pilates Starter',
+    name: 'Movers Starter',
     sessionCount: 4,
     durationDays: 30,
     priceRp: 1_200_000,
@@ -37,22 +37,22 @@ const packages: PublicPackage[] = [
   {
     id: 'package-routine',
     branchId: branch.id,
-    name: 'Pilates Routine',
+    name: 'Movers Routine',
     sessionCount: 8,
     durationDays: 60,
     priceRp: 2_000_000,
     effectiveUntil: null,
-    classType: { id: 'type-reformer', code: 'REFORMER', name: 'Reformer Pilates' },
+    classType: { id: 'type-reformer', code: 'MOVERS', name: 'Movers' },
   },
   {
     id: 'package-commitment',
     branchId: branch.id,
-    name: 'Pilates Commitment',
+    name: 'Movers Commitment',
     sessionCount: 12,
     durationDays: 90,
     priceRp: 2_700_000,
     effectiveUntil: null,
-    classType: { id: 'type-reformer', code: 'REFORMER', name: 'Reformer Pilates' },
+    classType: { id: 'type-reformer', code: 'MOVERS', name: 'Movers' },
   },
 ];
 
@@ -90,10 +90,10 @@ describe('public package catalog', () => {
     };
     const view = render(<PublicPackagesView client={client} />);
     expect(await screen.findByText('Pilih studio untuk melihat paket')).toBeVisible();
-    expect(screen.queryByText('Pilates Starter')).not.toBeInTheDocument();
+    expect(screen.queryByText('Movers Starter')).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', { name: /Daily Dose Jakarta/ }));
-    expect(await screen.findByRole('heading', { name: 'Pilates Starter' })).toBeVisible();
+    await userEvent.click(screen.getByRole('button', { name: /Little Rollers Jakarta/ }));
+    expect(await screen.findByRole('heading', { name: 'Movers Starter' })).toBeVisible();
     expect(screen.getByText(/Rp\s*1\.200\.000/)).toBeVisible();
     expect(screen.getByText('4 sesi')).toBeVisible();
     expect(screen.getByText('30 hari')).toBeVisible();
@@ -150,7 +150,7 @@ describe('public package catalog', () => {
     };
 
     render(<PublicPackagesView client={client} />);
-    await userEvent.click(await screen.findByRole('button', { name: /Daily Dose Jakarta/ }));
+    await userEvent.click(await screen.findByRole('button', { name: /Little Rollers Jakarta/ }));
 
     expect(await screen.findByLabelText(/Harga normal Rp\s*1\.200\.000/)).toBeVisible();
     expect(screen.getByText('Promo 10%')).toBeVisible();
@@ -189,15 +189,15 @@ describe('public package catalog', () => {
     };
     render(<PublicPackagesView client={client} />);
 
-    await userEvent.click(await screen.findByRole('button', { name: /Daily Dose Jakarta/ }));
-    await screen.findByRole('heading', { name: 'Pilates Commitment' });
+    await userEvent.click(await screen.findByRole('button', { name: /Little Rollers Jakarta/ }));
+    await screen.findByRole('heading', { name: 'Movers Commitment' });
     expect(window.location.search).toBe('?slot=slot-1&branch=branch-1');
 
     await userEvent.click(screen.getByRole('combobox', { name: /Tipe kelas/ }));
     await userEvent.click(await screen.findByRole('option', { name: 'Private Class' }));
     expect(window.location.search).toBe('?slot=slot-1&branch=branch-1&classType=type-private');
-    expect(screen.getByRole('heading', { name: 'Pilates Starter' })).toBeVisible();
-    expect(screen.queryByRole('heading', { name: 'Pilates Routine' })).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Movers Starter' })).toBeVisible();
+    expect(screen.queryByRole('heading', { name: 'Movers Routine' })).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: 'Reset filter' }));
     expect(window.location.search).toBe('?slot=slot-1&branch=branch-1');

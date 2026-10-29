@@ -32,7 +32,7 @@
 .auth-sign-in-form input:focus,
 .auth-page-shell form input:focus {
   border-color: var(--color-brand);
-  box-shadow: 0 0 0 3px rgb(57 101 82 / 12%);
+  box-shadow: 0 0 0 3px rgb(7 50 40 / 12%);
 }
 
 .auth-sign-in-form button,

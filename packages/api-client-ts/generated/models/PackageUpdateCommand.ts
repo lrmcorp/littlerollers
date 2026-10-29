@@ -1,7 +1,7 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * Daily Dose API
+ * Little Rollers API
  * Gate-4 contract baseline. Operations marked x-blocked-by cannot enter production until the decision is approved.
  *
  * The version of the OpenAPI document: 1.21.0-draft
@@ -13,6 +13,14 @@
  */
 
 import { mapValues } from '../runtime';
+import type { SessionDurationMinutes } from './SessionDurationMinutes';
+import {
+    SessionDurationMinutesFromJSON,
+    SessionDurationMinutesFromJSONTyped,
+    SessionDurationMinutesToJSON,
+    SessionDurationMinutesToJSONTyped,
+} from './SessionDurationMinutes';
+
 /**
  * 
  * @export
@@ -31,6 +39,12 @@ export interface PackageUpdateCommand {
      * @memberof PackageUpdateCommand
      */
     sessionCount?: number;
+    /**
+     * 
+     * @type {SessionDurationMinutes}
+     * @memberof PackageUpdateCommand
+     */
+    sessionDurationMinutes?: SessionDurationMinutes;
     /**
      * 
      * @type {number}
@@ -69,6 +83,8 @@ export interface PackageUpdateCommand {
     reason: string;
 }
 
+
+
 /**
  * Check if a given object implements the PackageUpdateCommand interface.
  */
@@ -90,6 +106,7 @@ export function PackageUpdateCommandFromJSONTyped(json: any, ignoreDiscriminator
         
         'name': json['name'] == null ? undefined : json['name'],
         'sessionCount': json['sessionCount'] == null ? undefined : json['sessionCount'],
+        'sessionDurationMinutes': json['sessionDurationMinutes'] == null ? undefined : SessionDurationMinutesFromJSON(json['sessionDurationMinutes']),
         'durationDays': json['durationDays'] == null ? undefined : json['durationDays'],
         'priceRp': json['priceRp'] == null ? undefined : json['priceRp'],
         'effectiveFrom': json['effectiveFrom'] == null ? undefined : (new Date(json['effectiveFrom'])),
@@ -112,6 +129,7 @@ export function PackageUpdateCommandToJSONTyped(value?: PackageUpdateCommand | n
         
         'name': value['name'],
         'sessionCount': value['sessionCount'],
+        'sessionDurationMinutes': SessionDurationMinutesToJSON(value['sessionDurationMinutes']),
         'durationDays': value['durationDays'],
         'priceRp': value['priceRp'],
         'effectiveFrom': value['effectiveFrom'] == null ? undefined : ((value['effectiveFrom']).toISOString().substring(0,10)),

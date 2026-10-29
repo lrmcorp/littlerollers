@@ -333,6 +333,7 @@ export * from './SessionAdjustmentDecisionCommand';
 export * from './SessionAdjustmentPage';
 export * from './SessionAdjustmentSummary';
 export * from './SessionBranch';
+export * from './SessionDurationMinutes';
 export * from './Studio';
 export * from './StudioCommand';
 export * from './StudioPage';

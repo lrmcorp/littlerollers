@@ -1,7 +1,7 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * Daily Dose API
+ * Little Rollers API
  * Gate-4 contract baseline. Operations marked x-blocked-by cannot enter production until the decision is approved.
  *
  * The version of the OpenAPI document: 1.21.0-draft
@@ -13,6 +13,14 @@
  */
 
 import { mapValues } from '../runtime';
+import type { SessionDurationMinutes } from './SessionDurationMinutes';
+import {
+    SessionDurationMinutesFromJSON,
+    SessionDurationMinutesFromJSONTyped,
+    SessionDurationMinutesToJSON,
+    SessionDurationMinutesToJSONTyped,
+} from './SessionDurationMinutes';
+
 /**
  * 
  * @export
@@ -39,6 +47,12 @@ export interface CustomerBookingPackage {
     name: string;
     /**
      * 
+     * @type {SessionDurationMinutes}
+     * @memberof CustomerBookingPackage
+     */
+    sessionDurationMinutes?: SessionDurationMinutes;
+    /**
+     * 
      * @type {number}
      * @memberof CustomerBookingPackage
      */
@@ -56,6 +70,8 @@ export interface CustomerBookingPackage {
      */
     expiryAt: Date;
 }
+
+
 
 /**
  * Check if a given object implements the CustomerBookingPackage interface.
@@ -83,6 +99,7 @@ export function CustomerBookingPackageFromJSONTyped(json: any, ignoreDiscriminat
         'id': json['id'],
         'packageId': json['packageId'],
         'name': json['name'],
+        'sessionDurationMinutes': json['sessionDurationMinutes'] == null ? undefined : SessionDurationMinutesFromJSON(json['sessionDurationMinutes']),
         'available': json['available'],
         'projectedAvailable': json['projectedAvailable'],
         'expiryAt': (new Date(json['expiryAt'])),
@@ -103,6 +120,7 @@ export function CustomerBookingPackageToJSONTyped(value?: CustomerBookingPackage
         'id': value['id'],
         'packageId': value['packageId'],
         'name': value['name'],
+        'sessionDurationMinutes': SessionDurationMinutesToJSON(value['sessionDurationMinutes']),
         'available': value['available'],
         'projectedAvailable': value['projectedAvailable'],
         'expiryAt': ((value['expiryAt']).toISOString()),

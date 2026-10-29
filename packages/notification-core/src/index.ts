@@ -44,97 +44,99 @@ const escapeHtml = (value: string) =>
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#039;');
 
+// Parent-facing templates are in English like the customer site. Staff-only
+// templates (audit export, operations) stay in Indonesian like the admin panel.
 const templateCopy: Record<EmailTemplateKey, { subject: string; intro: string; action?: string }> =
   {
     AUTH_ACCOUNT_ACTIVATION_V1: {
-      subject: 'Aktifkan akun Daily Dose Pilates',
-      intro: 'Akun Daily Dose Pilates Anda siap diaktifkan.',
-      action: 'Aktifkan akun',
+      subject: 'Activate your Little Rollers account',
+      intro: 'Your Little Rollers account is ready. Activate it to start booking sessions.',
+      action: 'Activate account',
     },
     AUTH_PASSWORD_SETUP_V1: {
-      subject: 'Atur password Daily Dose Pilates',
-      intro: 'Anda diundang untuk mengatur password akun Daily Dose Pilates.',
-      action: 'Atur password',
+      subject: 'Set your Little Rollers password',
+      intro: 'You have been invited to set a password for your Little Rollers account.',
+      action: 'Set password',
     },
     AUTH_PASSWORD_RESET_V1: {
-      subject: 'Reset password Daily Dose Pilates',
-      intro: 'Kami menerima permintaan reset password untuk akun Anda.',
+      subject: 'Reset your Little Rollers password',
+      intro: 'We received a request to reset the password on your account.',
       action: 'Reset password',
     },
     ORDER_CREATED_V1: {
-      subject: 'Pesanan Daily Dose Pilates telah dibuat',
-      intro: 'Pesanan Anda telah dibuat. Selesaikan pembayaran sebelum batas waktunya.',
-      action: 'Lihat pesanan',
+      subject: 'Your Little Rollers order is placed',
+      intro: 'Your order is placed. Please finish the payment before the deadline.',
+      action: 'View order',
     },
     ORDER_ACTION_REQUIRED_V1: {
-      subject: 'Pembayaran perlu diperbaiki',
-      intro: 'Bukti pembayaran Anda memerlukan tindakan lebih lanjut.',
-      action: 'Periksa pesanan',
+      subject: 'Your payment needs a fix',
+      intro: 'We could not accept your proof of payment yet. Please check your order.',
+      action: 'Check order',
     },
     ORDER_APPROVED_V1: {
-      subject: 'Pembayaran disetujui dan paket aktif',
-      intro: 'Pembayaran Anda telah disetujui. Paket sudah aktif dan siap digunakan.',
-      action: 'Lihat paket',
+      subject: 'Payment approved, your package is active',
+      intro: 'Your payment is approved. The package is active and ready to book.',
+      action: 'View package',
     },
     ORDER_REJECTED_V1: {
-      subject: 'Hasil pemeriksaan pembayaran',
-      intro: 'Pembayaran Anda belum dapat disetujui. Buka pesanan untuk melihat hasil pemeriksaan.',
-      action: 'Lihat pesanan',
+      subject: 'About your payment',
+      intro: 'We could not approve your payment. Open the order to see why.',
+      action: 'View order',
     },
     BOOKING_CONFIRMED_V1: {
-      subject: 'Booking Daily Dose Pilates berhasil',
-      intro: 'Jadwal baru telah ditambahkan ke booking Anda.',
-      action: 'Lihat booking',
+      subject: 'Little Rollers session booked',
+      intro: 'A new session has been added to your bookings.',
+      action: 'View booking',
     },
     BOOKING_CANCELLED_V1: {
-      subject: 'Booking Daily Dose Pilates dibatalkan',
-      intro: 'Booking Anda telah dibatalkan dan slot kelas telah dilepas.',
-      action: 'Lihat booking',
+      subject: 'Little Rollers booking cancelled',
+      intro: 'Your booking is cancelled and the place has been released.',
+      action: 'View booking',
     },
     RESCHEDULE_APPROVED_V1: {
-      subject: 'Reschedule booking disetujui',
-      intro: 'Booking Anda telah dipindahkan ke jadwal baru.',
-      action: 'Lihat booking',
+      subject: 'Reschedule approved',
+      intro: 'Your booking has moved to the new session.',
+      action: 'View booking',
     },
     RESCHEDULE_REJECTED_V1: {
-      subject: 'Reschedule booking belum disetujui',
-      intro: 'Permintaan perubahan jadwal Anda belum dapat disetujui.',
-      action: 'Lihat booking',
+      subject: 'Reschedule not approved',
+      intro: 'We could not approve your request to change the session.',
+      action: 'View booking',
     },
     CLASS_CANCELLED_V1: {
-      subject: 'Kelas Daily Dose Pilates dibatalkan',
-      intro: 'Salah satu kelas pada jadwal Anda telah dibatalkan.',
-      action: 'Lihat booking',
+      subject: 'A Little Rollers session was cancelled',
+      intro: 'One of the sessions you booked has been cancelled.',
+      action: 'View booking',
     },
     IDENTITY_APPROVED_V1: {
-      subject: 'Dokumen identitas disetujui',
-      intro: 'Dokumen identitas Anda telah disetujui.',
-      action: 'Lihat verifikasi',
+      subject: 'Identity documents approved',
+      intro: 'Your identity documents are approved.',
+      action: 'View verification',
     },
     IDENTITY_ACTION_REQUIRED_V1: {
-      subject: 'Dokumen identitas perlu diperbaiki',
-      intro: 'Dokumen identitas Anda memerlukan tindakan lebih lanjut.',
-      action: 'Periksa verifikasi',
+      subject: 'Identity documents need a fix',
+      intro: 'Your identity documents need another look before we can approve them.',
+      action: 'Check verification',
     },
     SESSION_ADJUSTMENT_POSTED_V1: {
-      subject: 'Saldo sesi diperbarui',
-      intro: 'Perubahan saldo sesi telah diposting ke ledger Anda.',
-      action: 'Lihat paket',
+      subject: 'Session balance updated',
+      intro: 'A change to your session balance has been recorded.',
+      action: 'View package',
     },
     SESSION_ADJUSTMENT_REJECTED_V1: {
-      subject: 'Adjustment sesi ditolak',
-      intro: 'Permintaan perubahan saldo sesi belum dapat disetujui.',
-      action: 'Lihat ledger',
+      subject: 'Session adjustment not approved',
+      intro: 'The requested change to your session balance was not approved.',
+      action: 'View history',
     },
     PACKAGE_LOW_BALANCE_V1: {
-      subject: 'Sisa sesi paket Anda perlu diperhatikan',
-      intro: 'Sisa sesi tersedia pada paket Anda telah mencapai batas pengingat.',
-      action: 'Lihat paket',
+      subject: 'Your package is running low',
+      intro: 'Only a few sessions are left on your package.',
+      action: 'View package',
     },
     PACKAGE_EXPIRY_REMINDER_V1: {
-      subject: 'Paket Daily Dose Pilates akan berakhir',
-      intro: 'Masa berlaku paket Anda akan segera berakhir.',
-      action: 'Lihat paket',
+      subject: 'Your Little Rollers package expires soon',
+      intro: 'Your package is about to expire.',
+      action: 'View package',
     },
     AUDIT_EXPORT_READY_V1: {
       subject: 'Export audit telah siap',
@@ -143,7 +145,7 @@ const templateCopy: Record<EmailTemplateKey, { subject: string; intro: string; a
       action: 'Buka audit',
     },
     OPERATIONS_JOB_FAILED_V1: {
-      subject: 'Peringatan operasional Daily Dose Pilates',
+      subject: 'Peringatan operasional Little Rollers',
       intro: 'Satu job operasional membutuhkan pemeriksaan atau recovery.',
       action: 'Buka operasi',
     },
@@ -158,17 +160,17 @@ export function renderEmail(
   const href = variables.href?.trim();
   if (href && !href.startsWith('https://')) throw new Error('EMAIL_TEMPLATE_INVALID_HREF');
   const detail = variables.detail?.trim();
-  const text = [copy.intro, detail, href ? `${copy.action ?? 'Buka'}: ${href}` : undefined]
+  const text = [copy.intro, detail, href ? `${copy.action ?? 'Open'}: ${href}` : undefined]
     .filter(Boolean)
     .join('\n\n');
   const html = [
-    '<div style="font-family:Arial,sans-serif;line-height:1.6;color:#1f2937">',
+    '<div style="font-family:Arial,sans-serif;line-height:1.6;color:#073228">',
     `<p>${escapeHtml(copy.intro)}</p>`,
     detail ? `<p>${escapeHtml(detail)}</p>` : '',
     href
-      ? `<p><a href="${escapeHtml(href)}" style="display:inline-block;padding:10px 16px;background:#1f2937;color:#fff;text-decoration:none;border-radius:6px">${escapeHtml(copy.action ?? 'Buka')}</a></p>`
+      ? `<p><a href="${escapeHtml(href)}" style="display:inline-block;padding:10px 16px;background:#073228;color:#fff;text-decoration:none;border-radius:6px">${escapeHtml(copy.action ?? 'Open')}</a></p>`
       : '',
-    '<p style="font-size:12px;color:#6b7280">Pesan otomatis dari Daily Dose Pilates. Jangan membalas email ini.</p>',
+    '<p style="font-size:12px;color:#6b7280">Automatic message from Little Rollers Kids Movement Club. Please do not reply to this email.</p>',
     '</div>',
   ].join('');
   return { subject: copy.subject, html, text };

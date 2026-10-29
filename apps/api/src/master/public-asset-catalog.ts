@@ -1,10 +1,10 @@
 export const PUBLIC_ASSET_KEYS = [
-  'studios/studio-reception.png',
-  'studios/studio-lobby-wide.png',
-  'studios/studio-interior-reformer.png',
-  'classes/reformer-pilates.png',
-  'classes/mat-pilates.png',
-  'landing/studio-showcase.png',
+  'studios/jakarta.svg',
+  'studios/bsd.svg',
+  'studios/club-room.svg',
+  'classes/tiny-rollers.svg',
+  'classes/movers.svg',
+  'classes/rollers-club.svg',
 ] as const;
 
 export const PUBLIC_ASSET_KEY_SET = new Set<string>(PUBLIC_ASSET_KEYS);

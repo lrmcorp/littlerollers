@@ -389,8 +389,8 @@ export function MasterView({
               Tipe kelas adalah katalog global. Studio/Cabang yang dapat menggunakannya dipilih
               setelah tipe kelas dibuat.
             </p>
-            <TextInput label="Kode kelas" name="code" placeholder="Contoh: REFORMER" required />
-            <TextInput label="Nama kelas" name="name" placeholder="Reformer Pilates" required />
+            <TextInput label="Kode kelas" name="code" placeholder="Contoh: MOVERS" required />
+            <TextInput label="Nama kelas" name="name" placeholder="Movers" required />
             <Button type="submit" disabled={!canManage || loading}>
               Simpan tipe kelas
             </Button>

@@ -24,8 +24,8 @@ const options: CustomerBookingOptions = {
     },
     classType: {
       id: '00000000-0000-4000-8000-000000000103',
-      code: 'REFORMER',
-      name: 'Reformer Pilates',
+      code: 'MOVERS',
+      name: 'Movers',
     },
   },
   packages: [

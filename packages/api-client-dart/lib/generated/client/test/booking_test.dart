@@ -57,6 +57,11 @@ void main() {
       // TODO
     });
 
+    // SessionDurationMinutes sessionDurationMinutes
+    test('to test the property `sessionDurationMinutes`', () async {
+      // TODO
+    });
+
     // String cancellationReasonCode
     test('to test the property `cancellationReasonCode`', () async {
       // TODO

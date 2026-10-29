@@ -26,7 +26,7 @@ describe('customer dashboard', () => {
             {
               id: 'order-1',
               packageName: 'Reformer 10',
-              branchName: 'Daily Dose Jakarta',
+              branchName: 'Little Rollers Jakarta',
               status: 'AWAITING_PAYMENT',
               payableAmountRp: 1_600_123,
               expiresAt: '2026-07-29T00:00:00.000Z',

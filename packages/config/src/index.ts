@@ -199,7 +199,7 @@ export function loadRuntimeConfig(env: NodeJS.ProcessEnv): RuntimeConfig {
   const smtpUser = env.SMTP_USER?.trim() || null;
   const smtpPassword = env.SMTP_PASSWORD?.trim() || null;
   const smtpFromEmail = env.SMTP_FROM_EMAIL?.trim() || null;
-  const smtpFromName = env.SMTP_FROM_NAME?.trim() || 'Daily Dose Pilates';
+  const smtpFromName = env.SMTP_FROM_NAME?.trim() || 'Little Rollers';
   const resendApiKey = env.RESEND_API_KEY?.trim() || null;
   const emailPattern = /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/;
   if (

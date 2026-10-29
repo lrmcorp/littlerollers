@@ -6,8 +6,8 @@ describe('Playwright mock API server', () => {
     const response = createMockApiRouter().resolve('GET', '/api/v1/public/site-config');
     expect(response.status).toBe(200);
     expect(response.body.branches.map((branch) => branch.name)).toEqual([
-      'Daily Dose BSD',
-      'Daily Dose Jakarta',
+      'Little Rollers BSD',
+      'Little Rollers Jakarta',
     ]);
     expect(response.handled).toBe(true);
   });

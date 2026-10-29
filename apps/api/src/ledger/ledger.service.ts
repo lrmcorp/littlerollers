@@ -145,6 +145,7 @@ export class LedgerService {
       },
       salePriceRp: customerPackage.salePriceRp,
       sessionCountSnapshot: customerPackage.sessionCountSnapshot,
+      sessionDurationMinutesSnapshot: customerPackage.sessionDurationMinutesSnapshot,
       durationDaysSnapshot: customerPackage.durationDaysSnapshot,
       projectionRateRp: customerPackage.projectionRateRp,
       version: customerPackage.version,

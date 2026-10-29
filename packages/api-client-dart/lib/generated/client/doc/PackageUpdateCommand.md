@@ -10,6 +10,7 @@ Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **name** | **String** |  | [optional] 
 **sessionCount** | **int** |  | [optional] 
+**sessionDurationMinutes** | [**SessionDurationMinutes**](SessionDurationMinutes.md) |  | [optional] 
 **durationDays** | **int** |  | [optional] 
 **priceRp** | **int** |  | [optional] 
 **effectiveFrom** | [**Date**](Date.md) |  | [optional] 

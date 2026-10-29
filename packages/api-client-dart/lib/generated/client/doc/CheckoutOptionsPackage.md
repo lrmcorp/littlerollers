@@ -15,6 +15,7 @@ Name | Type | Description | Notes
 **promotion** | [**PublicPackagePromotion**](PublicPackagePromotion.md) |  | 
 **version** | **int** |  | 
 **sessionCount** | **int** |  | 
+**sessionDurationMinutes** | [**SessionDurationMinutes**](SessionDurationMinutes.md) |  | [optional] 
 **durationDays** | **int** |  | 
 **branchId** | **String** |  | 
 **branchName** | **String** |  | 

@@ -7,6 +7,7 @@ import 'package:built_collection/built_collection.dart';
 import 'package:openapi/src/model/package.dart';
 import 'package:openapi/src/model/package_branch_scope.dart';
 import 'package:openapi/src/model/package_promotion.dart';
+import 'package:openapi/src/model/session_duration_minutes.dart';
 import 'package:openapi/src/model/safe_audit_activity.dart';
 import 'package:openapi/src/model/date.dart';
 import 'package:openapi/src/model/package_class_type_scope.dart';
@@ -26,6 +27,7 @@ part 'internal_package_detail.g.dart';
 /// * [businessKey] 
 /// * [name] 
 /// * [sessionCount] 
+/// * [sessionDurationMinutes] 
 /// * [durationDays] 
 /// * [priceRp] 
 /// * [status] 
@@ -101,6 +103,13 @@ class _$InternalPackageDetailSerializer implements PrimitiveSerializer<InternalP
       object.sessionCount,
       specifiedType: const FullType(int),
     );
+    if (object.sessionDurationMinutes != null) {
+      yield r'sessionDurationMinutes';
+      yield serializers.serialize(
+        object.sessionDurationMinutes,
+        specifiedType: const FullType(SessionDurationMinutes),
+      );
+    }
     if (object.effectiveState != null) {
       yield r'effectiveState';
       yield serializers.serialize(
@@ -229,6 +238,13 @@ class _$InternalPackageDetailSerializer implements PrimitiveSerializer<InternalP
             specifiedType: const FullType(int),
           ) as int;
           result.sessionCount = valueDes;
+          break;
+        case r'sessionDurationMinutes':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(SessionDurationMinutes),
+          ) as SessionDurationMinutes;
+          result.sessionDurationMinutes = valueDes;
           break;
         case r'effectiveState':
           final valueDes = serializers.deserialize(

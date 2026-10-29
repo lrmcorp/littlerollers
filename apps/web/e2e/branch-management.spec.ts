@@ -13,8 +13,8 @@ const session = {
   branches: [
     {
       id: 'branch-1',
-      code: 'DD-JKT',
-      name: 'Daily Dose Jakarta',
+      code: 'LR-JKT',
+      name: 'Little Rollers Jakarta',
       timezone: 'Asia/Jakarta',
     },
   ],
@@ -39,8 +39,8 @@ test.beforeEach(async ({ page }) => {
         contentType: 'application/json',
         body: JSON.stringify({
           id: 'branch-1',
-          code: 'DD-JKT',
-          name: 'Daily Dose Jakarta',
+          code: 'LR-JKT',
+          name: 'Little Rollers Jakarta',
           timezone: 'Asia/Jakarta',
           supportWhatsappE164: '+628111111111',
           active: true,
@@ -70,8 +70,8 @@ test.beforeEach(async ({ page }) => {
         items: [
           {
             id: 'branch-1',
-            code: 'DD-JKT',
-            name: 'Daily Dose Jakarta',
+            code: 'LR-JKT',
+            name: 'Little Rollers Jakarta',
             timezone: 'Asia/Jakarta',
             supportWhatsappE164: '+628111111111',
             active: true,
@@ -99,7 +99,7 @@ test('branch management is discoverable and its create drawer fits a mobile view
 
   await expect(page.getByRole('heading', { name: 'Branch Management' })).toBeVisible();
   await expect(
-    page.locator('div.md\\:hidden').getByText('Daily Dose Jakarta', { exact: true }),
+    page.locator('div.md\\:hidden').getByText('Little Rollers Jakarta', { exact: true }),
   ).toBeVisible();
   await page.getByRole('button', { name: 'Buat cabang' }).click();
 
@@ -115,7 +115,7 @@ test('branch management is discoverable and its create drawer fits a mobile view
 test('branch detail exposes dependencies and versioned edit workflow', async ({ page }) => {
   await page.goto('/workspace/branches/branch-1');
 
-  await expect(page.getByRole('heading', { name: 'Daily Dose Jakarta' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Little Rollers Jakarta' })).toBeVisible();
   const dependencies = page.getByRole('heading', { name: 'Dependency operasional' }).locator('..');
   await expect(dependencies.getByText('Paket aktif', { exact: true })).toBeVisible();
   await expect(dependencies.getByText('4', { exact: true })).toBeVisible();

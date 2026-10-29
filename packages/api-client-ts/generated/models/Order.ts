@@ -1,7 +1,7 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * Daily Dose API
+ * Little Rollers API
  * Gate-4 contract baseline. Operations marked x-blocked-by cannot enter production until the decision is approved.
  *
  * The version of the OpenAPI document: 1.21.0-draft
@@ -41,6 +41,13 @@ import {
     OrderPromotionToJSON,
     OrderPromotionToJSONTyped,
 } from './OrderPromotion';
+import type { SessionDurationMinutes } from './SessionDurationMinutes';
+import {
+    SessionDurationMinutesFromJSON,
+    SessionDurationMinutesFromJSONTyped,
+    SessionDurationMinutesToJSON,
+    SessionDurationMinutesToJSONTyped,
+} from './SessionDurationMinutes';
 import type { OrderPaymentAccount } from './OrderPaymentAccount';
 import {
     OrderPaymentAccountFromJSON,
@@ -133,6 +140,12 @@ export interface Order {
      * @memberof Order
      */
     sessionCount: number;
+    /**
+     * 
+     * @type {SessionDurationMinutes}
+     * @memberof Order
+     */
+    sessionDurationMinutes?: SessionDurationMinutes;
     /**
      * 
      * @type {number}
@@ -278,6 +291,7 @@ export function OrderFromJSONTyped(json: any, ignoreDiscriminator: boolean): Ord
         'paymentUniqueCode': json['paymentUniqueCode'] == null ? undefined : json['paymentUniqueCode'],
         'payableAmountRp': json['payableAmountRp'],
         'sessionCount': json['sessionCount'],
+        'sessionDurationMinutes': json['sessionDurationMinutes'] == null ? undefined : SessionDurationMinutesFromJSON(json['sessionDurationMinutes']),
         'durationDays': json['durationDays'],
         'status': json['status'],
         'submittedAt': (new Date(json['submittedAt'])),
@@ -319,6 +333,7 @@ export function OrderToJSONTyped(value?: Order | null, ignoreDiscriminator: bool
         'paymentUniqueCode': value['paymentUniqueCode'],
         'payableAmountRp': value['payableAmountRp'],
         'sessionCount': value['sessionCount'],
+        'sessionDurationMinutes': SessionDurationMinutesToJSON(value['sessionDurationMinutes']),
         'durationDays': value['durationDays'],
         'status': value['status'],
         'submittedAt': ((value['submittedAt']).toISOString()),

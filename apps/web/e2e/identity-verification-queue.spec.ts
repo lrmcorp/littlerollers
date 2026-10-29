@@ -135,7 +135,7 @@ test('admin without review capability cannot open the reviewer queue by direct U
           {
             id: 'branch-jkt',
             code: 'JKT',
-            name: 'Daily Dose Jakarta',
+            name: 'Little Rollers Jakarta',
             timezone: 'Asia/Jakarta',
           },
         ],

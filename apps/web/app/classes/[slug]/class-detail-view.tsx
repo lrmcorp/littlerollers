@@ -48,11 +48,11 @@ export function ClassDetailView({
         { label: 'Kelas', href: '/classes' },
         {
           label: item?.profile.slug
-            ? item.profile.code === 'BARRE'
+            ? item.profile.code === 'CLUB'
               ? 'Barre'
-              : item.profile.code === 'MAT'
-                ? 'Mat Pilates'
-                : 'Reformer Pilates'
+              : item.profile.code === 'PLAY'
+                ? 'Tiny Rollers'
+                : 'Movers'
             : 'Detail',
         },
       ]}
@@ -70,11 +70,11 @@ export function ClassDetailView({
           <DetailHero
             eyebrow="Kelas Daily Dose"
             title={
-              item.profile.code === 'BARRE'
+              item.profile.code === 'CLUB'
                 ? 'Barre'
-                : item.profile.code === 'MAT'
-                  ? 'Mat Pilates'
-                  : 'Reformer Pilates'
+                : item.profile.code === 'PLAY'
+                  ? 'Tiny Rollers'
+                  : 'Movers'
             }
             summary={item.profile.summary}
             imageKey={item.profile.heroImageKey}

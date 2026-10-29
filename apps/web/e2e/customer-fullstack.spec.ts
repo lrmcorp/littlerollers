@@ -99,7 +99,7 @@ test.describe.serial('@customer-fullstack lifecycle customer nyata', () => {
       .then(() => true)
       .catch(() => false);
     if (studioRequired) {
-      await studioDialog.getByRole('radio', { name: /Daily Dose Jakarta/ }).check();
+      await studioDialog.getByRole('radio', { name: /Little Rollers Jakarta/ }).check();
       await studioDialog.getByRole('button', { name: 'Simpan studio' }).click();
       await expect(studioDialog).toBeHidden();
     }
@@ -238,7 +238,7 @@ test.describe.serial('@customer-fullstack lifecycle customer nyata', () => {
     await expect(page.getByText('Disetujui', { exact: true }).first()).toBeVisible();
     await page.goto('/account/packages');
     await expect(page.getByRole('link', { name: 'Tambah paket' })).toHaveClass(/min-h-10/);
-    await expect(page.getByRole('heading', { name: 'Reformer Pilates 10' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Movers 10' })).toBeVisible();
     await expect(page.getByText('Tersedia', { exact: true })).toBeVisible();
 
     const slotId = process.env.DD_CUSTOMER_E2E_SLOT_ID!;
@@ -284,7 +284,7 @@ test.describe.serial('@customer-fullstack lifecycle customer nyata', () => {
     await chooseSearchOption(
       manager.page,
       'Cabang aktif',
-      process.env.DD_CUSTOMER_E2E_BRANCH_NAME ?? 'Daily Dose Jakarta',
+      process.env.DD_CUSTOMER_E2E_BRANCH_NAME ?? 'Little Rollers Jakarta',
     );
     const pendingReschedule = manager.page
       .getByRole('list', { name: 'Antrean reschedule' })
@@ -335,7 +335,7 @@ test.describe.serial('@customer-fullstack lifecycle customer nyata', () => {
   test('responsive shell dan accessibility customer seed', async ({ page, customerE2E }) => {
     customerE2E.observe(page);
     await page.goto('/sign-in?returnTo=%2Faccount');
-    await page.getByLabel('Email', { exact: true }).fill('customer@dailydose.local');
+    await page.getByLabel('Email', { exact: true }).fill('customer@littlerollers.local');
     await page.getByLabel('Password').fill('Customer#2026');
     await page.getByRole('button', { name: 'Masuk dengan email' }).click();
     await expect(page).toHaveURL(/\/account/);
@@ -346,7 +346,7 @@ test.describe.serial('@customer-fullstack lifecycle customer nyata', () => {
         .then(() => true)
         .catch(() => false)
     ) {
-      await studioDialog.getByRole('radio', { name: /Daily Dose Jakarta/ }).check();
+      await studioDialog.getByRole('radio', { name: /Little Rollers Jakarta/ }).check();
       await studioDialog.getByRole('button', { name: 'Simpan studio' }).click();
       await expect(studioDialog).toBeHidden();
     }

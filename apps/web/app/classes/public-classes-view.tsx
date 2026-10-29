@@ -387,10 +387,10 @@ export function PublicClassesView({
                               </Link>
                               <Link
                                 href={`/classes/${
-                                  slot.classType.code === 'REFORMER'
-                                    ? 'reformer-pilates'
-                                    : slot.classType.code === 'MAT'
-                                      ? 'mat-pilates'
+                                  slot.classType.code === 'MOVERS'
+                                    ? 'movers'
+                                    : slot.classType.code === 'PLAY'
+                                      ? 'tiny-rollers'
                                       : 'barre'
                                 }`}
                                 className="text-dd-forest underline-offset-4 hover:underline"

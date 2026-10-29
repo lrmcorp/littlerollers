@@ -1437,36 +1437,38 @@ model SupportCaseNote {
 }
 
 model Package {
-  id               String                  @id @db.Char(36)
+  id                     String                  @id @db.Char(36)
   /// Compatibility projection only. Availability is authoritative in branchScopes.
-  branchId         String?                 @db.Char(36)
+  branchId               String?                 @db.Char(36)
   /// Compatibility projection only. Eligibility is authoritative in classTypeScopes.
-  classTypeId      String?                 @db.Char(36)
-  businessKey      String
-  name             String
-  sessionCount     Int
-  durationDays     Int
-  priceRp          Int
-  effectiveFrom    DateTime                @db.Date
-  effectiveUntil   DateTime?               @db.Date
-  status           PackageStatus           @default(ACTIVE)
-  version          Int                     @default(0)
-  createdAt        DateTime                @default(now())
-  updatedAt        DateTime                @updatedAt
-  branch           Branch?                 @relation(fields: [branchId], references: [id], onDelete: Restrict)
-  classType        ClassType?              @relation(fields: [classTypeId], references: [id], onDelete: Restrict)
-  revisions        PackageRevision[]
-  branchScopes     PackageBranchScope[]
-  classTypeScopes  PackageClassTypeScope[]
-  proofs           PaymentProof[]
-  purchases        Purchase[]
-  customerPackages CustomerPackage[]
-  publicProfile    PackagePublicProfile?
-  voucherScopes    VoucherPackageScope[]
-  promotions       PackagePromotion[]
-  historical       Boolean                 @default(false)
-  sourceDeletedAt  DateTime?
-  sourceMetadata   Json?
+  classTypeId            String?                 @db.Char(36)
+  businessKey            String
+  name                   String
+  sessionCount           Int
+  durationDays           Int
+  /// Length of one session this package buys: 60 or 120 minutes.
+  sessionDurationMinutes Int                     @default(60)
+  priceRp                Int
+  effectiveFrom          DateTime                @db.Date
+  effectiveUntil         DateTime?               @db.Date
+  status                 PackageStatus           @default(ACTIVE)
+  version                Int                     @default(0)
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  branch                 Branch?                 @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  classType              ClassType?              @relation(fields: [classTypeId], references: [id], onDelete: Restrict)
+  revisions              PackageRevision[]
+  branchScopes           PackageBranchScope[]
+  classTypeScopes        PackageClassTypeScope[]
+  proofs                 PaymentProof[]
+  purchases              Purchase[]
+  customerPackages       CustomerPackage[]
+  publicProfile          PackagePublicProfile?
+  voucherScopes          VoucherPackageScope[]
+  promotions             PackagePromotion[]
+  historical             Boolean                 @default(false)
+  sourceDeletedAt        DateTime?
+  sourceMetadata         Json?
 
   @@index([branchId, status, effectiveFrom, effectiveUntil])
   @@index([classTypeId, businessKey, effectiveFrom])
@@ -1644,6 +1646,7 @@ model Purchase {
   sourceActiveFlag                      Boolean?
   snapshotCompleteness                  PurchaseSnapshotCompleteness  @default(COMPLETE_BREAKDOWN)
   sessionCountSnapshot                  Int
+  sessionDurationMinutesSnapshot        Int                           @default(60)
   durationDaysSnapshot                  Int
   status                                PurchaseStatus                @default(PENDING)
   idempotencyKeyHash                    String
@@ -1836,33 +1839,34 @@ model PaymentUniqueCodeReservation {
 }
 
 model CustomerPackage {
-  id                   String                @id @db.Char(36)
-  purchaseId           String                @unique @db.Char(36)
-  customerUserId       String                @db.Char(36)
-  branchId             String                @db.Char(36)
-  packageId            String                @db.Char(36)
-  classTypeId          String                @db.Char(36)
-  activationDate       DateTime              @db.Date
-  expiryAt             DateTime
-  salePriceRp          Int
-  sessionCountSnapshot Int
-  durationDaysSnapshot Int
-  projectionRateRp     Int
-  status               CustomerPackageStatus @default(ACTIVE)
-  version              Int                   @default(0)
-  createdAt            DateTime              @default(now())
-  purchase             Purchase              @relation(fields: [purchaseId], references: [id], onDelete: Restrict)
-  customer             User                  @relation(fields: [customerUserId], references: [id], onDelete: Restrict)
-  branch               Branch                @relation(fields: [branchId], references: [id], onDelete: Restrict)
-  package              Package               @relation(fields: [packageId], references: [id], onDelete: Restrict)
-  classType            ClassType             @relation(fields: [classTypeId], references: [id], onDelete: Restrict)
-  ledgerEntries        LedgerEntry[]
-  reservations         SessionReservation[]
-  adjustments          SessionAdjustment[]
-  bookings             Booking[]
-  historical           Boolean               @default(false)
-  sourceDeletedAt      DateTime?
-  sourceBalance        Int?
+  id                             String                @id @db.Char(36)
+  purchaseId                     String                @unique @db.Char(36)
+  customerUserId                 String                @db.Char(36)
+  branchId                       String                @db.Char(36)
+  packageId                      String                @db.Char(36)
+  classTypeId                    String                @db.Char(36)
+  activationDate                 DateTime              @db.Date
+  expiryAt                       DateTime
+  salePriceRp                    Int
+  sessionCountSnapshot           Int
+  durationDaysSnapshot           Int
+  sessionDurationMinutesSnapshot Int                   @default(60)
+  projectionRateRp               Int
+  status                         CustomerPackageStatus @default(ACTIVE)
+  version                        Int                   @default(0)
+  createdAt                      DateTime              @default(now())
+  purchase                       Purchase              @relation(fields: [purchaseId], references: [id], onDelete: Restrict)
+  customer                       User                  @relation(fields: [customerUserId], references: [id], onDelete: Restrict)
+  branch                         Branch                @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  package                        Package               @relation(fields: [packageId], references: [id], onDelete: Restrict)
+  classType                      ClassType             @relation(fields: [classTypeId], references: [id], onDelete: Restrict)
+  ledgerEntries                  LedgerEntry[]
+  reservations                   SessionReservation[]
+  adjustments                    SessionAdjustment[]
+  bookings                       Booking[]
+  historical                     Boolean               @default(false)
+  sourceDeletedAt                DateTime?
+  sourceBalance                  Int?
 
   @@index([customerUserId, branchId, expiryAt])
 }
@@ -1897,6 +1901,8 @@ model Booking {
   source                 BookingSource
   status                 BookingStatus                  @default(BOOKED)
   reservedQuantity       Int                            @default(1)
+  /// Minutes the child attends, starting at the slot start. Comes from the package.
+  sessionDurationMinutes Int                            @default(60)
   version                Int                            @default(0)
   cancellationReasonCode BookingCancellationReasonCode?
   cancelledAt            DateTime?

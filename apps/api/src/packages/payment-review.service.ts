@@ -703,6 +703,7 @@ export class PaymentReviewService {
                 expiryAt: startOfLocalDateUtc(expiryDate, purchase.branch.timezone),
                 salePriceRp: purchase.priceAfterDiscountRpSnapshot ?? purchase.priceRpSnapshot,
                 sessionCountSnapshot: purchase.sessionCountSnapshot,
+                sessionDurationMinutesSnapshot: purchase.sessionDurationMinutesSnapshot,
                 durationDaysSnapshot: purchase.durationDaysSnapshot,
                 projectionRateRp: Number(rate),
               },

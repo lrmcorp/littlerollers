@@ -78,7 +78,7 @@ databaseDescribe('identity MySQL integration', () => {
       data: {
         id: lookupClassTypeId,
         branchId,
-        code: `${namespace}-REFORMER`,
+        code: `${namespace}-MOVERS`,
         name: 'Lookup Reformer',
       },
     });

@@ -89,7 +89,7 @@ export function PublicLanding() {
             fill
             priority
             sizes="100vw"
-            alt="Kelas Reformer Pilates di studio yang terang dan tenang"
+            alt="Kelas Movers di studio yang terang dan tenang"
           />
           <div className="absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgba(248,246,241,0.98)_0%,rgba(248,246,241,0.92)_31%,rgba(248,246,241,0.2)_68%,transparent_100%)] max-[780px]:bg-[linear-gradient(90deg,rgba(248,246,241,0.98)_0%,rgba(248,246,241,0.88)_58%,rgba(248,246,241,0.3)_100%)]" />
           <div

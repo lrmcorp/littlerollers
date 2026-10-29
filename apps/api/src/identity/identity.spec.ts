@@ -344,7 +344,7 @@ describe('identity security foundation', () => {
       preferredBranch: {
         id: 'branch-jkt',
         code: 'JKT',
-        name: 'Daily Dose Jakarta',
+        name: 'Little Rollers Jakarta',
         timezone: 'Asia/Jakarta',
         supportWhatsappE164: '+628111000001',
         active: true,

@@ -60,6 +60,7 @@ export function CreatePanel({
     'Pilih tanggal dan waktu. Quota/capacity akan diambil dari konfigurasi efektif backend.',
   );
   const [studioId, setStudioId] = useState('');
+  const [endTime, setEndTime] = useState('');
   const rooms = studios.find((studio) => studio.id === studioId)?.rooms ?? [];
   return (
     <form
@@ -140,8 +141,25 @@ export function CreatePanel({
         options={instructors.map((item) => ({ id: item.id, label: item.displayName }))}
       />
       <DateInput label="Tanggal" name="date" required />
-      <TextInput label="Mulai" name="startTime" type="time" required />
-      <TextInput label="Selesai eksklusif" name="endTime" type="time" required />
+      <TextInput
+        label="Mulai"
+        name="startTime"
+        type="time"
+        required
+        onChange={(event) => {
+          const end = plusTwoHours(event.currentTarget.value);
+          if (end) setEndTime(end);
+        }}
+      />
+      <TextInput
+        label="Selesai eksklusif"
+        name="endTime"
+        type="time"
+        required
+        value={endTime}
+        onChange={(event) => setEndTime(event.currentTarget.value)}
+        description="Terisi otomatis 2 jam setelah mulai. Paket 1 jam memakai jam pertama."
+      />
       <Feedback kind="info">
         Timezone: {timezone}. {summary}
       </Feedback>
@@ -765,4 +783,13 @@ function localDatePart(value: Date, timezone: string) {
   const get = (type: Intl.DateTimeFormatPartTypes) =>
     parts.find((part) => part.type === type)?.value ?? '';
   return `${get('year')}-${get('month')}-${get('day')}`;
+}
+
+/** Timetable blocks run 2 hours; returns HH:MM two hours after `time`, or null past midnight. */
+function plusTwoHours(time: string) {
+  const match = /^(\d{2}):(\d{2})$/.exec(time);
+  if (!match) return null;
+  const minutes = Number(match[1]) * 60 + Number(match[2]) + 120;
+  if (minutes >= 24 * 60) return null;
+  return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${match[2]}`;
 }

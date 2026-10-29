@@ -353,6 +353,7 @@ doc/SessionAdjustmentDecisionCommand.md
 doc/SessionAdjustmentPage.md
 doc/SessionAdjustmentSummary.md
 doc/SessionBranch.md
+doc/SessionDurationMinutes.md
 doc/Studio.md
 doc/StudioCommand.md
 doc/StudioPage.md
@@ -755,6 +756,7 @@ lib/src/model/session_adjustment_decision_command.dart
 lib/src/model/session_adjustment_page.dart
 lib/src/model/session_adjustment_summary.dart
 lib/src/model/session_branch.dart
+lib/src/model/session_duration_minutes.dart
 lib/src/model/studio.dart
 lib/src/model/studio_command.dart
 lib/src/model/studio_page.dart
@@ -1146,6 +1148,7 @@ test/session_adjustment_page_test.dart
 test/session_adjustment_summary_test.dart
 test/session_adjustment_test.dart
 test/session_branch_test.dart
+test/session_duration_minutes_test.dart
 test/session_test.dart
 test/studio_command_test.dart
 test/studio_page_test.dart

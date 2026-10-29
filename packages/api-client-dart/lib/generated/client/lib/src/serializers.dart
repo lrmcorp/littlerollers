@@ -347,6 +347,7 @@ import 'package:openapi/src/model/session_adjustment_decision_command.dart';
 import 'package:openapi/src/model/session_adjustment_page.dart';
 import 'package:openapi/src/model/session_adjustment_summary.dart';
 import 'package:openapi/src/model/session_branch.dart';
+import 'package:openapi/src/model/session_duration_minutes.dart';
 import 'package:openapi/src/model/studio.dart';
 import 'package:openapi/src/model/studio_command.dart';
 import 'package:openapi/src/model/studio_page.dart';
@@ -723,6 +724,7 @@ part 'serializers.g.dart';
   SessionAdjustmentPage,
   SessionAdjustmentSummary,
   SessionBranch,$SessionBranch,
+  SessionDurationMinutes,
   Studio,
   StudioCommand,
   StudioPage,

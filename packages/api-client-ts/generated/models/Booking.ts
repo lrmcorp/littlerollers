@@ -1,7 +1,7 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * Daily Dose API
+ * Little Rollers API
  * Gate-4 contract baseline. Operations marked x-blocked-by cannot enter production until the decision is approved.
  *
  * The version of the OpenAPI document: 1.21.0-draft
@@ -55,6 +55,13 @@ import {
     BookingCustomerToJSON,
     BookingCustomerToJSONTyped,
 } from './BookingCustomer';
+import type { SessionDurationMinutes } from './SessionDurationMinutes';
+import {
+    SessionDurationMinutesFromJSON,
+    SessionDurationMinutesFromJSONTyped,
+    SessionDurationMinutesToJSON,
+    SessionDurationMinutesToJSONTyped,
+} from './SessionDurationMinutes';
 
 /**
  * 
@@ -122,6 +129,12 @@ export interface Booking {
      * @memberof Booking
      */
     reservedQuantity: BookingReservedQuantityEnum;
+    /**
+     * 
+     * @type {SessionDurationMinutes}
+     * @memberof Booking
+     */
+    sessionDurationMinutes?: SessionDurationMinutes;
     /**
      * 
      * @type {string}
@@ -272,6 +285,7 @@ export function BookingFromJSONTyped(json: any, ignoreDiscriminator: boolean): B
         'source': json['source'],
         'status': json['status'],
         'reservedQuantity': json['reservedQuantity'],
+        'sessionDurationMinutes': json['sessionDurationMinutes'] == null ? undefined : SessionDurationMinutesFromJSON(json['sessionDurationMinutes']),
         'cancellationReasonCode': json['cancellationReasonCode'] == null ? undefined : json['cancellationReasonCode'],
         'cancelledAt': json['cancelledAt'] == null ? undefined : (new Date(json['cancelledAt'])),
         'createdAt': (new Date(json['createdAt'])),
@@ -307,6 +321,7 @@ export function BookingToJSONTyped(value?: Booking | null, ignoreDiscriminator: 
         'source': value['source'],
         'status': value['status'],
         'reservedQuantity': value['reservedQuantity'],
+        'sessionDurationMinutes': SessionDurationMinutesToJSON(value['sessionDurationMinutes']),
         'cancellationReasonCode': value['cancellationReasonCode'],
         'cancelledAt': value['cancelledAt'] === null ? null : ((value['cancelledAt'] as any)?.toISOString()),
         'createdAt': ((value['createdAt']).toISOString()),

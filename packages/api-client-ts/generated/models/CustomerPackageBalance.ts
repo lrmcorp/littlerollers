@@ -1,7 +1,7 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * Daily Dose API
+ * Little Rollers API
  * Gate-4 contract baseline. Operations marked x-blocked-by cannot enter production until the decision is approved.
  *
  * The version of the OpenAPI document: 1.21.0-draft
@@ -27,6 +27,13 @@ import {
     AdjustmentCustomerToJSON,
     AdjustmentCustomerToJSONTyped,
 } from './AdjustmentCustomer';
+import type { SessionDurationMinutes } from './SessionDurationMinutes';
+import {
+    SessionDurationMinutesFromJSON,
+    SessionDurationMinutesFromJSONTyped,
+    SessionDurationMinutesToJSON,
+    SessionDurationMinutesToJSONTyped,
+} from './SessionDurationMinutes';
 
 /**
  * Authoritative balance. Internal scoped responses include a safe customer projection.
@@ -144,6 +151,12 @@ export interface CustomerPackageBalance {
     sessionCountSnapshot: number;
     /**
      * 
+     * @type {SessionDurationMinutes}
+     * @memberof CustomerPackageBalance
+     */
+    sessionDurationMinutesSnapshot?: SessionDurationMinutes;
+    /**
+     * 
      * @type {number}
      * @memberof CustomerPackageBalance
      */
@@ -226,6 +239,7 @@ export function CustomerPackageBalanceFromJSONTyped(json: any, ignoreDiscriminat
         'usage': CustomerSessionUsageSummaryFromJSON(json['usage']),
         'salePriceRp': json['salePriceRp'],
         'sessionCountSnapshot': json['sessionCountSnapshot'],
+        'sessionDurationMinutesSnapshot': json['sessionDurationMinutesSnapshot'] == null ? undefined : SessionDurationMinutesFromJSON(json['sessionDurationMinutesSnapshot']),
         'durationDaysSnapshot': json['durationDaysSnapshot'],
         'projectionRateRp': json['projectionRateRp'],
         'version': json['version'],
@@ -261,6 +275,7 @@ export function CustomerPackageBalanceToJSONTyped(value?: CustomerPackageBalance
         'usage': CustomerSessionUsageSummaryToJSON(value['usage']),
         'salePriceRp': value['salePriceRp'],
         'sessionCountSnapshot': value['sessionCountSnapshot'],
+        'sessionDurationMinutesSnapshot': SessionDurationMinutesToJSON(value['sessionDurationMinutesSnapshot']),
         'durationDaysSnapshot': value['durationDaysSnapshot'],
         'projectionRateRp': value['projectionRateRp'],
         'version': value['version'],

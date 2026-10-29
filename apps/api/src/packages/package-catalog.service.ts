@@ -5,6 +5,7 @@ import { IdempotencyService } from '../foundation/idempotency.service';
 import type { SessionPrincipal } from '../identity/identity.service';
 import { ApiProblem, newId } from '../identity/security';
 import { PackageAccessService } from './package-access.service';
+import { DEFAULT_SESSION_DURATION_MINUTES, validSessionDuration } from './session-duration';
 
 @Injectable()
 export class PackageCatalogService {
@@ -214,7 +215,8 @@ export class PackageCatalogService {
       input.durationDays < 1 ||
       !Number.isInteger(input.priceRp) ||
       input.priceRp < 1 ||
-      !input.effectiveFrom
+      !input.effectiveFrom ||
+      !validSessionDuration(input.sessionDurationMinutes ?? DEFAULT_SESSION_DURATION_MINUTES)
     )
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
     if (input.effectiveUntil && input.effectiveUntil <= input.effectiveFrom)
@@ -266,6 +268,8 @@ export class PackageCatalogService {
               name: input.name.trim(),
               sessionCount: input.sessionCount,
               durationDays: input.durationDays,
+              sessionDurationMinutes:
+                input.sessionDurationMinutes ?? DEFAULT_SESSION_DURATION_MINUTES,
               priceRp: input.priceRp,
               effectiveFrom,
               effectiveUntil,
@@ -344,9 +348,15 @@ export class PackageCatalogService {
     const current = await this.packageForManage(principal, id);
     if (!key || !Number.isInteger(input.expectedVersion) || input.reason?.trim().length < 3)
       throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
+    if (
+      input.sessionDurationMinutes !== undefined &&
+      !validSessionDuration(input.sessionDurationMinutes)
+    )
+      throw new ApiProblem('VALIDATION_ERROR', HttpStatus.BAD_REQUEST);
     const commercialChange = [
       'sessionCount',
       'durationDays',
+      'sessionDurationMinutes',
       'priceRp',
       'effectiveFrom',
       'effectiveUntil',
@@ -369,6 +379,7 @@ export class PackageCatalogService {
             name: input.name?.trim() || undefined,
             sessionCount: input.sessionCount,
             durationDays: input.durationDays,
+            sessionDurationMinutes: input.sessionDurationMinutes,
             priceRp: input.priceRp,
             effectiveFrom: input.effectiveFrom ? new Date(input.effectiveFrom) : undefined,
             effectiveUntil:

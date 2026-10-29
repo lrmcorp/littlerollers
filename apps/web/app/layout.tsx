@@ -10,46 +10,58 @@ import { PublicExperience } from './components/public/public-experience';
 import type { Metadata } from 'next';
 import localFont from 'next/font/local';
 
-const poppins = localFont({
+const inter = localFont({
   src: [
-    { path: './fonts/poppins-regular.ttf', weight: '400', style: 'normal' },
-    { path: './fonts/poppins-medium.ttf', weight: '500', style: 'normal' },
-    { path: './fonts/poppins-semibold.ttf', weight: '600', style: 'normal' },
-    { path: './fonts/poppins-bold.ttf', weight: '700', style: 'normal' },
+    { path: './fonts/inter-400.woff2', weight: '400', style: 'normal' },
+    { path: './fonts/inter-500.woff2', weight: '500', style: 'normal' },
+    { path: './fonts/inter-600.woff2', weight: '600', style: 'normal' },
+    { path: './fonts/inter-700.woff2', weight: '700', style: 'normal' },
   ],
   variable: '--font-ui',
   display: 'swap',
 });
 
+const grandstander = localFont({
+  src: [{ path: './fonts/grandstander-900.woff2', weight: '900', style: 'normal' }],
+  variable: '--font-display-face',
+  display: 'swap',
+});
+
+const description =
+  'Little Rollers Kids Movement Club runs 1-hour and 2-hour movement sessions for children. Book a place, buy a package and check in from your account.';
+
 export const metadata: Metadata = {
-  metadataBase: new URL('https://dailydosepilates.com'),
+  metadataBase: new URL(process.env.PUBLIC_WEB_BASE_URL ?? 'http://127.0.0.1:32120'),
   title: {
-    default: 'Daily Dose Pilates — Move with intention',
-    template: '%s · Daily Dose Pilates',
+    default: 'Little Rollers Kids Movement Club',
+    template: '%s · Little Rollers',
   },
-  description:
-    'Daily Dose Pilates menghadirkan sesi private dan group untuk gerak yang lebih kuat, terarah, dan seimbang.',
+  description,
   openGraph: {
-    title: 'Daily Dose Pilates — Stronger Body. Calmer Mind.',
-    description: 'Studio Pilates modern untuk bergerak lebih kuat, terarah, dan seimbang.',
+    title: 'Little Rollers Kids Movement Club',
+    description,
     images: [
       {
-        url: '/images/public/daily-dose-social-preview.png',
+        url: '/images/public/little-rollers-social-preview.png',
         width: 1200,
         height: 630,
-        alt: 'Daily Dose Pilates — Stronger Body. Calmer Mind.',
+        alt: 'Little Rollers Kids Movement Club badge',
       },
     ],
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    images: ['/images/public/daily-dose-social-preview.png'],
+    images: ['/images/public/little-rollers-social-preview.png'],
   },
 };
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="id" className={poppins.variable} data-scroll-behavior="smooth">
+    <html
+      lang="en"
+      className={`${inter.variable} ${grandstander.variable}`}
+      data-scroll-behavior="smooth"
+    >
       <body suppressHydrationWarning>
         <AppLoadingProvider>
           <AppFeedbackProvider>

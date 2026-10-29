@@ -11,6 +11,7 @@ Name | Type | Description | Notes
 **id** | **String** |  | 
 **packageId** | **String** |  | 
 **name** | **String** |  | 
+**sessionDurationMinutes** | [**SessionDurationMinutes**](SessionDurationMinutes.md) |  | [optional] 
 **available** | **int** |  | 
 **projectedAvailable** | **int** |  | 
 **expiryAt** | [**DateTime**](DateTime.md) |  | 

@@ -1,7 +1,7 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * Daily Dose API
+ * Little Rollers API
  * Gate-4 contract baseline. Operations marked x-blocked-by cannot enter production until the decision is approved.
  *
  * The version of the OpenAPI document: 1.21.0-draft
@@ -34,6 +34,13 @@ import {
     PackageRevisionToJSON,
     PackageRevisionToJSONTyped,
 } from './PackageRevision';
+import type { SessionDurationMinutes } from './SessionDurationMinutes';
+import {
+    SessionDurationMinutesFromJSON,
+    SessionDurationMinutesFromJSONTyped,
+    SessionDurationMinutesToJSON,
+    SessionDurationMinutesToJSONTyped,
+} from './SessionDurationMinutes';
 
 /**
  * Global package identity. Availability and eligibility are authoritative in branchScopes and classTypeScopes.
@@ -83,6 +90,12 @@ export interface Package {
      * @memberof Package
      */
     sessionCount: number;
+    /**
+     * 
+     * @type {SessionDurationMinutes}
+     * @memberof Package
+     */
+    sessionDurationMinutes?: SessionDurationMinutes;
     /**
      * 
      * @type {number}
@@ -188,6 +201,7 @@ export function PackageFromJSONTyped(json: any, ignoreDiscriminator: boolean): P
         'businessKey': json['businessKey'],
         'name': json['name'],
         'sessionCount': json['sessionCount'],
+        'sessionDurationMinutes': json['sessionDurationMinutes'] == null ? undefined : SessionDurationMinutesFromJSON(json['sessionDurationMinutes']),
         'durationDays': json['durationDays'],
         'priceRp': json['priceRp'],
         'status': json['status'],
@@ -217,6 +231,7 @@ export function PackageToJSONTyped(value?: Package | null, ignoreDiscriminator: 
         'businessKey': value['businessKey'],
         'name': value['name'],
         'sessionCount': value['sessionCount'],
+        'sessionDurationMinutes': SessionDurationMinutesToJSON(value['sessionDurationMinutes']),
         'durationDays': value['durationDays'],
         'priceRp': value['priceRp'],
         'status': value['status'],

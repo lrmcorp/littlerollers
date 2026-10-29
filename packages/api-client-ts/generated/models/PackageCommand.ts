@@ -1,7 +1,7 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * Daily Dose API
+ * Little Rollers API
  * Gate-4 contract baseline. Operations marked x-blocked-by cannot enter production until the decision is approved.
  *
  * The version of the OpenAPI document: 1.21.0-draft
@@ -13,6 +13,14 @@
  */
 
 import { mapValues } from '../runtime';
+import type { SessionDurationMinutes } from './SessionDurationMinutes';
+import {
+    SessionDurationMinutesFromJSON,
+    SessionDurationMinutesFromJSONTyped,
+    SessionDurationMinutesToJSON,
+    SessionDurationMinutesToJSONTyped,
+} from './SessionDurationMinutes';
+
 /**
  * 
  * @export
@@ -51,6 +59,12 @@ export interface PackageCommand {
     sessionCount: number;
     /**
      * 
+     * @type {SessionDurationMinutes}
+     * @memberof PackageCommand
+     */
+    sessionDurationMinutes?: SessionDurationMinutes;
+    /**
+     * 
      * @type {number}
      * @memberof PackageCommand
      */
@@ -80,6 +94,8 @@ export interface PackageCommand {
      */
     reason: string;
 }
+
+
 
 /**
  * Check if a given object implements the PackageCommand interface.
@@ -112,6 +128,7 @@ export function PackageCommandFromJSONTyped(json: any, ignoreDiscriminator: bool
         'businessKey': json['businessKey'],
         'name': json['name'],
         'sessionCount': json['sessionCount'],
+        'sessionDurationMinutes': json['sessionDurationMinutes'] == null ? undefined : SessionDurationMinutesFromJSON(json['sessionDurationMinutes']),
         'durationDays': json['durationDays'],
         'priceRp': json['priceRp'],
         'effectiveFrom': (new Date(json['effectiveFrom'])),
@@ -136,6 +153,7 @@ export function PackageCommandToJSONTyped(value?: PackageCommand | null, ignoreD
         'businessKey': value['businessKey'],
         'name': value['name'],
         'sessionCount': value['sessionCount'],
+        'sessionDurationMinutes': SessionDurationMinutesToJSON(value['sessionDurationMinutes']),
         'durationDays': value['durationDays'],
         'priceRp': value['priceRp'],
         'effectiveFrom': ((value['effectiveFrom']).toISOString().substring(0,10)),

@@ -1,6 +1,6 @@
-# Daily Dose v2
+# Little Rollers
 
-AI-delivered modular monolith foundation for Daily Dose Pilates. Business and technical documentation lives in [docs](docs/README.md).
+Booking and membership platform for Little Rollers Kids Movement Club. Business and technical documentation lives in [docs](docs/README.md).
 
 ## Repository ownership
 
@@ -92,15 +92,15 @@ demo tidak dibuat di production, dan `SEED_DEMO_CREDENTIALS=true` ditolak ketika
 | Role        | Email                          | Password         |
 | ----------- | ------------------------------ | ---------------- |
 | Super Owner | `ralamzah@gmail.com`           | `ridho123`       |
-| Super Owner | `owner@dailydose.local`        | `DailyDose#2026` |
-| Owner       | `branch.owner@dailydose.local` | `DailyDose#2026` |
-| Owner BSD   | `bsd.owner@dailydose.local`    | `DailyDose#2026` |
-| Admin       | `admin@dailydose.local`        | `DailyDose#2026` |
-| Manager     | `manager@dailydose.local`      | `DailyDose#2026` |
-| Finance     | `finance@dailydose.local`      | `DailyDose#2026` |
-| Operations  | `ops@dailydose.local`          | `DailyDose#2026` |
-| Instructor  | `instructor@dailydose.local`   | `DailyDose#2026` |
-| Customer    | `customer@dailydose.local`     | `Customer#2026`  |
+| Super Owner | `owner@littlerollers.local`        | `LittleRollers#2026` |
+| Owner       | `branch.owner@littlerollers.local` | `LittleRollers#2026` |
+| Owner BSD   | `bsd.owner@littlerollers.local`    | `LittleRollers#2026` |
+| Admin       | `admin@littlerollers.local`        | `LittleRollers#2026` |
+| Manager     | `manager@littlerollers.local`      | `LittleRollers#2026` |
+| Finance     | `finance@littlerollers.local`      | `LittleRollers#2026` |
+| Operations  | `ops@littlerollers.local`          | `LittleRollers#2026` |
+| Instructor  | `instructor@littlerollers.local`   | `LittleRollers#2026` |
+| Customer    | `customer@littlerollers.local`     | `Customer#2026`  |
 
 Seeder memakai factory deterministik dan dapat dijalankan berulang tanpa
 menambah duplicate data:

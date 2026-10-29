@@ -1,33 +1,43 @@
 @import 'tailwindcss';
 
 @theme inline {
-  --font-sans: var(--font-ui), 'Poppins', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-ui), ui-sans-serif, system-ui, sans-serif;
+  /* Grandstander: rounded, bouncy display face for a kids' club, used for headings only. */
+  --font-display: var(--font-display-face), var(--font-ui), ui-rounded, sans-serif;
 
-  --color-dd-forest: #285740;
-  --color-dd-forest-dark: #173d2d;
-  --color-dd-cream: #f8f5ef;
-  --color-dd-paper: #fbf9f4;
-  --color-dd-ink: #20231f;
-  --color-dd-muted: #667069;
-  --color-dd-line: #d8ddd8;
-  --color-dd-sage: #91a99a;
+  /* Little Rollers palette, sampled from the club badge: forest ring, sun, cream field. */
+  --color-dd-forest: #073228;
+  --color-dd-forest-dark: #04231c;
+  --color-dd-cream: #fbf4e8;
+  --color-dd-paper: #fffaf1;
+  --color-dd-ink: #10261f;
+  --color-dd-muted: #55665e;
+  --color-dd-line: #e3dccd;
+  --color-dd-sage: #9cc48d;
 
-  --color-dd-canvas: #f4f2ec;
-  --color-dd-surface: #fffefa;
-  --color-dd-surface-muted: #f8f6f0;
-  --color-dd-sidebar: #17352a;
-  --color-dd-sidebar-soft: #21483a;
-  --color-dd-brass: #a78345;
-  --color-dd-brass-dark: #76501d;
-  --color-dd-brass-soft: #eee4d1;
+  /* The sun is the single accent: primary actions and the one highlight per screen. */
+  --color-lr-sun: #ebaa28;
+  --color-lr-sun-soft: #fbe9c2;
+  /* Sky from the hero scene, used behind the customer panel header. */
+  --color-lr-sky: #dcecf6;
+  --color-lr-sky-deep: #2f6f9f;
+
+  --color-dd-canvas: #f7f1e4;
+  --color-dd-surface: #fffdf8;
+  --color-dd-surface-muted: #fbf6ec;
+  --color-dd-sidebar: #073228;
+  --color-dd-sidebar-soft: #0f4a3b;
+  --color-dd-brass: #ebaa28;
+  --color-dd-brass-dark: #7a5306;
+  --color-dd-brass-soft: #fbe9c2;
   --color-dd-success: #287151;
   --color-dd-success-soft: #e7f3ec;
-  --color-dd-warning: #9a6821;
+  --color-dd-warning: #8a5b0c;
   --color-dd-warning-soft: #fbf0d8;
   --color-dd-danger: #a4433f;
   --color-dd-danger-soft: #f9e9e7;
-  --color-dd-info: #35677b;
-  --color-dd-info-soft: #e7f0f3;
+  --color-dd-info: #2f6f9f;
+  --color-dd-info-soft: #e5f0f7;
 
   --radius-dd-sm: 0.5rem;
   --radius-dd-md: 0.75rem;
@@ -35,9 +45,9 @@
 
   --radius-dd-xl: 1.75rem;
 
-  --shadow-dd-soft: 0 14px 30px rgb(31 68 53 / 14%);
-  --shadow-dd-card: 0 16px 42px rgb(31 68 53 / 8%);
-  --shadow-dd-float: 0 24px 64px rgb(17 43 33 / 18%);
+  --shadow-dd-soft: 0 14px 30px rgb(7 50 40 / 14%);
+  --shadow-dd-card: 0 16px 42px rgb(7 50 40 / 8%);
+  --shadow-dd-float: 0 24px 64px rgb(7 50 40 / 18%);
 }
 
 @layer base {
@@ -55,7 +65,8 @@
   }
 
   :where(button, a, input, select, textarea):focus-visible {
-    outline: 2px solid var(--color-dd-brass);
+    /* Forest ring reads at 12:1 on cream; the gold sun would be under 3:1. */
+    outline: 2px solid var(--color-dd-forest);
     outline-offset: 3px;
   }
 }

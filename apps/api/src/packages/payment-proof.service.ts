@@ -56,10 +56,7 @@ export class PaymentProofService {
         },
       });
 
-      if (
-        !pkg ||
-        !pkg.branchScopes.some((scope) => scope.branchId === input.branchId)
-      )
+      if (!pkg || !pkg.branchScopes.some((scope) => scope.branchId === input.branchId))
         throw new ApiProblem('RESOURCE_NOT_FOUND', HttpStatus.NOT_FOUND);
     }
     if (input.orderId) {
