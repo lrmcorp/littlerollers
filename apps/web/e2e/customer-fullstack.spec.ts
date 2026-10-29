@@ -103,9 +103,7 @@ test.describe.serial('@customer-fullstack lifecycle customer nyata', () => {
       await studioDialog.getByRole('button', { name: 'Simpan studio' }).click();
       await expect(studioDialog).toBeHidden();
     }
-    await expect(
-      page.getByRole('heading', { name: 'Dokumen Anda sudah kami terima' }),
-    ).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'We have your documents' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Unggah ulang dokumen' })).toHaveCount(0);
     for (const kind of ['SELFIE', 'KTP_FRONT'] as const) {
       const documentCard = page.locator(`#verification-document-${kind}`);
@@ -118,7 +116,7 @@ test.describe.serial('@customer-fullstack lifecycle customer nyata', () => {
           timeout: 15_000,
         },
       );
-      await previewDialog.getByRole('button', { name: 'Tutup dialog' }).click();
+      await previewDialog.getByRole('button', { name: 'Close dialog' }).click();
       await expect(previewDialog).toBeHidden();
     }
     await customerE2E.assertNoSensitiveMarkup(page);
@@ -337,7 +335,7 @@ test.describe.serial('@customer-fullstack lifecycle customer nyata', () => {
     await page.goto('/sign-in?returnTo=%2Faccount');
     await page.getByLabel('Email', { exact: true }).fill('customer@littlerollers.local');
     await page.getByLabel('Password').fill('Customer#2026');
-    await page.getByRole('button', { name: 'Masuk dengan email' }).click();
+    await page.getByRole('button', { name: 'Sign in with email' }).click();
     await expect(page).toHaveURL(/\/account/);
     const studioDialog = page.getByRole('dialog', { name: 'Pilih studio utama Anda' });
     if (

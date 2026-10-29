@@ -55,7 +55,7 @@ test.beforeEach(async ({ page }) => {
         items: branchId
           ? [
               {
-                id: 'package-reformer-10',
+                id: 'package-movers-10',
                 branchId,
                 name: 'Movers 10',
                 sessionCount: 10,
@@ -63,8 +63,8 @@ test.beforeEach(async ({ page }) => {
                 priceRp: 1_600_000,
                 effectivePriceRp: 1_440_000,
                 promotion: {
-                  id: 'promotion-reformer-10',
-                  name: 'Reformer Routine 10%',
+                  id: 'promotion-movers-10',
+                  name: 'Movers Routine 10%',
                   label: 'Promo 10%',
                   discountType: 'PERCENTAGE',
                   discountValue: 10,
@@ -76,13 +76,13 @@ test.beforeEach(async ({ page }) => {
                 },
                 effectiveUntil: null,
                 classType: {
-                  id: 'type-reformer',
+                  id: 'type-movers',
                   code: 'MOVERS',
                   name: 'Movers',
                 },
               },
               {
-                id: 'package-reformer-5',
+                id: 'package-movers-5',
                 branchId,
                 name: 'Movers 5',
                 sessionCount: 5,
@@ -90,30 +90,30 @@ test.beforeEach(async ({ page }) => {
                 priceRp: 850_000,
                 effectiveUntil: null,
                 classType: {
-                  id: 'type-reformer',
+                  id: 'type-movers',
                   code: 'MOVERS',
                   name: 'Movers',
                 },
               },
               {
-                id: 'package-mat-8',
+                id: 'package-tiny-8',
                 branchId,
                 name: 'Tiny Rollers 8',
                 sessionCount: 8,
                 durationDays: 60,
                 priceRp: 720_000,
                 effectiveUntil: null,
-                classType: { id: 'type-mat', code: 'PLAY', name: 'Tiny Rollers' },
+                classType: { id: 'type-tiny', code: 'PLAY', name: 'Tiny Rollers' },
               },
               {
-                id: 'package-barre-8',
+                id: 'package-club-8',
                 branchId,
-                name: 'Barre 8',
+                name: 'Rollers Club 8',
                 sessionCount: 8,
                 durationDays: 60,
                 priceRp: 760_000,
                 effectiveUntil: null,
-                classType: { id: 'type-barre', code: 'CLUB', name: 'Barre' },
+                classType: { id: 'type-club', code: 'CLUB', name: 'Rollers Club' },
               },
             ]
           : [],
@@ -163,7 +163,7 @@ for (const viewport of viewports) {
       }));
       expect(dimensions.content, path).toBeLessThanOrEqual(dimensions.viewport);
       expect(dimensions.bodyMargin, path).toBe('0px');
-      expect(dimensions.bodyFont, path).toMatch(/poppins/i);
+      expect(dimensions.bodyFont, path).toMatch(/inter/i);
       expect(dimensions.bodyFont, path).not.toMatch(/DM Sans|Cormorant|Georgia|Times New Roman/i);
     }
   });
@@ -174,63 +174,54 @@ for (const viewport of [
   { width: 1280, height: 900 },
   { width: 1440, height: 900 },
 ]) {
-  test(`landing editorial sections remain balanced at ${viewport.width}px`, async ({ page }) => {
+  test(`landing sections remain balanced at ${viewport.width}px`, async ({ page }) => {
     await page.setViewportSize(viewport);
     await page.goto('/');
 
     const metrics = await page.evaluate(() => {
-      const measure = (selector: string) => {
-        const element = document.querySelector<HTMLElement>(selector)!;
-        const heading = element.querySelector<HTMLElement>('h2')!;
-        const rect = element.getBoundingClientRect();
+      const measure = (headingId: string) => {
+        const heading = document.getElementById(headingId)!;
+        const container = heading.closest('section')!.firstElementChild as HTMLElement;
+        const padding = Number.parseFloat(getComputedStyle(container).paddingLeft);
+        const rect = container.getBoundingClientRect();
         const headingRect = heading.getBoundingClientRect();
         return {
-          left: rect.left,
-          right: rect.right,
-          width: rect.width,
-          height: rect.height,
-          headingWidth: headingRect.width,
+          left: rect.left + padding,
+          right: rect.right - padding,
           headingHeight: headingRect.height,
         };
       };
-
-      const stats = document.querySelector<HTMLElement>('[data-testid="studio-showcase"] dl')!;
-      const journey = document.querySelector<HTMLElement>('[data-testid="package-journey"] ol')!;
+      const diagram = document.querySelector<HTMLElement>('[data-testid="session-block-diagram"]')!;
       return {
         viewportWidth: document.documentElement.clientWidth,
         scrollWidth: document.documentElement.scrollWidth,
-        studio: measure('[data-testid="studio-showcase"]'),
-        packageJourney: measure('[data-testid="package-journey"]'),
-        statsWidth: stats.getBoundingClientRect().width,
-        journeyWidth: journey.getBoundingClientRect().width,
-        journeyRows: journey.children.length,
+        sessions: measure('sessions-title'),
+        clubs: measure('clubs-title'),
+        diagramWidth: diagram.getBoundingClientRect().width,
+        diagramRows: diagram.querySelectorAll('[data-session-length]').length,
       };
     });
 
     expect(metrics.scrollWidth).toBeLessThanOrEqual(metrics.viewportWidth);
-    expect(metrics.studio.left).toBeGreaterThanOrEqual(24);
-    expect(metrics.studio.right).toBeLessThanOrEqual(metrics.viewportWidth - 24);
-    expect(metrics.studio.headingWidth).toBeGreaterThanOrEqual(360);
-    expect(metrics.studio.headingHeight).toBeLessThanOrEqual(180);
-    expect(metrics.statsWidth).toBeGreaterThanOrEqual(440);
-    expect(metrics.packageJourney.left).toBeGreaterThanOrEqual(24);
-    expect(metrics.packageJourney.right).toBeLessThanOrEqual(metrics.viewportWidth - 24);
-    expect(metrics.packageJourney.headingWidth).toBeGreaterThanOrEqual(360);
-    expect(metrics.packageJourney.headingHeight).toBeLessThanOrEqual(180);
-    expect(metrics.journeyWidth).toBeGreaterThanOrEqual(360);
-    expect(metrics.journeyRows).toBe(3);
+    for (const section of [metrics.sessions, metrics.clubs]) {
+      expect(section.left).toBeGreaterThanOrEqual(24);
+      expect(section.right).toBeLessThanOrEqual(metrics.viewportWidth - 24);
+      expect(section.headingHeight).toBeLessThanOrEqual(180);
+    }
+    expect(metrics.diagramWidth).toBeGreaterThanOrEqual(360);
+    expect(metrics.diagramRows).toBe(2);
   });
 }
 
 test('mobile navigation uses a modal drawer instead of a horizontal menu', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
-  const trigger = page.getByRole('button', { name: 'Buka menu navigasi' });
+  const trigger = page.getByRole('button', { name: 'Open menu' });
   await expect(trigger).toBeVisible();
   await trigger.click();
-  const drawer = page.getByRole('dialog', { name: 'Menu navigasi' });
+  const drawer = page.getByRole('dialog', { name: 'Menu' });
   await expect(drawer).toBeVisible();
-  await expect(drawer.getByRole('link', { name: 'Paket', exact: true })).toBeVisible();
+  await expect(drawer.getByRole('link', { name: 'Packages', exact: true })).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(drawer).toBeHidden();
   await expect(trigger).toBeFocused();
@@ -257,20 +248,29 @@ for (const viewport of [
       Number.parseFloat(getComputedStyle(element).fontSize),
     );
     expect(cardTitleSize).toBeGreaterThanOrEqual(22);
-    const badgeContrast = await page.getByText('Direkomendasikan').evaluate((element) => {
-      const channels = (value: string) => value.match(/\d+/g)!.slice(0, 3).map(Number);
-      const luminance = (rgb: number[]) => {
-        const [red, green, blue] = rgb.map((value) => {
-          const channel = value! / 255;
-          return channel <= 0.04045 ? channel / 12.92 : Math.pow((channel + 0.055) / 1.055, 2.4);
-        });
-        return 0.2126 * red! + 0.7152 * green! + 0.0722 * blue!;
-      };
-      const style = getComputedStyle(element);
-      const foreground = luminance(channels(style.color));
-      const background = luminance(channels(style.backgroundColor));
-      return (Math.max(foreground, background) + 0.05) / (Math.min(foreground, background) + 0.05);
-    });
+    const badgeContrast = await page
+      .getByText('Lowest price per session here')
+      .evaluate((element) => {
+        const channels = (value: string) => value.match(/\d+/g)!.slice(0, 3).map(Number);
+        const luminance = (rgb: number[]) => {
+          const [red, green, blue] = rgb.map((value) => {
+            const channel = value! / 255;
+            return channel <= 0.04045 ? channel / 12.92 : Math.pow((channel + 0.055) / 1.055, 2.4);
+          });
+          return 0.2126 * red! + 0.7152 * green! + 0.0722 * blue!;
+        };
+        const style = getComputedStyle(element);
+        let surface: Element | null = element;
+        while (surface && getComputedStyle(surface).backgroundColor === 'rgba(0, 0, 0, 0)')
+          surface = surface.parentElement;
+        const foreground = luminance(channels(style.color));
+        const background = luminance(
+          channels(surface ? getComputedStyle(surface).backgroundColor : 'rgb(255, 255, 255)'),
+        );
+        return (
+          (Math.max(foreground, background) + 0.05) / (Math.min(foreground, background) + 0.05)
+        );
+      });
     expect(badgeContrast).toBeGreaterThanOrEqual(4.5);
     const dimensions = await page.evaluate(() => ({
       viewport: document.documentElement.clientWidth,
@@ -279,7 +279,7 @@ for (const viewport of [
     expect(dimensions.content).toBeLessThanOrEqual(dimensions.viewport);
     if (viewport.name === 'mobile') {
       const whatsapp = page.getByRole('button', {
-        name: 'Hubungi Daily Dose melalui WhatsApp',
+        name: 'Message Little Rollers on WhatsApp',
       });
       await expect(whatsapp).toBeVisible();
       const fab = await whatsapp.evaluate((element) => {
@@ -293,9 +293,9 @@ for (const viewport of [
       fullPage: true,
     });
 
-    await selectSearchOption(page, 'Tipe kelas', 'Tiny Rollers');
+    await selectSearchOption(page, 'Class', 'Tiny Rollers');
     await expect(page).toHaveURL(/branch=branch-jkt/);
-    await expect(page).toHaveURL(/classType=type-mat/);
+    await expect(page).toHaveURL(/classType=type-tiny/);
     await expect(page).toHaveURL(/slot=slot-1/);
     await expect(page.getByRole('heading', { name: 'Tiny Rollers 8' })).toBeVisible();
   });
@@ -320,12 +320,12 @@ test('staff sees a workspace CTA and is never sent to customer verification', as
   );
   await page.goto('/packages?branch=branch-jkt');
   await expect(
-    page.getByText('Anda sedang menggunakan akun staf. Pembelian paket menggunakan akun customer.'),
+    page.getByText('You are signed in as staff. Packages are bought from a parent account.'),
   ).toBeVisible();
-  const workspaceCtas = page.getByRole('link', { name: 'Buka Workspace' });
+  const workspaceCtas = page.getByRole('link', { name: 'Open workspace' });
   await expect(workspaceCtas).toHaveCount(4);
   for (const link of await workspaceCtas.all())
     await expect(link).toHaveAttribute('href', '/workspace');
-  await expect(page.getByRole('link', { name: 'Verifikasi untuk memilih' })).toHaveCount(0);
-  await expect(page.getByRole('link', { name: 'Pilih paket' })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Verify to buy' })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Buy this package' })).toHaveCount(0);
 });

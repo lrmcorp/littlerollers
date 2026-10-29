@@ -75,7 +75,7 @@ async function signIn(
   await page.goto(`/sign-in?returnTo=${encodeURIComponent(returnTo)}`);
   await page.getByLabel('Email', { exact: true }).fill(credentials.email);
   await page.getByLabel('Password').fill(credentials.password);
-  await page.getByRole('button', { name: 'Masuk dengan email' }).click();
+  await page.getByRole('button', { name: 'Sign in with email' }).click();
   await expect(page).not.toHaveURL(/\/sign-in(?:\?|$)/, { timeout: 20_000 });
 }
 

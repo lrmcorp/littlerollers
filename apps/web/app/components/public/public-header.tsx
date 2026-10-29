@@ -41,127 +41,147 @@ export function PublicHeader() {
   const session = sessionContext?.session;
   const customerOnly = isCustomerOnlySession(session);
   const studioPreference = useStudioPreference();
-  const [open, setOpen] = useState(false);
-  const drawer = useOverlayPresence(open, 'drawer');
-  const [hash, setHash] = useState('');
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  const drawerRef = useRef<HTMLDivElement>(null);
+  const hash = useLocationHash(pathname);
   const accountHref = customerOnly ? routes.account : routes.workspace;
   const accountLabel = customerOnly ? 'My account' : 'Open workspace';
 
+  return (
+    <header className="sticky top-0 z-50 border-b border-dd-forest/10 bg-lr-sky pt-[env(safe-area-inset-top)]">
+      <div className="mx-auto flex min-h-16 w-full max-w-[1440px] items-center gap-4 px-4 sm:px-6 lg:min-h-[76px] lg:px-8">
+        <BrandMark className="shrink-0" priority />
+
+        <nav
+          className="mx-auto hidden min-h-[50px] items-center gap-1 rounded-full bg-[rgba(173,196,174,0.45)] px-2 backdrop-blur-md lg:flex"
+          aria-label="Main"
+        >
+          {publicNavigation.map((item) => {
+            const current = isCurrent(pathname, hash, item.href);
+            return (
+              <Link
+                className={`${pillLink} px-4 whitespace-nowrap text-dd-forest ${
+                  current ? 'bg-white' : 'hover:bg-white/60'
+                }`}
+                key={`${item.href}-${item.label}`}
+                href={item.href}
+                aria-current={current ? 'page' : undefined}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
+        </nav>
+
+        <div className="ml-auto flex shrink-0 items-center gap-2 lg:ml-0">
+          <Link
+            className="grid size-11 place-items-center rounded-full bg-white text-dd-forest no-underline sm:hidden"
+            href={session ? accountHref : routes.signIn}
+            aria-label={session ? accountLabel : 'Sign in'}
+          >
+            <UserRound className="size-5" aria-hidden="true" />
+          </Link>
+          {!session ? (
+            <>
+              <Link
+                className={`${pillLink} hidden text-dd-forest hover:bg-white/60 sm:inline-flex`}
+                href={routes.signIn}
+              >
+                Sign in
+              </Link>
+              <Link
+                className={`${pillLink} hidden bg-dd-forest text-white hover:-translate-y-0.5 hover:bg-dd-forest-dark motion-reduce:transform-none sm:inline-flex`}
+                href={routes.register}
+              >
+                Join us
+              </Link>
+            </>
+          ) : (
+            <details className="relative hidden sm:block">
+              <summary
+                className={`${pillLink} cursor-pointer list-none gap-2 bg-white text-dd-forest`}
+              >
+                <UserRound className="size-4" aria-hidden="true" /> My account
+              </summary>
+              <div className="absolute right-0 mt-2 grid w-56 gap-1 rounded-[15px] border border-dd-line bg-white p-2 shadow-dd-float">
+                <Link
+                  href={accountHref}
+                  className="rounded-dd-md px-3 py-2.5 text-sm font-medium text-dd-ink no-underline hover:bg-dd-surface-muted"
+                >
+                  {accountLabel}
+                </Link>
+                <Link
+                  href="/account/profile"
+                  className="rounded-dd-md px-3 py-2.5 text-sm font-medium text-dd-ink no-underline hover:bg-dd-surface-muted"
+                >
+                  My profile
+                </Link>
+                {customerOnly && (
+                  <button
+                    type="button"
+                    onClick={() => studioPreference?.openStudioPreference()}
+                    className="min-h-10 rounded-dd-md border-0 bg-transparent px-3 text-left text-sm font-medium text-dd-ink hover:bg-dd-surface-muted"
+                  >
+                    Change club
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => void sessionContext?.logout()}
+                  className="min-h-10 rounded-dd-md border-0 bg-transparent px-3 text-left text-sm font-medium text-dd-danger hover:bg-dd-danger-soft"
+                >
+                  Sign out
+                </button>
+              </div>
+            </details>
+          )}
+          <PublicMenu triggerClassName="lg:hidden" />
+        </div>
+      </div>
+    </header>
+  );
+}
+
+function useLocationHash(pathname: string) {
+  const [hash, setHash] = useState('');
   useEffect(() => {
     const update = () => setHash(window.location.hash);
     update();
     window.addEventListener('hashchange', update);
     return () => window.removeEventListener('hashchange', update);
   }, [pathname]);
+  return hash;
+}
+
+/** Menu button and slide-in drawer, shared by the inner-page header and the home hero bar. */
+export function PublicMenu({ triggerClassName = '' }: { triggerClassName?: string }) {
+  const pathname = usePathname() ?? '/';
+  const sessionContext = useSessionContext();
+  const session = sessionContext?.session;
+  const customerOnly = isCustomerOnlySession(session);
+  const studioPreference = useStudioPreference();
+  const hash = useLocationHash(pathname);
+  const [open, setOpen] = useState(false);
+  const drawer = useOverlayPresence(open, 'drawer');
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const drawerRef = useRef<HTMLDivElement>(null);
+  const accountHref = customerOnly ? routes.account : routes.workspace;
+  const accountLabel = customerOnly ? 'My account' : 'Open workspace';
 
   const close = () => setOpen(false);
   useOverlayInteraction({ open, onClose: close, panelRef: drawerRef });
 
   return (
     <>
-      <header className="sticky top-0 z-50 border-b border-dd-forest/10 bg-lr-sky pt-[env(safe-area-inset-top)]">
-        <div className="mx-auto flex min-h-16 w-full max-w-[1440px] items-center gap-4 px-4 sm:px-6 lg:min-h-[76px] lg:px-8">
-          <BrandMark className="shrink-0" priority />
-
-          <nav
-            className="mx-auto hidden min-h-[50px] items-center gap-1 rounded-full bg-[rgba(173,196,174,0.45)] px-2 backdrop-blur-md lg:flex"
-            aria-label="Main"
-          >
-            {publicNavigation.map((item) => {
-              const current = isCurrent(pathname, hash, item.href);
-              return (
-                <Link
-                  className={`${pillLink} px-4 whitespace-nowrap text-dd-forest ${
-                    current ? 'bg-white' : 'hover:bg-white/60'
-                  }`}
-                  key={`${item.href}-${item.label}`}
-                  href={item.href}
-                  aria-current={current ? 'page' : undefined}
-                >
-                  {item.label}
-                </Link>
-              );
-            })}
-          </nav>
-
-          <div className="ml-auto flex shrink-0 items-center gap-2 lg:ml-0">
-            <Link
-              className="grid size-11 place-items-center rounded-full bg-white text-dd-forest no-underline sm:hidden"
-              href={session ? accountHref : routes.signIn}
-              aria-label={session ? accountLabel : 'Sign in'}
-            >
-              <UserRound className="size-5" aria-hidden="true" />
-            </Link>
-            {!session ? (
-              <>
-                <Link
-                  className={`${pillLink} hidden text-dd-forest hover:bg-white/60 sm:inline-flex`}
-                  href={routes.signIn}
-                >
-                  Sign in
-                </Link>
-                <Link
-                  className={`${pillLink} hidden bg-dd-forest text-white hover:-translate-y-0.5 hover:bg-dd-forest-dark motion-reduce:transform-none sm:inline-flex`}
-                  href={routes.register}
-                >
-                  Join us
-                </Link>
-              </>
-            ) : (
-              <details className="relative hidden sm:block">
-                <summary
-                  className={`${pillLink} cursor-pointer list-none gap-2 bg-white text-dd-forest`}
-                >
-                  <UserRound className="size-4" aria-hidden="true" /> My account
-                </summary>
-                <div className="absolute right-0 mt-2 grid w-56 gap-1 rounded-[15px] border border-dd-line bg-white p-2 shadow-dd-float">
-                  <Link
-                    href={accountHref}
-                    className="rounded-dd-md px-3 py-2.5 text-sm font-medium text-dd-ink no-underline hover:bg-dd-surface-muted"
-                  >
-                    {accountLabel}
-                  </Link>
-                  <Link
-                    href="/account/profile"
-                    className="rounded-dd-md px-3 py-2.5 text-sm font-medium text-dd-ink no-underline hover:bg-dd-surface-muted"
-                  >
-                    My profile
-                  </Link>
-                  {customerOnly && (
-                    <button
-                      type="button"
-                      onClick={() => studioPreference?.openStudioPreference()}
-                      className="min-h-10 rounded-dd-md border-0 bg-transparent px-3 text-left text-sm font-medium text-dd-ink hover:bg-dd-surface-muted"
-                    >
-                      Change club
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => void sessionContext?.logout()}
-                    className="min-h-10 rounded-dd-md border-0 bg-transparent px-3 text-left text-sm font-medium text-dd-danger hover:bg-dd-danger-soft"
-                  >
-                    Sign out
-                  </button>
-                </div>
-              </details>
-            )}
-            <IconButton
-              ref={triggerRef}
-              label="Open menu"
-              variant="secondary"
-              className="rounded-full border-transparent bg-white text-dd-forest shadow-none lg:hidden"
-              aria-expanded={open}
-              aria-controls="public-mobile-navigation"
-              onClick={() => setOpen(true)}
-            >
-              <Menu className="size-5" aria-hidden="true" />
-            </IconButton>
-          </div>
-        </div>
-      </header>
+      <IconButton
+        ref={triggerRef}
+        label="Open menu"
+        variant="secondary"
+        className={`rounded-full border-transparent bg-white text-dd-forest shadow-none ${triggerClassName}`}
+        aria-expanded={open}
+        aria-controls="public-mobile-navigation"
+        onClick={() => setOpen(true)}
+      >
+        <Menu className="size-5" aria-hidden="true" />
+      </IconButton>
 
       {drawer.rendered && (
         <div

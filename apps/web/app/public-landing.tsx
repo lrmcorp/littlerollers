@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { accountClient, type PublicSiteConfig } from './account-client';
 import { BrandMark } from './components/public/brand-mark';
+import { PublicMenu } from './components/public/public-header';
 import { PublicFooter } from './components/public/public-footer';
 import {
   publicContainer as container,
@@ -185,6 +186,7 @@ export function PublicLanding() {
               </Link>
             </>
           )}
+          <PublicMenu triggerClassName="lr-hero__menu" />
         </div>
       </header>
 
@@ -383,7 +385,10 @@ export function PublicLanding() {
 /** The timetable block drawn as the badge's road: hour one, hour two, and who stays for each. */
 function SessionBlockDiagram() {
   return (
-    <figure className="m-0 rounded-[22px] bg-dd-forest p-6 text-dd-cream sm:p-8">
+    <figure
+      className="m-0 rounded-[22px] bg-dd-forest p-6 text-dd-cream sm:p-8"
+      data-testid="session-block-diagram"
+    >
       <figcaption className="font-display text-xl">A timetable block</figcaption>
       <div className="mt-6 grid grid-cols-2 text-sm text-dd-cream/80">
         <span>Hour 1</span>
@@ -391,7 +396,7 @@ function SessionBlockDiagram() {
       </div>
       <div className="mt-2 h-3 rounded-full bg-dd-cream/20" aria-hidden="true" />
       <dl className="mt-6 grid gap-4">
-        <div>
+        <div data-session-length="60">
           <dt className="text-sm text-dd-cream/80">1-hour package</dt>
           <dd className="m-0 mt-2 grid sm:grid-cols-2">
             <span className="flex min-h-12 items-center rounded-full bg-lr-sun px-5 font-medium text-dd-forest">
@@ -399,7 +404,7 @@ function SessionBlockDiagram() {
             </span>
           </dd>
         </div>
-        <div>
+        <div data-session-length="120">
           <dt className="text-sm text-dd-cream/80">2-hour package</dt>
           <dd className="m-0 mt-2">
             <span className="flex min-h-12 items-center rounded-full bg-dd-cream px-5 font-medium text-dd-forest">

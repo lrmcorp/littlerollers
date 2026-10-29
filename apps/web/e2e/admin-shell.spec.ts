@@ -21,7 +21,7 @@ for (const viewport of viewports) {
         contentType: 'application/json',
         body: JSON.stringify({
           id: 'owner-1',
-          displayName: 'Daily Dose Owner',
+          displayName: 'Little Rollers Owner',
           roles: ['SUPER_OWNER'],
           branchIds: ['branch-1'],
           sessionExpiresAt: '2027-07-26T12:00:00.000Z',
@@ -98,7 +98,7 @@ for (const viewport of viewports) {
       await expect(navigation).toHaveAttribute('aria-hidden', 'true');
       await expect(navigation).toHaveAttribute('inert', '');
 
-      for (const label of ['Buka navigasi', 'Cari atau jalankan perintah', 'Notifikasi']) {
+      for (const label of ['Buka navigasi', 'Cari atau jalankan perintah', 'Notifications']) {
         const control = page.getByRole('button', { name: label });
         const box = await control.boundingBox();
         expect(box?.width).toBeGreaterThanOrEqual(44);
@@ -125,13 +125,13 @@ for (const viewport of viewports) {
       await expect(navigation).toHaveAttribute('aria-hidden', 'true');
 
       await expect(page.getByLabel('Cabang aktif mobile')).toHaveCount(1);
-      await page.getByRole('button', { name: 'Menu profil Daily Dose Owner' }).click();
+      await page.getByRole('button', { name: 'Menu profil Little Rollers Owner' }).click();
       const profileMenu = page.getByRole('region', { name: 'Menu akun internal' });
-      await expect(profileMenu.getByText('Daily Dose Owner')).toBeVisible();
+      await expect(profileMenu.getByText('Little Rollers Owner')).toBeVisible();
       const profileBox = await profileMenu.boundingBox();
       expect(profileBox?.x).toBeGreaterThanOrEqual(8);
       expect(profileBox && profileBox.x + profileBox.width).toBeLessThanOrEqual(viewport.width - 8);
-      await page.getByRole('button', { name: 'Menu profil Daily Dose Owner' }).click();
+      await page.getByRole('button', { name: 'Menu profil Little Rollers Owner' }).click();
     }
   });
 }

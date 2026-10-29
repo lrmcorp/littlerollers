@@ -29,12 +29,6 @@ import {
 import { useSessionContext } from '../session-context';
 import { SearchSelect } from '../components/forms';
 
-const packageBenefits = [
-  'Prices are set per club',
-  'Each package shows how long it stays valid',
-  'Your session balance is in your account',
-] as const;
-
 type LengthFilter = '' | '60' | '120';
 
 export function sessionLengthText(minutes: number | undefined) {
@@ -238,16 +232,7 @@ export function PublicPackagesView({
           title="1-hour or 2-hour sessions, your choice."
           description="Choose your club, then compare packages. Each booking uses one session, and the package sets whether that session is 1 hour or 2 hours."
           variant="compact"
-        >
-          <ul className="grid max-w-3xl list-none gap-2 p-0 text-sm text-dd-muted sm:grid-cols-3 sm:gap-4">
-            {packageBenefits.map((benefit) => (
-              <li className="flex items-start gap-2" key={benefit}>
-                <Check className="mt-0.5 size-4 shrink-0 text-dd-forest" aria-hidden="true" />
-                {benefit}
-              </li>
-            ))}
-          </ul>
-        </PublicPageHero>
+        />
 
         <section className="py-0 sm:py-1" aria-labelledby="package-discovery-title">
           <div className={publicContainer}>

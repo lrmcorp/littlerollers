@@ -153,6 +153,10 @@
   gap: calc(14 * var(--u));
 }
 
+.lr-hero__menu {
+  display: none;
+}
+
 .lr-hero__signin {
   display: inline-flex;
   align-items: center;
@@ -451,6 +455,11 @@
     display: none;
   }
 
+  .lr-hero__menu {
+    display: inline-flex;
+    margin-left: 8px;
+  }
+
   .lr-hero__join {
     padding: 0 20px;
     font-size: 16px;
@@ -558,5 +567,12 @@
   .lr-class-card:hover img,
   .lr-hero__classes-link:hover .lr-chevron {
     transform: none;
+  }
+}
+
+/* Below 420px the badge alone carries the brand so the account pill and menu fit. */
+@media (max-width: 420px) {
+  .lr-hero__logo span {
+    display: none;
   }
 }

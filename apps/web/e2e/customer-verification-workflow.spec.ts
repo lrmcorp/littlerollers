@@ -94,11 +94,9 @@ test('pending customer sees why replacement is not yet available', async ({ page
   );
 
   await page.goto('/account/verification');
-  await expect(page.getByRole('heading', { name: 'Dokumen Anda sudah kami terima' })).toBeVisible();
-  await expect(
-    page.getByText('Upload ulang tersedia jika reviewer meminta perbaikan.'),
-  ).toHaveCount(2);
-  await expect(page.getByRole('button', { name: 'Unggah ulang dokumen' })).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'We have your documents' })).toBeVisible();
+  await expect(page.getByText('You can upload again if we ask for a fix.')).toHaveCount(2);
+  await expect(page.getByRole('button', { name: 'Upload again' })).toHaveCount(0);
 });
 
 test('notification deep-link focuses and replaces only the rejected document', async ({ page }) => {
@@ -160,16 +158,16 @@ test('notification deep-link focuses and replaces only the rejected document', a
   await page.goto('/account/verification?document=KTP_FRONT');
   const ktpCard = page.locator('#verification-document-KTP_FRONT');
   await expect(ktpCard).toBeFocused();
-  await expect(ktpCard.getByText('Pantulan cahaya menutupi dokumen')).toBeVisible();
-  await ktpCard.getByRole('button', { name: 'Unggah ulang dokumen' }).click();
-  await page.getByLabel('Pilih foto pengganti').setInputFiles({
+  await expect(ktpCard.getByText('Glare is covering the document')).toBeVisible();
+  await ktpCard.getByRole('button', { name: 'Upload again' }).click();
+  await page.getByLabel('Choose a new photo').setInputFiles({
     name: 'ktp-pengganti.png',
     mimeType: 'image/png',
     buffer: Buffer.from('replacement-image'),
   });
-  await page.getByRole('button', { name: 'Kirim dokumen pengganti' }).click();
-  await expect(page.getByText('Dokumen pengganti diterima', { exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Unggah ulang dokumen' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Send new document' }).click();
+  await expect(page.getByText('New document received', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Upload again' })).toHaveCount(0);
 });
 
 test('approval returns the customer to a sanitized checkout continuation', async ({ page }) => {

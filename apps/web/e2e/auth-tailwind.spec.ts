@@ -61,7 +61,7 @@ for (const breakpoint of breakpoints) {
   test(`Tailwind Studios ${breakpoint.name}`, async ({ page }) => {
     await page.setViewportSize(breakpoint);
     await page.goto('/locations');
-    await expect(page.getByRole('heading', { name: 'Studio Kami', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Find your club', exact: true })).toBeVisible();
     await expect(page.locator('body')).toHaveJSProperty('scrollWidth', breakpoint.width);
     await expect(page).toHaveScreenshot(`studios-${breakpoint.name}.png`, {
       animations: 'disabled',
@@ -73,7 +73,7 @@ for (const breakpoint of breakpoints) {
   test(`premium sign-in ${breakpoint.name}`, async ({ page }) => {
     await page.setViewportSize(breakpoint);
     await page.goto('/sign-in?returnTo=%2Fclasses%23schedule');
-    await expect(page.getByRole('heading', { name: 'Masuk ke Daily Dose' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Sign in', exact: true })).toBeVisible();
     await expect(page.getByLabel('Email', { exact: true })).toBeVisible();
     await expect(page.getByLabel('Password')).toBeVisible();
     await expect(page.locator('body')).toHaveJSProperty('scrollWidth', breakpoint.width);
@@ -87,15 +87,17 @@ for (const breakpoint of breakpoints) {
   test(`accessible registration ${breakpoint.name}`, async ({ page }) => {
     await page.setViewportSize(breakpoint);
     await page.goto('/register');
-    await expect(page.getByRole('heading', { name: 'Buat akun Daily Dose' })).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: 'Create a parent account', level: 1 }),
+    ).toBeVisible();
     await expect(page.locator('body')).toHaveJSProperty('scrollWidth', breakpoint.width);
 
-    const form = page.getByRole('form', { name: 'Registrasi customer' });
+    const form = page.getByRole('form', { name: 'Create a parent account' });
     await expect(form).toHaveAttribute('method', 'post');
     await expect(form).not.toHaveAttribute('action');
 
     const loginTarget = await page
-      .getByRole('link', { name: 'Masuk', exact: true })
+      .getByRole('link', { name: 'Sign in', exact: true })
       .evaluate((element) => element.getBoundingClientRect().height);
     expect(loginTarget).toBeGreaterThanOrEqual(44);
 
@@ -104,7 +106,7 @@ for (const breakpoint of breakpoints) {
       .evaluate((element) => element.getBoundingClientRect().height);
     if (breakpoint.width <= 800) expect(heroHeight).toBe(140);
 
-    const registerAction = page.getByRole('button', { name: 'Daftar dan masuk' });
+    const registerAction = page.getByRole('button', { name: 'Create account' });
     const registerActionStyle = await registerAction.evaluate((element) => {
       const style = getComputedStyle(element);
       const rect = element.getBoundingClientRect();
@@ -115,7 +117,7 @@ for (const breakpoint of breakpoints) {
       };
     });
     expect(registerActionStyle).toEqual({
-      backgroundColor: 'rgb(40, 87, 64)',
+      backgroundColor: 'rgb(7, 50, 40)',
       color: 'rgb(255, 255, 255)',
       height: 52,
     });
@@ -125,9 +127,9 @@ for (const breakpoint of breakpoints) {
     ).not.toBe('none');
 
     await registerAction.click();
-    await expect(page.getByLabel('Nama lengkap')).toBeFocused();
-    await expect(page.getByLabel('Nama lengkap')).toHaveAttribute('aria-invalid', 'true');
-    await expect(page.getByText('Nama lengkap wajib diisi.')).toBeVisible();
+    await expect(page.getByLabel('Your full name')).toBeFocused();
+    await expect(page.getByLabel('Your full name')).toHaveAttribute('aria-invalid', 'true');
+    await expect(page.getByText('Please enter your full name.')).toBeVisible();
     await expect(page).toHaveURL('/register');
   });
 
@@ -145,7 +147,7 @@ for (const breakpoint of breakpoints) {
         minHeight: rect.height,
       };
     });
-    expect(style.backgroundColor).toBe('rgb(40, 87, 64)');
+    expect(style.backgroundColor).toBe('rgb(7, 50, 40)');
     expect(style.color).toBe('rgb(255, 255, 255)');
     expect(style.minHeight).toBeGreaterThanOrEqual(44);
     await expect(page.locator('body')).toHaveJSProperty('scrollWidth', breakpoint.width);
@@ -154,7 +156,7 @@ for (const breakpoint of breakpoints) {
   test(`activation and reset ${breakpoint.name}`, async ({ page }) => {
     await page.setViewportSize(breakpoint);
     await page.goto('/activate-account?token=visual-token');
-    await expect(page.getByRole('heading', { name: 'Buat password' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Choose a password' })).toBeVisible();
     await expect(page).toHaveScreenshot(`activation-${breakpoint.name}.png`, {
       animations: 'disabled',
       fullPage: true,
@@ -180,18 +182,18 @@ for (const breakpoint of breakpoints) {
   });
 }
 
-test('CTA kritis customer pada mobile 390', async ({ page }) => {
+test('critical parent CTAs on mobile 390', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/register');
-  const register = page.getByRole('button', { name: 'Daftar dan masuk' });
-  await expect(register).toHaveCSS('background-color', 'rgb(40, 87, 64)');
+  const register = page.getByRole('button', { name: 'Create account' });
+  await expect(register).toHaveCSS('background-color', 'rgb(7, 50, 40)');
   await expect(register).toHaveCSS('color', 'rgb(255, 255, 255)');
   expect((await register.boundingBox())?.height).toBeGreaterThanOrEqual(44);
   await expect(page.locator('body')).toHaveJSProperty('scrollWidth', 390);
 
   await page.goto('/check-in-pass#token=dd-checkin%3Av1%3Avisual-test');
   const download = page.getByRole('button', { name: 'Download QR' });
-  await expect(download).toHaveCSS('background-color', 'rgb(40, 87, 64)');
+  await expect(download).toHaveCSS('background-color', 'rgb(7, 50, 40)');
   await expect(download).toHaveCSS('color', 'rgb(255, 255, 255)');
   expect((await download.boundingBox())?.height).toBeGreaterThanOrEqual(44);
   await expect(page.locator('body')).toHaveJSProperty('scrollWidth', 390);

@@ -4,22 +4,22 @@ const routes = [
   {
     path: '/packages/6f6dca0c-74fe-4c6f-8982-33db678a0b7a',
     heading: 'Movers 10',
-    parent: 'Paket',
+    parent: 'Packages',
   },
   {
     path: '/schedule/4669d2c4-cc55-40ff-8759-10bd8369371c',
     heading: 'Movers',
-    parent: 'Jadwal',
+    parent: 'Timetable',
   },
   {
     path: '/classes/movers',
     heading: 'Movers',
-    parent: 'Kelas',
+    parent: 'Classes',
   },
   {
     path: '/locations/jakarta',
     heading: 'Little Rollers Jakarta',
-    parent: 'Studio',
+    parent: 'Clubs',
   },
 ] as const;
 

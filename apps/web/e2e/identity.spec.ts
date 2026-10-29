@@ -157,7 +157,7 @@ test('sign-in exposes success without a token body', async ({ page }) => {
   await page.goto('/sign-in?returnTo=https://evil.example/steal');
   await page.getByLabel('Email', { exact: true }).fill('owner@example.test');
   await page.getByLabel('Password').fill('secure-password');
-  await page.getByRole('button', { name: 'Masuk dengan email' }).press('Enter');
+  await page.getByRole('button', { name: 'Sign in with email' }).press('Enter');
   await expect(page).toHaveURL('/workspace');
   await expect(
     page.getByRole('heading', { name: 'Selamat datang, Synthetic Super Owner' }),
@@ -309,7 +309,7 @@ test('master creates quota without a production default and exposes overlap safe
             id: 'class-1',
             branchId: 'branch-1',
             code: 'MOVERS',
-            name: 'Reformer',
+            name: 'Movers',
             active: true,
             version: 0,
             branchScopes: [{ branchId: 'branch-1', active: true }],
@@ -349,7 +349,7 @@ test('master creates quota without a production default and exposes overlap safe
   await expect(page.getByLabel('Cabang aktif', { exact: true })).toHaveValue('Jakarta');
   await expect(
     page.getByRole('form', { name: 'Buat effective setting' }).getByRole('combobox').nth(1),
-  ).toHaveValue('Reformer');
+  ).toHaveValue('Movers');
   await page.getByLabel('Minimum peserta').fill('4');
   await page.getByLabel('Kapasitas maksimum').fill('8');
   await page.getByLabel('Efektif mulai').fill('2026-08-01');
@@ -503,7 +503,7 @@ test('permission-gated purchase review approves once and exposes only an opaque 
   await expect(
     page.getByRole('dialog', { name: 'Bukti pembayaran Customer Synthetic' }),
   ).toBeVisible();
-  await page.getByRole('button', { name: 'Tutup dialog' }).click();
+  await page.getByRole('button', { name: 'Close dialog' }).click();
   await page.getByRole('button', { name: 'Setujui', exact: true }).first().click();
   await page
     .getByRole('dialog', { name: 'Setujui pembayaran' })
@@ -616,7 +616,7 @@ test('session adjustment review uses an explicit reason and optional note', asyn
     customer: adjustablePackage.customer,
     branch: { id: 'branch-1', name: 'Jakarta' },
     package: { id: 'package-1', name: 'Ten Sessions' },
-    classType: { id: 'class-1', name: 'Reformer' },
+    classType: { id: 'class-1', name: 'Movers' },
     requestedBy: { id: 'admin-1', displayName: 'Admin Synthetic' },
     currentBalance: 10,
     currentReserved: 2,
@@ -711,7 +711,7 @@ test('class-slot draft assign publish and cancel lifecycle is keyboard operable'
             id: 'type-1',
             branchId: 'branch-1',
             code: 'REF',
-            name: 'Reformer',
+            name: 'Movers',
             active: true,
             version: 0,
             branchScopes: [{ branchId: 'branch-1', active: true }],
@@ -823,13 +823,13 @@ test('class-slot draft assign publish and cancel lifecycle is keyboard operable'
   await expect(
     page
       .getByRole('region', { name: 'Kalender kelas tujuh hari' })
-      .getByRole('button', { name: /Reformer/ }),
+      .getByRole('button', { name: /Movers/ }),
   ).toBeVisible();
   await selectSearchOption(page, 'Cabang aktif', 'Jakarta');
   await expect(
     page
       .getByRole('region', { name: 'Kalender kelas tujuh hari' })
-      .getByRole('button', { name: /Reformer/ }),
+      .getByRole('button', { name: /Movers/ }),
   ).toBeVisible();
   for (const viewport of [
     { name: 'desktop-1280', width: 1280, height: 900 },
@@ -846,9 +846,9 @@ test('class-slot draft assign publish and cancel lifecycle is keyboard operable'
   await page.setViewportSize({ width: 1280, height: 900 });
   await page
     .getByRole('region', { name: 'Kalender kelas tujuh hari' })
-    .getByRole('button', { name: /Reformer/ })
+    .getByRole('button', { name: /Movers/ })
     .click();
-  const dialog = page.getByRole('dialog', { name: 'Reformer' });
+  const dialog = page.getByRole('dialog', { name: 'Movers' });
   const instructorSection = dialog
     .getByRole('heading', { name: 'Tetapkan instructor' })
     .locator('..');

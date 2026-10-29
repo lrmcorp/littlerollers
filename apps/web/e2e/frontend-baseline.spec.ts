@@ -365,11 +365,11 @@ test('public catalog requires a studio then shows authoritative availability', a
     });
   });
   await page.goto('/classes');
-  await expect(page.getByText('Pilih studio untuk melihat kelas')).toBeVisible();
-  await selectSearchOption(page, 'Studio', 'Green Garden');
+  await expect(page.getByText('Choose a club to see sessions')).toBeVisible();
+  await selectSearchOption(page, 'Club', 'Green Garden');
   await expect(page.getByRole('heading', { name: 'Private Class', exact: true })).toBeVisible();
-  await expect(page.getByText('2/4 tempat')).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Buka workspace kelas' })).toHaveAttribute(
+  await expect(page.getByText('2 of 4 left')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Open class workspace' })).toHaveAttribute(
     'href',
     '/workspace/classes',
   );
@@ -405,11 +405,11 @@ test('public package catalog requires a studio and uses authoritative commercial
     });
   });
   await page.goto('/packages');
-  await expect(page.getByText('Pilih studio untuk melihat paket')).toBeVisible();
+  await expect(page.getByText('Choose a club to see packages')).toBeVisible();
   await page.getByRole('button', { name: /Green Garden/ }).click();
   await expect(page.getByRole('heading', { name: 'Movers Starter' })).toBeVisible();
   await expect(page.getByText(/Rp\s*1\.200\.000/)).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Masuk untuk memilih' })).toHaveAttribute(
+  await expect(page.getByRole('link', { name: 'Sign in to buy' })).toHaveAttribute(
     'href',
     '/sign-in?returnTo=%2Fcheckout%3Fpackage%3Dpackage-1%26branch%3Dbranch-1',
   );
@@ -422,58 +422,39 @@ test('public information routes expose approved content and official support onl
   await expect(page.getByRole('heading', { name: 'Little Rollers Jakarta' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Little Rollers BSD' })).toBeVisible();
   await expect(page.getByText(/Surabaya|PIK 2/)).toHaveCount(0);
-  await expect(page.getByText(/Alamat lengkap, jam operasional/)).toBeVisible();
+  await expect(page.getByText(/Each club has its own timetable and packages/)).toBeVisible();
   await page.goto('/contact');
-  await expect(page.getByRole('heading', { name: 'Ada yang ingin Anda tanyakan?' })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Buka kontak resmi ↗' })).toHaveAttribute(
-    'href',
-    'https://dailydosepilates.com/contact-us',
-  );
+  await expect(
+    page.getByRole('heading', { name: 'Questions before your first session?' }),
+  ).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Message a club' })).toBeVisible();
+  await expect(page.locator('a[href*="dailydose"]')).toHaveCount(0);
 });
 
 for (const breakpoint of breakpoints) {
   test(`public landing ${breakpoint.name}`, async ({ page }) => {
+    // The hero plate and loop live on a CDN; block them so the snapshot shows the
+    // painted fallback scene in every environment.
+    await page.route('**/*.cloudfront.net/**', (route) => route.abort());
     await page.setViewportSize({ width: breakpoint.width, height: breakpoint.height });
     await page.goto('/');
 
-    await expect(
-      page.getByRole('heading', {
-        name: 'Stronger Body. Calmer Mind.',
-      }),
-    ).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Kids Movement Club', level: 1 })).toBeVisible();
     if (breakpoint.width >= 1024) {
-      await expect(page.getByRole('navigation', { name: 'Navigasi publik' })).toBeVisible();
+      await expect(page.getByRole('navigation', { name: 'Main', exact: true })).toBeVisible();
     } else {
-      await expect(page.getByRole('button', { name: 'Buka menu navigasi' })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Open menu' })).toBeVisible();
     }
-    await expect(page.getByRole('heading', { name: 'Movers', exact: true })).toBeVisible();
-    if (breakpoint.width >= 1024) {
-      await expect(page.getByText('Akun Saya', { exact: true }).first()).toBeVisible();
-    } else {
-      await expect(page.getByRole('link', { name: /Buka workspace/i })).toHaveAttribute(
-        'href',
-        '/workspace',
-      );
+    await expect(page.getByText('Movers', { exact: true }).first()).toBeVisible();
+    for (const link of await page.getByRole('link', { name: 'My account' }).all()) {
+      await expect(link).toHaveAttribute('href', '/workspace');
     }
-    for (const link of await page.getByRole('link', { name: 'Jelajahi Studio' }).all()) {
-      await expect(link).toHaveAttribute('href', '/locations');
-    }
-    const scheduleLinks = page.getByRole('link', { name: 'Lihat Jadwal' });
+    const scheduleLinks = page.getByRole('link', { name: 'See the timetable' });
     expect(await scheduleLinks.count()).toBeGreaterThanOrEqual(2);
     for (const link of await scheduleLinks.all()) {
       await expect(link).toHaveAttribute('href', '/classes#schedule');
     }
-    const studioShowcase = page.getByRole('img', {
-      name: 'Reception Daily Dose Pilates dengan interior hangat',
-    });
-    await expect
-      .poll(() =>
-        studioShowcase.evaluate(
-          (image) =>
-            (image as HTMLImageElement).complete && (image as HTMLImageElement).naturalWidth > 0,
-        ),
-      )
-      .toBe(true);
+    await expect(page.getByText(/pilates/i)).toHaveCount(0);
     await expect(page.getByText(/trial class/i)).toHaveCount(0);
     const dimensions = await page.evaluate(() => ({
       viewport: document.documentElement.clientWidth,

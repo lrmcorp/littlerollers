@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 const session = {
   id: 'super-admin-1',
-  displayName: 'Super Admin Daily Dose',
+  displayName: 'Super Admin Little Rollers',
   roles: ['SUPER_OWNER'],
   branchIds: ['branch-1'],
   sessionExpiresAt: '2027-08-12T00:00:00.000Z',
@@ -56,9 +56,9 @@ test.beforeEach(async ({ page }) => {
 
 test('public sign-in hides optional Google configuration details', async ({ page }) => {
   await page.goto('/sign-in');
-  await expect(page.getByRole('heading', { name: 'Masuk ke Daily Dose' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Sign in', exact: true })).toBeVisible();
   await expect(page.getByText(/Google|client ID|production|configuration/i)).toHaveCount(0);
-  await expect(page.getByRole('button', { name: /Masuk dengan email/i })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Sign in with email/i })).toBeVisible();
 });
 
 test('Super Admin creates and opens an integrated customer without exposing the password', async ({
