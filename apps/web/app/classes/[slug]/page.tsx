@@ -13,7 +13,7 @@ export async function generateMetadata({
     `/public/class-types/${encodeURIComponent(slug)}`,
   );
   const name = item
-    ? (item.packages[0]?.classType?.name ?? item.schedules[0]?.classType?.name ?? null)
+    ? (item.schedules[0]?.classType?.name ?? null)
     : null;
   const title = name ?? 'Class details';
   const description =

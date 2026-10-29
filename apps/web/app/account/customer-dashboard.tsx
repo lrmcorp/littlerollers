@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { CalendarDays, CreditCard, House, PackageCheck, ShieldCheck } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { CalendarDays, Clock } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
 import { AlertBanner } from '../components/app-feedback';
 import { ButtonLink } from '../components/actions';
 import { orderStatusLabels } from '../order-presenters';
@@ -46,247 +46,256 @@ const rupiah = new Intl.NumberFormat('id-ID', {
   maximumFractionDigits: 0,
 });
 
+const dayTime = (value: string, timezone: string) =>
+  new Date(value).toLocaleString('en-GB', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: timezone,
+  });
+
+const time = (value: string, timezone: string) =>
+  new Date(value).toLocaleTimeString('en-GB', {
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: timezone,
+  });
+
+/**
+ * A parent opens this page to answer "when is the next session?", so that answer is the
+ * one focal block. Sessions left and unpaid orders follow; everything else is a link.
+ */
 export function CustomerDashboard() {
   const session = useSessionContext()?.session;
   const [overview, setOverview] = useState<CustomerDashboardOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  useEffect(() => {
+  const load = useCallback(() => {
+    setLoading(true);
+    setError('');
     fetch('/api/v1/me/dashboard', { credentials: 'include' })
       .then(async (response) => {
         if (!response.ok) throw new Error('DASHBOARD_UNAVAILABLE');
         return response.json() as Promise<CustomerDashboardOverview>;
       })
       .then(setOverview)
-      .catch(() => setError('Ringkasan akun belum dapat dimuat. Silakan coba kembali.'))
+      .catch(() => setError('Your account summary did not load.'))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => load(), [load]);
 
   if (!session) return null;
   if (loading)
     return (
-      <section className="rounded-dd-xl border border-dd-line bg-white p-6">
-        <Skeleton label="Menyiapkan dashboard" />
+      <section className="rounded-[22px] bg-white p-6">
+        <Skeleton label="Loading your account" />
       </section>
     );
 
   const verificationStatus =
     overview?.verification.status ??
     (session.identityVerificationStatus === 'APPROVED' ? 'APPROVED' : 'PENDING');
+  const next = overview?.upcomingBookings[0];
+  const later = overview?.upcomingBookings.slice(1, 4) ?? [];
 
   return (
-    <main className="space-y-7" aria-labelledby="customer-dashboard-title">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-dd-forest">
-            Dashboard saya
-          </p>
-          <h1 id="customer-dashboard-title" className="mt-2 text-2xl font-semibold sm:text-3xl">
-            Halo, {session.displayName}
-          </h1>
-          <p className="mt-2 text-sm leading-6 text-dd-muted">
-            Jadwal, paket, dan pembayaran yang perlu Anda perhatikan.
-          </p>
-        </div>
-        <ButtonLink href="/classes#schedule">Booking kelas</ButtonLink>
-      </header>
+    <main className="grid gap-6" aria-labelledby="customer-dashboard-title">
+      <h1 id="customer-dashboard-title" className="font-display text-3xl text-dd-forest sm:text-4xl">
+        Hi, {session.displayName}
+      </h1>
 
       {error && (
-        <div className="grid gap-3">
-          <AlertBanner tone="danger" title="Dashboard belum lengkap" message={error} />
-          <div>
-            <ButtonLink href="/" variant="secondary" leadingIcon={<House className="size-4" />}>
-              Kunjungi situs utama
-            </ButtonLink>
-          </div>
-        </div>
+        <AlertBanner
+          tone="danger"
+          title="Something is missing"
+          message={error}
+          action={{ label: 'Try again', onSelect: () => load() }}
+        />
       )}
       {verificationStatus !== 'APPROVED' && (
         <AlertBanner
           tone={verificationStatus === 'ACTION_REQUIRED' ? 'warning' : 'info'}
           title={
             verificationStatus === 'ACTION_REQUIRED'
-              ? 'Dokumen perlu diperbaiki'
-              : 'Verifikasi sedang berlangsung'
+              ? 'Your documents need a fix'
+              : 'We are checking your documents'
           }
-          message="Pembelian paket dan booking terbuka setelah Selfie serta KTP disetujui."
+          message="You can buy packages and book sessions once we approve your selfie and KTP."
           action={{
-            label: 'Lihat verifikasi',
+            label: 'See verification',
             onSelect: () => window.location.assign('/account/verification'),
           }}
         />
       )}
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Ringkasan akun">
-        <MetricCard
-          icon={CalendarDays}
-          label="Booking mendatang"
-          value={String(overview?.upcomingBookings.length ?? 0)}
-          href="/bookings"
+      <section
+        className="relative overflow-hidden rounded-[22px] bg-dd-forest p-6 text-dd-cream sm:p-8"
+        aria-labelledby="next-session-title"
+      >
+        <span
+          className="absolute -top-16 -right-10 hidden size-64 rounded-full bg-lr-sun md:block"
+          aria-hidden="true"
         />
-        <MetricCard
-          icon={PackageCheck}
-          label="Paket aktif"
-          value={String(overview?.packages.length ?? 0)}
-          href="/account/packages"
-        />
-        <MetricCard
-          icon={CreditCard}
-          label="Pesanan aktif"
-          value={String(overview?.actionableOrders.length ?? 0)}
-          href="/orders"
-        />
-        <MetricCard
-          icon={ShieldCheck}
-          label="Notifikasi belum dibaca"
-          value={String(overview?.unreadNotifications ?? 0)}
-          href="/account"
-        />
+        <div className="relative max-w-md">
+          <h2 className="m-0 font-display text-lg text-lr-sun" id="next-session-title">
+            Next session
+          </h2>
+          {next ? (
+            <>
+              <p className="mt-2 font-display text-[clamp(1.8rem,4vw,2.6rem)] leading-tight">
+                {next.className}
+              </p>
+              <p className="mt-2 flex items-center gap-2 text-dd-cream/90">
+                <CalendarDays className="size-4 shrink-0" aria-hidden="true" />
+                {dayTime(next.startAt, next.timezone)} to {time(next.endAt, next.timezone)}
+              </p>
+              <p className="mt-1 text-dd-cream/90">{next.branchName}</p>
+              <div className="mt-5 flex flex-wrap gap-3">
+                <Link
+                  className="inline-flex min-h-11 items-center rounded-full bg-lr-sun px-5 font-medium text-dd-forest no-underline"
+                  href={`/bookings/${next.id}`}
+                >
+                  Booking and QR pass
+                </Link>
+                <Link
+                  className="inline-flex min-h-11 items-center rounded-full border border-dd-cream/40 px-5 font-medium text-dd-cream no-underline"
+                  href="/classes#schedule"
+                >
+                  Book another
+                </Link>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="mt-2 font-display text-[clamp(1.8rem,4vw,2.4rem)] leading-tight">
+                Nothing booked yet
+              </p>
+              <p className="mt-2 text-dd-cream/90">
+                Pick a 1-hour or 2-hour session from your club&apos;s timetable.
+              </p>
+              <Link
+                className="mt-5 inline-flex min-h-11 items-center rounded-full bg-lr-sun px-5 font-medium text-dd-forest no-underline"
+                href="/classes#schedule"
+              >
+                See the timetable
+              </Link>
+            </>
+          )}
+        </div>
       </section>
 
-      <div className="grid gap-5 xl:grid-cols-2">
-        <DashboardSection
-          title="Jadwal berikutnya"
-          description="Kelas yang sudah Anda booking."
-          href="/bookings"
-          empty="Belum ada booking mendatang."
-          hasItems={Boolean(overview?.upcomingBookings.length)}
-        >
-          {overview?.upcomingBookings.map((booking) => (
-            <article
-              key={booking.id}
-              className="flex flex-wrap items-center justify-between gap-3 border-t border-dd-line py-4 first:border-t-0"
-            >
-              <div>
-                <strong className="block text-sm">{booking.className}</strong>
-                <span className="mt-1 block text-xs text-dd-muted">{booking.branchName}</span>
-              </div>
-              <time className="text-right text-sm font-semibold">
-                {new Date(booking.startAt).toLocaleString('id-ID', {
-                  weekday: 'short',
-                  day: 'numeric',
-                  month: 'short',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  timeZone: booking.timezone,
-                })}
-              </time>
-            </article>
-          ))}
-        </DashboardSection>
-
-        <DashboardSection
-          title="Pesanan perlu perhatian"
-          description="Lanjutkan transfer atau pantau pemeriksaan Finance."
-          href="/orders"
-          empty="Tidak ada pesanan yang perlu ditindak."
-          hasItems={Boolean(overview?.actionableOrders.length)}
-        >
-          {overview?.actionableOrders.map((order) => (
-            <Link
-              href={`/checkout?order=${encodeURIComponent(order.id)}`}
-              key={order.id}
-              className="flex flex-wrap items-center justify-between gap-3 border-t border-dd-line py-4 text-dd-ink no-underline first:border-t-0"
-            >
-              <div>
-                <strong className="block text-sm">{order.packageName}</strong>
-                <span className="mt-1 block text-xs text-dd-muted">
-                  {order.branchName} · {orderStatusLabels[order.status]}
-                </span>
-              </div>
-              <strong className="text-sm text-dd-forest">
-                {rupiah.format(order.payableAmountRp)}
-              </strong>
+      <div className="grid gap-6 lg:grid-cols-[1.2fr_1fr]">
+        <section className="rounded-[22px] bg-white p-5 sm:p-6" aria-labelledby="packages-title">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="m-0 font-display text-2xl text-dd-forest" id="packages-title">
+              Sessions left
+            </h2>
+            <Link className="inline-flex min-h-11 items-center text-sm font-medium" href="/account/packages">
+              All packages
             </Link>
-          ))}
-        </DashboardSection>
+          </div>
+          {overview?.packages.length ? (
+            <ul className="m-0 mt-3 grid list-none gap-3 p-0">
+              {overview.packages.map((item) => (
+                <li
+                  key={item.id}
+                  className="flex items-center justify-between gap-4 rounded-[15px] bg-lr-sky p-4"
+                >
+                  <span>
+                    <strong className="block">{item.packageName}</strong>
+                    <span className="text-sm text-dd-ink/80">
+                      {item.branchName} · until {new Date(item.expiryAt).toLocaleDateString('en-GB')}
+                    </span>
+                  </span>
+                  <strong className="shrink-0 font-display text-3xl text-dd-forest">
+                    {item.available}
+                  </strong>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="mt-3 rounded-[15px] bg-dd-surface-muted p-4">
+              <p className="m-0 text-dd-muted">No active packages yet.</p>
+              <ButtonLink className="mt-3" href="/packages" variant="secondary">
+                Compare packages
+              </ButtonLink>
+            </div>
+          )}
+        </section>
+
+        <section className="rounded-[22px] bg-white p-5 sm:p-6" aria-labelledby="orders-title">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="m-0 font-display text-2xl text-dd-forest" id="orders-title">
+              Orders to finish
+            </h2>
+            <Link className="inline-flex min-h-11 items-center text-sm font-medium" href="/orders">
+              All orders
+            </Link>
+          </div>
+          {overview?.actionableOrders.length ? (
+            <ul className="m-0 mt-3 grid list-none gap-3 p-0">
+              {overview.actionableOrders.map((order) => (
+                <li key={order.id}>
+                  <Link
+                    href={`/checkout?order=${encodeURIComponent(order.id)}`}
+                    className="flex items-center justify-between gap-3 rounded-[15px] border border-lr-sun bg-lr-sun-soft p-4 text-dd-ink no-underline"
+                  >
+                    <span>
+                      <strong className="block">{order.packageName}</strong>
+                      <span className="text-sm">
+                        {order.branchName} · {orderStatusLabels[order.status]}
+                      </span>
+                    </span>
+                    <strong className="shrink-0 text-dd-forest">
+                      {rupiah.format(order.payableAmountRp)}
+                    </strong>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-3 rounded-[15px] bg-dd-surface-muted p-4 text-dd-muted">
+              Nothing to pay right now.
+            </p>
+          )}
+        </section>
       </div>
 
-      <DashboardSection
-        title="Paket yang dapat digunakan"
-        description="Saldo sesi dan masa berlaku paket aktif."
-        href="/account/packages"
-        empty="Belum ada paket aktif."
-        hasItems={Boolean(overview?.packages.length)}
-      >
-        <div className="grid gap-3 sm:grid-cols-2">
-          {overview?.packages.map((item) => (
-            <article key={item.id} className="rounded-dd-lg bg-dd-surface-muted p-4">
-              <span className="text-xs font-semibold text-dd-muted">{item.branchName}</span>
-              <strong className="mt-1 block">{item.packageName}</strong>
-              <div className="mt-4 flex items-end justify-between gap-3">
-                <span className="text-sm text-dd-muted">
-                  Berlaku sampai {new Date(item.expiryAt).toLocaleDateString('id-ID')}
-                </span>
-                <strong className="text-xl text-dd-forest">{item.available} sesi</strong>
-              </div>
-            </article>
-          ))}
-        </div>
-      </DashboardSection>
+      {later.length > 0 && (
+        <section className="rounded-[22px] bg-white p-5 sm:p-6" aria-labelledby="later-title">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="m-0 font-display text-2xl text-dd-forest" id="later-title">
+              Coming up
+            </h2>
+            <Link className="inline-flex min-h-11 items-center text-sm font-medium" href="/bookings">
+              All bookings
+            </Link>
+          </div>
+          <ul className="m-0 mt-2 grid list-none divide-y divide-dd-line p-0">
+            {later.map((booking) => (
+              <li key={booking.id}>
+                <Link
+                  href={`/bookings/${booking.id}`}
+                  className="flex min-h-14 flex-wrap items-center justify-between gap-2 py-3 text-dd-ink no-underline"
+                >
+                  <span>
+                    <strong className="block">{booking.className}</strong>
+                    <span className="text-sm text-dd-muted">{booking.branchName}</span>
+                  </span>
+                  <span className="flex items-center gap-2 text-sm font-medium">
+                    <Clock className="size-4 text-dd-forest" aria-hidden="true" />
+                    {dayTime(booking.startAt, booking.timezone)}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </main>
-  );
-}
-
-function MetricCard({
-  icon: Icon,
-  label,
-  value,
-  href,
-}: {
-  icon: typeof CalendarDays;
-  label: string;
-  value: string;
-  href: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className="rounded-dd-xl border border-dd-line bg-white p-5 text-dd-ink no-underline shadow-dd-card transition hover:-translate-y-0.5"
-    >
-      <span className="grid size-10 place-items-center rounded-dd-lg bg-dd-surface-muted text-dd-forest">
-        <Icon className="size-5" />
-      </span>
-      <strong className="mt-4 block text-2xl">{value}</strong>
-      <span className="mt-1 block text-xs text-dd-muted">{label}</span>
-    </Link>
-  );
-}
-
-function DashboardSection({
-  title,
-  description,
-  href,
-  empty,
-  hasItems,
-  children,
-}: {
-  title: string;
-  description: string;
-  href: string;
-  empty: string;
-  hasItems: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card sm:p-6">
-      <header className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-lg font-semibold">{title}</h2>
-          <p className="mt-1 text-xs leading-5 text-dd-muted">{description}</p>
-        </div>
-        <Link href={href} className="shrink-0 text-xs font-semibold text-dd-forest">
-          Lihat semua
-        </Link>
-      </header>
-      <div className="mt-4">
-        {hasItems ? (
-          children
-        ) : (
-          <p className="rounded-dd-lg bg-dd-surface-muted p-4 text-sm text-dd-muted">{empty}</p>
-        )}
-      </div>
-    </section>
   );
 }

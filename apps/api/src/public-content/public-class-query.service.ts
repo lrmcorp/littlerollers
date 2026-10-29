@@ -49,6 +49,7 @@ export class PublicClassQueryService {
                 id: true,
                 name: true,
                 sessionCount: true,
+                sessionDurationMinutes: true,
                 durationDays: true,
                 priceRp: true,
                 promotions: {

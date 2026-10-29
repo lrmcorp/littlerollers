@@ -123,7 +123,7 @@ export function PackageDetailView({
           <section className={`${publicContainer} grid gap-8 py-10 lg:grid-cols-[1fr_0.78fr]`}>
             <div className="grid gap-8">
               <article>
-                <h2 className="font-display text-3xl text-dd-forest">About this package</h2>
+                <h2 className="m-0 font-display text-3xl text-dd-forest">About this package</h2>
                 <p className="mt-4 leading-7 text-dd-muted">{item.publicProfile.description}</p>
                 <ul className="mt-6 grid list-none gap-3 p-0 sm:grid-cols-2">
                   {item.publicProfile.highlights.map((highlight) => (
@@ -138,7 +138,7 @@ export function PackageDetailView({
                 </ul>
               </article>
               <article>
-                <h2 className="font-display text-2xl text-dd-forest">Upcoming sessions</h2>
+                <h2 className="m-0 font-display text-2xl text-dd-forest">Upcoming sessions</h2>
                 <div className="mt-4">
                   <RelatedSchedules
                     items={item.schedules.map((schedule) => ({ ...schedule, branch: item.branch }))}
@@ -155,7 +155,7 @@ export function PackageDetailView({
                 </p>
               </div>
               <div className="rounded-[15px] border border-dd-line bg-dd-paper p-6">
-                <h2 className="font-display text-xl text-dd-forest">Package terms</h2>
+                <h2 className="m-0 font-display text-xl text-dd-forest">Package terms</h2>
                 <ul className="mt-4 grid gap-3 pl-5 text-sm leading-6 text-dd-muted">
                   {item.publicProfile.terms.map((term) => (
                     <li key={term}>{term}</li>

@@ -48,7 +48,10 @@ export interface PublicClassDetail {
   profile: PublicClassProfile;
   studios: PublicProfileBranch[];
   packages: Array<
-    Pick<PublicPackageSummary, 'id' | 'name' | 'sessionCount' | 'durationDays' | 'priceRp'> & {
+    Pick<
+      PublicPackageSummary,
+      'id' | 'name' | 'sessionCount' | 'sessionDurationMinutes' | 'durationDays' | 'priceRp'
+    > & {
       publicProfile: Pick<PublicPackageProfile, 'summary'>;
       branch: PublicProfileBranch;
     } & EffectivePublicPrice
@@ -62,7 +65,10 @@ export interface PublicStudioDetail extends Pick<
 > {
   classes: Array<PublicStudioDetailAllOfClasses & { profile: PublicClassProfile }>;
   packages: Array<
-    Pick<PublicPackageSummary, 'id' | 'name' | 'sessionCount' | 'durationDays' | 'priceRp'> & {
+    Pick<
+      PublicPackageSummary,
+      'id' | 'name' | 'sessionCount' | 'sessionDurationMinutes' | 'durationDays' | 'priceRp'
+    > & {
       publicProfile: Pick<PublicPackageProfile, 'summary'>;
       classType: PublicClassTypeRef;
     } & EffectivePublicPrice

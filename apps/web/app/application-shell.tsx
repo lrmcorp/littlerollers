@@ -48,13 +48,14 @@ const roleLabels: Record<string, string> = {
 };
 
 const accountPageLabels: Record<string, string> = {
-  '/account': 'Dashboard',
-  '/account/profile': 'Profil Saya',
-  '/account/security': 'Keamanan akun',
-  '/account/verification': 'Verifikasi identitas',
+  '/account': 'Home',
+  '/account/profile': 'My profile',
+  '/account/packages': 'My packages',
+  '/account/security': 'Account security',
+  '/account/verification': 'Identity check',
   '/checkout': 'Checkout',
-  '/orders': 'Pesanan',
-  '/bookings': 'Booking',
+  '/orders': 'Orders',
+  '/bookings': 'Bookings',
   '/workspace/bookings': 'Booking',
 };
 
@@ -174,9 +175,9 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
   if (customerOnly) {
     const approved = session?.identityVerificationStatus === 'APPROVED';
     return (
-      <div className="min-h-dvh bg-dd-canvas text-dd-ink" data-customer-shell>
+      <div className="min-h-dvh bg-dd-cream text-dd-ink" data-customer-shell>
         <a className="skip-link" href="#main-content">
-          Langsung ke konten utama
+          Skip to main content
         </a>
         <CustomerNavigation
           open={mobileOpen}
@@ -187,13 +188,13 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
           onLogout={() => context?.logout()}
         />
         <header
-          className="sticky top-0 z-30 border-b border-dd-line/80 bg-dd-surface/95 pt-[env(safe-area-inset-top)] backdrop-blur-xl"
+          className="sticky top-0 z-30 border-b border-dd-forest/10 bg-lr-sky pt-[env(safe-area-inset-top)]"
           aria-hidden={mobileOverlay.rendered || undefined}
           inert={mobileOverlay.rendered || undefined}
         >
           <div className="mx-auto flex min-h-16 w-full max-w-[1440px] items-center gap-3 px-4 sm:px-6 lg:min-h-[72px] lg:px-8">
             <IconButton
-              label="Buka navigasi akun"
+              label="Open account menu"
               variant="secondary"
               aria-controls="customer-navigation"
               onClick={() => {
@@ -202,19 +203,16 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
                 setCommandOpen(false);
                 setMobileOpen(true);
               }}
-              className="rounded-dd-md border-dd-line bg-white text-dd-ink shadow-none lg:hidden"
+              className="rounded-full border-transparent bg-white text-dd-forest shadow-none lg:hidden"
             >
               <Menu className="size-5" />
             </IconButton>
-            <BrandMark
-              href="/"
-              priority
-              className="hidden w-40 shrink-0 lg:inline-flex xl:w-44"
-              ariaLabel="Daily Dose Pilates — Kembali ke situs utama"
-            />
+            <div className="hidden shrink-0 lg:block">
+              <BrandMark href="/" priority ariaLabel="Little Rollers, back to the main site" />
+            </div>
             <nav
-              aria-label="Navigasi customer"
-              className="hidden min-w-0 items-center gap-1 lg:flex xl:ml-3"
+              aria-label="Account"
+              className="hidden min-h-[50px] min-w-0 items-center gap-1 rounded-full bg-[rgba(173,196,174,0.45)] px-1.5 lg:flex xl:ml-4"
             >
               {CUSTOMER_PRIMARY_NAVIGATION.map((item) => {
                 const selected = isCustomerNavigationActive(pathname, item.href);
@@ -227,11 +225,9 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
                     key={item.href}
                     href={href}
                     aria-current={!mobileOpen && selected ? 'page' : undefined}
-                    aria-label={locked ? `${item.label}, memerlukan verifikasi` : item.label}
-                    className={`inline-flex min-h-10 items-center gap-1.5 rounded-dd-md px-3 text-xs font-semibold no-underline xl:text-sm ${
-                      selected
-                        ? 'bg-dd-forest text-white shadow-dd-soft'
-                        : 'text-dd-muted hover:bg-dd-surface-muted hover:text-dd-forest'
+                    aria-label={locked ? `${item.label}, needs verification` : item.label}
+                    className={`inline-flex min-h-10 items-center gap-1.5 rounded-full px-4 text-sm font-medium no-underline ${
+                      selected ? 'bg-dd-forest text-white' : 'text-dd-forest hover:bg-white/60'
                     }`}
                   >
                     {item.label}
@@ -241,11 +237,9 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
               })}
             </nav>
             <div className="min-w-0 flex-1 lg:hidden">
-              <span className="block text-[10px] font-bold uppercase tracking-[0.18em] text-dd-muted">
-                Akun Daily Dose
-              </span>
-              <strong className="block truncate text-sm sm:text-base">
-                {currentPageLabel ?? 'Akun Saya'}
+              <span className="block font-display text-xs text-lr-sky-deep">Little Rollers</span>
+              <strong className="block truncate font-display text-base text-dd-forest sm:text-lg">
+                {currentPageLabel ?? 'My account'}
               </strong>
             </div>
             <div className="ml-auto flex shrink-0 items-center gap-2">
@@ -253,16 +247,16 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
                 <button
                   type="button"
                   onClick={() => studioPreference?.openStudioPreference()}
-                  className="hidden min-h-10 max-w-48 items-center gap-2 truncate rounded-dd-md border border-dd-line bg-white px-3 py-2 text-xs font-semibold text-dd-ink xl:flex"
+                  className="hidden min-h-10 max-w-56 items-center gap-2 truncate rounded-full bg-white px-4 py-2 text-sm font-medium text-dd-forest xl:flex"
                 >
                   <MapPin className="size-4 shrink-0 text-dd-forest" aria-hidden="true" />
-                  Studio: {session.preferredBranch.name}
+                  {session.preferredBranch.name}
                 </button>
               )}
               <Link
                 href="/contact"
-                aria-label="Bantuan customer"
-                className="hidden size-10 place-items-center rounded-dd-md border border-dd-line bg-white text-dd-muted no-underline sm:grid"
+                aria-label="Help"
+                className="hidden size-11 place-items-center rounded-full bg-white text-dd-forest no-underline sm:grid"
               >
                 <CircleHelp className="size-[18px]" />
               </Link>
@@ -283,7 +277,7 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
               <div className="relative" ref={profileRoot}>
                 <IconButton
                   ref={profileTrigger}
-                  label={`Menu profil ${session?.displayName ?? 'customer'}`}
+                  label={`Profile menu for ${session?.displayName ?? 'your account'}`}
                   variant="secondary"
                   aria-expanded={profileOpen}
                   aria-controls="customer-profile-menu"
@@ -292,9 +286,9 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
                     setCommandOpen(false);
                     setProfileOpen((open) => !open);
                   }}
-                  className="rounded-dd-md border-dd-line bg-white text-dd-ink shadow-none"
+                  className="rounded-full border-transparent bg-white text-dd-ink shadow-none"
                 >
-                  <span className="grid size-8 place-items-center rounded-dd-md bg-dd-sidebar text-white">
+                  <span className="grid size-8 place-items-center rounded-full bg-dd-forest text-white">
                     <UserRound className="size-4" />
                   </span>
                 </IconButton>
@@ -302,15 +296,15 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
                   <div
                     id="customer-profile-menu"
                     role="region"
-                    aria-label="Menu akun customer"
-                    className="absolute right-0 z-[90] mt-2 w-[min(16rem,calc(100vw-2rem))] rounded-dd-lg border border-dd-line bg-white p-2 shadow-dd-float"
+                    aria-label="Account menu"
+                    className="absolute right-0 z-[90] mt-2 w-[min(16rem,calc(100vw-2rem))] rounded-[15px] border border-dd-line bg-white p-2 shadow-dd-float"
                   >
                     <div className="mb-2 border-b border-dd-line px-3 py-3">
                       <strong className="block truncate text-sm">
-                        {session?.displayName ?? 'Akun customer'}
+                        {session?.displayName ?? 'My account'}
                       </strong>
                       <span className="mt-1 block text-xs text-dd-muted">
-                        Customer · {session?.preferredBranch?.name ?? 'Studio belum dipilih'}
+                        {session?.preferredBranch?.name ?? 'No home club chosen yet'}
                       </span>
                     </div>
                     {CUSTOMER_ACCOUNT_NAVIGATION.map((item) => {
@@ -325,7 +319,7 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
                               : item.href
                           }
                           onClick={() => setProfileOpen(false)}
-                          aria-label={locked ? `${item.label}, memerlukan verifikasi` : item.label}
+                          aria-label={locked ? `${item.label}, needs verification` : item.label}
                           className="flex min-h-10 items-center gap-2 rounded-dd-md px-3 text-sm font-semibold text-dd-ink no-underline hover:bg-dd-surface-muted"
                         >
                           <Icon className="size-4" aria-hidden="true" />
@@ -345,7 +339,7 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
                       className="flex min-h-10 w-full items-center gap-2 rounded-dd-md border-0 bg-transparent px-3 text-left text-sm font-semibold text-dd-ink hover:bg-dd-surface-muted"
                     >
                       <MapPin className="size-4" aria-hidden="true" />
-                      Ganti studio
+                      Change club
                     </button>
                     <div className="mt-1 border-t border-dd-line pt-1">
                       <Link
@@ -354,14 +348,14 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
                         className="flex min-h-10 items-center gap-2 rounded-dd-md px-3 text-sm font-semibold text-dd-ink no-underline hover:bg-dd-surface-muted"
                       >
                         <House className="size-4" aria-hidden="true" />
-                        Kunjungi situs utama
+                        Main site
                       </Link>
                     </div>
                     <button
                       className="mt-1 flex min-h-10 w-full items-center rounded-dd-md border-0 bg-transparent px-3 text-sm font-semibold text-dd-danger hover:bg-dd-danger-soft"
                       onClick={() => void context?.logout()}
                     >
-                      Keluar
+                      Sign out
                     </button>
                   </div>
                 )}
@@ -372,12 +366,12 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
             <button
               type="button"
               onClick={() => studioPreference?.openStudioPreference()}
-              className="flex min-h-9 w-full items-center gap-1.5 rounded-none border-x-0 border-b-0 border-t border-dd-line bg-transparent px-4 py-2 text-left text-xs text-dd-muted sm:px-6 xl:hidden"
+              className="flex min-h-11 w-full items-center gap-1.5 rounded-none border-x-0 border-b-0 border-t border-dd-forest/10 bg-transparent px-4 py-2 text-left text-sm text-dd-ink sm:px-6 xl:hidden"
             >
               <MapPin className="size-3.5 shrink-0 text-dd-forest" aria-hidden="true" />
-              Studio aktif:{' '}
-              <strong className="truncate text-dd-ink">{session.preferredBranch.name}</strong>
-              <span className="ml-auto font-semibold text-dd-forest">Ganti</span>
+              Home club:{' '}
+              <strong className="truncate text-dd-forest">{session.preferredBranch.name}</strong>
+              <span className="ml-auto font-semibold text-dd-forest">Change</span>
             </button>
           )}
         </header>

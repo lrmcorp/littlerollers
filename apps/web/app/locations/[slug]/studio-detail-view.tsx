@@ -81,7 +81,7 @@ export function StudioDetailView({
           />
           <section className={`${publicContainer} grid gap-8 py-10 lg:grid-cols-[1fr_0.72fr]`}>
             <div>
-              <h2 className="font-display text-3xl text-dd-forest">The club</h2>
+              <h2 className="m-0 font-display text-3xl text-dd-forest">The club</h2>
               <div className="mt-5 grid gap-4 sm:grid-cols-2">
                 {(item.publicProfile.galleryImageKeys ?? []).map((key, index) => (
                   <div
@@ -113,7 +113,7 @@ export function StudioDetailView({
                 </dl>
               </div>
               <div className="rounded-[15px] border border-dd-line bg-dd-paper p-6">
-                <h2 className="font-display text-xl text-dd-forest">At the club</h2>
+                <h2 className="m-0 font-display text-xl text-dd-forest">At the club</h2>
                 <ul className="mt-4 grid list-none gap-3 p-0 text-sm">
                   {(item.publicProfile.amenities ?? []).map((value) => (
                     <li className="flex gap-2" key={value}>
@@ -124,7 +124,7 @@ export function StudioDetailView({
                 </ul>
               </div>
               <div className="rounded-[15px] border border-dd-line bg-white p-6">
-                <h2 className="font-display text-xl text-dd-forest">Getting here</h2>
+                <h2 className="m-0 font-display text-xl text-dd-forest">Getting here</h2>
                 <p className="mt-3 text-sm leading-6 text-dd-muted">
                   {item.publicProfile.arrivalInformation}
                 </p>
@@ -138,7 +138,7 @@ export function StudioDetailView({
           </section>
           <section className="border-y border-dd-line bg-white py-10">
             <div className={publicContainer}>
-              <h2 className="font-display text-3xl text-dd-forest">Classes at this club</h2>
+              <h2 className="m-0 font-display text-3xl text-dd-forest">Classes at this club</h2>
               <div className="mt-5 grid gap-4 md:grid-cols-3">
                 {item.classes.map((entry) => (
                   <article
@@ -161,13 +161,13 @@ export function StudioDetailView({
           </section>
           <section className={`${publicContainer} grid gap-10 py-10 lg:grid-cols-2`}>
             <div>
-              <h2 className="font-display text-3xl text-dd-forest">Next sessions</h2>
+              <h2 className="m-0 font-display text-3xl text-dd-forest">Next sessions</h2>
               <div className="mt-5">
                 <RelatedSchedules items={item.schedules} />
               </div>
             </div>
             <div>
-              <h2 className="font-display text-3xl text-dd-forest">Packages</h2>
+              <h2 className="m-0 font-display text-3xl text-dd-forest">Packages</h2>
               <div className="mt-5 grid gap-3">
                 {item.packages.slice(0, 4).map((pkg) => (
                   <Link

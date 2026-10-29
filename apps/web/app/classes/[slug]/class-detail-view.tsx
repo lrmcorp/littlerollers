@@ -19,10 +19,11 @@ import {
   publicSecondaryButton,
 } from '../../components/public/public-detail-shared';
 import { PackagePrice } from '../../components/public/package-price';
+import { accountClient } from '../../account-client';
 
-/** The profile carries no display name, so read it from the class's own packages or sessions. */
-export function classDisplayName(item: PublicClassDetail) {
-  const named = item.packages[0]?.classType?.name ?? item.schedules[0]?.classType?.name;
+/** The profile has no display name; use the site catalogue name, then a session's class name. */
+export function classDisplayName(item: PublicClassDetail, catalogueName?: string) {
+  const named = catalogueName ?? item.schedules[0]?.classType?.name;
   if (named) return named;
   const code = item.profile.code.toLowerCase();
   return code.charAt(0).toUpperCase() + code.slice(1);
@@ -38,6 +39,20 @@ export function ClassDetailView({
   const [item, setItem] = useState<PublicClassDetail | null>(initialData);
   const [failure, setFailure] = useState('');
   const [attempt, setAttempt] = useState(0);
+  const [catalogueName, setCatalogueName] = useState<string>();
+  useEffect(() => {
+    let active = true;
+    accountClient
+      .siteConfig()
+      .then((config) => {
+        if (active) setCatalogueName(config.classes.find((entry) => entry.slug === slug)?.name);
+      })
+      // The page still renders with the fallback name if the catalogue is unavailable.
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [slug]);
   useEffect(() => {
     let active = true;
     if (initialData && attempt === 0) return;
@@ -54,7 +69,7 @@ export function ClassDetailView({
     <PublicDetailFrame
       breadcrumb={[
         { label: 'Classes', href: '/classes' },
-        { label: item ? classDisplayName(item) : 'Class' },
+        { label: item ? classDisplayName(item, catalogueName) : 'Class' },
       ]}
     >
       {!item && !failure && <DetailLoading label="class" />}
@@ -69,7 +84,7 @@ export function ClassDetailView({
         <>
           <DetailHero
             eyebrow="Class"
-            title={classDisplayName(item)}
+            title={classDisplayName(item, catalogueName)}
             summary={item.profile.summary}
             imageKey={item.profile.heroImageKey}
             facts={
@@ -101,7 +116,7 @@ export function ClassDetailView({
           />
           <section className={`${publicContainer} grid gap-10 py-10 lg:grid-cols-[1fr_0.8fr]`}>
             <article>
-              <h2 className="font-display text-3xl text-dd-forest">About this class</h2>
+              <h2 className="m-0 font-display text-3xl text-dd-forest">About this class</h2>
               <p className="mt-4 leading-7 text-dd-muted">{item.profile.description}</p>
               <h3 className="mt-8 font-display text-xl text-dd-forest">What children practise</h3>
               <ul className="mt-4 grid list-none gap-3 p-0 sm:grid-cols-2">
@@ -117,7 +132,7 @@ export function ClassDetailView({
               </ul>
             </article>
             <aside className="rounded-[15px] bg-lr-sky p-6">
-              <h2 className="font-display text-xl text-dd-forest">What to bring</h2>
+              <h2 className="m-0 font-display text-xl text-dd-forest">What to bring</h2>
               <ul className="mt-4 grid gap-3 pl-5 text-sm text-dd-ink">
                 {item.profile.equipment.map((value) => (
                   <li key={value}>{value}</li>
@@ -139,7 +154,7 @@ export function ClassDetailView({
           </section>
           <section className="border-y border-dd-line bg-white py-10">
             <div className={publicContainer}>
-              <h2 className="font-display text-3xl text-dd-forest">Packages for this class</h2>
+              <h2 className="m-0 font-display text-3xl text-dd-forest">Packages for this class</h2>
               <div className="mt-5 grid gap-4 md:grid-cols-2">
                 {item.packages.slice(0, 4).map((pkg) => (
                   <article
@@ -166,7 +181,7 @@ export function ClassDetailView({
             </div>
           </section>
           <section className={`${publicContainer} py-10`}>
-            <h2 className="font-display text-3xl text-dd-forest">Next sessions</h2>
+            <h2 className="m-0 font-display text-3xl text-dd-forest">Next sessions</h2>
             <div className="mt-5">
               <RelatedSchedules items={item.schedules} />
             </div>

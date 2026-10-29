@@ -40,6 +40,7 @@ export class PublicStudioQueryService {
                     id: true,
                     name: true,
                     sessionCount: true,
+                    sessionDurationMinutes: true,
                     durationDays: true,
                     priceRp: true,
                     promotions: {

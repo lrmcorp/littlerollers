@@ -149,7 +149,7 @@ export function LocationsView() {
                           />
                         </div>
                         <div className="p-5 sm:p-6">
-                          <h2 className="font-display text-2xl text-dd-forest">{name}</h2>
+                          <h2 className="m-0 font-display text-2xl text-dd-forest">{name}</h2>
                           <p className="mt-2 flex items-start gap-2 text-sm text-dd-muted">
                             <MapPin className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
                             {publicProfile.address}
@@ -179,7 +179,7 @@ export function LocationsView() {
         <section className={`${container} pb-4`}>
           <div className="flex flex-col items-start justify-between gap-4 rounded-[22px] bg-dd-forest p-6 text-dd-cream sm:flex-row sm:items-center sm:p-8">
             <div>
-              <h2 className="font-display text-2xl">No club near you yet?</h2>
+              <h2 className="m-0 font-display text-2xl">No club near you yet?</h2>
               <p className="mt-2 text-dd-cream/85">Tell us your area and we will let you know.</p>
             </div>
             <Link

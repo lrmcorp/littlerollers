@@ -253,7 +253,7 @@ export function PublicPackagesView({
           <div className={publicContainer}>
             <header className="mb-2 max-w-3xl">
               <h2
-                className="font-display text-[clamp(1.75rem,3.2vw,2.25rem)] leading-tight text-dd-forest"
+                className="m-0 font-display text-[clamp(1.75rem,3.2vw,2.25rem)] leading-tight text-dd-forest"
                 id="package-discovery-title"
               >
                 Which club will you visit?

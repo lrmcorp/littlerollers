@@ -1,19 +1,19 @@
 import type { CustomerOrderTimelineType, OrderStatus } from './order-client';
 
 export const orderStatusLabels: Record<OrderStatus, string> = {
-  AWAITING_PAYMENT: 'Menunggu pembayaran',
-  PENDING: 'Sedang diperiksa',
-  ACTION_REQUIRED: 'Perlu diperbaiki',
-  APPROVED: 'Disetujui',
-  REJECTED: 'Ditolak',
-  EXPIRED: 'Kedaluwarsa',
+  AWAITING_PAYMENT: 'Waiting for payment',
+  PENDING: 'Being checked',
+  ACTION_REQUIRED: 'Needs a fix',
+  APPROVED: 'Approved',
+  REJECTED: 'Not approved',
+  EXPIRED: 'Expired',
 };
 
 export const orderReasonLabels: Record<string, string> = {
-  PROOF_INVALID: 'Bukti pembayaran tidak valid. Unggah foto atau dokumen yang lebih jelas.',
-  AMOUNT_MISMATCH: 'Nominal transfer tidak sesuai dengan total pembayaran.',
-  DUPLICATE_PURCHASE: 'Pesanan terdeteksi sebagai transaksi duplikat.',
-  OTHER_REVIEW_REQUIRED: 'Bukti memerlukan pemeriksaan atau perbaikan tambahan.',
+  PROOF_INVALID: 'We could not read the proof of payment. Upload a clearer photo or file.',
+  AMOUNT_MISMATCH: 'The amount transferred does not match the total to pay.',
+  DUPLICATE_PURCHASE: 'This order looks like a duplicate of another one.',
+  OTHER_REVIEW_REQUIRED: 'The proof of payment needs another look or a fix.',
 };
 
 export function formatPaymentCode(code: number | null) {
@@ -25,39 +25,39 @@ export const orderTimelineLabels: Record<
   { title: string; description: string }
 > = {
   ORDER_CREATED: {
-    title: 'Pesanan dibuat',
-    description: 'Harga, paket, dan studio dicatat untuk pesanan ini.',
+    title: 'Order placed',
+    description: 'We saved the price, package and club for this order.',
   },
   PAYMENT_DEADLINE_SET: {
-    title: 'Batas pembayaran ditetapkan',
-    description: 'Pembayaran perlu diselesaikan sebelum masa pesanan berakhir.',
+    title: 'Payment deadline set',
+    description: 'Please pay before the order expires.',
   },
   PROOF_SUBMITTED: {
-    title: 'Bukti pembayaran diterima',
-    description: 'File pembayaran berhasil diterima melalui penyimpanan privat.',
+    title: 'Proof of payment received',
+    description: 'Your file was received and stored privately.',
   },
   PROOF_SCAN_COMPLETED: {
-    title: 'Pemeriksaan file selesai',
-    description: 'Pemeriksaan keamanan file selesai dan bukti siap ditinjau.',
+    title: 'File check finished',
+    description: 'The file passed the safety check and is ready to review.',
   },
   ACTION_REQUIRED: {
-    title: 'Perbaikan bukti diminta',
-    description: 'Tim Finance meminta bukti pembayaran diperbaiki.',
+    title: 'Fix requested',
+    description: 'Our finance team asked for a new proof of payment.',
   },
   PAYMENT_APPROVED: {
-    title: 'Pembayaran disetujui',
-    description: 'Pembayaran telah dikonfirmasi oleh tim yang berwenang.',
+    title: 'Payment approved',
+    description: 'Our team confirmed your payment.',
   },
   PAYMENT_REJECTED: {
-    title: 'Pembayaran ditolak',
-    description: 'Pesanan ditutup berdasarkan hasil pemeriksaan pembayaran.',
+    title: 'Payment not approved',
+    description: 'The order was closed after the payment check.',
   },
   ORDER_EXPIRED: {
-    title: 'Pesanan kedaluwarsa',
-    description: 'Batas pembayaran telah berakhir.',
+    title: 'Order expired',
+    description: 'The payment deadline passed.',
   },
   PACKAGE_ACTIVATED: {
-    title: 'Paket diaktifkan',
-    description: 'Sesi paket telah ditambahkan ke akun customer.',
+    title: 'Package activated',
+    description: 'The sessions were added to your account.',
   },
 };

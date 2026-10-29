@@ -1,59 +1,73 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, CalendarCheck2, CheckCircle2, MessageCircle } from 'lucide-react';
+import { ArrowLeft, CalendarCheck2, CheckCircle2, Clock, MessageCircle } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import {
-  bookingFailure,
   browserBookingClient,
+  customerBookingFailure,
   type Booking,
   type BookingClient,
   type CustomerBookingOptions,
 } from '../../booking-client';
-import { EmptyState, Feedback, PageHeader, Skeleton, StatusBadge } from '../../ui';
+import { EmptyState, Feedback, Skeleton } from '../../ui';
 import { Button } from '../../components/actions';
-import { Panel } from '../../components/admin/admin-ui';
-import { controlClassName } from '../../components/forms';
 
-const dateTime = (value: Date, timezone: string) =>
-  new Intl.DateTimeFormat('id-ID', {
-    dateStyle: 'full',
-    timeStyle: 'short',
+const dateLabel = (value: Date, timezone: string) =>
+  new Intl.DateTimeFormat('en-GB', { dateStyle: 'full', timeZone: timezone }).format(value);
+
+const timeLabel = (value: Date, timezone: string) =>
+  new Intl.DateTimeFormat('en-GB', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
     timeZone: timezone,
   }).format(value);
 
 const eligibilityCopy = {
   IDENTITY_VERIFICATION_REQUIRED: {
-    title: 'Verifikasi identitas diperlukan',
-    description: 'Selfie dan KTP harus disetujui sebelum sesi dapat direservasi atas nama Anda.',
+    title: 'Identity check needed',
+    description: 'We need to approve your selfie and KTP before you can book sessions.',
   },
   MATCHING_PACKAGE_REQUIRED: {
-    title: 'Paket yang sesuai diperlukan',
-    description: 'Anda belum memiliki paket aktif untuk studio dan tipe kelas ini.',
+    title: 'You need a package for this class',
+    description: 'You have no active package for this club and class yet.',
   },
   INSUFFICIENT_AVAILABLE_SESSION: {
-    title: 'Saldo sesi belum mencukupi',
-    description:
-      'Paket yang sesuai tersedia, tetapi seluruh saldonya sudah terpakai atau direservasi.',
+    title: 'No sessions left to book',
+    description: 'Your matching packages are used up or already booked.',
   },
   SLOT_FULL: {
-    title: 'Kelas sudah penuh',
-    description: 'Kapasitas kelas ini tidak lagi tersedia. Pilih jadwal lain untuk melanjutkan.',
+    title: 'This session is full',
+    description: 'Pick another session from the timetable.',
   },
   SLOT_UNAVAILABLE: {
-    title: 'Kelas tidak tersedia',
-    description: 'Status kelas berubah dan booking tidak dapat dilanjutkan.',
+    title: 'This session is not open',
+    description: 'The session changed and can no longer be booked.',
   },
   BOOKING_CUTOFF_PASSED: {
-    title: 'Waktu booking sudah ditutup',
-    description: 'Hubungi studio jika Anda memerlukan bantuan untuk jadwal ini.',
+    title: 'Booking has closed',
+    description: 'Contact your club if you need help with this session.',
   },
 } as const;
 
+type Length = 60 | 120;
+
 const createIntent = () => ({ signature: '', key: crypto.randomUUID() });
+
+export function lengthLabel(minutes: number) {
+  return minutes >= 120 ? '2 hours' : '1 hour';
+}
+
+/** Lengths that fit this slot: a 1-hour session uses the first hour of a longer block. */
+export function lengthsForSlot(slot: { startAt: Date; endAt: Date }): Length[] {
+  const minutes = (slot.endAt.getTime() - slot.startAt.getTime()) / 60_000;
+  return ([60, 120] as const).filter((length) => length <= minutes);
+}
 
 export function CustomerBookingFlow({ client = browserBookingClient }: { client?: BookingClient }) {
   const [options, setOptions] = useState<CustomerBookingOptions | null>(null);
+  const [length, setLength] = useState<Length | null>(null);
   const [selectedPackageId, setSelectedPackageId] = useState('');
   const [booking, setBooking] = useState<Booking | null>(null);
   const [step, setStep] = useState<'select' | 'review'>('select');
@@ -71,30 +85,37 @@ export function CustomerBookingFlow({ client = browserBookingClient }: { client?
       .options(slot)
       .then((result) => {
         setOptions(result);
-        setSelectedPackageId(result.packages[0]?.id ?? '');
+        // Start on the length the parent already owns; 2 hours if they own both.
+        const owned = new Set(result.packages.map((item) => item.sessionDurationMinutes ?? 60));
+        const initial: Length | null = owned.has(120) ? 120 : owned.has(60) ? 60 : null;
+        setLength(initial);
+        setSelectedPackageId(
+          result.packages.find((item) => (item.sessionDurationMinutes ?? 60) === initial)?.id ??
+            '',
+        );
         setStatus('ready');
       })
       .catch(async (error) => {
-        setMessage(await bookingFailure(error));
+        setMessage(await customerBookingFailure(error));
         setStatus('error');
       });
   }, [client]);
 
-  if (status === 'loading') return <Skeleton label="Memuat pilihan booking" />;
+  if (status === 'loading') return <Skeleton label="Loading booking options" />;
   if (!options)
     return (
       <section className="space-y-5">
         <EmptyState
-          title={status === 'error' ? 'Kelas tidak dapat dibuka' : 'Pilih kelas terlebih dahulu'}
-          description={message || 'Buka jadwal kelas dan pilih satu kelas yang ingin Anda ikuti.'}
+          title={status === 'error' ? 'This session could not open' : 'Pick a session first'}
+          description={message || 'Open the timetable and choose the session you want to book.'}
         />
         <div className="flex flex-wrap gap-3">
           <Link className="customer-card-action" href="/classes#schedule">
-            Kembali ke jadwal
+            Back to the timetable
           </Link>
           {status === 'error' && (
             <Link className="customer-card-action" href="/contact">
-              Hubungi studio
+              Contact the club
             </Link>
           )}
         </div>
@@ -102,40 +123,44 @@ export function CustomerBookingFlow({ client = browserBookingClient }: { client?
     );
 
   const { slot } = options;
+  const lengths = lengthsForSlot(slot);
+  const packagesForLength = options.packages.filter(
+    (item) => (item.sessionDurationMinutes ?? 60) === length,
+  );
   const selectedPackage = options.packages.find(({ id }) => id === selectedPackageId);
+  const sessionEnd = length ? new Date(slot.startAt.getTime() + length * 60_000) : slot.endAt;
   const purchaseUrl = `/packages?branch=${encodeURIComponent(slot.branchId)}&classType=${encodeURIComponent(slot.classTypeId)}&slot=${encodeURIComponent(slot.id)}`;
   const eligibility = options.eligibility;
   const eligibilityMessage = eligibility.reasonCode
     ? eligibilityCopy[eligibility.reasonCode]
     : null;
 
-  return (
-    <section className="customer-booking-flow" aria-labelledby="customer-booking-title">
-      <PageHeader
-        eyebrow="Booking kelas"
-        title="Konfirmasi kelas Anda"
-        titleId="customer-booking-title"
-        description="Pilih paket aktif yang sesuai. Satu sesi baru direservasi setelah konfirmasi berhasil."
-        context={
-          <StatusBadge tone={eligibility.canBook ? 'success' : 'warning'}>
-            {slot.available} tempat
-          </StatusBadge>
-        }
-      />
+  const chooseLength = (value: Length) => {
+    setLength(value);
+    const first = options.packages.find((item) => (item.sessionDurationMinutes ?? 60) === value);
+    setSelectedPackageId(first?.id ?? '');
+    intent.current = createIntent();
+  };
 
-      <article className="customer-selected-class">
-        <div>
-          <p className="eyebrow">{slot.branch.name}</p>
-          <h2>{slot.classType.name}</h2>
-          <p>{dateTime(slot.startAt, slot.timezone)}</p>
-        </div>
-        <StatusBadge tone="info">
-          {slot.status === 'CONFIRMED' ? 'Kelas dikonfirmasi' : 'Terbuka untuk booking'}
-        </StatusBadge>
-      </article>
+  return (
+    <section className="grid gap-6" aria-labelledby="customer-booking-title">
+      <header className="rounded-[22px] bg-dd-forest p-6 text-dd-cream sm:p-8">
+        <p className="font-display text-lg text-lr-sun">{slot.branch.name}</p>
+        <h1 className="mt-1 font-display text-[clamp(2rem,4vw,3rem)] leading-none" id="customer-booking-title">
+          {slot.classType.name}
+        </h1>
+        <p className="mt-3 text-dd-cream/85">
+          {dateLabel(slot.startAt, slot.timezone)} · block {timeLabel(slot.startAt, slot.timezone)}
+          {' to '}
+          {timeLabel(slot.endAt, slot.timezone)}
+        </p>
+        <p className="mt-1 text-sm text-dd-cream/85">
+          {slot.available === 1 ? '1 place left' : `${slot.available} places left`}
+        </p>
+      </header>
 
       {!eligibility.canBook && eligibilityMessage ? (
-        <div className="rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card">
+        <div className="rounded-[15px] border border-dd-line bg-white p-5">
           <Feedback kind="warning">
             <strong className="block text-dd-ink">{eligibilityMessage.title}</strong>
             <span className="mt-1 block">{eligibilityMessage.description}</span>
@@ -143,64 +168,61 @@ export function CustomerBookingFlow({ client = browserBookingClient }: { client?
           <div className="mt-4 flex flex-wrap gap-3">
             {eligibility.requiredAction === 'COMPLETE_IDENTITY_VERIFICATION' && (
               <Link className="customer-card-action" href="/account/verification">
-                Selesaikan verifikasi
+                Finish verification
               </Link>
             )}
             {eligibility.requiredAction === 'BUY_MATCHING_PACKAGE' && (
               <Link className="customer-card-action" href={purchaseUrl}>
-                Lihat paket yang sesuai
+                See packages for this class
               </Link>
             )}
             {eligibility.requiredAction === 'CONTACT_STUDIO' && (
               <Link className="customer-card-action" href="/contact">
-                Hubungi studio
+                Contact the club
               </Link>
             )}
             <Link className="customer-card-action" href="/classes#schedule">
-              Pilih jadwal lain
+              Pick another session
             </Link>
           </div>
         </div>
       ) : booking ? (
-        <section
-          className="rounded-dd-xl border border-emerald-200 bg-dd-success-soft p-6 shadow-dd-card"
-          aria-live="polite"
-        >
-          <CheckCircle2 className="size-9 text-dd-success" aria-hidden="true" />
-          <p className="mt-4 text-xs font-bold uppercase tracking-[0.16em] text-dd-success">
-            Booking berhasil
+        <section className="rounded-[22px] bg-lr-sun-soft p-6 sm:p-8" aria-live="polite">
+          <CheckCircle2 className="size-9 text-dd-forest" aria-hidden="true" />
+          <h2 className="mt-3 font-display text-3xl text-dd-forest">You are booked in</h2>
+          <p className="mt-2 leading-7 text-dd-ink">
+            {slot.classType.name} at {slot.branch.name},{' '}
+            {dateLabel(slot.startAt, slot.timezone)},{' '}
+            {timeLabel(slot.startAt, slot.timezone)} to {timeLabel(sessionEnd, slot.timezone)} (
+            {lengthLabel(length ?? 60)}).
           </p>
-          <h2 className="mt-2 text-2xl font-semibold">{slot.classType.name}</h2>
-          <p className="mt-2 text-sm leading-6 text-dd-success">
-            {dateTime(slot.startAt, slot.timezone)} · {slot.branch.name}
-          </p>
-          <dl className="mt-5 grid gap-3 rounded-dd-lg bg-white/70 p-4 text-sm sm:grid-cols-2">
+          <dl className="mt-5 grid gap-3 rounded-[15px] bg-white p-4 text-sm sm:grid-cols-2">
             <div>
-              <dt className="text-dd-muted">Referensi booking</dt>
+              <dt className="text-dd-muted">Booking reference</dt>
               <dd className="mt-1 font-semibold">•{booking.id.slice(-8)}</dd>
             </div>
             <div>
-              <dt className="text-dd-muted">Sisa sesi tersedia</dt>
-              <dd className="mt-1 font-semibold">
-                {selectedPackage?.projectedAvailable ?? 0} sesi
-              </dd>
+              <dt className="text-dd-muted">Sessions left on the package</dt>
+              <dd className="mt-1 font-semibold">{selectedPackage?.projectedAvailable ?? 0}</dd>
             </div>
           </dl>
           <div className="mt-5 flex flex-wrap gap-3">
             <Link className="customer-card-action" href={`/bookings/${booking.id}`}>
-              Lihat detail booking
+              Booking details
             </Link>
             <Link className="customer-card-action" href="/classes#schedule">
-              Kembali ke jadwal
+              Back to the timetable
             </Link>
           </div>
         </section>
       ) : (
         <form
-          aria-label="Konfirmasi booking mandiri"
+          className="grid gap-6"
+          aria-label="Book this session"
           onSubmit={(event) => {
             event.preventDefault();
-            if (!selectedPackageId || step === 'select') {
+            if (!selectedPackageId) return;
+            if (step === 'select') {
               setStep('review');
               return;
             }
@@ -212,11 +234,7 @@ export function CustomerBookingFlow({ client = browserBookingClient }: { client?
             }
             void client
               .create(
-                {
-                  classSlotId: slot.id,
-                  customerPackageId: selectedPackageId,
-                  source: 'SELF',
-                },
+                { classSlotId: slot.id, customerPackageId: selectedPackageId, source: 'SELF' },
                 intent.current.key,
               )
               .then((result) => {
@@ -224,88 +242,167 @@ export function CustomerBookingFlow({ client = browserBookingClient }: { client?
                 setStatus('ready');
               })
               .catch(async (error) => {
-                setMessage(await bookingFailure(error));
+                setMessage(await customerBookingFailure(error));
                 setStatus('error');
               });
           }}
         >
-          <ol className="grid grid-cols-2 gap-2 text-sm" aria-label="Tahapan booking">
+          <ol className="m-0 grid list-none grid-cols-2 gap-2 p-0 text-sm" aria-label="Steps">
             <li
-              className={`rounded-full px-4 py-2 font-semibold ${step === 'select' ? 'bg-dd-forest text-white' : 'bg-dd-success-soft text-dd-success'}`}
+              aria-current={step === 'select' ? 'step' : undefined}
+              className={`rounded-full px-4 py-2 font-semibold ${step === 'select' ? 'bg-dd-forest text-white' : 'bg-lr-sky text-dd-forest'}`}
             >
-              1. Pilih paket
+              1. Length and package
             </li>
             <li
-              className={`rounded-full px-4 py-2 font-semibold ${step === 'review' ? 'bg-dd-forest text-white' : 'bg-dd-surface-muted text-dd-muted'}`}
+              aria-current={step === 'review' ? 'step' : undefined}
+              className={`rounded-full px-4 py-2 font-semibold ${step === 'review' ? 'bg-dd-forest text-white' : 'bg-white text-dd-muted'}`}
             >
-              2. Review
+              2. Check and confirm
             </li>
           </ol>
+
           {step === 'select' ? (
             <>
-              <fieldset>
-                <legend>Pilih paket aktif</legend>
-                {options.packages.map((item) => (
-                  <label className="customer-package-option" key={item.id}>
-                    <input
-                      className={controlClassName}
-                      type="radio"
-                      name="customerPackageId"
-                      value={item.id}
-                      checked={selectedPackageId === item.id}
-                      onChange={() => {
-                        setSelectedPackageId(item.id);
-                        intent.current = createIntent();
-                      }}
-                    />
-                    <span>
-                      <strong>{item.name}</strong>
-                      <small>
-                        {item.available} sesi tersedia · setelah booking {item.projectedAvailable}{' '}
-                        sesi · berlaku sampai {item.expiryAt.toLocaleDateString('id-ID')}
-                      </small>
-                    </span>
-                  </label>
-                ))}
+              <fieldset className="m-0 grid gap-3 border-0 p-0">
+                <legend className="mb-3 font-display text-2xl text-dd-forest">
+                  How long will your child stay?
+                </legend>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {lengths.map((value) => {
+                    const owned = options.packages.filter(
+                      (item) => (item.sessionDurationMinutes ?? 60) === value,
+                    );
+                    const end = new Date(slot.startAt.getTime() + value * 60_000);
+                    const selected = length === value;
+                    return (
+                      <label
+                        key={value}
+                        className={`flex min-h-24 cursor-pointer items-start gap-3 rounded-[15px] border-2 p-4 ${
+                          selected ? 'border-dd-forest bg-white' : 'border-dd-line bg-white/70'
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="sessionLength"
+                          className="mt-1 size-5 accent-dd-forest"
+                          checked={selected}
+                          onChange={() => chooseLength(value)}
+                        />
+                        <span className="grid gap-1">
+                          <strong className="flex items-center gap-2 font-display text-xl text-dd-forest">
+                            <Clock className="size-5" aria-hidden="true" />
+                            {lengthLabel(value)}
+                          </strong>
+                          <span className="text-sm">
+                            {timeLabel(slot.startAt, slot.timezone)} to{' '}
+                            {timeLabel(end, slot.timezone)}
+                          </span>
+                          <span className="text-sm text-dd-muted">
+                            {owned.length
+                              ? `${owned.length} ${owned.length === 1 ? 'package' : 'packages'} you can use`
+                              : `No ${lengthLabel(value)} package yet`}
+                          </span>
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
               </fieldset>
+
+              {length && (
+                <fieldset className="m-0 grid gap-3 border-0 p-0">
+                  <legend className="mb-3 font-display text-2xl text-dd-forest">
+                    Which package pays for it?
+                  </legend>
+                  {packagesForLength.length === 0 ? (
+                    <div className="rounded-[15px] border border-dd-line bg-white p-5">
+                      <p className="m-0">
+                        You have no {lengthLabel(length)} package for this class. Packages are sold
+                        per length, so a {lengthLabel(length)} session needs a{' '}
+                        {lengthLabel(length)} package.
+                      </p>
+                      <Link className="customer-card-action mt-4" href={purchaseUrl}>
+                        Buy a {lengthLabel(length)} package
+                      </Link>
+                    </div>
+                  ) : (
+                    packagesForLength.map((item) => (
+                      <label
+                        className={`flex min-h-16 cursor-pointer items-start gap-3 rounded-[15px] border-2 bg-white p-4 ${
+                          selectedPackageId === item.id ? 'border-dd-forest' : 'border-dd-line'
+                        }`}
+                        key={item.id}
+                      >
+                        <input
+                          className="mt-1 size-5 accent-dd-forest"
+                          type="radio"
+                          name="customerPackageId"
+                          value={item.id}
+                          checked={selectedPackageId === item.id}
+                          onChange={() => {
+                            setSelectedPackageId(item.id);
+                            intent.current = createIntent();
+                          }}
+                        />
+                        <span className="grid gap-1">
+                          <strong>{item.name}</strong>
+                          <small className="text-sm text-dd-muted">
+                            {item.available} left · {item.projectedAvailable} after this booking ·
+                            valid until {item.expiryAt.toLocaleDateString('en-GB')}
+                          </small>
+                        </span>
+                      </label>
+                    ))
+                  )}
+                </fieldset>
+              )}
+
               <Button
                 disabled={!selectedPackageId}
                 type="submit"
                 trailingIcon={<CalendarCheck2 className="size-4" aria-hidden="true" />}
               >
-                Review booking
+                Check booking
               </Button>
             </>
           ) : (
-            <Panel
-              className="border-amber-200 bg-dd-warning-soft p-4"
-              aria-label="Review final booking"
+            <section
+              className="rounded-[22px] bg-lr-sky p-5 sm:p-6"
+              aria-labelledby="booking-review-title"
             >
-              <strong className="text-dd-warning">Review final booking</strong>
-              <dl className="mt-3 grid gap-3 text-dd-ink sm:grid-cols-2">
+              <h2 className="m-0 font-display text-2xl text-dd-forest" id="booking-review-title">
+                Check your booking
+              </h2>
+              <dl className="mt-4 grid gap-4 sm:grid-cols-2">
                 <div>
-                  <dt className="text-xs text-dd-muted">Kelas dan studio</dt>
-                  <dd className="font-semibold">
+                  <dt className="text-sm text-dd-ink/75">Class and club</dt>
+                  <dd className="m-0 font-semibold">
                     {slot.classType.name} · {slot.branch.name}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-xs text-dd-muted">Jadwal</dt>
-                  <dd className="font-semibold">{dateTime(slot.startAt, slot.timezone)}</dd>
+                  <dt className="text-sm text-dd-ink/75">When</dt>
+                  <dd className="m-0 font-semibold">
+                    {dateLabel(slot.startAt, slot.timezone)},{' '}
+                    {timeLabel(slot.startAt, slot.timezone)} to {timeLabel(sessionEnd, slot.timezone)}
+                  </dd>
                 </div>
                 <div>
-                  <dt className="text-xs text-dd-muted">Paket</dt>
-                  <dd className="font-semibold">{selectedPackage?.name}</dd>
+                  <dt className="text-sm text-dd-ink/75">Length</dt>
+                  <dd className="m-0 font-semibold">{lengthLabel(length ?? 60)}</dd>
                 </div>
                 <div>
-                  <dt className="text-xs text-dd-muted">Saldo tersedia</dt>
-                  <dd className="font-semibold">
-                    {selectedPackage?.available} → {selectedPackage?.projectedAvailable} sesi
+                  <dt className="text-sm text-dd-ink/75">Package</dt>
+                  <dd className="m-0 font-semibold">
+                    {selectedPackage?.name} ({selectedPackage?.available} →{' '}
+                    {selectedPackage?.projectedAvailable} left)
                   </dd>
                 </div>
               </dl>
-              <p className="mt-4 border-t border-amber-200 pt-3">
-                Satu sesi akan direservasi. Reschedule dapat diajukan sampai tepat H-24.
+              <p className="mt-4 border-t border-dd-forest/15 pt-3 text-sm">
+                This uses one session from the package. You can ask to reschedule up to 24 hours
+                before the session.
               </p>
               <div className="mt-4 flex flex-col-reverse gap-3 sm:flex-row">
                 <Button
@@ -315,19 +412,19 @@ export function CustomerBookingFlow({ client = browserBookingClient }: { client?
                   leadingIcon={<ArrowLeft className="size-4" aria-hidden="true" />}
                   onClick={() => setStep('select')}
                 >
-                  Kembali ubah paket
+                  Change length or package
                 </Button>
                 <Button
                   disabled={status === 'submitting'}
                   loading={status === 'submitting'}
-                  loadingLabel="Mengonfirmasi…"
+                  loadingLabel="Booking…"
                   type="submit"
                   leadingIcon={<CalendarCheck2 className="size-4" aria-hidden="true" />}
                 >
-                  Ya, konfirmasi booking
+                  Confirm booking
                 </Button>
               </div>
-            </Panel>
+            </section>
           )}
         </form>
       )}
@@ -336,10 +433,10 @@ export function CustomerBookingFlow({ client = browserBookingClient }: { client?
       {!booking && (
         <Link
           href="/contact"
-          className="inline-flex items-center gap-2 text-sm font-semibold text-dd-forest no-underline hover:underline"
+          className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-dd-forest no-underline hover:underline"
         >
           <MessageCircle className="size-4" aria-hidden="true" />
-          Hubungi studio jika Anda memerlukan bantuan
+          Need help? Contact the club
         </Link>
       )}
     </section>

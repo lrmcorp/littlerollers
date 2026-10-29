@@ -32,23 +32,23 @@ export type CustomerNavigationItem = {
 };
 
 export const CUSTOMER_PRIMARY_NAVIGATION: CustomerNavigationItem[] = [
-  { href: '/account', label: 'Dashboard', icon: Gauge },
-  { href: '/classes', label: 'Jadwal', icon: CalendarDays },
-  { href: '/packages', label: 'Paket', icon: ListChecks },
-  { href: '/bookings', label: 'Booking', icon: BookOpenCheck, requiresApproval: true },
-  { href: '/orders', label: 'Pesanan', icon: CreditCard, requiresApproval: true },
+  { href: '/account', label: 'Home', icon: Gauge },
+  { href: '/classes', label: 'Timetable', icon: CalendarDays },
+  { href: '/packages', label: 'Packages', icon: ListChecks },
+  { href: '/bookings', label: 'Bookings', icon: BookOpenCheck, requiresApproval: true },
+  { href: '/orders', label: 'Orders', icon: CreditCard, requiresApproval: true },
 ];
 
 export const CUSTOMER_ACCOUNT_NAVIGATION: CustomerNavigationItem[] = [
   {
     href: '/account/packages',
-    label: 'Paket Saya',
+    label: 'My packages',
     icon: PackageCheck,
     requiresApproval: true,
   },
-  { href: '/account/verification', label: 'Verifikasi', icon: ShieldCheck },
-  { href: '/account/profile', label: 'Profil', icon: UserRound },
-  { href: '/account/security', label: 'Keamanan', icon: LockKeyhole },
+  { href: '/account/verification', label: 'Verification', icon: ShieldCheck },
+  { href: '/account/profile', label: 'Profile', icon: UserRound },
+  { href: '/account/security', label: 'Security', icon: LockKeyhole },
 ];
 
 export function isCustomerNavigationActive(pathname: string, href: string) {
@@ -96,7 +96,7 @@ export function CustomerNavigation({
       <nav
         ref={panel}
         id="customer-navigation"
-        aria-label="Navigasi akun"
+        aria-label="Account menu"
         aria-hidden={!rendered}
         aria-modal={rendered ? 'true' : undefined}
         inert={!rendered}
@@ -107,13 +107,9 @@ export function CustomerNavigation({
         } ${rendered ? 'pointer-events-auto' : 'invisible pointer-events-none'}`}
       >
         <div className="mb-7 flex items-center justify-between">
-          <BrandMark
-            className="w-40 brightness-0 invert"
-            href="/"
-            ariaLabel="Daily Dose Pilates — Kembali ke situs utama"
-          />
+          <BrandMark tone="light" href="/" ariaLabel="Little Rollers, back to the main site" />
           <IconButton
-            label="Tutup navigasi akun"
+            label="Close account menu"
             variant="ghost"
             onClick={onClose}
             className="border-white/20 text-white hover:bg-white/10 hover:text-white"
@@ -123,11 +119,11 @@ export function CustomerNavigation({
         </div>
         <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto">
           {[
-            ['Utama', CUSTOMER_PRIMARY_NAVIGATION],
-            ['Akun', CUSTOMER_ACCOUNT_NAVIGATION],
+            ['Club', CUSTOMER_PRIMARY_NAVIGATION],
+            ['Account', CUSTOMER_ACCOUNT_NAVIGATION],
           ].map(([group, items]) => (
             <div key={group as string}>
-              <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.18em] text-white/45">
+              <p className="mb-2 px-3 font-display text-sm text-lr-sun">
                 {group as string}
               </p>
               <div className="space-y-1">
@@ -140,19 +136,19 @@ export function CustomerNavigation({
                       key={item.href}
                       href={navigationHref(item, approved)}
                       aria-current={open && selected ? 'page' : undefined}
-                      aria-label={locked ? `${item.label}, memerlukan verifikasi` : item.label}
+                      aria-label={locked ? `${item.label}, needs verification` : item.label}
                       onClick={onClose}
-                      className={`flex min-h-11 items-center gap-3 rounded-dd-md px-3 text-sm font-semibold no-underline ${
+                      className={`flex min-h-11 items-center gap-3 rounded-full px-4 text-sm font-medium no-underline ${
                         selected
-                          ? 'bg-white text-dd-sidebar shadow-dd-soft'
-                          : 'text-white/70 hover:bg-white/10 hover:text-white'
+                          ? 'bg-lr-sun text-dd-forest'
+                          : 'text-white/80 hover:bg-white/10 hover:text-white'
                       }`}
                     >
                       <Icon className="size-[18px] shrink-0" aria-hidden="true" />
                       <span className="min-w-0 flex-1">{item.label}</span>
                       {locked && (
                         <LockKeyhole
-                          className={selected ? 'size-3.5 text-dd-muted' : 'size-3.5 text-white/45'}
+                          className={selected ? 'size-3.5 text-dd-forest' : 'size-3.5 text-white/60'}
                           aria-hidden="true"
                         />
                       )}
@@ -164,8 +160,8 @@ export function CustomerNavigation({
           ))}
         </div>
         {!approved && (
-          <div className="mt-5 rounded-dd-lg border border-white/10 bg-white/5 p-3 text-xs leading-5 text-white/65">
-            Selesaikan verifikasi untuk membuka booking dan transaksi.
+          <div className="mt-5 rounded-[15px] border border-white/15 bg-white/5 p-3 text-xs leading-5 text-white/80">
+            Finish verification to book sessions and buy packages.
           </div>
         )}
         <div className="mt-5 grid gap-1 border-t border-white/10 pt-4">
@@ -175,18 +171,18 @@ export function CustomerNavigation({
               onClose();
               studioPreference?.openStudioPreference();
             }}
-            className="flex min-h-11 w-full items-center gap-3 rounded-dd-md border-0 bg-transparent px-3 text-left text-sm font-semibold text-white/70 hover:bg-white/10 hover:text-white"
+            className="flex min-h-11 w-full items-center gap-3 rounded-full border-0 bg-transparent px-4 text-left text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white"
           >
             <MapPin className="size-[18px] shrink-0" aria-hidden="true" />
-            Ganti studio
+            Change club
           </button>
           <Link
             href="/"
             onClick={onClose}
-            className="flex min-h-11 items-center gap-3 rounded-dd-md px-3 text-sm font-semibold text-white/70 no-underline hover:bg-white/10 hover:text-white"
+            className="flex min-h-11 items-center gap-3 rounded-full px-4 text-sm font-medium text-white/80 no-underline hover:bg-white/10 hover:text-white"
           >
             <House className="size-[18px] shrink-0" aria-hidden="true" />
-            Kunjungi situs utama
+            Main site
           </Link>
           <button
             type="button"
@@ -194,10 +190,10 @@ export function CustomerNavigation({
               onClose();
               void onLogout();
             }}
-            className="flex min-h-11 w-full items-center gap-3 rounded-dd-md border-0 bg-transparent px-3 text-left text-sm font-semibold text-white/70 hover:bg-white/10 hover:text-white"
+            className="flex min-h-11 w-full items-center gap-3 rounded-full border-0 bg-transparent px-4 text-left text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white"
           >
             <LogOut className="size-[18px] shrink-0" aria-hidden="true" />
-            Keluar
+            Sign out
           </button>
         </div>
       </nav>

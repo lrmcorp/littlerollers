@@ -135,6 +135,8 @@ export type CustomerBookingOptions = {
     id: string;
     packageId: string;
     name: string;
+    /** 60 or 120. A 60-minute session uses the first hour of the slot. */
+    sessionDurationMinutes?: number;
     available: number;
     projectedAvailable: number;
     expiryAt: Date;
@@ -658,4 +660,36 @@ export async function bookingProblem(error: unknown): Promise<BookingProblem> {
 
 export async function bookingFailure(error: unknown): Promise<string> {
   return (await bookingProblem(error)).message;
+}
+
+// Parent-facing wording. Staff screens keep the Indonesian messages above.
+const customerMessages: Record<string, string> = {
+  BOOKING_CUTOFF_PASSED: 'Booking for this session has closed.',
+  CLASS_CAPACITY_FULL: 'This session is full.',
+  INSUFFICIENT_AVAILABLE_SESSIONS: 'This package has no sessions left to book.',
+  DUPLICATE_ACTIVE_BOOKING: 'You have already booked this session.',
+  RESOURCE_NOT_FOUND: 'We could not find that session or package.',
+  CONFIGURATION_REQUIRED: 'Booking is not available yet. Please contact your club.',
+  IDEMPOTENCY_KEY_REUSED: 'Your booking changed. Please confirm it again.',
+  IDEMPOTENCY_IN_PROGRESS: 'We are still processing that booking. Please wait a moment.',
+  SESSION_EXPIRED: 'You were signed out. Please sign in again.',
+  FORBIDDEN: 'Your account cannot do this.',
+  VALIDATION_ERROR: 'This package length does not fit that session. Choose another.',
+  OFFLINE_OR_REQUEST_FAILED: 'We could not reach the club system. Check your connection and try again.',
+  RESCHEDULE_CUTOFF_PASSED: 'Reschedules close 24 hours before the session.',
+  PENDING_RESCHEDULE_EXISTS: 'This booking already has a reschedule request waiting.',
+  TARGET_CLASS_FULL: 'The new session is full.',
+  TARGET_CLASS_INELIGIBLE: 'You cannot move to that session.',
+  RESCHEDULE_ALREADY_DECIDED: 'This reschedule has already been decided.',
+  STALE_VERSION: 'Something changed. Reload and try again.',
+  CHECK_IN_TOO_EARLY: 'The QR pass opens 30 minutes before the session.',
+  CHECK_IN_WINDOW_CLOSED: 'The QR pass has expired because the session has ended.',
+  CHECK_IN_TOKEN_REVOKED: 'This QR pass was replaced. Open the latest one.',
+  CHECK_IN_TOKEN_INVALID: 'This QR pass is not valid.',
+  INVALID_STATE_TRANSITION: 'This booking cannot be changed right now.',
+};
+
+export async function customerBookingFailure(error: unknown): Promise<string> {
+  const { code } = await bookingProblem(error);
+  return customerMessages[code] ?? customerMessages.OFFLINE_OR_REQUEST_FAILED!;
 }

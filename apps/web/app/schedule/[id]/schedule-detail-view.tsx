@@ -122,7 +122,7 @@ export function ScheduleDetailView({
               </Link>
             </article>
             <article className="rounded-[15px] bg-lr-sky p-6">
-              <h2 className="font-display text-2xl text-dd-forest">Before you come</h2>
+              <h2 className="m-0 font-display text-2xl text-dd-forest">Before you come</h2>
               <ul className="mt-4 grid gap-3 pl-5 text-sm leading-6 text-dd-ink">
                 <li>Arrive about 10 minutes early so your child can settle in.</li>
                 <li>Dress them in comfortable clothes and grip socks.</li>

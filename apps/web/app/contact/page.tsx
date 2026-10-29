@@ -26,13 +26,13 @@ export default function ContactPage() {
         />
         <section className={`${publicContainer} grid gap-8 py-10 lg:grid-cols-[1.3fr_1fr]`}>
           <div>
-            <h2 className="font-display text-3xl text-dd-forest" id="contact-clubs-title">
+            <h2 className="m-0 font-display text-3xl text-dd-forest" id="contact-clubs-title">
               Message a club
             </h2>
             <ContactClubs />
           </div>
           <aside className="grid content-start gap-4 rounded-[22px] bg-lr-sky p-6">
-            <h2 className="font-display text-2xl text-dd-forest">Answers on the site</h2>
+            <h2 className="m-0 font-display text-2xl text-dd-forest">Answers on the site</h2>
             <Link
               className="flex min-h-12 items-center justify-between rounded-full bg-white px-5 font-medium text-dd-forest no-underline"
               href="/classes#schedule"

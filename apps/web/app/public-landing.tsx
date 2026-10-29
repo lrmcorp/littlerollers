@@ -109,6 +109,11 @@ export function PublicLanding() {
   const heroRef = useRef<HTMLDivElement>(null);
   // If the scene host is unreachable the sky-to-meadow gradient behind the frame shows instead.
   const [plateFailed, setPlateFailed] = useState(false);
+  const plateRef = useRef<HTMLImageElement>(null);
+  useEffect(() => {
+    const plate = plateRef.current;
+    if (plate?.complete && plate.naturalWidth === 0) setPlateFailed(true);
+  }, []);
   const reducedMotion = useReducedMotion();
   const session = useSessionContext()?.session;
   const accountHref = isCustomerOnlySession(session) ? routes.account : routes.workspace;
@@ -180,6 +185,7 @@ export function PublicLanding() {
             <div className="lr-hero__scene" aria-hidden="true">
               {/* eslint-disable-next-line @next/next/no-img-element -- remote plate, sized by the frame */}
               <img
+                ref={plateRef}
                 className="lr-hero__plate"
                 src={SCENE_PLATE}
                 alt=""
