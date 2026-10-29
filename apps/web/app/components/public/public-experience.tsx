@@ -80,8 +80,19 @@ const teksWa = (english: boolean) =>
         tutup: 'Tutup',
       };
 
+/** Satu cabang yang bisa dihubungi lewat WhatsApp, dengan tautan pesan yang sudah siap. */
+export interface CabangWhatsapp {
+  id: string;
+  nama: string;
+  area: string | null;
+  href: string;
+  studioSaya: boolean;
+}
+
 export interface StudioPreferenceController {
   preferredStudio: PreferredStudio | null;
+  /** Cabang untuk tombol WhatsApp di dalam halaman (mis. halaman Kontak); kosong selama dimuat. */
+  whatsappStudios?: CabangWhatsapp[];
   openStudioPreference(): void;
   closeStudioPreference(): void;
 }
@@ -150,6 +161,25 @@ export function PublicExperience({ children }: { children: ReactNode }) {
       : daftar;
   }, [config, preferred]);
   const teks = teksWa(pathname === '/');
+  const whatsappStudios = useMemo<CabangWhatsapp[]>(
+    () =>
+      cabangWa.map((studio) => {
+        const lokasi = studio.publicProfile?.area || studio.publicProfile?.city;
+        return {
+          id: studio.id,
+          nama: namaPendek(studio),
+          // Area yang sama dengan nama cabang tidak diulang.
+          area: lokasi && lokasi !== namaPendek(studio) ? lokasi : null,
+          href: whatsappHref(
+            studio.supportWhatsappE164 || config?.fallbackWhatsappE164 || '',
+            studio,
+            pathname,
+          ),
+          studioSaya: preferred?.id === studio.id,
+        };
+      }),
+    [cabangWa, config, pathname, preferred],
+  );
 
   const tutupWa = useCallback((kembalikanFokus = true) => {
     setWaOpen(false);
@@ -221,6 +251,7 @@ export function PublicExperience({ children }: { children: ReactNode }) {
     <StudioPreferenceContext.Provider
       value={{
         preferredStudio: preferred,
+        whatsappStudios,
         openStudioPreference: () => {
           setSelectedStudioId(preferred?.id ?? '');
           setChooserOpen(true);
