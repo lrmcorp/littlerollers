@@ -85,6 +85,8 @@ const SUPER_OWNER_CAPABILITIES: readonly string[] = [
     'instructor:hours:adjust',
     // Mencatat pengeluaran cabang (pembelian barang dsb.) ke jurnal kas.
     'expense:create',
+    // Ulasan member untuk instruktur (internal, tidak tampil publik).
+    'instructor-review:read',
   ]),
 ];
 
@@ -172,6 +174,7 @@ export const ROLE_CAPABILITIES: Record<ApplicationRole, readonly string[]> = {
     'attendance:manage',
     'expense:create',
     'instructor:hours:adjust',
+    'instructor-review:read',
   ],
   OWNER: [
     'automation:read',
@@ -190,6 +193,7 @@ export const ROLE_CAPABILITIES: Record<ApplicationRole, readonly string[]> = {
     'booking:read',
     'reschedule:read',
     'attendance:read',
+    'instructor-review:read',
   ],
   SUPER_OWNER: SUPER_OWNER_CAPABILITIES,
   FINANCE: [

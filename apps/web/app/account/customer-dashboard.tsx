@@ -99,12 +99,15 @@ type CustomerDashboardOverview = {
 
 import { formatRupiah } from '../lib/formatters';
 import { VerificationStatusBanner } from '../components/verification-status-banner';
+import { UlasanInstruktur } from '../components/customer/ulasan-instruktur';
+import type { UlasanInstrukturClient } from '@/api-clients/ulasan-instruktur-client';
 
 export function CustomerDashboard({
   classCatalogClient = browserPublicClassCatalogClient,
   packageCatalogClient = browserPublicPackageCatalogClient,
   bookingClient = browserBookingClient,
   muatQr,
+  ulasanClient,
   now = Date.now(),
 }: {
   classCatalogClient?: PublicClassCatalogClient;
@@ -112,6 +115,7 @@ export function CustomerDashboard({
   bookingClient?: Pick<BookingClient, 'list'>;
   /** Hanya untuk tes. */
   muatQr?: () => Promise<string>;
+  ulasanClient?: Pick<UlasanInstrukturClient, 'tertunda' | 'kirim'>;
   now?: number;
 } = {}) {
   const session = useSessionContext()?.session;
@@ -181,6 +185,9 @@ export function CustomerDashboard({
 
       {/* QR di paling atas: yang paling sering dibutuhkan member saat tiba di studio. */}
       <QrKehadiran nama={session.displayName} peran="member" muat={muatQr} />
+
+      {/* Kelas yang baru dihadiri: minta nilai untuk instruktur selagi masih segar. */}
+      <UlasanInstruktur client={ulasanClient} />
 
       {overview && overview.packages.length > 0 && (
         <section aria-labelledby="my-packages" className="space-y-3">

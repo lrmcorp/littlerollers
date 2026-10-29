@@ -56,6 +56,34 @@ Deploy pertama di server tetap perlu menarik image sekitar 1 GB; berikutnya hany
    dalam 2 menit, skrip gagal dan job GitHub menjadi merah.
 4. Mencatat tag di `.deployed-version` dan menyimpan hanya 3 versi `sha-*` terbaru.
 
+## Tabel baru
+
+Skema hanya disinkronkan otomatis pada start pertama (`docker-entrypoint.sh`, berkas penanda
+`.bootstrapped_schema`). Tabel yang ditambahkan sesudahnya dibuat sekali secara manual, atau dengan satu kali deploy
+memakai `FORCE_DB_SYNC=true`. Pernyataan di bawah hanya membuat tabel baru; tabel lama tidak disentuh.
+
+`ulasan_instruktur` (ulasan member untuk instruktur, Oktober 2026):
+
+```sql
+CREATE TABLE `ulasan_instruktur` (
+    `id` CHAR(36) NOT NULL,
+    `bookingId` CHAR(36) NOT NULL,
+    `userId` CHAR(36) NOT NULL,
+    `classSlotId` CHAR(36) NOT NULL,
+    `instructorId` CHAR(36) NOT NULL,
+    `branchId` CHAR(36) NOT NULL,
+    `rating` TINYINT NULL,
+    `comment` TEXT NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+
+    UNIQUE INDEX `ulasan_instruktur_bookingId_key`(`bookingId`),
+    INDEX `ulasan_instruktur_userId_createdAt_idx`(`userId`, `createdAt`),
+    INDEX `ulasan_instruktur_instructorId_createdAt_idx`(`instructorId`, `createdAt`),
+    INDEX `ulasan_instruktur_branchId_createdAt_idx`(`branchId`, `createdAt`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+
 ## Kembali ke versi sebelumnya
 
 ```bash
