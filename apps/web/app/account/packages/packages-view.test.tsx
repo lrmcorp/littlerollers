@@ -13,10 +13,10 @@ describe('customer packages actions', () => {
     });
     render(<CustomerPackagesView />);
 
-    const addPackage = screen.getByRole('link', { name: 'Tambah paket' });
+    const addPackage = screen.getByRole('link', { name: 'Buy a package' });
     expect(addPackage).toHaveAttribute('href', '/packages');
     expect(addPackage).toHaveClass('min-h-10', 'border-dd-forest/25', 'bg-white', 'text-dd-forest');
-    expect(await screen.findByText('Belum ada paket aktif')).toBeVisible();
+    expect(await screen.findByText('No active packages yet')).toBeVisible();
   });
 
   it('replaces the current page when navigating twenty-five packages', async () => {
@@ -44,9 +44,9 @@ describe('customer packages actions', () => {
 
     render(<CustomerPackagesView />);
     expect(await screen.findByText('Paket 1')).toBeVisible();
-    await userEvent.click(screen.getByRole('button', { name: 'Berikutnya' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Next' }));
     expect(await screen.findByText('Paket 21')).toBeVisible();
     expect(screen.queryByText('Paket 1')).not.toBeInTheDocument();
-    expect(screen.getByText('Halaman 2 · 5 data dari 25 paket')).toBeVisible();
+    expect(screen.getByText('Page 2 · 5 of 25 packages')).toBeVisible();
   });
 });

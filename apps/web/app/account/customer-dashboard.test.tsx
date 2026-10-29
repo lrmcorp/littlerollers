@@ -25,7 +25,7 @@ describe('customer dashboard', () => {
           actionableOrders: [
             {
               id: 'order-1',
-              packageName: 'Reformer 10',
+              packageName: 'Movers 10 x 2h',
               branchName: 'Little Rollers Jakarta',
               status: 'AWAITING_PAYMENT',
               payableAmountRp: 1_600_123,
@@ -42,13 +42,18 @@ describe('customer dashboard', () => {
   it('shows actionable customer data and verification gate', async () => {
     render(<CustomerDashboard />);
 
-    expect(await screen.findByRole('heading', { name: 'Halo, Nadia Customer' })).toBeVisible();
-    expect(screen.getByText('Verifikasi sedang berlangsung')).toBeVisible();
-    expect(screen.getByText('Reformer 10')).toBeVisible();
+    expect(await screen.findByRole('heading', { name: 'Hi, Nadia Customer' })).toBeVisible();
+    expect(screen.getByText('We are checking your documents')).toBeVisible();
+    expect(screen.getByText('Nothing booked yet')).toBeVisible();
+    expect(screen.getByText('Movers 10 x 2h')).toBeVisible();
     expect(screen.getByText('Rp 1.600.123')).toBeVisible();
-    expect(screen.getByRole('link', { name: /Paket aktif/ })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'All packages' })).toHaveAttribute(
       'href',
       '/account/packages',
+    );
+    expect(screen.getByRole('link', { name: 'Compare packages' })).toHaveAttribute(
+      'href',
+      '/packages',
     );
   });
 });

@@ -31,7 +31,7 @@ export function SecurityView({ client = browserIdentityClient }: { client?: Iden
       setStatus(await client.securityStatus());
       setError('');
     } catch {
-      setError('Status keamanan tidak dapat dimuat.');
+      setError('Your account security status did not load.');
     } finally {
       setLoading(false);
     }
@@ -39,62 +39,61 @@ export function SecurityView({ client = browserIdentityClient }: { client?: Iden
 
   useEffect(() => void load(), []);
 
-  if (loading) return <Skeleton label="Memuat keamanan akun" />;
+  if (loading) return <Skeleton label="Loading account security" />;
 
   const requirements = [
-    { label: 'Minimal 8 karakter', met: nextPassword.length >= 8 },
+    { label: 'At least 8 characters', met: nextPassword.length >= 8 },
     {
-      label: 'Huruf besar dan kecil',
+      label: 'Upper and lower case',
       met: /[a-z]/.test(nextPassword) && /[A-Z]/.test(nextPassword),
     },
-    { label: 'Memiliki angka', met: /\d/.test(nextPassword) },
+    { label: 'A number', met: /\d/.test(nextPassword) },
   ];
 
   return (
     <main className="mx-auto max-w-3xl space-y-6" aria-labelledby="security-title">
       {redirectTo && <PasswordChangeRedirect target={redirectTo} />}
       <header>
-        <p className="text-xs font-bold uppercase tracking-[0.16em] text-dd-forest">Akun</p>
-        <h1 id="security-title" className="mt-2 text-2xl font-semibold sm:text-3xl">
-          Keamanan akun
+        <h1 id="security-title" className="m-0 font-display text-3xl text-dd-forest sm:text-4xl">
+          Account security
         </h1>
         <p className="mt-2 text-sm leading-6 text-dd-muted">
-          Perbarui password dan lindungi sesi aktif pada perangkat Anda.
+          Change your password and sign out other devices.
         </p>
       </header>
 
       {status?.passwordChangeRequired && (
-        <section className="rounded-dd-xl border border-dd-warning/30 bg-dd-warning-soft p-5 text-sm text-dd-warning">
-          <strong>Password awal wajib diganti.</strong>
+        <section className="rounded-[22px] border border-dd-warning/30 bg-dd-warning-soft p-5 text-sm text-dd-warning">
+          <strong>Please change your starting password.</strong>
           <p className="mt-1">
-            Setelah password baru tersimpan, akses akun dan transaksi akan dibuka.
+            Once your new password is saved, the rest of your account opens up.
           </p>
         </section>
       )}
 
       {error && (
-        <section className="rounded-dd-xl border border-dd-danger/20 bg-white p-5">
+        <section className="rounded-[22px] border border-dd-danger/20 bg-white p-5">
           <strong>{error}</strong>
           <Button type="button" className="mt-4" onClick={() => void load()}>
-            Coba lagi
+            Try again
           </Button>
         </section>
       )}
 
-      <section className="rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card sm:p-6">
+      <section className="rounded-[22px] border border-dd-line bg-white p-5 sm:p-6">
         <div className="flex items-start gap-3">
           <span className="grid size-11 place-items-center rounded-dd-lg bg-dd-success-soft text-dd-success">
             <ShieldCheck className="size-5" />
           </span>
           <div>
-            <h2 className="text-lg font-semibold">Status password</h2>
+            <h2 className="m-0 font-display text-xl text-dd-forest">Password</h2>
             <p className="mt-1 text-sm font-semibold text-dd-ink">
-              {status?.passwordEnabled ? 'Password aktif' : 'Password belum aktif'}
+              {status?.passwordEnabled ? 'Password set' : 'No password yet'}
             </p>
             <p className="mt-1 text-sm text-dd-muted">
               {status?.passwordEnabled
-                ? 'Password dapat diperbarui kapan saja.'
-                : 'Aktifkan password untuk melindungi akun ini.'}
+                ? 'You can change it at any time.'
+                : 'Set a password to protect this account.'}
             </p>
           </div>
         </div>
@@ -102,8 +101,8 @@ export function SecurityView({ client = browserIdentityClient }: { client?: Iden
 
       {status?.passwordEnabled && (
         <form
-          className="rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card sm:p-6"
-          aria-label="Ubah password"
+          className="rounded-[22px] border border-dd-line bg-white p-5 sm:p-6"
+          aria-label="Change password"
           onSubmit={async (event) => {
             event.preventDefault();
             if (saving) return;
@@ -117,15 +116,17 @@ export function SecurityView({ client = browserIdentityClient }: { client?: Iden
               setNextPassword('');
               feedback.showToast({
                 tone: 'success',
-                title: 'Password diperbarui',
-                message: 'Sesi lain telah dicabut untuk melindungi akun Anda.',
+                title: 'Password changed',
+                message: 'Other devices were signed out to keep your account safe.',
               });
               await load();
               const refreshed = await sessionContext?.refresh({ quiet: true });
               if (refreshed && !refreshed.passwordChangeRequired)
                 setRedirectTo(refreshed.roles.includes('CUSTOMER') ? '/account' : '/workspace');
             } catch {
-              setError('Password saat ini tidak valid atau password baru belum memenuhi syarat.');
+              setError(
+                'Your current password is not right, or the new one does not meet the rules.',
+              );
             } finally {
               setSaving(false);
             }
@@ -133,19 +134,19 @@ export function SecurityView({ client = browserIdentityClient }: { client?: Iden
         >
           <div className="flex items-center gap-3">
             <KeyRound className="size-5 text-dd-forest" />
-            <h2 className="text-lg font-semibold">Ubah password</h2>
+            <h2 className="m-0 font-display text-xl text-dd-forest">Change password</h2>
           </div>
           <div className="mt-5 grid gap-5">
             <PasswordField
               name="current"
-              label="Password saat ini"
+              label="Current password"
               shown={showCurrent}
               onToggle={() => setShowCurrent((value) => !value)}
               autoComplete="current-password"
             />
             <PasswordField
               name="next"
-              label="Password baru"
+              label="New password"
               shown={showNext}
               onToggle={() => setShowNext((value) => !value)}
               autoComplete="new-password"
@@ -176,10 +177,10 @@ export function SecurityView({ client = browserIdentityClient }: { client?: Iden
             type="submit"
             disabled={saving || requirements.some((item) => !item.met)}
             loading={saving}
-            loadingLabel="Menyimpan…"
+            loadingLabel="Saving…"
             className="mt-5"
           >
-            Simpan password
+            Save password
           </Button>
         </form>
       )}
@@ -226,7 +227,7 @@ function PasswordField({
           className="w-full rounded-dd-md border border-dd-line bg-white px-3 pr-12"
         />
         <IconButton
-          label={`${shown ? 'Sembunyikan' : 'Tampilkan'} ${label.toLowerCase()}`}
+          label={`${shown ? 'Hide' : 'Show'} ${label.toLowerCase()}`}
           variant="ghost"
           onClick={onToggle}
           className="absolute right-1 top-1/2 size-9 -translate-y-1/2 text-dd-muted"

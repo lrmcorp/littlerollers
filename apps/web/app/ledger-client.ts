@@ -12,6 +12,7 @@ export type LedgerBalance = {
   reserved: number;
   available: number;
   sessionCountSnapshot?: number;
+  sessionDurationMinutesSnapshot?: number;
   usage?: {
     initialSessions: number;
     usedSessions: number;
@@ -297,8 +298,7 @@ export async function ledgerFailure(error: unknown) {
       'Isi permintaan berubah setelah konfirmasi. Tinjau ulang sebelum mengirim.',
     LEDGER_INVARIANT_VIOLATION:
       'Perubahan akan membuat saldo tidak cukup untuk sesi yang masih tertahan.',
-    CONFIGURATION_REQUIRED:
-      'Penyesuaian sesi sementara tidak tersedia. Saldo tetap dapat dilihat.',
+    CONFIGURATION_REQUIRED: 'Penyesuaian sesi sementara tidak tersedia. Saldo tetap dapat dilihat.',
     CONFLICT: 'Data berubah. Perbarui saldo dan antrean sebelum mencoba lagi.',
   };
   if (fromMessage) return messages[fromMessage] ?? fromMessage;

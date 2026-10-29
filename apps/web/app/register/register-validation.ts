@@ -26,10 +26,10 @@ export function normalizeRegistrationPhone(value: string): string {
 }
 
 function validateIdentityFile(file: File | null, label: string): string | undefined {
-  if (!file || file.size === 0) return `Please choose a ${label.toLowerCase()}.`;
+  if (!file || file.size === 0) return `Please choose a ${label}.`;
   if (!IDENTITY_IMAGE_TYPES.includes(file.type as (typeof IDENTITY_IMAGE_TYPES)[number]))
-    return `The ${label.toLowerCase()} must be a JPG, PNG or WebP image.`;
-  if (file.size > MAX_IDENTITY_FILE_BYTES) return `The ${label.toLowerCase()} must be 8 MB or smaller.`;
+    return `The ${label} must be a JPG, PNG or WebP image.`;
+  if (file.size > MAX_IDENTITY_FILE_BYTES) return `The ${label} must be 8 MB or smaller.`;
   return undefined;
 }
 
@@ -64,7 +64,7 @@ export function validateRegisterField(
       if (values.confirmation !== values.password) return 'The passwords do not match.';
       return undefined;
     case 'selfie':
-      return validateIdentityFile(values.selfie, 'Selfie photo');
+      return validateIdentityFile(values.selfie, 'selfie photo');
     case 'ktp':
       return validateIdentityFile(values.ktp, 'KTP photo');
     case 'consent':

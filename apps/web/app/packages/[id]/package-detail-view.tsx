@@ -74,7 +74,10 @@ export function PackageDetailView({
                   ['Price', rupiah.format(item.effectivePriceRp)],
                   ['Per session', rupiah.format(item.pricePerSessionRp)],
                   ['Sessions', String(item.sessionCount)],
-                  ['Each session', (item.sessionDurationMinutes ?? 60) >= 120 ? '2 hours' : '1 hour'],
+                  [
+                    'Each session',
+                    (item.sessionDurationMinutes ?? 60) >= 120 ? '2 hours' : '1 hour',
+                  ],
                   ['Valid for', `${item.durationDays} days`],
                 ].map(([label, value]) => (
                   <div className="rounded-[12px] border border-dd-line bg-white p-3" key={label}>
@@ -100,9 +103,7 @@ export function PackageDetailView({
             <section className={`${publicContainer} pt-8`} aria-label="Current offer">
               <div className="flex flex-col gap-4 rounded-[15px] border border-lr-sun bg-lr-sun-soft p-5 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-dd-brass-dark">
-                    {item.promotion.label}
-                  </p>
+                  <p className="text-sm font-semibold text-dd-brass-dark">{item.promotion.label}</p>
                   <p className="mt-1 text-sm text-dd-muted">
                     Offer ends{' '}
                     {new Intl.DateTimeFormat('en-GB', { dateStyle: 'long' }).format(

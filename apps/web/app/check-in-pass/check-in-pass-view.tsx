@@ -22,7 +22,7 @@ export function CheckInPassView() {
     const raw = new URLSearchParams(window.location.hash.slice(1)).get('token') ?? '';
     const decoded = raw ? decodeURIComponent(raw) : '';
     if (!decoded.startsWith('dd-checkin:v1:')) {
-      setError('Pass QR tidak valid atau sudah tidak tersedia.');
+      setError('This QR pass is not valid or is no longer available.');
       return;
     }
     setPayload(decoded);
@@ -31,20 +31,19 @@ export function CheckInPassView() {
       margin: 2,
       errorCorrectionLevel: 'M',
       color: { dark: '#17392d', light: '#ffffff' },
-    }).catch(() => setError('QR tidak dapat dirender pada perangkat ini.'));
+    }).catch(() => setError('This device could not draw the QR code.'));
   }, []);
 
   return (
-    <main className="grid min-h-dvh min-w-0 place-items-center overflow-x-hidden bg-dd-canvas px-4 py-10">
+    <main className="grid min-h-dvh min-w-0 place-items-center overflow-x-hidden bg-lr-sky px-4 py-10">
       <meta name="referrer" content="no-referrer" />
-      <section className="box-border w-full min-w-0 max-w-[calc(100vw-2rem)] rounded-dd-xl border border-dd-line bg-dd-surface p-6 text-center shadow-dd-card sm:max-w-md">
-        <p className="text-xs font-bold uppercase tracking-[0.2em] text-dd-forest">
-          Daily Dose Pilates
-        </p>
-        <h1 className="mt-3 text-2xl font-semibold">Pass check-in kelas</h1>
+      <section className="box-border w-full min-w-0 max-w-[calc(100vw-2rem)] rounded-[22px] border border-dd-line bg-dd-surface p-6 text-center sm:max-w-md">
+        {/* eslint-disable-next-line @next/next/no-img-element -- small local badge on a standalone pass */}
+        <img src="/images/logo.png" alt="Little Rollers" className="mx-auto size-16 rounded-full" />
+        <h1 className="mt-3 mb-0 font-display text-3xl text-dd-forest">Check-in pass</h1>
         <p className="mt-2 text-sm leading-6 text-dd-muted">
-          Tunjukkan QR ini kepada admin studio. QR hanya berlaku mulai 30 menit sebelum kelas sampai
-          jadwal kelas selesai.
+          Show this QR code at the club desk. It works from 30 minutes before the session until the
+          session ends.
         </p>
         {error ? (
           <p
@@ -65,7 +64,7 @@ export function CheckInPassView() {
               Download QR
             </Button>
             <p className="mt-4 text-xs text-dd-muted">
-              Pass terenkripsi · jangan teruskan ke pihak lain
+              This pass is private. Please do not share it.
             </p>
           </>
         )}

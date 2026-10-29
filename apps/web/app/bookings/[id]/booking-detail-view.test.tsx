@@ -34,9 +34,9 @@ const booking = {
     endAt: new Date('2026-08-10T04:00:00Z'),
     timezone: 'Asia/Jakarta',
     status: 'CONFIRMED',
-    classType: { id: '00000000-0000-4000-8000-000000000408', name: 'Reformer' },
+    classType: { id: '00000000-0000-4000-8000-000000000408', name: 'Movers' },
   },
-  package: { id: '00000000-0000-4000-8000-000000000409', name: 'Reformer 10' },
+  package: { id: '00000000-0000-4000-8000-000000000409', name: 'Movers 10 x 2h' },
 };
 
 const eligible: CustomerRescheduleOptions = {
@@ -108,11 +108,11 @@ describe('BookingDetailView reschedule customer', () => {
     const view = render(<BookingDetailView id={bookingId} client={client} />);
     const user = userEvent.setup();
 
-    await user.click(await screen.findByRole('button', { name: 'Ajukan reschedule' }));
+    await user.click(await screen.findByRole('button', { name: 'Ask to reschedule' }));
     expect((await axe(view.container)).violations).toHaveLength(0);
-    await user.click(screen.getByRole('button', { name: 'Tinjau permintaan' }));
-    expect(screen.getByText('Konfirmasi perubahan jadwal')).toBeVisible();
-    await user.click(screen.getByRole('button', { name: 'Kirim permintaan' }));
+    await user.click(screen.getByRole('button', { name: 'Review request' }));
+    expect(screen.getByText('Check the change')).toBeVisible();
+    await user.click(screen.getByRole('button', { name: 'Send request' }));
 
     expect(client.requestReschedule).toHaveBeenCalledWith(
       {
@@ -123,7 +123,7 @@ describe('BookingDetailView reschedule customer', () => {
       },
       expect.any(String),
     );
-    expect(await screen.findByText('Reschedule sedang ditinjau')).toBeVisible();
+    expect(await screen.findByText('Reschedule being reviewed')).toBeVisible();
   });
 
   it('shows studio guidance after the inclusive cutoff has passed', async () => {
@@ -135,8 +135,8 @@ describe('BookingDetailView reschedule customer', () => {
       targets: [],
     });
     render(<BookingDetailView id={bookingId} client={client} />);
-    expect(await screen.findByText('Batas reschedule telah lewat')).toBeVisible();
-    expect(screen.queryByRole('button', { name: 'Ajukan reschedule' })).not.toBeInTheDocument();
+    expect(await screen.findByText('Reschedules have closed')).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Ask to reschedule' })).not.toBeInTheDocument();
   });
 
   it('keeps booking detail readable while reschedule policy is disabled', async () => {
@@ -144,12 +144,12 @@ describe('BookingDetailView reschedule customer', () => {
     vi.mocked(client.rescheduleOptions).mockRejectedValue({ code: 'CONFIGURATION_REQUIRED' });
     render(<BookingDetailView id={bookingId} client={client} />);
 
-    expect(await screen.findByRole('heading', { name: 'Reformer' })).toBeVisible();
-    expect(screen.getByText('Perubahan jadwal sedang tidak tersedia')).toBeVisible();
-    expect(screen.getByText(/Booking Anda tetap aktif/)).toBeVisible();
-    expect(screen.queryByText('Permintaan belum dapat diproses')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Coba lagi' })).toBeVisible();
-    expect(screen.getByRole('link', { name: 'Hubungi studio' })).toHaveAttribute(
+    expect(await screen.findByRole('heading', { name: 'Movers' })).toBeVisible();
+    expect(screen.getByText('Rescheduling is unavailable right now')).toBeVisible();
+    expect(screen.getByText(/Your booking is still active/)).toBeVisible();
+    expect(screen.queryByText('We could not send the request')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Contact the club' })).toHaveAttribute(
       'href',
       '/contact',
     );
@@ -163,8 +163,8 @@ describe('BookingDetailView reschedule customer', () => {
     render(<BookingDetailView id={bookingId} client={client} />);
     const user = userEvent.setup();
 
-    await user.click(await screen.findByRole('button', { name: 'Coba lagi' }));
-    expect(await screen.findByRole('button', { name: 'Ajukan reschedule' })).toBeVisible();
+    await user.click(await screen.findByRole('button', { name: 'Try again' }));
+    expect(await screen.findByRole('button', { name: 'Ask to reschedule' })).toBeVisible();
     expect(client.detail).toHaveBeenCalledTimes(1);
     expect(client.rescheduleOptions).toHaveBeenCalledTimes(2);
   });
@@ -174,9 +174,9 @@ describe('BookingDetailView reschedule customer', () => {
     vi.mocked(client.detail).mockRejectedValue({ code: 'RESOURCE_NOT_FOUND' });
     render(<BookingDetailView id={bookingId} client={client} />);
 
-    expect(await screen.findByRole('heading', { name: 'Booking tidak tersedia' })).toBeVisible();
-    expect(screen.getByText('Detail belum dapat dimuat')).toBeVisible();
-    expect(screen.queryByRole('heading', { name: 'Reformer' })).not.toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Booking not available' })).toBeVisible();
+    expect(screen.getByText('This booking did not load')).toBeVisible();
+    expect(screen.queryByRole('heading', { name: 'Movers' })).not.toBeInTheDocument();
     expect(client.rescheduleOptions).not.toHaveBeenCalled();
   });
 
@@ -186,13 +186,13 @@ describe('BookingDetailView reschedule customer', () => {
     render(<BookingDetailView id={bookingId} client={client} />);
     const user = userEvent.setup();
 
-    await user.click(await screen.findByRole('button', { name: 'Ajukan reschedule' }));
-    await user.click(screen.getByRole('button', { name: 'Tinjau permintaan' }));
-    await user.click(screen.getByRole('button', { name: 'Kirim permintaan' }));
+    await user.click(await screen.findByRole('button', { name: 'Ask to reschedule' }));
+    await user.click(screen.getByRole('button', { name: 'Review request' }));
+    await user.click(screen.getByRole('button', { name: 'Send request' }));
 
-    const form = screen.getByRole('form', { name: 'Pengajuan reschedule' });
-    expect(await within(form).findByText('Permintaan belum dapat diproses')).toBeVisible();
-    expect(within(form).getByText('Kelas tujuan sudah penuh.')).toBeVisible();
+    const form = screen.getByRole('form', { name: 'Reschedule request' });
+    expect(await within(form).findByText('We could not send the request')).toBeVisible();
+    expect(within(form).getByText('The new session is full.')).toBeVisible();
   });
 
   it('does not request reschedule options without the customer capability', async () => {
@@ -204,9 +204,9 @@ describe('BookingDetailView reschedule customer', () => {
     const client = makeClient(eligible);
     render(<BookingDetailView id={bookingId} client={client} />);
 
-    expect(await screen.findByRole('heading', { name: 'Reformer' })).toBeVisible();
+    expect(await screen.findByRole('heading', { name: 'Movers' })).toBeVisible();
     await waitFor(() => expect(client.detail).toHaveBeenCalledTimes(1));
     expect(client.rescheduleOptions).not.toHaveBeenCalled();
-    expect(screen.queryByText('Perubahan jadwal sedang tidak tersedia')).not.toBeInTheDocument();
+    expect(screen.queryByText('Rescheduling is unavailable right now')).not.toBeInTheDocument();
   });
 });

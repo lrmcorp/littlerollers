@@ -416,8 +416,8 @@ export function RegisterView() {
           onRemove={() => removeUpload('ktp')}
         />
         <div id="register-privacy-notice" className="auth-privacy-notice" role="note">
-          Your selfie and KTP photo are only used to verify your identity. They are stored
-          privately and only authorised staff can see them.
+          Your selfie and KTP photo are only used to verify your identity. They are stored privately
+          and only authorised staff can see them.
         </div>
         <div>
           <label className="auth-consent" htmlFor="register-consent">
@@ -446,7 +446,13 @@ export function RegisterView() {
           </label>
           {errors.consent && <FieldError id={errorId('consent')}>{errors.consent}</FieldError>}
         </div>
-        <Button type="submit" size="lg" fullWidth loading={loading} loadingLabel="Creating your account…">
+        <Button
+          type="submit"
+          size="lg"
+          fullWidth
+          loading={loading}
+          loadingLabel="Creating your account…"
+        >
           Create account
         </Button>
         {state === 'error' && <Feedback kind="error">{message}</Feedback>}

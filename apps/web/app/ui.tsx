@@ -6,20 +6,40 @@ export function PageHeader({
   description,
   context,
   titleId,
+  variant = 'staff',
 }: {
   eyebrow: string;
   title: string;
   description: string;
   context?: ReactNode;
   titleId?: string;
+  /** `customer` uses the rounded display face of the parent area; staff screens keep the default. */
+  variant?: 'staff' | 'customer';
 }) {
+  const customer = variant === 'customer';
   return (
-    <header className="flex flex-col gap-4 border-b border-dd-line pb-5 sm:flex-row sm:items-end sm:justify-between">
+    <header
+      className={`flex flex-col gap-4 pb-5 sm:flex-row sm:items-end sm:justify-between ${
+        customer ? '' : 'border-b border-dd-line'
+      }`}
+    >
       <div className="min-w-0">
-        <p className="text-xs font-bold uppercase tracking-[0.16em] text-dd-forest">{eyebrow}</p>
+        <p
+          className={
+            customer
+              ? 'm-0 font-display text-lg text-lr-sky-deep'
+              : 'text-xs font-bold uppercase tracking-[0.16em] text-dd-forest'
+          }
+        >
+          {eyebrow}
+        </p>
         <h1
           id={titleId}
-          className="mt-1 text-2xl font-semibold tracking-tight text-dd-ink sm:text-3xl"
+          className={
+            customer
+              ? 'mt-1 mb-0 font-display text-3xl text-dd-forest sm:text-4xl'
+              : 'mt-1 text-2xl font-semibold tracking-tight text-dd-ink sm:text-3xl'
+          }
         >
           {title}
         </h1>
@@ -96,7 +116,7 @@ export function EmptyState({ title, description }: { title: string; description:
   );
 }
 
-export function Skeleton({ label = 'Memuat konten' }: { label?: string }) {
+export function Skeleton({ label = 'Loading' }: { label?: string }) {
   return (
     <div
       className="grid gap-3 rounded-dd-lg border border-dd-line bg-white p-5"

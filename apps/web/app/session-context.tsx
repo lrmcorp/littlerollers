@@ -279,9 +279,9 @@ export function SessionProvider({
     } catch {
       feedback?.showAlert({
         tone: 'danger',
-        title: 'Keluar belum berhasil',
+        title: 'Sign out did not finish',
         message:
-          'Sesi belum dapat ditutup dengan aman. Periksa koneksi lalu coba kembali sebelum meninggalkan perangkat ini.',
+          'We could not sign you out safely. Check your connection and try again before leaving this device.',
       });
       return;
     }
@@ -338,15 +338,15 @@ export function SessionProvider({
     <SessionContext.Provider value={value}>
       {!publicRoute && status === 'loading' ? (
         <main className="content session-state">
-          <Skeleton label="Memuat sesi" />
+          <Skeleton label="Checking your session" />
         </main>
       ) : !publicRoute && status === 'dependency-error' ? (
         <main className="content session-state space-y-4">
-          <Feedback kind="error">Konteks sesi tidak dapat dimuat.</Feedback>
+          <Feedback kind="error">We could not check your session.</Feedback>
           <ActionGroup>
-            <Button onClick={() => void refresh()}>Coba lagi</Button>
+            <Button onClick={() => void refresh()}>Try again</Button>
             <ButtonLink variant="secondary" href="/">
-              Kunjungi situs utama
+              Main site
             </ButtonLink>
           </ActionGroup>
         </main>
@@ -354,18 +354,18 @@ export function SessionProvider({
         <main className="content session-state space-y-4">
           <Feedback kind={staffVerificationRedirect ? 'info' : 'error'}>
             {staffVerificationRedirect
-              ? 'Halaman verifikasi akun hanya untuk customer. Anda sedang diarahkan ke antrean reviewer.'
-              : 'Anda tidak memiliki akses ke area ini.'}
+              ? 'Account verification is for parents. Taking you to the review queue.'
+              : 'You do not have access to this area.'}
           </Feedback>
           <ActionGroup>
             <ButtonLink href={fallback}>
-              {staffVerificationRedirect ? 'Buka antrean verifikasi' : 'Kembali ke ringkasan'}
+              {staffVerificationRedirect ? 'Open the review queue' : 'Back to overview'}
             </ButtonLink>
           </ActionGroup>
         </main>
       ) : !publicRoute && status !== 'authenticated' ? (
         <main className="content session-state">
-          <Skeleton label="Mengarahkan ke halaman masuk" />
+          <Skeleton label="Taking you to sign in" />
         </main>
       ) : (
         children

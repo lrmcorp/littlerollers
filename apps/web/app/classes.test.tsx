@@ -172,7 +172,8 @@ describe('ClassSlotView', () => {
     await user.click(within(dialog).getByRole('option', { name: /Ayu Instructor/ }));
     await user.type(within(dialog).getByLabelText('Tanggal'), '2026-07-27');
     await user.type(within(dialog).getByLabelText('Mulai'), '09:00');
-    await user.type(within(dialog).getByLabelText('Selesai eksklusif'), '10:00');
+    // Timetable slots are 2-hour blocks, so the end time fills itself in.
+    expect(within(dialog).getByLabelText('Selesai eksklusif')).toHaveValue('11:00');
     await user.click(within(dialog).getByRole('button', { name: 'Buat draft' }));
     await user.click(
       within(screen.getByRole('dialog', { name: 'Buat draft kelas?' })).getByRole('button', {
@@ -186,7 +187,7 @@ describe('ClassSlotView', () => {
         studioId: 'studio-1',
         instructorUserId: 'instructor-1',
         startAt: new Date('2026-07-27T02:00:00.000Z'),
-        endAt: new Date('2026-07-27T03:00:00.000Z'),
+        endAt: new Date('2026-07-27T04:00:00.000Z'),
       }),
     );
   });

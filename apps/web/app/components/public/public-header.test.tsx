@@ -12,17 +12,20 @@ describe('PublicHeader', () => {
     navigation.pathname = '/packages';
     const user = userEvent.setup();
     const view = render(<PublicHeader />);
-    const trigger = screen.getByRole('button', { name: 'Buka menu navigasi' });
+    const trigger = screen.getByRole('button', { name: 'Open menu' });
 
     await user.click(trigger);
-    const dialog = screen.getByRole('dialog', { name: 'Menu navigasi' });
+    const dialog = screen.getByRole('dialog', { name: 'Menu' });
     expect(trigger).toHaveAttribute('aria-expanded', 'true');
-    expect(within(dialog).getByRole('link', { name: 'Masuk' })).toHaveAttribute('href', '/sign-in');
-    expect(within(dialog).getByRole('link', { name: 'Daftar' })).toHaveAttribute(
+    expect(within(dialog).getByRole('link', { name: 'Sign in' })).toHaveAttribute(
+      'href',
+      '/sign-in',
+    );
+    expect(within(dialog).getByRole('link', { name: 'Join us' })).toHaveAttribute(
       'href',
       '/register',
     );
-    expect(within(dialog).getByRole('link', { name: 'Paket' })).toHaveAttribute(
+    expect(within(dialog).getByRole('link', { name: 'Packages' })).toHaveAttribute(
       'aria-current',
       'page',
     );
@@ -30,7 +33,7 @@ describe('PublicHeader', () => {
 
     await user.keyboard('{Escape}');
     await waitFor(() =>
-      expect(screen.queryByRole('dialog', { name: 'Menu navigasi' })).not.toBeInTheDocument(),
+      expect(screen.queryByRole('dialog', { name: 'Menu' })).not.toBeInTheDocument(),
     );
     expect(trigger).toHaveFocus();
     expect(document.body.style.overflow).toBe('');
@@ -42,23 +45,23 @@ describe('PublicHeader', () => {
     window.history.replaceState({}, '', '/classes');
     const view = render(<PublicHeader />);
     expect(view.container.querySelectorAll('[aria-current="page"]')).toHaveLength(1);
-    const desktop = screen.getByRole('navigation', { name: 'Navigasi publik' });
-    expect(within(desktop).getByRole('link', { name: 'Kelas' })).toHaveAttribute(
+    const desktop = screen.getByRole('navigation', { name: 'Main' });
+    expect(within(desktop).getByRole('link', { name: 'Classes' })).toHaveAttribute(
       'aria-current',
       'page',
     );
-    expect(within(desktop).getByRole('link', { name: 'Jadwal' })).not.toHaveAttribute(
+    expect(within(desktop).getByRole('link', { name: 'Timetable' })).not.toHaveAttribute(
       'aria-current',
     );
     window.location.hash = '#schedule';
     window.dispatchEvent(new HashChangeEvent('hashchange'));
     await waitFor(() =>
-      expect(within(desktop).getByRole('link', { name: 'Jadwal' })).toHaveAttribute(
+      expect(within(desktop).getByRole('link', { name: 'Timetable' })).toHaveAttribute(
         'aria-current',
         'page',
       ),
     );
-    expect(within(desktop).getByRole('link', { name: 'Kelas' })).not.toHaveAttribute(
+    expect(within(desktop).getByRole('link', { name: 'Classes' })).not.toHaveAttribute(
       'aria-current',
     );
   });

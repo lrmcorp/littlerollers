@@ -43,7 +43,7 @@ describe('check-in pass', () => {
     render(<CheckInPassView />);
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Pass QR tidak valid atau sudah tidak tersedia.',
+      'This QR pass is not valid or is no longer available.',
     );
     expect(screen.queryByRole('button', { name: 'Download QR' })).not.toBeInTheDocument();
   });

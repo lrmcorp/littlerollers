@@ -90,8 +90,7 @@ export function CustomerBookingFlow({ client = browserBookingClient }: { client?
         const initial: Length | null = owned.has(120) ? 120 : owned.has(60) ? 60 : null;
         setLength(initial);
         setSelectedPackageId(
-          result.packages.find((item) => (item.sessionDurationMinutes ?? 60) === initial)?.id ??
-            '',
+          result.packages.find((item) => (item.sessionDurationMinutes ?? 60) === initial)?.id ?? '',
         );
         setStatus('ready');
       })
@@ -146,7 +145,10 @@ export function CustomerBookingFlow({ client = browserBookingClient }: { client?
     <section className="grid gap-6" aria-labelledby="customer-booking-title">
       <header className="rounded-[22px] bg-dd-forest p-6 text-dd-cream sm:p-8">
         <p className="font-display text-lg text-lr-sun">{slot.branch.name}</p>
-        <h1 className="mt-1 font-display text-[clamp(2rem,4vw,3rem)] leading-none" id="customer-booking-title">
+        <h1
+          className="mt-1 font-display text-[clamp(2rem,4vw,3rem)] leading-none"
+          id="customer-booking-title"
+        >
           {slot.classType.name}
         </h1>
         <p className="mt-3 text-dd-cream/85">
@@ -191,8 +193,7 @@ export function CustomerBookingFlow({ client = browserBookingClient }: { client?
           <CheckCircle2 className="size-9 text-dd-forest" aria-hidden="true" />
           <h2 className="mt-3 font-display text-3xl text-dd-forest">You are booked in</h2>
           <p className="mt-2 leading-7 text-dd-ink">
-            {slot.classType.name} at {slot.branch.name},{' '}
-            {dateLabel(slot.startAt, slot.timezone)},{' '}
+            {slot.classType.name} at {slot.branch.name}, {dateLabel(slot.startAt, slot.timezone)},{' '}
             {timeLabel(slot.startAt, slot.timezone)} to {timeLabel(sessionEnd, slot.timezone)} (
             {lengthLabel(length ?? 60)}).
           </p>
@@ -319,8 +320,8 @@ export function CustomerBookingFlow({ client = browserBookingClient }: { client?
                     <div className="rounded-[15px] border border-dd-line bg-white p-5">
                       <p className="m-0">
                         You have no {lengthLabel(length)} package for this class. Packages are sold
-                        per length, so a {lengthLabel(length)} session needs a{' '}
-                        {lengthLabel(length)} package.
+                        per length, so a {lengthLabel(length)} session needs a {lengthLabel(length)}{' '}
+                        package.
                       </p>
                       <Link className="customer-card-action mt-4" href={purchaseUrl}>
                         Buy a {lengthLabel(length)} package
@@ -385,7 +386,8 @@ export function CustomerBookingFlow({ client = browserBookingClient }: { client?
                   <dt className="text-sm text-dd-ink/75">When</dt>
                   <dd className="m-0 font-semibold">
                     {dateLabel(slot.startAt, slot.timezone)},{' '}
-                    {timeLabel(slot.startAt, slot.timezone)} to {timeLabel(sessionEnd, slot.timezone)}
+                    {timeLabel(slot.startAt, slot.timezone)} to{' '}
+                    {timeLabel(sessionEnd, slot.timezone)}
                   </dd>
                 </div>
                 <div>

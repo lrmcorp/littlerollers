@@ -89,9 +89,9 @@ investigasi.
 demo tidak dibuat di production, dan `SEED_DEMO_CREDENTIALS=true` ditolak ketika
 `NODE_ENV=production`.
 
-| Role        | Email                          | Password         |
-| ----------- | ------------------------------ | ---------------- |
-| Super Owner | `ralamzah@gmail.com`           | `ridho123`       |
+| Role        | Email                              | Password             |
+| ----------- | ---------------------------------- | -------------------- |
+| Super Owner | `ralamzah@gmail.com`               | `ridho123`           |
 | Super Owner | `owner@littlerollers.local`        | `LittleRollers#2026` |
 | Owner       | `branch.owner@littlerollers.local` | `LittleRollers#2026` |
 | Owner BSD   | `bsd.owner@littlerollers.local`    | `LittleRollers#2026` |
@@ -100,7 +100,7 @@ demo tidak dibuat di production, dan `SEED_DEMO_CREDENTIALS=true` ditolak ketika
 | Finance     | `finance@littlerollers.local`      | `LittleRollers#2026` |
 | Operations  | `ops@littlerollers.local`          | `LittleRollers#2026` |
 | Instructor  | `instructor@littlerollers.local`   | `LittleRollers#2026` |
-| Customer    | `customer@littlerollers.local`     | `Customer#2026`  |
+| Customer    | `customer@littlerollers.local`     | `Customer#2026`      |
 
 Seeder memakai factory deterministik dan dapat dijalankan berulang tanpa
 menambah duplicate data:

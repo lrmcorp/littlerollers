@@ -53,13 +53,13 @@ describe('customer payment proof preview', () => {
     );
     const user = userEvent.setup();
 
-    expect(screen.getByText('Bukti pembayaran yang dikirim')).toBeVisible();
-    await user.click(screen.getByRole('button', { name: 'Lihat bukti pembayaran' }));
+    expect(screen.getByText('Your proof of payment')).toBeVisible();
+    await user.click(screen.getByRole('button', { name: 'View proof of payment' }));
 
     expect(browserOrderClient.loadProof).toHaveBeenCalledWith('order-1');
-    expect(await screen.findByRole('img', { name: 'Bukti pembayaran yang dikirim' })).toBeVisible();
-    await user.click(screen.getByRole('button', { name: 'Tutup preview' }));
-    expect(screen.queryByRole('img', { name: 'Bukti pembayaran yang dikirim' })).toBeNull();
+    expect(await screen.findByRole('img', { name: 'Your proof of payment' })).toBeVisible();
+    await user.click(screen.getByRole('button', { name: 'Close preview' }));
+    expect(screen.queryByRole('img', { name: 'Your proof of payment' })).toBeNull();
     expect(revokeObjectURL).toHaveBeenCalledWith('blob:customer-proof');
   });
 
@@ -76,9 +76,7 @@ describe('customer payment proof preview', () => {
       </AppFeedbackProvider>,
     );
 
-    expect(screen.getByRole('button', { name: 'Lihat bukti pembayaran' })).toBeDisabled();
-    expect(
-      screen.getByText('Preview tersedia setelah pemeriksaan keamanan selesai.'),
-    ).toBeVisible();
+    expect(screen.getByRole('button', { name: 'View proof of payment' })).toBeDisabled();
+    expect(screen.getByText('The preview is ready once the file check finishes.')).toBeVisible();
   });
 });

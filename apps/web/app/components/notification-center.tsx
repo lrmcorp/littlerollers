@@ -118,7 +118,7 @@ export function NotificationCenter({
     <div className="relative" ref={root}>
       <IconButton
         ref={trigger}
-        label={unread ? `Notifikasi, ${unread} belum dibaca` : 'Notifikasi'}
+        label={unread ? `Notifications, ${unread} unread` : 'Notifications'}
         variant="secondary"
         aria-expanded={open}
         aria-controls="global-notification-center"
@@ -135,12 +135,12 @@ export function NotificationCenter({
       {open && (
         <section
           id="global-notification-center"
-          aria-label="Pusat notifikasi"
+          aria-label="Notifications"
           className={`fixed inset-x-3 top-16 z-[80] overflow-hidden rounded-dd-lg border border-dd-line bg-white shadow-dd-float sm:absolute sm:inset-auto sm:right-0 sm:top-auto sm:mt-2 ${compact ? 'sm:w-[340px]' : 'sm:w-[390px]'}`}
         >
           <header className="flex items-center justify-between gap-3 border-b border-dd-line px-4 py-3">
             <div>
-              <strong className="block text-sm">Notifikasi</strong>
+              <strong className="block text-sm">Notifications</strong>
               <span className="text-xs text-dd-muted">{unread} belum dibaca</span>
             </div>
             {unread > 0 && (
@@ -157,10 +157,10 @@ export function NotificationCenter({
                       setUnread(0);
                       setItems((current) => current.map((item) => ({ ...item, readAt })));
                     })
-                    .catch(() => setActionError('Notifikasi belum dapat diperbarui.'))
+                    .catch(() => setActionError('Notifications could not be updated.'))
                 }
               >
-                Tandai semua
+                Mark all read
               </Button>
             )}
           </header>
@@ -173,12 +173,12 @@ export function NotificationCenter({
             {status === 'loading' && items.length === 0 && (
               <div className="grid place-items-center gap-2 p-8 text-sm text-dd-muted">
                 <LoaderCircle className="size-5 animate-spin motion-reduce:animate-none" />
-                Memuat notifikasi…
+                Loading notifications…
               </div>
             )}
             {status === 'error' && (
               <div className="p-6 text-center">
-                <p className="text-sm text-dd-muted">Notifikasi belum dapat dimuat.</p>
+                <p className="text-sm text-dd-muted">Notifications did not load.</p>
                 <Button
                   className="mt-3"
                   variant="secondary"
@@ -186,16 +186,16 @@ export function NotificationCenter({
                   leadingIcon={<RefreshCw className="size-4" aria-hidden="true" />}
                   onClick={() => void refresh()}
                 >
-                  Coba lagi
+                  Try again
                 </Button>
               </div>
             )}
             {status === 'ready' && items.length === 0 && (
               <div className="p-8 text-center">
                 <Bell className="mx-auto size-6 text-dd-muted" />
-                <strong className="mt-3 block text-sm">Belum ada notifikasi</strong>
+                <strong className="mt-3 block text-sm">No notifications yet</strong>
                 <p className="mt-1 text-xs leading-5 text-dd-muted">
-                  Pembaruan penting akan muncul di sini.
+                  Important updates will show here.
                 </p>
               </div>
             )}
@@ -243,11 +243,11 @@ export function NotificationCenter({
                       });
                       setNextCursor(page.page.nextCursor);
                     })
-                    .catch(() => setActionError('Halaman notifikasi berikutnya gagal dimuat.'))
+                    .catch(() => setActionError('The next page of notifications did not load.'))
                     .finally(() => setLoadingMore(false));
                 }}
               >
-                {loadingMore ? 'Memuat…' : 'Muat lebih banyak'}
+                {loadingMore ? 'Loading…' : 'Load more'}
               </button>
             )}
           </div>

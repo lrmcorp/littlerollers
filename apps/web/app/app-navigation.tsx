@@ -168,8 +168,8 @@ export function AppNavigation({
         >
           <div className={collapsed ? 'lg:w-10 lg:overflow-hidden' : ''}>
             <BrandMark
-              ariaLabel={`Daily Dose Pilates — ${customerOnly ? 'Dashboard Saya' : 'Dashboard'}`}
-              className="h-auto w-[166px] brightness-0 invert"
+              ariaLabel={`Little Rollers, ${customerOnly ? 'Dashboard Saya' : 'Dashboard'}`}
+              tone="light"
               href={customerOnly ? '/account' : '/workspace'}
               priority
             />

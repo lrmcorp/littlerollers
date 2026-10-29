@@ -194,7 +194,7 @@ describe('payment-proof upload client', () => {
       stage: 'SCANNING',
       retryable: true,
       correlationReference: 'corr-scan',
-      message: expect.stringContaining('Pemeriksaan keamanan file'),
+      message: expect.stringContaining('file safety check'),
     });
   });
 });

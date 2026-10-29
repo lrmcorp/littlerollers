@@ -120,19 +120,19 @@ export class NotificationProjectionWorker {
             category: approved ? 'PACKAGE' : 'PAYMENT',
             tone: approved || created ? 'SUCCESS' : actionRequired ? 'WARNING' : 'DANGER',
             title: created
-              ? 'Pesanan berhasil dibuat'
+              ? 'Order placed'
               : approved
-                ? 'Pembayaran disetujui'
+                ? 'Payment approved'
                 : actionRequired
-                  ? 'Pembayaran perlu diperbaiki'
-                  : 'Pembayaran ditolak',
+                  ? 'Your payment needs a fix'
+                  : 'Payment not approved',
             message: created
-              ? 'Selesaikan pembayaran sebelum batas waktu pesanan.'
+              ? 'Please pay before the order deadline.'
               : approved
-                ? 'Paket Anda telah aktif dan siap digunakan.'
+                ? 'Your package is active and ready to book.'
                 : actionRequired
-                  ? 'Buka pesanan untuk melihat tindakan yang diperlukan.'
-                  : 'Buka pesanan untuk melihat hasil pemeriksaan.',
+                  ? 'Open the order to see what to fix.'
+                  : 'Open the order to see why.',
             href: `/orders/${event.aggregateId}`,
           },
         ];
@@ -192,8 +192,8 @@ export class NotificationProjectionWorker {
             branchId: booking.branchId,
             category: 'BOOKING',
             tone: 'INFO',
-            title: 'Booking berhasil dibatalkan',
-            message: 'Booking Anda telah dibatalkan dan slot kelas telah dilepas.',
+            title: 'Booking cancelled',
+            message: 'Your booking is cancelled and the place has been released.',
             href: '/bookings',
             metadataMasked: { classSlotId: booking.classSlotId },
             emailEligible: true,
@@ -218,32 +218,32 @@ export class NotificationProjectionWorker {
         'booking.created.v1': [
           'BOOKING',
           'SUCCESS',
-          'Booking berhasil dibuat',
-          'Jadwal baru telah ditambahkan ke booking Anda.',
+          'Session booked',
+          'A new session has been added to your bookings.',
         ],
         'booking.rescheduled.v1': [
           'RESCHEDULE',
           'SUCCESS',
-          'Reschedule disetujui',
-          'Booking Anda telah dipindahkan ke jadwal baru.',
+          'Reschedule approved',
+          'Your booking has moved to the new session.',
         ],
         'booking.reschedule_rejected.v1': [
           'RESCHEDULE',
           'DANGER',
-          'Reschedule ditolak',
-          'Permintaan perubahan jadwal belum dapat disetujui.',
+          'Reschedule not approved',
+          'We could not approve your request to change the session.',
         ],
         'check_in.customer.v1': [
           'ATTENDANCE',
           'SUCCESS',
-          'Check-in berhasil',
-          'Kehadiran Anda telah tercatat.',
+          'Checked in',
+          'Your attendance is recorded.',
         ],
         'check_in.customer_backfilled.v1': [
           'ATTENDANCE',
           'INFO',
-          'Kehadiran diperbarui',
-          'Kehadiran Anda telah dikoreksi oleh staf yang berwenang.',
+          'Attendance updated',
+          'A staff member corrected your attendance.',
         ],
       };
       const selected = copy[event.eventType];
@@ -271,9 +271,9 @@ export class NotificationProjectionWorker {
         branchId: booking.branchId,
         category: 'ATTENDANCE',
         tone: 'WARNING',
-        title: 'Kehadiran tidak tercatat',
+        title: 'Attendance not recorded',
         message:
-          'Kelas telah selesai dan kehadiran Anda belum tercatat. Hubungi Studio/Cabang bila perlu dikoreksi.',
+          'The session has ended and no attendance was recorded. Contact your club if this needs correcting.',
         href: `/bookings/${booking.id}`,
         metadataMasked: { classSlotId: booking.classSlotId },
         emailEligible: false,
@@ -289,8 +289,8 @@ export class NotificationProjectionWorker {
         branchId: booking.branchId,
         category: 'CLASS',
         tone: 'DANGER',
-        title: 'Kelas dibatalkan',
-        message: 'Salah satu kelas pada jadwal Anda telah dibatalkan. Buka booking untuk detail.',
+        title: 'Session cancelled',
+        message: 'One of the sessions you booked was cancelled. Open the booking for details.',
         href: '/bookings',
       }));
     }
@@ -326,10 +326,10 @@ export class NotificationProjectionWorker {
             branchId: adjustment.customerPackage.branchId,
             category: 'ADJUSTMENT',
             tone: posted ? 'SUCCESS' : 'DANGER',
-            title: posted ? 'Saldo sesi diperbarui' : 'Adjustment ditolak',
+            title: posted ? 'Session balance updated' : 'Adjustment not approved',
             message: posted
-              ? 'Perubahan saldo sesi telah diposting ke ledger Anda.'
-              : 'Permintaan perubahan saldo belum dapat disetujui.',
+              ? 'A change to your session balance has been recorded.'
+              : 'The requested change to your session balance was not approved.',
             href: '/account/packages',
           },
         ];
@@ -350,10 +350,10 @@ export class NotificationProjectionWorker {
           userId: document.userId,
           category: 'VERIFICATION',
           tone: approved ? 'SUCCESS' : 'WARNING',
-          title: approved ? 'Dokumen disetujui' : 'Dokumen perlu diperbaiki',
+          title: approved ? 'Documents approved' : 'Your documents need a fix',
           message: approved
-            ? 'Dokumen identitas Anda telah disetujui.'
-            : 'Buka verifikasi untuk melihat panduan unggah ulang.',
+            ? 'Your identity documents are approved.'
+            : 'Open verification to see how to upload again.',
           href: rejected
             ? `/account/verification?document=${document.kind}`
             : '/account/verification',

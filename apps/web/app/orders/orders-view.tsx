@@ -38,13 +38,13 @@ const summaryCards: Array<{
   label: string;
   status: '' | OrderStatus;
 }> = [
-  { key: 'total', label: 'Semua', status: '' },
-  { key: 'awaitingPayment', label: 'Belum dibayar', status: 'AWAITING_PAYMENT' },
-  { key: 'pending', label: 'Diperiksa', status: 'PENDING' },
-  { key: 'actionRequired', label: 'Perlu tindakan', status: 'ACTION_REQUIRED' },
-  { key: 'approved', label: 'Disetujui', status: 'APPROVED' },
-  { key: 'rejected', label: 'Ditolak', status: 'REJECTED' },
-  { key: 'expired', label: 'Kedaluwarsa', status: 'EXPIRED' },
+  { key: 'total', label: 'All', status: '' },
+  { key: 'awaitingPayment', label: 'Not paid', status: 'AWAITING_PAYMENT' },
+  { key: 'pending', label: 'Being checked', status: 'PENDING' },
+  { key: 'actionRequired', label: 'Needs a fix', status: 'ACTION_REQUIRED' },
+  { key: 'approved', label: 'Approved', status: 'APPROVED' },
+  { key: 'rejected', label: 'Not approved', status: 'REJECTED' },
+  { key: 'expired', label: 'Expired', status: 'EXPIRED' },
 ];
 
 function tone(status: OrderStatus) {
@@ -55,12 +55,12 @@ function tone(status: OrderStatus) {
 }
 
 function urgency(order: CustomerOrder) {
-  if (order.status === 'AWAITING_PAYMENT') return 'Lanjutkan pembayaran';
-  if (order.status === 'ACTION_REQUIRED') return 'Ganti bukti pembayaran';
-  if (order.status === 'PENDING') return 'Menunggu pemeriksaan Finance';
-  if (order.status === 'APPROVED') return 'Paket sudah diaktifkan';
-  if (order.status === 'REJECTED') return 'Lihat hasil pemeriksaan';
-  return 'Pesanan sudah berakhir';
+  if (order.status === 'AWAITING_PAYMENT') return 'Continue payment';
+  if (order.status === 'ACTION_REQUIRED') return 'Replace proof of payment';
+  if (order.status === 'PENDING') return 'Waiting for our finance team';
+  if (order.status === 'APPROVED') return 'Package activated';
+  if (order.status === 'REJECTED') return 'See why';
+  return 'This order has ended';
 }
 
 export function OrdersView() {
@@ -108,17 +108,18 @@ export function OrdersView() {
   return (
     <main className="space-y-6">
       <PageHeader
-        eyebrow="Member area"
-        title="Pesanan Saya"
-        description="Pantau pembayaran, pemeriksaan bukti, aktivasi paket, dan riwayat setiap pesanan."
+        variant="customer"
+        eyebrow="Orders"
+        title="My orders"
+        description="Payments, proof checks and package activation for each order."
         context={
           <ButtonLink href="/packages" leadingIcon={<PackagePlus className="size-4" />}>
-            Beli paket
+            Buy a package
           </ButtonLink>
         }
       />
 
-      <section aria-label="Ringkasan pesanan" className="grid grid-cols-2 gap-3 lg:grid-cols-7">
+      <section aria-label="Orders by status" className="grid grid-cols-2 gap-3 lg:grid-cols-7">
         {summaryCards.map((card) => {
           const selected = status === card.status;
           return (
@@ -143,17 +144,17 @@ export function OrdersView() {
       </section>
 
       <form
-        className="grid gap-3 rounded-dd-xl border border-dd-line bg-white p-4 shadow-dd-card md:grid-cols-[minmax(0,1fr)_180px_170px_170px_auto]"
+        className="grid gap-3 rounded-[22px] border border-dd-line bg-white p-4 md:grid-cols-[minmax(0,1fr)_180px_170px_170px_auto]"
         onSubmit={(event) => {
           event.preventDefault();
           updateFilters({ q: draftQuery.trim() });
         }}
       >
         <SearchInput
-          label="Cari pesanan"
+          label="Search orders"
           value={draftQuery}
           onChange={(event) => setDraftQuery(event.target.value)}
-          placeholder="Nama paket atau studio"
+          placeholder="Package or club name"
           leadingIcon={<Search className="size-4" />}
         />
         <SelectInput
@@ -161,7 +162,7 @@ export function OrdersView() {
           value={status}
           onChange={(event) => updateFilters({ status: event.target.value })}
         >
-          <option value="">Semua status</option>
+          <option value="">All statuses</option>
           {Object.entries(orderStatusLabels).map(([value, label]) => (
             <option key={value} value={value}>
               {label}
@@ -169,19 +170,19 @@ export function OrdersView() {
           ))}
         </SelectInput>
         <DateInput
-          label="Dari tanggal"
+          label="From"
           value={from}
           max={until || undefined}
           onChange={(event) => updateFilters({ from: event.target.value })}
         />
         <DateInput
-          label="Sampai tanggal"
+          label="Until"
           value={until}
           min={from || undefined}
           onChange={(event) => updateFilters({ until: event.target.value })}
         />
         <div className="flex items-end gap-2">
-          <Button type="submit">Cari</Button>
+          <Button type="submit">Search</Button>
           {(q || status || from || until || cursor) && (
             <Button
               type="button"
@@ -191,7 +192,7 @@ export function OrdersView() {
                 router.replace(pathname, { scroll: false });
               }}
             >
-              Reset
+              Clear
             </Button>
           )}
         </div>
@@ -199,14 +200,14 @@ export function OrdersView() {
 
       {error && <Feedback kind="error">{error}</Feedback>}
       {loading ? (
-        <Skeleton label="Memuat pesanan" />
+        <Skeleton label="Loading orders" />
       ) : !data?.items.length ? (
         <EmptyState
-          title={q || status || from || until ? 'Pesanan tidak ditemukan' : 'Belum ada pesanan'}
+          title={q || status || from || until ? 'No orders match' : 'No orders yet'}
           description={
             q || status || from || until
-              ? 'Ubah atau reset filter untuk melihat pesanan lainnya.'
-              : 'Pilih paket yang sesuai lalu buat pesanan sebelum melakukan transfer.'
+              ? 'Change or clear the filters to see other orders.'
+              : 'Pick a package and place an order before you transfer any money.'
           }
         />
       ) : (
@@ -214,7 +215,7 @@ export function OrdersView() {
           <div className="grid gap-3">
             {data.items.map((item) => (
               <Link
-                className="group grid gap-4 rounded-dd-xl border border-dd-line bg-white p-5 text-dd-ink no-underline shadow-dd-card transition hover:-translate-y-0.5 hover:border-dd-forest/30 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
+                className="group grid gap-4 rounded-[22px] border border-dd-line bg-white p-5 text-dd-ink no-underline transition hover:-translate-y-0.5 hover:border-dd-forest/30 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
                 href={`/orders/${encodeURIComponent(item.id)}?returnTo=${encodeURIComponent(returnTo)}`}
                 key={item.id}
               >
@@ -228,13 +229,13 @@ export function OrdersView() {
                   <small className="mt-2 flex flex-wrap items-center gap-2 text-dd-muted">
                     <span>{item.branchName}</span>
                     <span aria-hidden="true">·</span>
-                    <span>{item.submittedAt.toLocaleDateString('id-ID')}</span>
+                    <span>{item.submittedAt.toLocaleDateString('en-GB')}</span>
                     {item.expiresAt && item.status === 'AWAITING_PAYMENT' && (
                       <>
                         <span aria-hidden="true">·</span>
                         <span className="inline-flex items-center gap-1 text-dd-warning">
                           <CalendarClock className="size-3.5" />
-                          Bayar sebelum {item.expiresAt.toLocaleString('id-ID')}
+                          Pay before {item.expiresAt.toLocaleString('en-GB')}
                         </span>
                       </>
                     )}
@@ -258,7 +259,8 @@ export function OrdersView() {
           <Pagination
             hasPrevious={cursorHistory.length > 0}
             hasNext={Boolean(data.page.hasMore && data.page.nextCursor)}
-            totalLabel={`Halaman ${cursorHistory.length + 1} · ${data.items.length.toLocaleString('id-ID')} data dari ${summary.total.toLocaleString('id-ID')} pesanan`}
+            totalLabel={`Page ${cursorHistory.length + 1} · ${data.items.length} of ${summary.total} orders`}
+            labels={{ navigation: 'Pages', previous: 'Previous', next: 'Next' }}
             onPrevious={() => {
               const previous = cursorHistory.at(-1) ?? '';
               setCursorHistory((current) => current.slice(0, -1));

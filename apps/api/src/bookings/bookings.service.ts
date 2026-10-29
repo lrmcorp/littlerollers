@@ -140,6 +140,7 @@ export class BookingsService {
       source: booking.source,
       status: booking.status,
       reservedQuantity: booking.reservedQuantity,
+      sessionDurationMinutes: booking.sessionDurationMinutes ?? 60,
       cancellationReasonCode: booking.cancellationReasonCode ?? null,
       cancelledAt: booking.cancelledAt ?? null,
       createdAt: booking.createdAt,

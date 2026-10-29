@@ -199,22 +199,19 @@ export function messageForApiError(error: unknown): {
   )?.response;
   const code = response?.data?.code;
   const known: Record<string, [string, string]> = {
-    STALE_VERSION: ['Data telah berubah', 'Muat ulang data terbaru sebelum mencoba kembali.'],
-    FORBIDDEN: ['Akses tidak tersedia', 'Akun Anda tidak memiliki izin untuk tindakan ini.'],
-    UNAUTHORIZED: ['Sesi telah berakhir', 'Silakan masuk kembali untuk melanjutkan.'],
-    VALIDATION_ERROR: [
-      'Periksa kembali data',
-      'Beberapa informasi belum valid atau belum lengkap.',
-    ],
-    NOT_FOUND: ['Data tidak ditemukan', 'Data mungkin telah dipindahkan atau tidak lagi tersedia.'],
-    SERVICE_UNAVAILABLE: ['Layanan belum tersedia', 'Coba kembali beberapa saat lagi.'],
+    STALE_VERSION: ['Something changed', 'Reload to get the latest data, then try again.'],
+    FORBIDDEN: ['Not allowed', 'Your account cannot do this.'],
+    UNAUTHORIZED: ['You were signed out', 'Please sign in again to continue.'],
+    VALIDATION_ERROR: ['Please check the details', 'Some information is missing or not valid.'],
+    NOT_FOUND: ['Not found', 'It may have moved or no longer exist.'],
+    SERVICE_UNAVAILABLE: ['Service unavailable', 'Please try again shortly.'],
     CONFIGURATION_REQUIRED: [
-      'Dokumen belum dapat diproses',
-      'Layanan dokumen sementara tidak tersedia. Silakan coba kembali nanti.',
+      'The document could not be processed',
+      'Document handling is unavailable right now. Please try again later.',
     ],
     IDENTITY_DOCUMENT_NOT_READY: [
-      'Dokumen belum siap diperiksa',
-      'Upload atau pemeriksaan keamanan file belum selesai. Segarkan status sebelum mencoba lagi.',
+      'The document is not ready yet',
+      'The upload or file check has not finished. Refresh the status, then try again.',
     ],
   };
   const fallback: [string, string] =
@@ -224,7 +221,7 @@ export function messageForApiError(error: unknown): {
         ? known.FORBIDDEN!
         : response?.status === 409
           ? known.STALE_VERSION!
-          : ['Terjadi kendala', 'Permintaan belum dapat diproses. Silakan coba kembali.'];
+          : ['Something went wrong', 'We could not process that. Please try again.'];
   const [title, message] = (code && known[code]) || fallback;
   return { title, message, correlationReference: response?.correlationId };
 }
@@ -248,7 +245,7 @@ export function AlertBanner({
         <strong className="block text-sm">{title}</strong>
         {message && <p className="mt-1 text-sm leading-6 opacity-90">{message}</p>}
         {correlationReference && (
-          <p className="mt-2 text-xs opacity-70">Kode bantuan: {correlationReference}</p>
+          <p className="mt-2 text-xs opacity-70">Support code: {correlationReference}</p>
         )}
         {action && (
           <Button
@@ -416,7 +413,7 @@ export function Modal({
           </div>
           {showCloseButton && (
             <IconButton
-              label="Tutup dialog"
+              label="Close dialog"
               variant="ghost"
               onClick={() => void requestClose()}
               disabled={busy}
@@ -519,7 +516,7 @@ function ToastItem({ toast, onDismiss }: { toast: Stored<AppToast>; onDismiss(id
       </div>
       {toast.dismissible !== false && (
         <IconButton
-          label={`Tutup pesan ${toast.title}`}
+          label={`Close message ${toast.title}`}
           variant="ghost"
           size="sm"
           onClick={() => onDismiss(toast.id)}
@@ -611,7 +608,7 @@ export function AppFeedbackProvider({ children }: { children: ReactNode }) {
             </Button>
           )}
           <Button type="button" onClick={() => currentAlert && dismiss(currentAlert.id)}>
-            {currentAlert?.closeLabel ?? 'Tutup'}
+            {currentAlert?.closeLabel ?? 'Close'}
           </Button>
         </div>
       </Modal>
@@ -628,14 +625,14 @@ export function AppFeedbackProvider({ children }: { children: ReactNode }) {
         )}
         <div className="mt-5 flex justify-end gap-3">
           <Button type="button" variant="secondary" onClick={() => resolveConfirmation(false)}>
-            {confirmation?.input.cancelLabel ?? 'Batal'}
+            {confirmation?.input.cancelLabel ?? 'Cancel'}
           </Button>
           <Button
             type="button"
             onClick={() => resolveConfirmation(true)}
             variant={confirmation?.input.tone === 'danger' ? 'danger' : 'primary'}
           >
-            {confirmation?.input.confirmLabel ?? 'Lanjutkan'}
+            {confirmation?.input.confirmLabel ?? 'Continue'}
           </Button>
         </div>
       </Modal>

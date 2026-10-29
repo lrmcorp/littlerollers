@@ -8,7 +8,7 @@ import { CustomerPaymentFlow } from '../components/customer/customer-payment-flo
 import { AlertBanner, useAppFeedback } from '../components/app-feedback';
 import { useTrackedRouter } from '../components/app-loading';
 import { Button, ButtonLink, StickyActionBar } from '../components/actions';
-import { SelectInput, TextInput } from '../components/forms';
+import { SearchSelect, TextInput } from '../components/forms';
 import { PackagePrice } from '../components/public/package-price';
 import {
   browserOrderClient,
@@ -75,8 +75,8 @@ export function CheckoutView() {
 
   if (loading)
     return (
-      <section className="rounded-dd-xl border border-dd-line bg-white p-6 shadow-dd-card">
-        <Skeleton label="Menyiapkan checkout" />
+      <section className="rounded-[22px] bg-white p-6">
+        <Skeleton label="Preparing checkout" />
       </section>
     );
 
@@ -84,15 +84,12 @@ export function CheckoutView() {
     return (
       <main className="space-y-6 pt-2" aria-labelledby="checkout-title">
         <header>
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-dd-forest">
-            Checkout aman
-          </p>
-          <h1 id="checkout-title" className="mt-2 text-2xl font-semibold sm:text-3xl">
-            Selesaikan pembayaran
+          <h1 id="checkout-title" className="m-0 font-display text-3xl text-dd-forest sm:text-4xl">
+            Finish your payment
           </h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-dd-muted">
-            Gunakan nominal yang ditampilkan agar transfer dapat dicocokkan, lalu unggah bukti pada
-            halaman ini.
+            Transfer the exact amount shown so we can match it, then upload your proof of payment on
+            this page.
           </p>
         </header>
         <CustomerPaymentFlow order={order} onUpdated={setOrder} />
@@ -102,19 +99,18 @@ export function CheckoutView() {
 
   if (!packageId || !options)
     return (
-      <section className="rounded-dd-xl border border-dd-line bg-white p-6 shadow-dd-card">
-        <p className="text-xs font-bold uppercase tracking-[0.16em] text-dd-forest">Checkout</p>
-        <h1 className="mt-2 text-2xl font-semibold">Paket belum tersedia</h1>
+      <section className="rounded-[22px] bg-white p-6">
+        <h1 className="m-0 font-display text-3xl text-dd-forest">Package not available</h1>
         <p className="mt-2 text-sm leading-6 text-dd-muted">
-          Checkout harus dimulai dari paket dan studio yang sesuai.
+          Start checkout from a package at your club.
         </p>
         {error && (
           <div className="mt-5">
-            <AlertBanner tone="danger" title="Checkout belum dapat dimuat" message={error} />
+            <AlertBanner tone="danger" title="Checkout did not load" message={error} />
           </div>
         )}
         <ButtonLink className="mt-5" href="/packages">
-          Lihat paket
+          See packages
         </ButtonLink>
       </section>
     );
@@ -126,28 +122,25 @@ export function CheckoutView() {
           href={`/packages?branch=${encodeURIComponent(options.package.branchId)}`}
           className="inline-flex items-center gap-2 text-sm font-semibold text-dd-forest no-underline"
         >
-          <ArrowLeft className="size-4" />
-          Kembali ke paket
+          <ArrowLeft className="size-4" aria-hidden="true" />
+          Back to packages
         </Link>
-        <p className="mt-5 text-xs font-bold uppercase tracking-[0.16em] text-dd-forest">
-          Checkout aman
-        </p>
-        <h1 id="checkout-title" className="mt-2 text-2xl font-semibold sm:text-3xl">
-          Ringkasan pembelian
+        <h1 id="checkout-title" className="mt-3 font-display text-3xl text-dd-forest sm:text-4xl">
+          Your order
         </h1>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-dd-muted">
-          Periksa paket dan studio sebelum membuat pesanan. Nominal transfer terverifikasi akan
-          ditampilkan setelah pesanan berhasil dibuat.
+          Check the package and club before placing the order. The exact amount to transfer appears
+          once the order is placed.
         </p>
       </header>
 
-      {error && <AlertBanner tone="danger" title="Pesanan belum berhasil dibuat" message={error} />}
+      {error && <AlertBanner tone="danger" title="The order was not placed" message={error} />}
 
       <ol
-        aria-label="Tahapan checkout"
-        className="grid grid-cols-2 gap-2 rounded-dd-xl border border-dd-line bg-white p-3 sm:grid-cols-4"
+        aria-label="Checkout steps"
+        className="grid grid-cols-2 gap-2 rounded-[22px] bg-white p-3 sm:grid-cols-4"
       >
-        {['Ringkasan', 'Pembayaran', 'Unggah bukti', 'Status'].map((label, index) => (
+        {['Order', 'Payment', 'Upload proof', 'Status'].map((label, index) => (
           <li
             key={label}
             aria-current={index === 0 ? 'step' : undefined}
@@ -164,48 +157,50 @@ export function CheckoutView() {
       </ol>
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,.85fr)]">
-        <section className="rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card sm:p-6">
-          <p className="text-xs font-bold uppercase tracking-[0.14em] text-dd-forest">
-            Paket dipilih
-          </p>
-          <h2 className="mt-3 text-2xl font-semibold">{options.package.name}</h2>
+        <section className="rounded-[22px] bg-white p-5 sm:p-6">
+          <p className="m-0 text-sm font-semibold text-dd-forest">Your package</p>
+          <h2 className="mt-1 mb-0 font-display text-2xl text-dd-forest">{options.package.name}</h2>
           <p className="mt-1 text-sm text-dd-muted">
             {options.package.classTypes.find((item) => item.id === selectedClassTypeId)?.name ??
-              'Pilih jenis kelas'}{' '}
+              'Choose a class'}{' '}
             · {options.package.branchName}
           </p>
 
           {options.package.classTypes.length > 1 && (
-            <SelectInput
+            <SearchSelect
               wrapperClassName="mt-5 max-w-md"
-              label="Jenis kelas"
-              description="Pilih satu jenis kelas yang akan digunakan untuk paket ini."
+              label="Class"
+              description="Choose the class this package will be used for."
+              placeholder="Choose a class"
               value={selectedClassTypeId}
               required
-              onChange={(event) => {
-                setSelectedClassTypeId(event.target.value);
+              options={options.package.classTypes.map((item) => ({
+                id: item.id,
+                label: item.name,
+              }))}
+              onChange={(value) => {
+                setSelectedClassTypeId(value);
                 setVoucherPreview(null);
               }}
-            >
-              <option value="">Pilih jenis kelas</option>
-              {options.package.classTypes.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </SelectInput>
+            />
           )}
-          <dl className="mt-6 grid gap-3 sm:grid-cols-3">
-            <div className="rounded-dd-lg bg-dd-surface-muted p-4">
-              <dt className="text-xs text-dd-muted">Jumlah sesi</dt>
-              <dd className="mt-1 font-semibold">{options.package.sessionCount} sesi</dd>
+          <dl className="mt-6 grid gap-3 sm:grid-cols-4">
+            <div className="rounded-[15px] bg-lr-sky p-4">
+              <dt className="text-xs text-dd-ink/75">Sessions</dt>
+              <dd className="mt-1 font-semibold">{options.package.sessionCount}</dd>
             </div>
-            <div className="rounded-dd-lg bg-dd-surface-muted p-4">
-              <dt className="text-xs text-dd-muted">Masa berlaku</dt>
-              <dd className="mt-1 font-semibold">{options.package.durationDays} hari</dd>
+            <div className="rounded-[15px] bg-lr-sky p-4">
+              <dt className="text-xs text-dd-ink/75">Each session</dt>
+              <dd className="mt-1 font-semibold">
+                {(options.package.sessionDurationMinutes ?? 60) >= 120 ? '2 hours' : '1 hour'}
+              </dd>
             </div>
-            <div className="rounded-dd-lg bg-dd-surface-muted p-4">
-              <dt className="text-xs text-dd-muted">Harga paket</dt>
+            <div className="rounded-[15px] bg-lr-sky p-4">
+              <dt className="text-xs text-dd-ink/75">Valid for</dt>
+              <dd className="mt-1 font-semibold">{options.package.durationDays} days</dd>
+            </div>
+            <div className="rounded-[15px] bg-lr-sky p-4">
+              <dt className="text-xs text-dd-ink/75">Price</dt>
               <dd className="mt-2">
                 <PackagePrice
                   priceRp={options.package.priceRp}
@@ -218,43 +213,43 @@ export function CheckoutView() {
           </dl>
         </section>
 
-        <aside className="rounded-dd-xl border border-dd-brass/50 bg-dd-brass-soft p-5 sm:p-6">
-          <ShieldCheck className="size-8 text-dd-forest" />
-          <h2 className="mt-4 text-lg font-semibold">Transfer manual terverifikasi</h2>
-          <ul className="mt-4 space-y-3 text-sm leading-6 text-dd-muted">
+        <aside className="rounded-[22px] border border-lr-sun bg-lr-sun-soft p-5 sm:p-6">
+          <ShieldCheck className="size-8 text-dd-forest" aria-hidden="true" />
+          <h2 className="mt-3 mb-0 font-display text-xl text-dd-forest">How paying works</h2>
+          <ul className="mt-4 space-y-3 text-sm leading-6 text-dd-ink">
             <li className="flex gap-2">
               <Check className="mt-1 size-4 shrink-0 text-dd-forest" />
-              Rekening tujuan disimpan sebagai snapshot pesanan.
+              You pay by bank transfer to the account shown on your order.
             </li>
             <li className="flex gap-2">
               <Check className="mt-1 size-4 shrink-0 text-dd-forest" />
-              Tiga digit terakhir pada nominal digunakan sebagai identifikasi transfer.
+              The last three digits of the amount help us match your transfer.
             </li>
             <li className="flex gap-2">
               <Check className="mt-1 size-4 shrink-0 text-dd-forest" />
-              Bukti pembayaran diperiksa privat oleh Finance.
+              Our finance team checks your proof of payment privately.
             </li>
           </ul>
-          <p className="mt-4 text-xs leading-5 text-dd-muted">
-            Jangan transfer sebelum pesanan berhasil dibuat dan nominal pembayaran sudah muncul.
+          <p className="mt-4 text-sm leading-6 text-dd-ink">
+            Please wait until the order is placed and the amount appears before you transfer.
           </p>
         </aside>
       </div>
 
-      <section className="rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card sm:p-6">
-        <h2 className="text-lg font-semibold text-dd-ink">Punya voucher?</h2>
+      <section className="rounded-[22px] bg-white p-5 sm:p-6">
+        <h2 className="m-0 font-display text-xl text-dd-forest">Got a voucher?</h2>
         <p className="mt-1 text-sm text-dd-muted">
-          Masukkan kode voucher sebelum membuat pesanan. Diskon dihitung otomatis oleh sistem.
+          Enter the code before placing the order. The discount is worked out for you.
         </p>
         <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
           <TextInput
-            label="Kode voucher"
+            label="Voucher code"
             value={voucherCode}
             onChange={(event) => {
               setVoucherCode(event.target.value.toUpperCase());
               setVoucherPreview(null);
             }}
-            placeholder="Contoh: WELCOME10"
+            placeholder="Voucher code"
             wrapperClassName="sm:flex-1"
           />
           <Button
@@ -271,7 +266,7 @@ export function CheckoutView() {
                 const effectiveBranchId = branchId?.trim();
                 if (!effectiveBranchId) {
                   setVoucherPreview(null);
-                  setError('Cabang checkout tidak valid.');
+                  setError('This club is not valid for checkout.');
                   return;
                 }
 
@@ -290,14 +285,14 @@ export function CheckoutView() {
               }
             }}
           >
-            Terapkan voucher
+            Apply voucher
           </Button>
         </div>
         {voucherPreview && (
-          <dl className="mt-4 grid gap-2 rounded-dd-lg bg-dd-surface-muted p-4 text-sm sm:grid-cols-4">
+          <dl className="mt-4 grid gap-2 rounded-[15px] bg-dd-surface-muted p-4 text-sm sm:grid-cols-4">
             {voucherPreview.packagePromotionDiscountRp > 0 && (
               <div>
-                <dt className="text-dd-muted">Promo paket</dt>
+                <dt className="text-dd-muted">Package offer</dt>
                 <dd className="font-semibold text-dd-forest">
                   -{rupiah.format(voucherPreview.packagePromotionDiscountRp)}
                 </dd>
@@ -308,13 +303,13 @@ export function CheckoutView() {
               <dd className="font-semibold">{voucherPreview.code}</dd>
             </div>
             <div>
-              <dt className="text-dd-muted">Diskon</dt>
+              <dt className="text-dd-muted">Discount</dt>
               <dd className="font-semibold text-dd-forest">
                 -{rupiah.format(voucherPreview.discountRp)}
               </dd>
             </div>
             <div>
-              <dt className="text-dd-muted">Harga setelah diskon</dt>
+              <dt className="text-dd-muted">Price after discount</dt>
               <dd className="font-semibold">
                 {rupiah.format(voucherPreview.priceAfterDiscountRp)}
               </dd>
@@ -325,7 +320,10 @@ export function CheckoutView() {
 
       <StickyActionBar
         description={
-          <p>Pesanan memiliki batas pembayaran {options.paymentAccount.paymentWindowHours} jam.</p>
+          <p>
+            You have {options.paymentAccount.paymentWindowHours} hours to pay after placing the
+            order.
+          </p>
         }
         className="border-dd-forest/15"
       >
@@ -335,14 +333,14 @@ export function CheckoutView() {
           fullWidth
           disabled={!selectedClassTypeId}
           loading={submitting}
-          loadingLabel="Membuat pesanan…"
+          loadingLabel="Placing order…"
           trailingIcon={<ArrowRight className="size-4" aria-hidden="true" />}
           className="sm:min-w-80"
           onClick={async () => {
             const confirmed = await feedback.confirm({
-              title: 'Buat pesanan ini?',
-              message: `${options.package.name} di ${options.package.branchName} akan dibuat. Setelah itu Anda memperoleh rekening dan nominal pembayaran.`,
-              confirmLabel: 'Buat pesanan',
+              title: 'Place this order?',
+              message: `We will create an order for ${options.package.name} at ${options.package.branchName}. Then you will see the bank account and amount to pay.`,
+              confirmLabel: 'Place order',
             });
             if (!confirmed) return;
             setSubmitting(true);
@@ -360,8 +358,8 @@ export function CheckoutView() {
               router.replace(`/checkout?order=${encodeURIComponent(created.id)}`);
               feedback.showToast({
                 tone: 'success',
-                title: 'Pesanan berhasil dibuat',
-                message: 'Silakan transfer sesuai nominal yang ditampilkan.',
+                title: 'Order placed',
+                message: 'Please transfer the exact amount shown.',
               });
             } catch (cause) {
               setError(orderError(cause));
@@ -370,7 +368,7 @@ export function CheckoutView() {
             }
           }}
         >
-          Buat pesanan dan lanjutkan pembayaran
+          Place order and pay
         </Button>
       </StickyActionBar>
     </main>

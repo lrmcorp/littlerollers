@@ -123,9 +123,7 @@ export function CustomerNavigation({
             ['Account', CUSTOMER_ACCOUNT_NAVIGATION],
           ].map(([group, items]) => (
             <div key={group as string}>
-              <p className="mb-2 px-3 font-display text-sm text-lr-sun">
-                {group as string}
-              </p>
+              <p className="mb-2 px-3 font-display text-sm text-lr-sun">{group as string}</p>
               <div className="space-y-1">
                 {(items as CustomerNavigationItem[]).map((item) => {
                   const Icon = item.icon;
@@ -148,7 +146,9 @@ export function CustomerNavigation({
                       <span className="min-w-0 flex-1">{item.label}</span>
                       {locked && (
                         <LockKeyhole
-                          className={selected ? 'size-3.5 text-dd-forest' : 'size-3.5 text-white/60'}
+                          className={
+                            selected ? 'size-3.5 text-dd-forest' : 'size-3.5 text-white/60'
+                          }
                           aria-hidden="true"
                         />
                       )}

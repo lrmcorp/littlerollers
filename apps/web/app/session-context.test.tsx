@@ -75,7 +75,7 @@ describe('capability-aware session shell', () => {
         </ApplicationShell>
       </SessionProvider>,
     );
-    expect(screen.getByRole('status', { name: 'Memuat sesi' })).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: 'Checking your session' })).toBeInTheDocument();
     expect(await screen.findByText('Admin Jakarta')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Sesi Customer' })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Operations H-24' })).not.toBeInTheDocument();
@@ -86,10 +86,10 @@ describe('capability-aware session shell', () => {
     expect(screen.getByText('Bandung')).toBeInTheDocument();
     expect(sessionStorage.getItem('dd_active_branch')).toBe('branch-2');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Notifikasi' }));
-    expect(screen.getByRole('region', { name: 'Pusat notifikasi' })).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Notifications' }));
+    expect(screen.getByRole('region', { name: 'Notifications' })).toBeVisible();
     fireEvent.keyDown(window, { key: 'Escape' });
-    expect(screen.queryByRole('region', { name: 'Pusat notifikasi' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Notifications' })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Menu profil Admin Jakarta' }));
     expect(screen.getByRole('region', { name: 'Menu akun internal' })).toBeVisible();
@@ -212,9 +212,9 @@ describe('capability-aware session shell', () => {
       </SessionProvider>,
     );
 
-    const retry = await screen.findByRole('button', { name: 'Coba lagi' });
+    const retry = await screen.findByRole('button', { name: 'Try again' });
     expect(retry).toHaveClass('min-h-11', 'bg-dd-forest', 'text-white');
-    expect(screen.getByRole('link', { name: 'Kunjungi situs utama' })).toHaveClass(
+    expect(screen.getByRole('link', { name: 'Main site' })).toHaveClass(
       'min-h-11',
       'border-dd-forest/25',
       'bg-white',
@@ -239,12 +239,12 @@ describe('capability-aware session shell', () => {
       </SessionProvider>,
     );
 
-    expect(await screen.findByText(/Halaman verifikasi akun hanya untuk customer/)).toBeVisible();
-    expect(screen.getByRole('link', { name: 'Buka antrean verifikasi' })).toHaveAttribute(
+    expect(await screen.findByText(/Account verification is for parents/)).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Open the review queue' })).toHaveAttribute(
       'href',
       '/identity-verifications',
     );
-    expect(screen.getByRole('link', { name: 'Buka antrean verifikasi' })).toHaveClass(
+    expect(screen.getByRole('link', { name: 'Open the review queue' })).toHaveClass(
       'min-h-11',
       'bg-dd-forest',
       'text-white',
@@ -392,10 +392,8 @@ describe('capability-aware session shell', () => {
         </ApplicationShell>
       </SessionProvider>,
     );
-    expect(
-      await screen.findByRole('navigation', { name: 'Navigasi customer' }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Jadwal' })).toHaveAttribute('aria-current', 'page');
+    expect(await screen.findByRole('navigation', { name: 'Account' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Timetable' })).toHaveAttribute('aria-current', 'page');
     expect(view.container.querySelector('[data-customer-shell]')).toBeInTheDocument();
     expect(view.container.querySelector('[data-admin-shell]')).not.toBeInTheDocument();
   });
@@ -417,28 +415,28 @@ describe('capability-aware session shell', () => {
       </SessionProvider>,
     );
 
-    const customerNav = await screen.findByRole('navigation', { name: 'Navigasi customer' });
+    const customerNav = await screen.findByRole('navigation', { name: 'Account' });
     expect(
       customerNav.querySelector<HTMLAnchorElement>('a[aria-current="page"]'),
-    ).toHaveTextContent('Dashboard');
-    expect(screen.getByRole('link', { name: 'Dashboard' })).toHaveAttribute('href', '/account');
+    ).toHaveTextContent('Home');
+    expect(within(customerNav).getByRole('link', { name: 'Home' })).toHaveAttribute(
+      'href',
+      '/account',
+    );
     expect(
-      screen.getByRole('link', { name: 'Daily Dose Pilates — Kembali ke situs utama' }),
+      screen.getByRole('link', { name: 'Little Rollers, back to the main site' }),
     ).toHaveAttribute('href', '/');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Menu profil Nadia Customer' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Profile menu for Nadia Customer' }));
     expect(
-      screen.getByRole('region', { name: 'Menu akun customer' }).querySelector('a[href="/"]'),
-    ).toHaveTextContent('Kunjungi situs utama');
+      screen.getByRole('region', { name: 'Account menu' }).querySelector('a[href="/"]'),
+    ).toHaveTextContent('Main site');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Buka navigasi akun' }));
-    const mobileNav = screen.getByRole('dialog', { name: 'Navigasi akun' });
+    fireEvent.click(screen.getByRole('button', { name: 'Open account menu' }));
+    const mobileNav = screen.getByRole('dialog', { name: 'Account menu' });
     expect(mobileNav).toHaveAttribute('aria-hidden', 'false');
-    expect(within(mobileNav).getByRole('link', { name: 'Kunjungi situs utama' })).toHaveAttribute(
-      'href',
-      '/',
-    );
-    expect(within(mobileNav).getByRole('button', { name: 'Keluar' })).toBeVisible();
+    expect(within(mobileNav).getByRole('link', { name: 'Main site' })).toHaveAttribute('href', '/');
+    expect(within(mobileNav).getByRole('button', { name: 'Sign out' })).toBeVisible();
   });
 
   it('keeps the public landing header aware of an authenticated customer', async () => {
@@ -453,9 +451,9 @@ describe('capability-aware session shell', () => {
       </SessionProvider>,
     );
 
-    const accountLinks = await screen.findAllByRole('link', { name: 'Akun Saya' });
+    const accountLinks = await screen.findAllByRole('link', { name: 'My account' });
     expect(accountLinks.some((link) => link.getAttribute('href') === '/account')).toBe(true);
-    expect(screen.queryByRole('link', { name: 'Masuk ke akun' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Sign in' })).not.toBeInTheDocument();
   });
 
   it('keeps the session active and uses global feedback when logout fails', async () => {
@@ -474,15 +472,15 @@ describe('capability-aware session shell', () => {
       </AppFeedbackProvider>,
     );
 
-    await screen.findByRole('navigation', { name: 'Navigasi customer' });
-    fireEvent.click(screen.getByRole('button', { name: 'Menu profil Nadia Customer' }));
+    await screen.findByRole('navigation', { name: 'Account' });
+    fireEvent.click(screen.getByRole('button', { name: 'Profile menu for Nadia Customer' }));
     fireEvent.click(
-      within(screen.getByRole('region', { name: 'Menu akun customer' })).getByRole('button', {
-        name: 'Keluar',
+      within(screen.getByRole('region', { name: 'Account menu' })).getByRole('button', {
+        name: 'Sign out',
       }),
     );
 
-    expect(await screen.findByRole('heading', { name: 'Keluar belum berhasil' })).toBeVisible();
+    expect(await screen.findByRole('heading', { name: 'Sign out did not finish' })).toBeVisible();
     expect(client.logout).toHaveBeenCalledOnce();
     expect(navigation.replace).not.toHaveBeenCalledWith('/sign-in');
     expect(screen.getByText('Dashboard customer')).toBeVisible();

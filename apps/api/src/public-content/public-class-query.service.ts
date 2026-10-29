@@ -92,27 +92,25 @@ export class PublicClassQueryService {
     return {
       profile,
       studios: classTypes.map(({ branch }) => branch),
-      packages: classTypes.flatMap(
-        ({ id: classTypeId, code, name, branch, packageScopes }) => {
-          if (!branch) return [];
-          return packageScopes
-            .filter(({ package: item }) =>
-              item.branchScopes.some(({ branchId }) => branchId === branch.id),
-            )
-            .slice(0, 4)
-            .map(({ package: { promotions, branchScopes: _branchScopes, ...item } }) => ({
-              ...item,
-              branchId: branch.id,
-              classTypes: [{ id: classTypeId, code, name }],
-              ...calculatePackagePromotion({
-                priceRp: item.priceRp,
-                promotion: promotions?.[0],
-                now,
-              }),
-              branch,
-            }));
-        },
-      ),
+      packages: classTypes.flatMap(({ id: classTypeId, code, name, branch, packageScopes }) => {
+        if (!branch) return [];
+        return packageScopes
+          .filter(({ package: item }) =>
+            item.branchScopes.some(({ branchId }) => branchId === branch.id),
+          )
+          .slice(0, 4)
+          .map(({ package: { promotions, branchScopes: _branchScopes, ...item } }) => ({
+            ...item,
+            branchId: branch.id,
+            classTypes: [{ id: classTypeId, code, name }],
+            ...calculatePackagePromotion({
+              priceRp: item.priceRp,
+              promotion: promotions?.[0],
+              now,
+            }),
+            branch,
+          }));
+      }),
       schedules: classTypes
         .flatMap(({ branch, classSlots }) =>
           classSlots.map(({ bookedCount, ...slot }) => ({

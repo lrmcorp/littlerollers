@@ -286,7 +286,7 @@ export const browserIdentityClient: IdentityClient = {
           channel: 'WEB',
         },
       }),
-      { label: 'Memproses masuk…' },
+      { label: 'Signing in…' },
     );
   },
   async signInWithPassword(email, password) {
@@ -300,7 +300,7 @@ export const browserIdentityClient: IdentityClient = {
       auth.authenticateGoogle({
         googleAuthRequest: { idToken, nonce, channel: 'WEB' },
       }),
-      { label: 'Memproses masuk…' },
+      { label: 'Signing in…' },
     );
   },
   async lookupUsers(filters) {

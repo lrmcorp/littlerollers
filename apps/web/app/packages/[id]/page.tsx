@@ -13,7 +13,8 @@ export async function generateMetadata({
     `/public/package-catalog/${encodeURIComponent(id)}`,
   );
   const title = item ? `${item.name} · ${item.branch.name}` : 'Package details';
-  const description = item?.publicProfile.summary ?? 'A Little Rollers package: price, sessions and terms.';
+  const description =
+    item?.publicProfile.summary ?? 'A Little Rollers package: price, sessions and terms.';
   return {
     title,
     description,

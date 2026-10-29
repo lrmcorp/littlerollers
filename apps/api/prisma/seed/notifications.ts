@@ -12,8 +12,8 @@ const fixtures: Array<{
   read: boolean;
   branch?: string;
 }> = [
-  { user: 'customer', key: 'verification', category: 'VERIFICATION', tone: 'WARNING', title: 'Verifikasi sedang diperiksa', message: 'Dokumen Anda telah diterima oleh tim Daily Dose.', href: '/account/verification', read: false, branch: 'LR-JKT' },
-  { user: 'customer', key: 'booking', category: 'BOOKING', tone: 'SUCCESS', title: 'Booking berhasil dibuat', message: 'Jadwal latihan telah ditambahkan ke akun Anda.', href: '/bookings', read: true, branch: 'LR-JKT' },
+  { user: 'customer', key: 'verification', category: 'VERIFICATION', tone: 'WARNING', title: 'We are checking your documents', message: 'The Little Rollers team has your documents.', href: '/account/verification', read: false, branch: 'LR-JKT' },
+  { user: 'customer', key: 'booking', category: 'BOOKING', tone: 'SUCCESS', title: 'Session booked', message: 'A new session has been added to your bookings.', href: '/bookings', read: true, branch: 'LR-JKT' },
   { user: 'admin', key: 'verification-queue', category: 'APPROVAL', tone: 'WARNING', title: 'Verifikasi menunggu review', message: 'Dokumen customer baru masuk ke antrean.', href: '/identity-verifications?status=PENDING', read: false, branch: 'LR-JKT' },
   { user: 'manager', key: 'reschedule-queue', category: 'APPROVAL', tone: 'WARNING', title: 'Reschedule menunggu keputusan', message: 'Permintaan reschedule baru perlu diperiksa.', href: '/bookings?rescheduleStatus=PENDING', read: false, branch: 'LR-JKT' },
   { user: 'manager-bsd', key: 'bsd-class-risk', category: 'CLASS', tone: 'WARNING', title: 'Kelas BSD perlu perhatian', message: 'Kelas mendatang belum mencapai minimum quota.', href: '/workspace/classes?risk=true', read: false, branch: 'LR-BSD' },

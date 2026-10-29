@@ -43,11 +43,7 @@ const hiddenPathPrefixes = [
 function whatsappHref(phone: string, studio: PreferredStudio, pathname: string) {
   const number = phone.replace(/\D/g, '');
   const context =
-    pathname === '/packages'
-      ? 'packages'
-      : pathname === '/classes'
-        ? 'the timetable'
-        : 'the club';
+    pathname === '/packages' ? 'packages' : pathname === '/classes' ? 'the timetable' : 'the club';
   const message = `Hi ${studio.name}, I have a question about ${context}.`;
   return `https://wa.me/${number}?text=${encodeURIComponent(message)}`;
 }

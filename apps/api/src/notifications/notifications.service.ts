@@ -10,8 +10,8 @@ export class NotificationsService {
   private safeHref(value: string | null) {
     if (!value || !value.startsWith('/') || value.startsWith('//')) return null;
     try {
-      const url = new URL(value, 'https://dailydose.invalid');
-      if (url.origin !== 'https://dailydose.invalid') return null;
+      const url = new URL(value, 'https://littlerollers.invalid');
+      if (url.origin !== 'https://littlerollers.invalid') return null;
       return `${url.pathname}${url.search}${url.hash}`;
     } catch {
       return null;

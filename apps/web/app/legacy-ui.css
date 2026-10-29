@@ -188,7 +188,7 @@
   }
 }
 
-/* Unified Daily Dose typography and interface layer */
+/* Unified Little Rollers typography and interface layer */
 :root {
   --font-sans: var(--font-ui), ui-sans-serif, system-ui, sans-serif;
   --text-caption: 0.75rem;
@@ -658,7 +658,7 @@ label,
   }
 }
 
-/* Daily Dose public marketing pages */
+/* Little Rollers public marketing pages */
 .marketing-site {
   --marketing-forest: #073228;
   --marketing-forest-dark: #04231c;

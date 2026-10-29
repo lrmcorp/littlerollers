@@ -241,7 +241,10 @@ test('validates production SMTP and rejects recipient override', () => {
   assert.throws(() => loadRuntimeConfig({ ...production, SMTP_PASSWORD: '' }));
   assert.throws(() => loadRuntimeConfig({ ...production, NOTIFICATION_ENCRYPTION_KEY: 'short' }));
   assert.throws(() =>
-    loadRuntimeConfig({ ...production, SMTP_FROM_NAME: 'Little Rollers\r\nBcc: leak@example.test' }),
+    loadRuntimeConfig({
+      ...production,
+      SMTP_FROM_NAME: 'Little Rollers\r\nBcc: leak@example.test',
+    }),
   );
   assert.throws(() => loadRuntimeConfig({ ...production, SMTP_FROM_EMAIL: 'not-an-email' }));
 });

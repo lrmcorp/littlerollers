@@ -333,7 +333,7 @@ function BranchCreateForm({
       }}
     >
       <TextInput name="code" label="Kode cabang" placeholder="DD-BDG" required />
-      <TextInput name="name" label="Nama cabang" placeholder="Daily Dose Bandung" required />
+      <TextInput name="name" label="Nama cabang" placeholder="Little Rollers Bandung" required />
       <TextInput name="timezone" label="Zona waktu" defaultValue="Asia/Jakarta" required />
       <TextInput
         name="supportWhatsappE164"

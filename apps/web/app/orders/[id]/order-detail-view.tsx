@@ -45,34 +45,33 @@ export function OrderDetailView({ id }: { id: string }) {
 
   if (loading)
     return (
-      <section className="rounded-dd-xl border border-dd-line bg-white p-6 shadow-dd-card">
-        <Skeleton label="Memuat pesanan" />
+      <section className="rounded-[22px] border border-dd-line bg-white p-6">
+        <Skeleton label="Loading order" />
       </section>
     );
 
   if (!order)
     return (
-      <section className="rounded-dd-xl border border-dd-line bg-white p-6 shadow-dd-card">
-        <p className="text-xs font-bold uppercase tracking-[0.16em] text-dd-forest">Pesanan</p>
-        <h1 className="mt-2 text-2xl font-semibold">Pesanan tidak tersedia</h1>
+      <section className="rounded-[22px] border border-dd-line bg-white p-6">
+        <h1 className="m-0 font-display text-3xl text-dd-forest">Order not available</h1>
         <p className="mt-2 text-sm text-dd-muted">
-          Pesanan mungkin sudah tidak dapat diakses atau bukan milik akun ini.
+          It may no longer be available, or it belongs to another account.
         </p>
         {error && (
           <div className="mt-5">
-            <AlertBanner tone="danger" title="Pesanan belum dapat dimuat" message={error} />
+            <AlertBanner tone="danger" title="The order did not load" message={error} />
           </div>
         )}
         <div className="mt-5 flex flex-wrap gap-3">
-          <ButtonLink href={returnTo}>Kembali ke pesanan</ButtonLink>
+          <ButtonLink href={returnTo}>Back to orders</ButtonLink>
           <ButtonLink href="/contact" variant="secondary">
-            Hubungi studio
+            Contact the club
           </ButtonLink>
         </div>
       </section>
     );
 
-  const formatter = new Intl.DateTimeFormat('id-ID', {
+  const formatter = new Intl.DateTimeFormat('en-GB', {
     dateStyle: 'medium',
     timeStyle: 'short',
     ...(order.branchTimezone ? { timeZone: order.branchTimezone } : {}),
@@ -85,17 +84,17 @@ export function OrderDetailView({ id }: { id: string }) {
           href={returnTo}
           className="inline-flex items-center gap-2 text-sm font-semibold text-dd-forest no-underline"
         >
-          <ArrowLeft className="size-4" />
-          Semua pesanan
+          <ArrowLeft className="size-4" aria-hidden="true" />
+          All orders
         </Link>
-        <p className="mt-5 text-xs font-bold uppercase tracking-[0.16em] text-dd-forest">
-          Pesanan •{order.id.slice(-8)}
+        <p className="mt-4 mb-0 text-sm font-semibold text-dd-forest">
+          Order •{order.id.slice(-8)}
         </p>
-        <h1 id="order-title" className="mt-2 text-2xl font-semibold sm:text-3xl">
+        <h1 id="order-title" className="mt-1 font-display text-3xl text-dd-forest sm:text-4xl">
           {order.packageName}
         </h1>
         <p className="mt-2 text-sm leading-6 text-dd-muted">
-          Pantau pembayaran, unggah bukti, dan lihat riwayat pesanan pada satu halaman.
+          Pay, upload your proof and follow the order on this page.
         </p>
       </header>
 
@@ -108,52 +107,47 @@ export function OrderDetailView({ id }: { id: string }) {
       />
 
       {order.activation && (
-        <section className="rounded-dd-xl border border-dd-success/25 bg-dd-success-soft p-5 sm:p-6">
+        <section className="rounded-[22px] border border-dd-success/25 bg-dd-success-soft p-5 sm:p-6">
           <div className="flex items-start gap-3">
             <span className="grid size-11 shrink-0 place-items-center rounded-dd-lg bg-white text-dd-success">
               <PackageCheck className="size-5" aria-hidden="true" />
             </span>
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.14em] text-dd-success">
-                Paket aktif
-              </p>
-              <h2 className="mt-1 text-xl font-semibold">{order.packageName}</h2>
+              <p className="m-0 text-sm font-semibold text-dd-success">Package active</p>
+              <h2 className="mt-1 mb-0 font-display text-xl text-dd-forest">{order.packageName}</h2>
               <p className="mt-2 text-sm text-dd-muted">
-                {order.activation.sessionCount} sesi · aktif sejak{' '}
-                {order.activation.activationDate.toLocaleDateString('id-ID')} · berlaku sampai{' '}
-                {order.activation.expiryAt.toLocaleDateString('id-ID')}
+                {order.activation.sessionCount} sessions · active from{' '}
+                {order.activation.activationDate.toLocaleDateString('en-GB')} · valid until{' '}
+                {order.activation.expiryAt.toLocaleDateString('en-GB')}
               </p>
               <ButtonLink href="/account/packages" size="sm" className="mt-4">
-                Lihat Paket Saya
+                My packages
               </ButtonLink>
             </div>
           </div>
         </section>
       )}
 
-      <section className="rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card sm:p-6">
+      <section className="rounded-[22px] border border-dd-line bg-white p-5 sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.14em] text-dd-brass-dark">
-              Histori pesanan
-            </p>
-            <h2 className="mt-1 text-xl font-semibold">Timeline pembayaran</h2>
+            <h2 className="m-0 font-display text-xl text-dd-forest">Order history</h2>
           </div>
           <StatusBadge tone={order.timelineComplete ? 'success' : 'neutral'}>
-            {order.timelineComplete ? 'Riwayat lengkap' : 'Riwayat legacy'}
+            {order.timelineComplete ? 'Full history' : 'Partial history'}
           </StatusBadge>
         </div>
         {!order.timelineComplete && (
           <div className="mt-4">
             <AlertBanner
               tone="info"
-              title="Riwayat pesanan lama"
-              message="Timeline hanya menampilkan kejadian yang dapat dipastikan dari data transaksi. Tahap yang tidak tercatat tidak dibuat ulang."
+              title="Older order"
+              message="This history only shows steps we have records for. Missing steps are not filled in."
             />
           </div>
         )}
         {order.timeline?.items.length ? (
-          <ol className="mt-6 space-y-0" aria-label="Timeline pesanan">
+          <ol className="mt-6 space-y-0" aria-label="Order history">
             {order.timeline.items.map((item, index) => {
               const copy = orderTimelineLabels[item.type];
               const reason = item.reasonCode ? orderReasonLabels[item.reasonCode] : undefined;
@@ -193,7 +187,7 @@ export function OrderDetailView({ id }: { id: string }) {
           </ol>
         ) : (
           <p className="mt-5 rounded-dd-lg bg-dd-surface-muted p-4 text-sm text-dd-muted">
-            Belum ada histori yang dapat ditampilkan.
+            No history to show yet.
           </p>
         )}
       </section>

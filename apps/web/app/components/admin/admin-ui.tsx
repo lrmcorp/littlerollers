@@ -307,6 +307,7 @@ export function Pagination({
   totalLabel,
   previousAriaLabel,
   nextAriaLabel,
+  labels = { navigation: 'Paginasi data', previous: 'Sebelumnya', next: 'Berikutnya' },
   onPrevious,
   onNext,
 }: {
@@ -315,15 +316,17 @@ export function Pagination({
   totalLabel?: string;
   previousAriaLabel?: string;
   nextAriaLabel?: string;
+  /** Staff screens use the Indonesian defaults; parent screens pass English. */
+  labels?: { navigation: string; previous: string; next: string };
   onPrevious(): void;
   onNext(): void;
 }) {
   return (
     <nav
-      aria-label="Paginasi data"
+      aria-label={labels.navigation}
       className="flex flex-wrap items-center justify-between gap-3 rounded-dd-md border border-dd-line bg-white px-4 py-3"
     >
-      <span className="text-sm text-dd-muted">{totalLabel ?? 'Navigasi halaman'}</span>
+      <span className="text-sm text-dd-muted">{totalLabel ?? labels.navigation}</span>
       <div className="flex gap-2">
         <Button
           aria-label={previousAriaLabel}
@@ -332,7 +335,7 @@ export function Pagination({
           disabled={!hasPrevious}
           onClick={onPrevious}
         >
-          Sebelumnya
+          {labels.previous}
         </Button>
         <Button
           aria-label={nextAriaLabel}
@@ -341,7 +344,7 @@ export function Pagination({
           disabled={!hasNext}
           onClick={onNext}
         >
-          Berikutnya
+          {labels.next}
         </Button>
       </div>
     </nav>

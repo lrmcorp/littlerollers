@@ -818,6 +818,7 @@ export class LedgerService {
             },
             salePriceRp: item.salePriceRp,
             sessionCountSnapshot: item.sessionCountSnapshot,
+            sessionDurationMinutesSnapshot: item.sessionDurationMinutesSnapshot,
             durationDaysSnapshot: item.durationDaysSnapshot,
             projectionRateRp: item.projectionRateRp,
             version: item.version,

@@ -32,7 +32,7 @@ const rupiah = new Intl.NumberFormat('id-ID', {
   maximumFractionDigits: 0,
 });
 
-const steps = ['Ringkasan', 'Pembayaran', 'Unggah bukti', 'Status'];
+const steps = ['Order', 'Payment', 'Upload proof', 'Status'];
 
 function currentStep(
   order: CustomerOrder,
@@ -46,11 +46,11 @@ function currentStep(
 
 const uploadStageLabels = {
   IDLE: '',
-  ISSUING: 'Menyiapkan upload aman…',
-  UPLOADING: 'Mengunggah bukti…',
-  SCANNING: 'Memeriksa keamanan file…',
-  ATTACHING: 'Menghubungkan bukti ke pesanan…',
-  COMPLETED: 'Bukti pembayaran diterima.',
+  ISSUING: 'Preparing a secure upload…',
+  UPLOADING: 'Uploading your proof…',
+  SCANNING: 'Checking the file…',
+  ATTACHING: 'Adding the proof to your order…',
+  COMPLETED: 'Proof of payment received.',
 } as const;
 
 export function CustomerPaymentFlow({
@@ -125,14 +125,14 @@ export function CustomerPaymentFlow({
   };
   const durationLabel =
     duration.hours > 0
-      ? `${duration.hours} jam ${duration.minutes} menit`
+      ? `${duration.hours} h ${duration.minutes} min`
       : duration.minutes > 0
-        ? `${duration.minutes} menit`
-        : `${duration.seconds} detik`;
+        ? `${duration.minutes} min`
+        : `${duration.seconds} s`;
 
   const copy = async (value: string, label: string) => {
     await navigator.clipboard.writeText(value);
-    feedback.showToast({ tone: 'success', title: `${label} disalin` });
+    feedback.showToast({ tone: 'success', title: `${label} copied` });
   };
 
   const closeProofPreview = () => {
@@ -152,7 +152,7 @@ export function CustomerPaymentFlow({
       if (!['image/jpeg', 'image/png', 'application/pdf'].includes(blob.type)) {
         setProofPreviewUrl('');
         setProofPreviewType(blob.type);
-        setProofPreviewError('Format bukti pembayaran tidak didukung untuk preview.');
+        setProofPreviewError('This file type cannot be previewed.');
         return;
       }
       setProofPreviewType(blob.type);
@@ -167,8 +167,8 @@ export function CustomerPaymentFlow({
   return (
     <div className="space-y-6">
       <ol
-        aria-label="Tahapan checkout"
-        className="grid grid-cols-2 gap-2 rounded-dd-xl border border-dd-line bg-white p-3 sm:grid-cols-4"
+        aria-label="Checkout steps"
+        className="grid grid-cols-2 gap-2 rounded-[22px] border border-dd-line bg-white p-3 sm:grid-cols-4"
       >
         {steps.map((label, index) => {
           const number = index + 1;
@@ -198,32 +198,32 @@ export function CustomerPaymentFlow({
       {order.status === 'ACTION_REQUIRED' && (
         <AlertBanner
           tone="warning"
-          title="Bukti pembayaran perlu diperbaiki"
+          title="Your proof of payment needs a fix"
           message={
             orderReasonLabels[order.decisionReasonCode ?? ''] ??
-            'Unggah bukti pengganti pada pesanan yang sama.'
+            'Upload a new proof on this same order.'
           }
         />
       )}
       {order.status === 'PENDING' && (
         <AlertBanner
           tone="info"
-          title="Pembayaran sedang diperiksa"
-          message="Bukti sudah diterima. Anda akan memperoleh notifikasi setelah Finance mengambil keputusan."
+          title="We are checking your payment"
+          message="We have your proof. You will get a notification once our finance team decides."
         />
       )}
       {order.status === 'APPROVED' && (
         <AlertBanner
           tone="success"
-          title="Pembayaran disetujui"
-          message="Paket sudah aktif dan dapat digunakan untuk booking kelas."
+          title="Payment approved"
+          message="Your package is active. You can book sessions now."
         />
       )}
       {order.status === 'EXPIRED' && (
         <AlertBanner
           tone="danger"
-          title="Pesanan kedaluwarsa"
-          message="Batas transfer sudah berakhir. Buat pesanan baru untuk memperoleh nominal pembayaran baru."
+          title="Order expired"
+          message="The payment deadline passed. Place a new order to get a new amount to pay."
         />
       )}
       {failure && (
@@ -231,33 +231,33 @@ export function CustomerPaymentFlow({
           tone="danger"
           title={
             failure.stage === 'ISSUING'
-              ? 'Upload belum dapat disiapkan'
+              ? 'The upload could not start'
               : failure.stage === 'UPLOADING'
-                ? 'File belum selesai diunggah'
+                ? 'The file did not finish uploading'
                 : failure.stage === 'SCANNING'
-                  ? 'Pemeriksaan file belum selesai'
+                  ? 'The file check did not finish'
                   : failure.stage === 'ATTACHING'
-                    ? 'Bukti belum terhubung ke pesanan'
-                    : 'Upload belum berhasil'
+                    ? 'The proof was not added to the order'
+                    : 'The upload did not work'
           }
           message={`${failure.message}${
-            failure.correlationReference
-              ? ` Referensi bantuan: ${failure.correlationReference}.`
-              : ''
+            failure.correlationReference ? ` Support code: ${failure.correlationReference}.` : ''
           }`}
         />
       )}
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(320px,.9fr)]">
-        <section className="rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card sm:p-6">
+        <section className="rounded-[22px] border border-dd-line bg-white p-5 sm:p-6">
           <p className="text-xs font-bold uppercase tracking-[0.14em] text-dd-forest">
-            Ringkasan pesanan
+            Order summary
           </p>
           <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
             <div>
               <h2 className="text-xl font-semibold text-dd-ink sm:text-2xl">{order.packageName}</h2>
               <p className="mt-1 text-sm text-dd-muted">
-                {order.branchName} · {order.sessionCount} sesi · {order.durationDays} hari
+                {order.branchName} · {order.sessionCount} sessions ·{' '}
+                {(order.sessionDurationMinutes ?? 60) >= 120 ? '2 hours' : '1 hour'} each · valid{' '}
+                {order.durationDays} days
               </p>
             </div>
             <span className="rounded-full bg-dd-surface-muted px-3 py-1 text-xs font-semibold text-dd-ink">
@@ -266,12 +266,12 @@ export function CustomerPaymentFlow({
           </div>
           <dl className="mt-6 divide-y divide-dd-line rounded-dd-lg border border-dd-line">
             <div className="flex items-center justify-between gap-4 px-4 py-3">
-              <dt className="text-sm text-dd-muted">Harga paket</dt>
+              <dt className="text-sm text-dd-muted">Package price</dt>
               <dd className="font-semibold">{rupiah.format(order.baseAmountRp)}</dd>
             </div>
             {order.promotion && (
               <div className="flex items-center justify-between gap-4 px-4 py-3">
-                <dt className="text-sm text-dd-muted">Promo paket · {order.promotion.name}</dt>
+                <dt className="text-sm text-dd-muted">Package offer · {order.promotion.name}</dt>
                 <dd className="font-semibold text-dd-forest">
                   -{rupiah.format(order.promotion.discountRp)}
                 </dd>
@@ -279,7 +279,7 @@ export function CustomerPaymentFlow({
             )}
             {order.promotion && (
               <div className="flex items-center justify-between gap-4 px-4 py-3">
-                <dt className="text-sm text-dd-muted">Harga promo</dt>
+                <dt className="text-sm text-dd-muted">Offer price</dt>
                 <dd className="font-semibold">
                   {rupiah.format(order.promotionalPriceRp ?? order.baseAmountRp)}
                 </dd>
@@ -287,7 +287,7 @@ export function CustomerPaymentFlow({
             )}
             {order.voucher && (
               <div className="flex items-center justify-between gap-4 px-4 py-3">
-                <dt className="text-sm text-dd-muted">Diskon voucher · {order.voucher.code}</dt>
+                <dt className="text-sm text-dd-muted">Voucher discount · {order.voucher.code}</dt>
                 <dd className="font-semibold text-dd-forest">
                   -{rupiah.format(order.voucher.discountRp)}
                 </dd>
@@ -295,7 +295,7 @@ export function CustomerPaymentFlow({
             )}
             {order.priceAfterDiscountRp !== order.baseAmountRp && (
               <div className="flex items-center justify-between gap-4 px-4 py-3">
-                <dt className="text-sm text-dd-muted">Harga setelah diskon</dt>
+                <dt className="text-sm text-dd-muted">Price after discount</dt>
                 <dd className="font-semibold">
                   {rupiah.format(order.priceAfterDiscountRp ?? order.baseAmountRp)}
                 </dd>
@@ -303,11 +303,9 @@ export function CustomerPaymentFlow({
             )}
             <div className="flex items-center justify-between gap-4 bg-dd-surface-muted px-4 py-4">
               <dt>
-                <span className="block font-semibold text-dd-ink">
-                  Nominal yang perlu ditransfer
-                </span>
+                <span className="block font-semibold text-dd-ink">Amount to transfer</span>
                 <span className="mt-1 block text-xs text-dd-muted">
-                  {paymentCode ? `Identifikasi transfer · ${paymentCode}` : 'Nominal standar'}
+                  {paymentCode ? `Matching code · ${paymentCode}` : 'Standard amount'}
                 </span>
               </dt>
               <dd className="text-xl font-bold text-dd-forest">
@@ -316,49 +314,45 @@ export function CustomerPaymentFlow({
             </div>
           </dl>
           <p className="mt-4 text-xs leading-5 text-dd-muted">
-            Tiga digit terakhir pada nominal membantu tim Finance mencocokkan transfer manual dengan
-            pesanan Anda.
+            The last three digits of the amount help our finance team match your transfer to this
+            order.
           </p>
         </section>
 
         {paymentAccountAvailable ? (
-          <section className="rounded-dd-xl border border-dd-forest/25 bg-dd-forest p-5 text-white shadow-dd-card sm:p-6">
-            <p className="text-xs font-bold uppercase tracking-[0.14em] text-white/65">
-              Tujuan transfer
-            </p>
+          <section className="rounded-[22px] border border-dd-forest/25 bg-dd-forest p-5 text-white sm:p-6">
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-white/65">Pay to</p>
             <h2 className="mt-2 text-xl font-semibold">{order.paymentAccount!.bankName}</h2>
             <p className="mt-1 text-sm text-white/70">
-              a.n. {order.paymentAccount!.accountHolderName}
+              Account name: {order.paymentAccount!.accountHolderName}
             </p>
             <div className="mt-5 space-y-3">
               <CopyRow
-                label="Nomor rekening"
+                label="Account number"
                 value={order.paymentAccount!.accountNumber}
-                onCopy={() => copy(order.paymentAccount!.accountNumber, 'Nomor rekening')}
+                onCopy={() => copy(order.paymentAccount!.accountNumber, 'Account number')}
               />
               <CopyRow
-                label="Nominal transfer"
+                label="Amount"
                 value={rupiah.format(order.payableAmountRp)}
-                onCopy={() => copy(String(order.payableAmountRp), 'Nominal transfer')}
+                onCopy={() => copy(String(order.payableAmountRp), 'Amount')}
               />
             </div>
             <div className="mt-5 flex items-center gap-2 rounded-dd-lg bg-white/10 px-3 py-3 text-sm">
               <Clock3 className="size-4 shrink-0" />
               <span>
-                {remaining > 0 ? `${durationLabel} tersisa` : 'Batas pembayaran berakhir'}
+                {remaining > 0 ? `${durationLabel} left to pay` : 'The payment deadline has passed'}
               </span>
             </div>
           </section>
         ) : (
           <section
-            className={`rounded-dd-xl border border-dd-line bg-dd-surface-muted ${
-              ['AWAITING_PAYMENT', 'ACTION_REQUIRED'].includes(order.status)
-                ? 'p-5 shadow-dd-card sm:p-6'
-                : 'p-4'
+            className={`rounded-[22px] border border-dd-line bg-dd-surface-muted ${
+              ['AWAITING_PAYMENT', 'ACTION_REQUIRED'].includes(order.status) ? 'p-5 sm:p-6' : 'p-4'
             }`}
           >
             <p className="text-xs font-bold uppercase tracking-[0.14em] text-dd-muted">
-              Informasi rekening
+              Bank account
             </p>
             <h2
               className={`mt-2 font-semibold ${
@@ -367,16 +361,16 @@ export function CustomerPaymentFlow({
                   : 'text-base'
               }`}
             >
-              Rekening tidak tersedia
+              No bank account on this order
             </h2>
             <p className="mt-2 text-sm leading-6 text-dd-muted">
               {['AWAITING_PAYMENT', 'ACTION_REQUIRED'].includes(order.status)
-                ? 'Pesanan ini tidak memiliki snapshot rekening yang aman untuk digunakan. Jangan melakukan transfer untuk pesanan ini.'
-                : 'Informasi rekening tidak tersimpan pada pesanan lama ini. Status dan histori transaksi tetap dapat dilihat.'}
+                ? 'This order has no bank account saved. Please do not transfer money for it.'
+                : 'This older order has no bank account saved. You can still see its status and history.'}
             </p>
             {['AWAITING_PAYMENT', 'ACTION_REQUIRED'].includes(order.status) && (
               <ButtonLink href="/packages" className="mt-4">
-                Buat pesanan baru
+                Place a new order
               </ButtonLink>
             )}
           </section>
@@ -385,7 +379,7 @@ export function CustomerPaymentFlow({
 
       {order.paymentProofId && (
         <section
-          className="rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card sm:p-6"
+          className="rounded-[22px] border border-dd-line bg-white p-5 sm:p-6"
           aria-labelledby="payment-proof-title"
         >
           <div className="flex flex-wrap items-start justify-between gap-3">
@@ -397,7 +391,7 @@ export function CustomerPaymentFlow({
               </span>
               <div>
                 <h2 id="payment-proof-title" className="text-lg font-semibold">
-                  Bukti pembayaran yang dikirim
+                  Your proof of payment
                 </h2>
                 <p className="mt-1 text-sm text-dd-muted">
                   {proofStatusLabel(order.paymentProofStatus)}
@@ -412,7 +406,7 @@ export function CustomerPaymentFlow({
                   leadingIcon={<X className="size-4" aria-hidden="true" />}
                   onClick={closeProofPreview}
                 >
-                  Tutup preview
+                  Close preview
                 </Button>
               )}
               <Button
@@ -420,11 +414,11 @@ export function CustomerPaymentFlow({
                 variant="secondary"
                 disabled={!proofReady || proofPreviewLoading}
                 loading={proofPreviewLoading}
-                loadingLabel="Memuat bukti…"
+                loadingLabel="Loading proof…"
                 onClick={() => void loadProofPreview()}
                 leadingIcon={<Eye className="size-4" aria-hidden="true" />}
               >
-                {proofPreviewUrl ? 'Terbitkan ulang preview' : 'Lihat bukti pembayaran'}
+                {proofPreviewUrl ? 'Reload preview' : 'View proof of payment'}
               </Button>
             </div>
           </div>
@@ -433,7 +427,7 @@ export function CustomerPaymentFlow({
             <div className="mt-5">
               <AlertBanner
                 tone="danger"
-                title="Bukti belum dapat ditampilkan"
+                title="The proof could not be shown"
                 message={proofPreviewError}
               />
             </div>
@@ -444,22 +438,22 @@ export function CustomerPaymentFlow({
               tabIndex={-1}
               className="mt-5 outline-none focus-visible:ring-2 focus-visible:ring-dd-forest"
               role="region"
-              aria-label="Preview bukti pembayaran"
+              aria-label="Proof of payment preview"
             >
               {proofPreviewType.startsWith('image/') ? (
                 <img
                   src={proofPreviewUrl}
-                  alt="Bukti pembayaran yang dikirim"
+                  alt="Your proof of payment"
                   className="max-h-[34rem] w-full rounded-dd-lg border border-dd-line bg-white object-contain"
                 />
               ) : (
                 <object
                   data={proofPreviewUrl}
                   type={proofPreviewType}
-                  title="Bukti pembayaran yang dikirim"
+                  title="Your proof of payment"
                   className="h-[34rem] w-full rounded-dd-lg border border-dd-line bg-white"
                 >
-                  <p>Preview PDF tidak didukung browser ini.</p>
+                  <p>This browser cannot preview PDFs.</p>
                 </object>
               )}
             </div>
@@ -471,7 +465,7 @@ export function CustomerPaymentFlow({
                 aria-live="polite"
               >
                 {proofReady
-                  ? 'Pilih “Lihat bukti pembayaran” untuk membuka file privat Anda.'
+                  ? 'Choose “View proof of payment” to open your private file.'
                   : proofUnavailableLabel(order.paymentProofStatus)}
               </div>
             )
@@ -480,7 +474,7 @@ export function CustomerPaymentFlow({
       )}
 
       {canUpload && (
-        <section className="rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card sm:p-6">
+        <section className="rounded-[22px] border border-dd-line bg-white p-5 sm:p-6">
           <div className="flex items-start gap-3">
             <span className="grid size-11 shrink-0 place-items-center rounded-dd-lg bg-dd-brass-soft text-dd-warning">
               <UploadCloud className="size-5" />
@@ -488,19 +482,19 @@ export function CustomerPaymentFlow({
             <div>
               <h2 className="text-lg font-semibold">
                 {order.status === 'ACTION_REQUIRED'
-                  ? 'Unggah bukti pengganti'
-                  : 'Unggah bukti pembayaran'}
+                  ? 'Upload a new proof'
+                  : 'Upload proof of payment'}
               </h2>
               <p className="mt-1 text-sm leading-6 text-dd-muted">
-                JPEG, PNG, atau PDF maksimum 10 MB. Pastikan nominal dan tujuan transfer terlihat
-                jelas.
+                JPEG, PNG or PDF up to 10 MB. Make sure the amount and the receiving account are
+                easy to read.
               </p>
             </div>
           </div>
-          <label className="mt-5 flex min-h-32 cursor-pointer flex-col items-center justify-center rounded-dd-xl border border-dashed border-dd-line bg-dd-surface-muted p-5 text-center focus-within:ring-2 focus-within:ring-dd-forest">
+          <label className="mt-5 flex min-h-32 cursor-pointer flex-col items-center justify-center rounded-[22px] border border-dashed border-dd-line bg-dd-surface-muted p-5 text-center focus-within:ring-2 focus-within:ring-dd-forest">
             <UploadCloud className="size-7 text-dd-forest" />
-            <strong className="mt-2 text-sm">Pilih atau jatuhkan bukti pembayaran</strong>
-            <span className="mt-1 text-xs text-dd-muted">JPEG, PNG, PDF · maks. 10 MB</span>
+            <strong className="mt-2 text-sm">Choose or drop your proof of payment</strong>
+            <span className="mt-1 text-xs text-dd-muted">JPEG, PNG, PDF · up to 10 MB</span>
             <input
               className="sr-only"
               type="file"
@@ -510,7 +504,7 @@ export function CustomerPaymentFlow({
                 if (selected && selected.size > 10_000_000) {
                   setFailure({
                     code: 'PAYMENT_PROOF_TOO_LARGE',
-                    message: 'Ukuran file melebihi 10 MB.',
+                    message: 'The file is larger than 10 MB.',
                     correlationReference: undefined,
                     retryable: false,
                     stage: undefined,
@@ -528,7 +522,7 @@ export function CustomerPaymentFlow({
           {preview && (
             <Image
               src={preview}
-              alt="Preview bukti pembayaran"
+              alt="Preview of your proof of payment"
               width={720}
               height={420}
               unoptimized
@@ -554,7 +548,7 @@ export function CustomerPaymentFlow({
                   setFailure(undefined);
                 }}
               >
-                Ganti file
+                Change file
               </Button>
             </div>
           )}
@@ -562,9 +556,9 @@ export function CustomerPaymentFlow({
             {busy && uploadSession
               ? uploadStageLabels[uploadSession.stage]
               : !file
-                ? 'Pilih bukti pembayaran terlebih dahulu.'
+                ? 'Choose your proof of payment first.'
                 : failure?.retryable
-                  ? 'File tetap tersimpan pada halaman ini. Coba lagi untuk melanjutkan.'
+                  ? 'Your file is still selected. Try again to continue.'
                   : ''}
           </p>
           <Button
@@ -574,7 +568,7 @@ export function CustomerPaymentFlow({
             size="lg"
             loading={busy}
             loadingLabel={
-              uploadSession ? uploadStageLabels[uploadSession.stage] : 'Menyiapkan upload aman…'
+              uploadSession ? uploadStageLabels[uploadSession.stage] : 'Preparing a secure upload…'
             }
             className="mt-5"
             onClick={async () => {
@@ -595,10 +589,10 @@ export function CustomerPaymentFlow({
                 setUploadSession(undefined);
                 feedback.showToast({
                   tone: 'success',
-                  title: 'Bukti pembayaran diterima',
-                  message: `Status kini Menunggu pemeriksaan Finance.${
+                  title: 'Proof of payment received',
+                  message: `Our finance team will check it next.${
                     updated.correlationReference
-                      ? ` Referensi: ${updated.correlationReference}.`
+                      ? ` Reference: ${updated.correlationReference}.`
                       : ''
                   }`,
                 });
@@ -609,7 +603,7 @@ export function CustomerPaymentFlow({
               }
             }}
           >
-            {failure?.retryable ? 'Coba lagi' : 'Kirim bukti pembayaran'}
+            {failure?.retryable ? 'Try again' : 'Send proof of payment'}
           </Button>
         </section>
       )}
@@ -619,7 +613,7 @@ export function CustomerPaymentFlow({
           {order.status === 'APPROVED' && (
             <>
               <ButtonLink href="/account/packages" variant="secondary">
-                Lihat Paket Saya
+                My packages
               </ButtonLink>
               <ButtonLink
                 href={
@@ -628,7 +622,7 @@ export function CustomerPaymentFlow({
                     : '/classes#schedule'
                 }
               >
-                Booking kelas
+                Book a session
               </ButtonLink>
             </>
           )}
@@ -636,7 +630,7 @@ export function CustomerPaymentFlow({
             <ButtonLink
               href={`/checkout?package=${encodeURIComponent(order.packageId)}&branch=${encodeURIComponent(order.branchId)}${order.continuationSlotId ? `&slot=${encodeURIComponent(order.continuationSlotId)}` : ''}`}
             >
-              Buat pesanan baru
+              Place a new order
             </ButtonLink>
           )}
         </div>
@@ -646,13 +640,13 @@ export function CustomerPaymentFlow({
 }
 
 function proofStatusLabel(status: CustomerOrder['paymentProofStatus']) {
-  if (!status) return 'Status bukti belum tersedia.';
-  if (status.uploadStatus !== 'FINALIZED') return 'Upload bukti belum selesai.';
-  if (status.scanStatus === 'CLEAN') return 'Upload selesai · pemeriksaan keamanan bersih.';
-  if (status.scanStatus === 'PENDING') return 'Upload selesai · pemeriksaan keamanan berlangsung.';
+  if (!status) return 'No proof status yet.';
+  if (status.uploadStatus !== 'FINALIZED') return 'The upload has not finished.';
+  if (status.scanStatus === 'CLEAN') return 'Uploaded · file check passed.';
+  if (status.scanStatus === 'PENDING') return 'Uploaded · file check in progress.';
   if (status.scanStatus === 'REJECTED' || status.scanStatus === 'INFECTED')
-    return 'Bukti ditolak oleh pemeriksaan keamanan.';
-  return 'Pemeriksaan keamanan bukti mengalami kendala.';
+    return 'The file failed the safety check.';
+  return 'The file check ran into a problem.';
 }
 
 function proofStatusVisual(status: CustomerOrder['paymentProofStatus']) {
@@ -684,12 +678,11 @@ function proofStatusVisual(status: CustomerOrder['paymentProofStatus']) {
 
 function proofUnavailableLabel(status: CustomerOrder['paymentProofStatus']) {
   if (!status || status.uploadStatus !== 'FINALIZED')
-    return 'Preview tersedia setelah upload selesai.';
-  if (status.scanStatus === 'PENDING')
-    return 'Preview tersedia setelah pemeriksaan keamanan selesai.';
+    return 'The preview is ready once the upload finishes.';
+  if (status.scanStatus === 'PENDING') return 'The preview is ready once the file check finishes.';
   if (status.scanStatus === 'REJECTED' || status.scanStatus === 'INFECTED')
-    return 'File yang ditolak oleh pemeriksaan keamanan tidak dapat dibuka.';
-  return 'Bukti belum dapat dipreview. Coba kembali setelah status pemeriksaan diperbarui.';
+    return 'Files that failed the safety check cannot be opened.';
+  return 'The proof cannot be previewed yet. Try again once the check updates.';
 }
 
 function CopyRow({ label, value, onCopy }: { label: string; value: string; onCopy(): void }) {
@@ -699,9 +692,9 @@ function CopyRow({ label, value, onCopy }: { label: string; value: string; onCop
         {label}
       </span>
       <div className="mt-1 flex items-center justify-between gap-3">
-        <strong className="break-all text-lg">{value || 'Tidak tersedia'}</strong>
+        <strong className="break-all text-lg">{value || 'Not available'}</strong>
         <IconButton
-          label={`Salin ${label.toLowerCase()}`}
+          label={`Copy ${label.toLowerCase()}`}
           variant="ghost"
           onClick={onCopy}
           disabled={!value}

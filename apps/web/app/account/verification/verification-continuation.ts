@@ -6,8 +6,8 @@ const allowedPaths = ['/checkout', '/bookings/new', '/packages', '/classes'] as 
 export function safeVerificationContinuation(value: string | null): string | null {
   if (!value || !value.startsWith('/') || value.startsWith('//')) return null;
   try {
-    const url = new URL(value, 'https://dailydose.invalid');
-    if (url.origin !== 'https://dailydose.invalid') return null;
+    const url = new URL(value, 'https://littlerollers.invalid');
+    if (url.origin !== 'https://littlerollers.invalid') return null;
     const allowed = allowedPaths.some(
       (path) => url.pathname === path || url.pathname.startsWith(`${path}/`),
     );

@@ -54,7 +54,8 @@ function durationLabel(startAt: string, endAt: string) {
     0,
     Math.round((new Date(endAt).getTime() - new Date(startAt).getTime()) / 60_000),
   );
-  if (minutes > 0 && minutes % 60 === 0) return minutes === 60 ? '1-hour block' : `${minutes / 60}-hour block`;
+  if (minutes > 0 && minutes % 60 === 0)
+    return minutes === 60 ? '1-hour block' : `${minutes / 60}-hour block`;
   return `${minutes} min`;
 }
 

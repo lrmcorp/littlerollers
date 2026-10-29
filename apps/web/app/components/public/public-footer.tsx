@@ -22,8 +22,8 @@ export function PublicFooter() {
         <div className="grid content-start gap-4">
           <BrandMark tone="light" />
           <p className="max-w-sm leading-7 text-dd-cream/85">
-            Kids Movement Club. Sessions run in 2-hour timetable blocks, and you choose 1 hour or
-            2 hours when you buy a package.
+            Kids Movement Club. Sessions run in 2-hour timetable blocks, and you choose 1 hour or 2
+            hours when you buy a package.
           </p>
         </div>
         <div className="grid gap-8 sm:grid-cols-2">

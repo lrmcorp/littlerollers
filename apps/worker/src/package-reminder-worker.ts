@@ -83,8 +83,8 @@ export class PackageReminderWorker {
             tone: 'WARNING',
             title:
               input.templateKey === 'PACKAGE_LOW_BALANCE_V1'
-                ? 'Sisa sesi perlu diperhatikan'
-                : 'Paket akan segera berakhir',
+                ? 'Your package is running low'
+                : 'Your package expires soon',
             message: input.detail,
             href: '/account/packages',
             metadataMasked: { customerPackageId: input.packageId },
@@ -165,7 +165,7 @@ export class PackageReminderWorker {
             eventType: 'package.session_balance_threshold_reached.v1',
             templateKey: 'PACKAGE_LOW_BALANCE_V1',
             occurrence: `balance-${available}`,
-            detail: `Sisa sesi tersedia pada paket Anda saat ini ${available}.`,
+            detail: `You have ${available} ${available === 1 ? 'session' : 'sessions'} left on your package.`,
             now,
           });
           if (inserted) created += 1;
@@ -180,7 +180,7 @@ export class PackageReminderWorker {
             eventType: 'package.expiry_reminder.v1',
             templateKey: 'PACKAGE_EXPIRY_REMINDER_V1',
             occurrence: `expiry-${localDate(item.expiryAt, item.branch.timezone)}-h${days}`,
-            detail: `Paket Anda akan berakhir dalam ${days} hari.`,
+            detail: `Your package expires in ${days} ${days === 1 ? 'day' : 'days'}.`,
             now,
           });
           if (inserted) created += 1;

@@ -43,7 +43,7 @@ describe('NotificationCenter', () => {
     });
     render(<NotificationCenter client={api} />);
     const user = userEvent.setup();
-    await user.click(await screen.findByRole('button', { name: /Notifikasi/ }));
+    await user.click(await screen.findByRole('button', { name: /Notifications/ }));
     expect(await screen.findByText('Notifikasi notification-1')).toBeVisible();
     await user.click(screen.getByRole('link', { name: /Notifikasi notification-1/ }));
     expect(api.markRead).toHaveBeenCalledWith('notification-1');
@@ -68,10 +68,10 @@ describe('NotificationCenter', () => {
     const api = client({ list });
     render(<NotificationCenter client={api} />);
     const user = userEvent.setup();
-    await user.click(await screen.findByRole('button', { name: /Notifikasi/ }));
-    const more = await screen.findByRole('button', { name: 'Muat lebih banyak' });
+    await user.click(await screen.findByRole('button', { name: /Notifications/ }));
+    const more = await screen.findByRole('button', { name: 'Load more' });
     await user.click(more);
-    expect(screen.getByRole('button', { name: 'Memuat…' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Loading…' })).toBeDisabled();
     resolveNext({
       items: [item('notification-1'), item('notification-2')],
       page: { hasMore: false, nextCursor: null },
@@ -85,10 +85,10 @@ describe('NotificationCenter', () => {
     const api = client({ markAllRead: vi.fn().mockRejectedValue(new Error('offline')) });
     render(<NotificationCenter client={api} />);
     const user = userEvent.setup();
-    await user.click(await screen.findByRole('button', { name: /Notifikasi/ }));
-    await user.click(await screen.findByRole('button', { name: 'Tandai semua' }));
+    await user.click(await screen.findByRole('button', { name: /Notifications/ }));
+    await user.click(await screen.findByRole('button', { name: 'Mark all read' }));
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Notifikasi belum dapat diperbarui.',
+      'Notifications could not be updated.',
     );
     expect(screen.getByText('1 belum dibaca')).toBeVisible();
   });

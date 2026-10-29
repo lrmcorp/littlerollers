@@ -6,10 +6,10 @@ const config = {
   smtpHost: 'smtp.hostinger.com',
   smtpPort: 465,
   smtpSecure: true,
-  smtpUser: 'noreply@dailydosepilates.com',
+  smtpUser: 'noreply@littlerollers.example',
   smtpPassword: 'not-logged',
-  fromName: 'Daily Dose Pilates',
-  fromEmail: 'noreply@dailydosepilates.com',
+  fromName: 'Little Rollers',
+  fromEmail: 'noreply@littlerollers.example',
   connectionTimeoutMs: 15_000,
   maxAttempts: 5,
   rateLimitPerMinute: 3,
@@ -21,7 +21,7 @@ const config = {
 
 test('creates deterministic once-per-package balance and branch-timezone expiry reminders', async () => {
   const previousBaseUrl = process.env.PUBLIC_WEB_BASE_URL;
-  process.env.PUBLIC_WEB_BASE_URL = 'https://dailydosepilates.com';
+  process.env.PUBLIC_WEB_BASE_URL = 'https://littlerollers.example';
   const now = new Date('2026-07-28T01:00:00.000Z');
   const item = {
     id: 'package-1',
@@ -109,7 +109,7 @@ test('creates in-app reminders when email delivery is not configured', async () 
     ).resolves.toBe(1);
     expect(createMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: [expect.objectContaining({ title: 'Sisa sesi perlu diperhatikan' })],
+        data: [expect.objectContaining({ title: 'Your package is running low' })],
       }),
     );
     expect(upsert).not.toHaveBeenCalled();

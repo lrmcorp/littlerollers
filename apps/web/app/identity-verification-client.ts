@@ -86,7 +86,7 @@ async function request(path: string, init?: RequestInit) {
         ...(init?.headers ?? {}),
       },
     },
-    init?.method && init.method !== 'GET' ? 'Memproses verifikasi…' : 'Memuat verifikasi…',
+    init?.method && init.method !== 'GET' ? 'Processing verification…' : 'Loading verification…',
   );
   if (!response.ok) {
     const body = await response.json().catch(() => undefined);
@@ -137,7 +137,7 @@ export const verificationClient = {
         cache: 'no-store',
         referrerPolicy: 'no-referrer',
       },
-      'Memuat dokumen…',
+      'Loading document…',
     );
     if (!response.ok) throw { response: { status: response.status } };
     return response.blob();

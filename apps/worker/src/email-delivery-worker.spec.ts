@@ -14,10 +14,10 @@ const config = {
   smtpHost: 'smtp.hostinger.com',
   smtpPort: 465,
   smtpSecure: true,
-  smtpUser: 'noreply@dailydosepilates.com',
+  smtpUser: 'noreply@littlerollers.example',
   smtpPassword: 'not-logged',
-  fromName: 'Daily Dose Pilates',
-  fromEmail: 'noreply@dailydosepilates.com',
+  fromName: 'Little Rollers',
+  fromEmail: 'noreply@littlerollers.example',
   connectionTimeoutMs: 15_000,
   maxAttempts: 5,
   rateLimitPerMinute: 3,
@@ -73,7 +73,7 @@ test('marks an SMTP-accepted message without exposing its envelope', async () =>
   expect(sendMail).toHaveBeenCalledWith(
     expect.objectContaining({
       to: 'customer@example.test',
-      subject: 'Pembayaran disetujui dan paket aktif',
+      subject: 'Payment approved, your package is active',
     }),
   );
   expect(db.notificationOccurrence.update).toHaveBeenCalledWith(

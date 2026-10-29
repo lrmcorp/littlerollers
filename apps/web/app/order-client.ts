@@ -23,6 +23,7 @@ export interface CheckoutOptions {
       version: number;
     };
     sessionCount: number;
+    sessionDurationMinutes?: number;
     durationDays: number;
     branchId: string;
     branchName: string;
@@ -69,6 +70,7 @@ export interface CustomerOrder {
   paymentUniqueCode: number | null;
   payableAmountRp: number;
   sessionCount: number;
+  sessionDurationMinutes?: number;
   durationDays: number;
   status: OrderStatus;
   submittedAt: Date;
@@ -182,7 +184,7 @@ async function requestResult<T>(
     response = await foregroundFetch(
       `/api/v1${path}`,
       { credentials: 'include', ...init },
-      stage ? 'Memproses bukti pembayaran…' : 'Memuat pesanan…',
+      stage ? 'Processing your proof of payment…' : 'Loading order…',
     );
   } catch {
     throw new OrderClientError('API_UNAVAILABLE', undefined, true, stage);
@@ -291,12 +293,7 @@ export const browserOrderClient = {
     });
     return orderDates(value);
   },
-  async previewVoucher(
-    packageId: string,
-    branchId: string,
-    classTypeId: string,
-    code: string,
-  ) {
+  async previewVoucher(packageId: string, branchId: string, classTypeId: string, code: string) {
     return request<{
       valid: boolean;
       voucherId: string;
@@ -355,7 +352,7 @@ export const browserOrderClient = {
           credentials: 'include',
           headers: { Accept: 'image/jpeg,image/png,application/pdf' },
         },
-        'Memuat bukti pembayaran…',
+        'Loading proof of payment…',
       );
     } catch {
       throw new OrderClientError('API_UNAVAILABLE', undefined, true);
@@ -476,42 +473,39 @@ export function orderError(error: unknown) {
 export function orderErrorDetails(error: unknown) {
   const code = error instanceof Error ? error.message : '';
   const labels: Record<string, string> = {
-    IDENTITY_VERIFICATION_REQUIRED: 'Selesaikan verifikasi identitas sebelum membuat pesanan.',
-    PAYMENT_ACCOUNT_UNAVAILABLE: 'Rekening pembayaran cabang belum tersedia.',
+    IDENTITY_VERIFICATION_REQUIRED: 'Please finish the identity check before placing an order.',
+    PAYMENT_ACCOUNT_UNAVAILABLE: 'This club has no bank account set up for payment yet.',
     PAYMENT_UNIQUE_CODE_UNAVAILABLE:
-      'Kode pembayaran sedang penuh. Tunggu beberapa saat lalu buat pesanan kembali.',
-    ORDER_EXPIRED: 'Batas pembayaran sudah berakhir. Buat pesanan baru.',
-    PAYMENT_PROOF_MIME_MISMATCH: 'Isi file tidak sesuai dengan tipe file yang dipilih.',
-    PAYMENT_PROOF_TOO_LARGE: 'Ukuran file melebihi batas 10 MB.',
-    PAYMENT_PROOF_CHECKSUM_MISMATCH: 'File berubah saat diunggah. Silakan pilih ulang.',
-    PAYMENT_PROOF_NOT_CLEAN:
-      'File ditolak oleh pemeriksaan keamanan. Pilih file bukti yang berbeda.',
-    UPLOAD_NOT_COMPLETE: 'Upload belum lengkap. Silakan coba kembali.',
-    API_UNAVAILABLE: 'Layanan pesanan sementara tidak tersedia. Silakan coba kembali nanti.',
+      'We could not reserve a payment code. Wait a moment and place the order again.',
+    ORDER_EXPIRED: 'The payment deadline has passed. Please place a new order.',
+    PAYMENT_PROOF_MIME_MISMATCH: 'The file contents do not match its file type.',
+    PAYMENT_PROOF_TOO_LARGE: 'The file is larger than 10 MB.',
+    PAYMENT_PROOF_CHECKSUM_MISMATCH: 'The file changed while uploading. Please choose it again.',
+    PAYMENT_PROOF_NOT_CLEAN: 'The file failed the safety check. Please choose a different file.',
+    UPLOAD_NOT_COMPLETE: 'The upload did not finish. Please try again.',
+    API_UNAVAILABLE: 'Orders are unavailable right now. Please try again later.',
     CONFIGURATION_REQUIRED:
-      'Bukti pembayaran belum dapat diproses. Silakan coba kembali nanti.',
+      'We cannot process proofs of payment right now. Please try again later.',
     PAYMENT_PROOF_SCAN_UNAVAILABLE:
-      'Pemeriksaan keamanan file sedang tidak tersedia. Bukti Anda tetap dapat dicoba kembali.',
+      'The file safety check is unavailable right now. You can try again shortly.',
     PAYMENT_PROOF_STORAGE_UNAVAILABLE:
-      'Penyimpanan bukti pembayaran sedang tidak tersedia. File tetap tersimpan pada halaman ini.',
+      'File storage is unavailable right now. Your file is still selected on this page.',
     PAYMENT_PROOF_PREVIEW_NOT_FOUND:
-      'Bukti pembayaran tidak ditemukan atau akses preview sudah kedaluwarsa. Coba buka kembali.',
-    UNAUTHORIZED: 'Sesi telah berakhir. Silakan masuk kembali untuk melihat bukti pembayaran.',
-    FORBIDDEN: 'Akun ini tidak memiliki akses untuk melihat bukti pembayaran.',
-    HTTP_401: 'Sesi telah berakhir. Silakan masuk kembali untuk melihat bukti pembayaran.',
-    HTTP_403: 'Akun ini tidak memiliki akses untuk melihat bukti pembayaran.',
-    INTERNAL_ERROR:
-      'Permintaan belum dapat diselesaikan. Gunakan kode bantuan saat menghubungi dukungan.',
-    HTTP_502: 'Layanan upload sedang tidak tersedia. Silakan coba kembali.',
-    HTTP_503: 'Layanan upload sedang tidak tersedia. Silakan coba kembali.',
-    RESOURCE_NOT_FOUND: 'Data pesanan atau paket tidak ditemukan.',
-    CONFLICT: 'Data berubah. Muat ulang halaman lalu coba kembali.',
-    VERSION_CONFLICT: 'Pesanan telah berubah. Muat ulang halaman lalu coba kembali.',
+      'We could not find the proof, or the preview link expired. Open it again.',
+    UNAUTHORIZED: 'You were signed out. Sign in again to see the proof of payment.',
+    FORBIDDEN: 'This account cannot see that proof of payment.',
+    HTTP_401: 'You were signed out. Sign in again to see the proof of payment.',
+    HTTP_403: 'This account cannot see that proof of payment.',
+    INTERNAL_ERROR: 'Something went wrong. Quote the support code when you contact the club.',
+    HTTP_502: 'Uploads are unavailable right now. Please try again.',
+    HTTP_503: 'Uploads are unavailable right now. Please try again.',
+    RESOURCE_NOT_FOUND: 'We could not find that order or package.',
+    CONFLICT: 'Something changed. Reload the page and try again.',
+    VERSION_CONFLICT: 'The order changed. Reload the page and try again.',
   };
   return {
     code,
-    message:
-      labels[code] ?? 'Layanan pesanan belum dapat memproses permintaan. Silakan coba kembali.',
+    message: labels[code] ?? 'We could not process that request. Please try again.',
     correlationReference:
       error instanceof OrderClientError ? error.correlationReference : undefined,
     retryable: error instanceof OrderClientError ? error.retryable : true,

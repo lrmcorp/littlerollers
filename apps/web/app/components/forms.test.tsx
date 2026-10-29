@@ -54,7 +54,7 @@ describe('Tailwind form primitives', () => {
     await user.keyboard('{Enter}');
     expect(onChange).toHaveBeenCalledWith('bsd', expect.objectContaining({ id: 'bsd' }));
     expect(screen.getByDisplayValue('bsd')).toHaveAttribute('type', 'hidden');
-    await user.click(screen.getByRole('button', { name: 'Hapus pilihan Cabang' }));
+    await user.click(screen.getByRole('button', { name: 'Clear Cabang' }));
     expect(onChange).toHaveBeenLastCalledWith('', undefined);
   });
 
@@ -122,7 +122,7 @@ describe('Tailwind form primitives', () => {
 
     await user.click(screen.getByRole('combobox', { name: 'Scope paket' }));
     expect(await screen.findByRole('option', { name: 'Paket 1' })).toBeVisible();
-    await user.click(screen.getByRole('button', { name: 'Muat berikutnya' }));
+    await user.click(screen.getByRole('button', { name: 'Load more' }));
     await user.click(await screen.findByRole('option', { name: 'Paket 25' }));
     expect(onChange).toHaveBeenCalledWith(
       ['package-25'],

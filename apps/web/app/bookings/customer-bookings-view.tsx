@@ -13,11 +13,11 @@ import { ButtonLink } from '../components/actions';
 import { Pagination } from '../components/admin/admin-ui';
 
 const statusLabels: Record<string, string> = {
-  BOOKED: 'Terjadwal',
-  RESCHEDULE_PENDING: 'Perubahan jadwal diproses',
-  CANCELLED: 'Dibatalkan',
-  ATTENDED: 'Hadir',
-  NO_SHOW: 'Tidak hadir',
+  BOOKED: 'Booked',
+  RESCHEDULE_PENDING: 'Reschedule requested',
+  CANCELLED: 'Cancelled',
+  ATTENDED: 'Attended',
+  NO_SHOW: 'Missed',
 };
 
 const statusTones = {
@@ -71,16 +71,17 @@ export function CustomerBookingsView({
   return (
     <section aria-labelledby="customer-bookings-title">
       <PageHeader
-        eyebrow="Booking saya"
-        title="Jadwal latihan Anda"
+        variant="customer"
+        eyebrow="Bookings"
+        title="Your sessions"
         titleId="customer-bookings-title"
-        description="Lihat booking aktif dan riwayat kelas yang dibuat menggunakan akun Anda."
-        context={<ButtonLink href="/classes#schedule">Booking kelas baru</ButtonLink>}
+        description="Upcoming bookings and past sessions on your account."
+        context={<ButtonLink href="/classes#schedule">Book a session</ButtonLink>}
       />
       <div
-        className="my-5 inline-flex rounded-dd-md border border-dd-line bg-white p-1"
+        className="my-5 inline-flex rounded-full border border-dd-line bg-white p-1"
         role="tablist"
-        aria-label="Linimasa booking"
+        aria-label="Bookings timeline"
       >
         {(['UPCOMING', 'HISTORY'] as const).map((value) => (
           <button
@@ -88,28 +89,26 @@ export function CustomerBookingsView({
             type="button"
             role="tab"
             aria-selected={timeline === value}
-            className={`min-h-10 rounded-dd-sm px-4 text-sm font-semibold transition ${
+            className={`min-h-10 rounded-full px-5 text-sm font-semibold transition ${
               timeline === value
                 ? 'bg-dd-forest text-white'
                 : 'bg-transparent text-dd-muted hover:bg-dd-surface-muted hover:text-dd-ink'
             }`}
             onClick={() => setTimeline(value)}
           >
-            {value === 'UPCOMING' ? 'Mendatang' : 'Riwayat'}
+            {value === 'UPCOMING' ? 'Upcoming' : 'Past'}
           </button>
         ))}
       </div>
       {loading ? (
-        <Skeleton label="Memuat booking customer" />
+        <Skeleton label="Loading your bookings" />
       ) : items.length === 0 ? (
         <EmptyState
-          title={
-            timeline === 'UPCOMING' ? 'Belum ada jadwal mendatang' : 'Belum ada riwayat booking'
-          }
+          title={timeline === 'UPCOMING' ? 'No upcoming sessions' : 'No past sessions yet'}
           description={
             timeline === 'UPCOMING'
-              ? 'Pilih kelas dari jadwal untuk membuat booking berikutnya.'
-              : 'Booking yang selesai atau dibatalkan akan tampil di sini.'
+              ? 'Pick a session from the timetable to book your next one.'
+              : 'Finished and cancelled bookings will show here.'
           }
         />
       ) : (
@@ -118,16 +117,17 @@ export function CustomerBookingsView({
             {items.map((item) => (
               <Link
                 href={`/bookings/${encodeURIComponent(item.id)}`}
-                className="rounded-dd-xl border border-dd-line bg-white p-5 text-dd-ink no-underline shadow-dd-card"
+                className="rounded-[22px] border border-dd-line bg-white p-5 text-dd-ink no-underline transition hover:-translate-y-0.5 hover:border-dd-forest motion-reduce:transform-none"
                 key={item.id}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <strong className="block text-base">
-                      {item.classSlot?.classType.name ?? 'Kelas Daily Dose'}
+                    <strong className="block font-display text-xl text-dd-forest">
+                      {item.classSlot?.classType.name ?? 'Session'}
                     </strong>
-                    <span className="mt-1 block text-xs text-dd-muted">
-                      {item.branch?.name ?? 'Studio Daily Dose'}
+                    <span className="mt-1 block text-sm text-dd-muted">
+                      {item.branch?.name ?? 'Little Rollers'} ·{' '}
+                      {(item.sessionDurationMinutes ?? 60) >= 120 ? '2 hours' : '1 hour'}
                     </span>
                   </div>
                   <StatusBadge
@@ -136,13 +136,13 @@ export function CustomerBookingsView({
                     {item.status === 'BOOKED' &&
                     item.classSlot &&
                     item.classSlot.endAt.getTime() < Date.now()
-                      ? 'Status kehadiran sedang diproses'
-                      : (statusLabels[item.status] ?? 'Status booking')}
+                      ? 'Attendance being recorded'
+                      : (statusLabels[item.status] ?? 'Booking')}
                   </StatusBadge>
                 </div>
                 <time className="mt-5 block text-sm font-semibold text-dd-forest">
                   {item.classSlot
-                    ? item.classSlot.startAt.toLocaleString('id-ID', {
+                    ? item.classSlot.startAt.toLocaleString('en-GB', {
                         weekday: 'long',
                         day: 'numeric',
                         month: 'long',
@@ -150,10 +150,10 @@ export function CustomerBookingsView({
                         minute: '2-digit',
                         timeZone: item.classSlot.timezone,
                       })
-                    : `Dibuat ${item.createdAt.toLocaleString('id-ID')}`}
+                    : `Booked ${item.createdAt.toLocaleString('en-GB')}`}
                 </time>
-                <span className="mt-4 block text-xs font-semibold text-dd-forest">
-                  Lihat detail →
+                <span className="mt-4 block text-sm font-semibold text-dd-forest">
+                  Details and QR pass
                 </span>
               </Link>
             ))}
@@ -162,7 +162,8 @@ export function CustomerBookingsView({
             <Pagination
               hasPrevious={cursorHistory.length > 0 && !loading}
               hasNext={Boolean(nextCursor) && !loading}
-              totalLabel={`Halaman ${cursorHistory.length + 1} · ${items.length.toLocaleString('id-ID')} data dari ${total.toLocaleString('id-ID')} booking`}
+              totalLabel={`Page ${cursorHistory.length + 1} · ${items.length} of ${total} bookings`}
+              labels={{ navigation: 'Pages', previous: 'Previous', next: 'Next' }}
               onPrevious={() => {
                 const previous = cursorHistory.at(-1) ?? '';
                 void loadPage(previous || undefined).then((loaded) => {

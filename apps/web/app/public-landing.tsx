@@ -35,9 +35,16 @@ export function sessionLengthLabel(minutes: number) {
   return `${minutes} min`;
 }
 
+function prefersReducedMotion() {
+  return typeof window.matchMedia === 'function'
+    ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    : false;
+}
+
 function useReducedMotion() {
   const [reduced, setReduced] = useState(false);
   useEffect(() => {
+    if (typeof window.matchMedia !== 'function') return;
     const query = window.matchMedia('(prefers-reduced-motion: reduce)');
     const update = () => setReduced(query.matches);
     update();
@@ -95,9 +102,11 @@ function playEntrance(root: HTMLElement) {
     delay += 90;
   });
   for (const [selector, keyframes, start, duration, easing] of steps) {
-    root.querySelectorAll<HTMLElement>(selector).forEach((element) =>
-      element.animate(keyframes, { duration, delay: start, easing, fill: 'backwards' }),
-    );
+    root
+      .querySelectorAll<HTMLElement>(selector)
+      .forEach((element) =>
+        element.animate(keyframes, { duration, delay: start, easing, fill: 'backwards' }),
+      );
   }
 }
 
@@ -140,7 +149,7 @@ export function PublicLanding() {
 
   useEffect(() => {
     const root = heroRef.current;
-    if (!root || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (!root || prefersReducedMotion()) return;
     playEntrance(root);
   }, []);
 
@@ -210,159 +219,161 @@ export function PublicLanding() {
             <div className="lr-hero__scrim" aria-hidden="true" />
 
             <div className="lr-hero__layer">
-            <div className="lr-hero__copy">
-              <p className="lr-hero__kicker" data-enter="kicker">
-                LITTLE ROLLERS
-              </p>
-              <h1 className="lr-hero__headline" aria-label="Kids Movement Club">
-                <span data-enter="line" aria-hidden="true">
-                  KIDS MOVEMENT
-                </span>
-                <span data-enter="line" aria-hidden="true">
-                  CLUB
-                </span>
-              </h1>
-              <p className="lr-hero__sub" data-enter="rise">
-                Running, rolling, climbing and balancing for little ones. Book a 1-hour or
-                2-hour session at your club, then check in with your QR pass.
-              </p>
-              <div className="lr-hero__actions">
-                <Link
-                  className="lr-pill lr-pill--white lr-hero__primary"
-                  href={session ? accountHref : routes.register}
-                  data-enter="rise"
-                >
-                  {session ? 'My account' : 'Join us'}
+              <div className="lr-hero__copy">
+                <p className="lr-hero__kicker" data-enter="kicker">
+                  LITTLE ROLLERS
+                </p>
+                <h1 className="lr-hero__headline" aria-label="Kids Movement Club">
+                  <span data-enter="line" aria-hidden="true">
+                    KIDS MOVEMENT
+                  </span>
+                  <span data-enter="line" aria-hidden="true">
+                    CLUB
+                  </span>
+                </h1>
+                <p className="lr-hero__sub" data-enter="rise">
+                  Running, rolling, climbing and balancing for little ones. Book a 1-hour or 2-hour
+                  session at your club, then check in with your QR pass.
+                </p>
+                <div className="lr-hero__actions">
+                  <Link
+                    className="lr-pill lr-pill--white lr-hero__primary"
+                    href={session ? accountHref : routes.register}
+                    data-enter="rise"
+                  >
+                    {session ? 'My account' : 'Join us'}
+                  </Link>
+                  <Link
+                    className="lr-pill lr-pill--mint lr-hero__secondary"
+                    href="/classes#schedule"
+                    data-enter="rise"
+                  >
+                    <CalendarDays aria-hidden="true" />
+                    See the timetable
+                  </Link>
+                </div>
+              </div>
+
+              <section className="lr-hero__classes" aria-labelledby="hero-classes-title">
+                <h2 className="lr-hero__classes-title" id="hero-classes-title" data-enter="rise">
+                  CLASSES
+                </h2>
+                <Link className="lr-hero__classes-link" href={routes.classes} data-enter="rise">
+                  browse all classes{' '}
+                  <span className="lr-chevron" aria-hidden="true">
+                    ›
+                  </span>
                 </Link>
-                <Link
-                  className="lr-pill lr-pill--mint lr-hero__secondary"
-                  href="/classes#schedule"
-                  data-enter="rise"
-                >
-                  <CalendarDays aria-hidden="true" />
+                <ul className="lr-hero__cards" aria-busy={state === 'loading' || undefined}>
+                  {state === 'loading' &&
+                    [0, 1, 2].map((index) => (
+                      <li key={index} data-enter="rise">
+                        <div className="lr-class-card lr-class-card--state lr-class-card--loading">
+                          {index === 0 && <span className="sr-only">Loading classes</span>}
+                        </div>
+                      </li>
+                    ))}
+                  {state === 'error' && (
+                    <li data-enter="rise">
+                      <div className="lr-class-card lr-class-card--state" role="alert">
+                        <p className="m-0 text-base">We could not load the classes.</p>
+                        <button
+                          type="button"
+                          className="lr-pill lr-pill--mint mt-3 min-h-11 px-5 text-[15px]"
+                          onClick={() => load()}
+                        >
+                          Try again
+                        </button>
+                      </div>
+                    </li>
+                  )}
+                  {state === 'ready' && classes.length === 0 && (
+                    <li data-enter="rise">
+                      <div className="lr-class-card lr-class-card--state">
+                        <p className="m-0 text-base">
+                          Classes appear here once the club publishes them.{' '}
+                          <Link href={routes.contact}>Ask us what is coming up</Link>.
+                        </p>
+                      </div>
+                    </li>
+                  )}
+                  {classes.map((item) => (
+                    <li key={item.code} data-enter="rise">
+                      <Link className="lr-class-card" href={`/classes/${item.slug}`}>
+                        {/* eslint-disable-next-line @next/next/no-img-element -- local SVG artwork */}
+                        <img src={`/images/public/${item.heroImageKey}`} alt="" loading="lazy" />
+                        <span className="lr-class-card__label">
+                          <span className="lr-class-card__name">{item.name}</span>
+                          <span className="lr-class-card__meta">
+                            {item.level} · {sessionLengthLabel(item.durationMinutes)}
+                          </span>
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            </div>
+          </div>
+        </div>
+
+        <section
+          className="relative bg-dd-cream py-16 sm:py-24"
+          id="sessions"
+          aria-labelledby="sessions-title"
+        >
+          <div className={`${container} grid items-center gap-10 lg:grid-cols-[0.9fr_1.1fr]`}>
+            <div>
+              <p className={publicEyebrow}>How sessions work</p>
+              <h2
+                className="mt-3 font-display text-[clamp(2.4rem,5vw,3.9rem)] leading-[0.95] text-dd-forest"
+                id="sessions-title"
+              >
+                One hour or two
+              </h2>
+              <p className="mt-5 max-w-xl text-lg leading-8 text-dd-muted">
+                Every slot on the timetable is a 2-hour block. With a 1-hour package your child
+                joins the first hour. With a 2-hour package they stay for the whole block.
+              </p>
+              <p className="mt-4 max-w-xl leading-7 text-dd-muted">
+                Either way, each booking uses one session from the package. When you book, the
+                timetable only offers sessions that fit the length you bought.
+              </p>
+              <div className="mt-8 flex flex-wrap gap-3">
+                <Link className={publicSunButton} href={routes.packages}>
+                  Compare packages
+                </Link>
+                <Link className={publicSecondaryButton} href="/classes#schedule">
                   See the timetable
                 </Link>
               </div>
             </div>
-
-            <section className="lr-hero__classes" aria-labelledby="hero-classes-title">
-              <h2 className="lr-hero__classes-title" id="hero-classes-title" data-enter="rise">
-                CLASSES
-              </h2>
-              <Link className="lr-hero__classes-link" href={routes.classes} data-enter="rise">
-                browse all classes <span className="lr-chevron" aria-hidden="true">›</span>
-              </Link>
-              <ul className="lr-hero__cards" aria-busy={state === 'loading' || undefined}>
-                {state === 'loading' &&
-                  [0, 1, 2].map((index) => (
-                    <li key={index} data-enter="rise">
-                      <div className="lr-class-card lr-class-card--state lr-class-card--loading">
-                        {index === 0 && <span className="sr-only">Loading classes</span>}
-                      </div>
-                    </li>
-                  ))}
-                {state === 'error' && (
-                  <li data-enter="rise">
-                    <div className="lr-class-card lr-class-card--state" role="alert">
-                      <p className="m-0 text-base">We could not load the classes.</p>
-                      <button
-                        type="button"
-                        className="lr-pill lr-pill--mint mt-3 min-h-11 px-5 text-[15px]"
-                        onClick={() => load()}
-                      >
-                        Try again
-                      </button>
-                    </div>
-                  </li>
-                )}
-                {state === 'ready' && classes.length === 0 && (
-                  <li data-enter="rise">
-                    <div className="lr-class-card lr-class-card--state">
-                      <p className="m-0 text-base">
-                        Classes appear here once the club publishes them.{' '}
-                        <Link href={routes.contact}>Ask us what is coming up</Link>.
-                      </p>
-                    </div>
-                  </li>
-                )}
-                {classes.map((item) => (
-                  <li key={item.code} data-enter="rise">
-                    <Link className="lr-class-card" href={`/classes/${item.slug}`}>
-                      {/* eslint-disable-next-line @next/next/no-img-element -- local SVG artwork */}
-                      <img src={`/images/public/${item.heroImageKey}`} alt="" loading="lazy" />
-                      <span className="lr-class-card__label">
-                        <span className="lr-class-card__name">{item.name}</span>
-                        <span className="lr-class-card__meta">
-                          {item.level} · {sessionLengthLabel(item.durationMinutes)}
-                        </span>
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </section>
-            </div>
+            <SessionBlockDiagram />
           </div>
-        </div>
+        </section>
 
-      <section
-        className="relative bg-dd-cream py-16 sm:py-24"
-        id="sessions"
-        aria-labelledby="sessions-title"
-      >
-        <div className={`${container} grid items-center gap-10 lg:grid-cols-[0.9fr_1.1fr]`}>
-          <div>
-            <p className={publicEyebrow}>How sessions work</p>
-            <h2
-              className="mt-3 font-display text-[clamp(2.4rem,5vw,3.9rem)] leading-[0.95] text-dd-forest"
-              id="sessions-title"
-            >
-              One hour or two
-            </h2>
-            <p className="mt-5 max-w-xl text-lg leading-8 text-dd-muted">
-              Every slot on the timetable is a 2-hour block. With a 1-hour package your child
-              joins the first hour. With a 2-hour package they stay for the whole block.
-            </p>
-            <p className="mt-4 max-w-xl leading-7 text-dd-muted">
-              Either way, each booking uses one session from the package. When you book, the
-              timetable only offers sessions that fit the length you bought.
-            </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Link className={publicSunButton} href={routes.packages}>
-                Compare packages
-              </Link>
-              <Link className={publicSecondaryButton} href="/classes#schedule">
-                See the timetable
-              </Link>
-            </div>
-          </div>
-          <SessionBlockDiagram />
-        </div>
-      </section>
-
-      <section className="bg-dd-paper py-16 sm:py-20" aria-labelledby="clubs-title">
-        <div className={container}>
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <p className={publicEyebrow}>Where we play</p>
-              <h2
-                className="mt-3 font-display text-[clamp(2.2rem,4.5vw,3.4rem)] leading-none text-dd-forest"
-                id="clubs-title"
+        <section className="bg-dd-paper py-16 sm:py-20" aria-labelledby="clubs-title">
+          <div className={container}>
+            <div className="flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <p className={publicEyebrow}>Where we play</p>
+                <h2
+                  className="mt-3 font-display text-[clamp(2.2rem,4.5vw,3.4rem)] leading-none text-dd-forest"
+                  id="clubs-title"
+                >
+                  Our clubs
+                </h2>
+              </div>
+              <Link
+                className="inline-flex min-h-11 items-center gap-1 font-medium text-dd-forest"
+                href={routes.locations}
               >
-                Our clubs
-              </h2>
+                All club details <span aria-hidden="true">›</span>
+              </Link>
             </div>
-            <Link
-              className="inline-flex min-h-11 items-center gap-1 font-medium text-dd-forest"
-              href={routes.locations}
-            >
-              All club details <span aria-hidden="true">›</span>
-            </Link>
+            <ClubList state={state} clubs={clubs} onRetry={() => load()} />
           </div>
-          <ClubList state={state} clubs={clubs} onRetry={() => load()} />
-        </div>
-      </section>
-
+        </section>
       </main>
       <PublicFooter />
     </div>
@@ -420,11 +431,7 @@ function ClubList({
     return (
       <div className="mt-8 rounded-[15px] bg-dd-danger-soft p-6 text-dd-danger" role="alert">
         <p className="m-0">We could not load the clubs.</p>
-        <button
-          type="button"
-          className={`${publicSecondaryButton} mt-3`}
-          onClick={onRetry}
-        >
+        <button type="button" className={`${publicSecondaryButton} mt-3`} onClick={onRetry}>
           Try again
         </button>
       </div>

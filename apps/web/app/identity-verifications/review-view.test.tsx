@@ -145,7 +145,7 @@ describe('professional identity verification queue', () => {
     expect(await screen.findByAltText('Preview privat KTP depan')).toBeVisible();
     expect(client.authorizeView).toHaveBeenCalledTimes(2);
     expect(URL.revokeObjectURL).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('button', { name: 'Tutup dialog' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Close dialog' }));
     expect(URL.revokeObjectURL).toHaveBeenCalledTimes(2);
   });
 

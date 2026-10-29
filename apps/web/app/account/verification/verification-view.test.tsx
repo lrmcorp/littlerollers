@@ -97,16 +97,17 @@ describe('customer verification view', () => {
   it('renders one customer-facing heading, progress and privacy guidance', async () => {
     const view = renderVerification();
     expect(
-      await screen.findByRole('heading', { name: 'Dokumen Anda sudah kami terima', level: 1 }),
+      await screen.findByRole('heading', { name: 'We have your documents', level: 1 }),
     ).toBeVisible();
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
-    expect(screen.getByText('Dokumen diterima')).toBeVisible();
-    expect(screen.getByText('Privasi dokumen Anda')).toBeVisible();
-    expect(screen.getByRole('link', { name: 'Lihat jadwal' })).toHaveAttribute('href', '/classes');
-    expect(
-      screen.getAllByText(/Upload ulang tersedia jika reviewer meminta perbaikan/),
-    ).toHaveLength(2);
-    expect(screen.queryByRole('button', { name: 'Unggah ulang dokumen' })).not.toBeInTheDocument();
+    expect(screen.getByText('Documents received')).toBeVisible();
+    expect(screen.getByText('Your privacy')).toBeVisible();
+    expect(screen.getByRole('link', { name: 'See the timetable' })).toHaveAttribute(
+      'href',
+      '/classes',
+    );
+    expect(screen.getAllByText(/You can upload again if we ask for a fix/)).toHaveLength(2);
+    expect(screen.queryByRole('button', { name: 'Upload again' })).not.toBeInTheDocument();
     const violations = (await axe(view.container)).violations;
     expect(violations, JSON.stringify(violations, null, 2)).toHaveLength(0);
   });
@@ -128,12 +129,12 @@ describe('customer verification view', () => {
     const user = userEvent.setup();
     renderVerification();
 
-    expect(await screen.findByText('Foto terlalu buram')).toBeVisible();
-    await user.click(screen.getByRole('button', { name: 'Unggah ulang dokumen' }));
-    expect(screen.getByRole('dialog', { name: 'Unggah ulang Foto selfie' })).toBeVisible();
+    expect(await screen.findByText('The photo is blurry')).toBeVisible();
+    await user.click(screen.getByRole('button', { name: 'Upload again' }));
+    expect(screen.getByRole('dialog', { name: 'Upload a new selfie photo' })).toBeVisible();
     const file = new File(['replacement'], 'replacement.png', { type: 'image/png' });
-    await user.upload(screen.getByLabelText('Pilih foto pengganti'), file);
-    const submit = screen.getByRole('button', { name: 'Kirim dokumen pengganti' });
+    await user.upload(screen.getByLabelText('Choose a new photo'), file);
+    const submit = screen.getByRole('button', { name: 'Send new document' });
     expect(submit).toBeEnabled();
     fireEvent.submit(document.getElementById('identity-replacement-form')!);
     await waitFor(() =>
@@ -162,8 +163,8 @@ describe('customer verification view', () => {
     await waitFor(() =>
       expect(document.getElementById('verification-document-KTP_FRONT')).toHaveFocus(),
     );
-    expect(screen.getByText('Pantulan cahaya menutupi dokumen')).toBeVisible();
-    expect(screen.getAllByRole('button', { name: 'Unggah ulang dokumen' })).toHaveLength(1);
+    expect(screen.getByText('Glare is covering the document')).toBeVisible();
+    expect(screen.getAllByRole('button', { name: 'Upload again' })).toHaveLength(1);
   });
 
   it('preserves checkout continuation and returns there after approval', async () => {

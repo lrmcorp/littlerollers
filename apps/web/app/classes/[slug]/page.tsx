@@ -12,9 +12,7 @@ export async function generateMetadata({
   const item = await publicMetadataValue<PublicClassDetail>(
     `/public/class-types/${encodeURIComponent(slug)}`,
   );
-  const name = item
-    ? (item.schedules[0]?.classType?.name ?? null)
-    : null;
+  const name = item ? (item.schedules[0]?.classType?.name ?? null) : null;
   const title = name ?? 'Class details';
   const description =
     item?.profile.summary ?? 'What the class covers, what to bring, packages and next sessions.';

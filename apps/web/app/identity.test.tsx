@@ -130,8 +130,8 @@ describe('identity UI', () => {
     expect((await axe(view.container)).violations).toHaveLength(0);
     await userEvent.type(screen.getByLabelText('Email'), 'owner@example.test');
     await userEvent.type(screen.getByLabelText('Password'), 'correct-password-123');
-    await userEvent.click(screen.getByRole('button', { name: /Masuk dengan email/ }));
-    expect(await screen.findByText('Identitas terverifikasi.')).toBeVisible();
+    await userEvent.click(screen.getByRole('button', { name: /Sign in with email/ }));
+    expect(await screen.findByText('Signed in.')).toBeVisible();
     view.unmount();
     render(
       <SignInView
@@ -142,8 +142,8 @@ describe('identity UI', () => {
     );
     await userEvent.type(screen.getByLabelText('Email'), 'owner@example.test');
     await userEvent.type(screen.getByLabelText('Password'), 'incorrect-password');
-    await userEvent.click(screen.getByRole('button', { name: /Masuk dengan email/ }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('Terlalu banyak');
+    await userEvent.click(screen.getByRole('button', { name: /Sign in with email/ }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Too many attempts');
   });
 
   it('shows a safe correlation reference for internal authentication failures', async () => {
@@ -160,9 +160,9 @@ describe('identity UI', () => {
     );
     await userEvent.type(screen.getByLabelText('Email'), 'owner@example.test');
     await userEvent.type(screen.getByLabelText('Password'), 'correct-password-123');
-    await userEvent.click(screen.getByRole('button', { name: /Masuk dengan email/ }));
+    await userEvent.click(screen.getByRole('button', { name: /Sign in with email/ }));
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Layanan masuk sedang mengalami gangguan. Kode bantuan: auth-reference-456.',
+      'Something went wrong while signing you in. Support code: auth-reference-456.',
     );
   });
 
@@ -171,7 +171,7 @@ describe('identity UI', () => {
     render(<SignInView client={fake} />);
     const password = screen.getByLabelText('Password');
     expect(password).toHaveAttribute('type', 'password');
-    await userEvent.click(screen.getByRole('button', { name: 'Lihat' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Show' }));
     expect(password).toHaveAttribute('type', 'text');
     expect(screen.queryByText(/synthetic non-production/i)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/Email Google synthetic/i)).not.toBeInTheDocument();
@@ -525,17 +525,17 @@ describe('identity UI', () => {
     const forgot = render(<ForgotPasswordView client={fake} />);
     expect((await axe(forgot.container)).violations).toHaveLength(0);
     await userEvent.type(screen.getByLabelText('Email'), 'member@example.test');
-    await userEvent.click(screen.getByRole('button', { name: 'Kirim tautan reset' }));
-    expect(await screen.findByRole('status')).toHaveTextContent('Jika akun cocok');
+    await userEvent.click(screen.getByRole('button', { name: 'Send reset link' }));
+    expect(await screen.findByRole('status')).toHaveTextContent('If that email has an account');
     forgot.unmount();
 
     window.history.replaceState({}, '', '/reset-password?token=one-time-token');
     render(<ResetPasswordView client={fake} />);
-    await userEvent.type(screen.getByLabelText('Password baru'), 'a-new-secure-password');
-    await userEvent.type(screen.getByLabelText('Ulangi password baru'), 'different-password');
-    await userEvent.click(screen.getByRole('button', { name: 'Simpan password baru' }));
+    await userEvent.type(screen.getByLabelText('New password'), 'a-new-secure-password');
+    await userEvent.type(screen.getByLabelText('New password again'), 'different-password');
+    await userEvent.click(screen.getByRole('button', { name: 'Save new password' }));
     expect(fake.resetPassword).not.toHaveBeenCalled();
-    expect(await screen.findByRole('alert')).toHaveTextContent('Password harus sama');
+    expect(await screen.findByRole('alert')).toHaveTextContent('The passwords must match');
   });
 
   it('activates an invitation and exposes password security management', async () => {
@@ -543,8 +543,8 @@ describe('identity UI', () => {
     window.history.replaceState({}, '', '/activate-account?token=activation-token');
     const activation = render(<ActivateAccountView client={fake} />);
     await userEvent.type(screen.getByLabelText('Password'), 'a-secure-invite-password');
-    await userEvent.type(screen.getByLabelText('Ulangi password'), 'a-secure-invite-password');
-    await userEvent.click(screen.getByRole('button', { name: 'Aktifkan akun' }));
+    await userEvent.type(screen.getByLabelText('Password again'), 'a-secure-invite-password');
+    await userEvent.click(screen.getByRole('button', { name: 'Activate account' }));
     expect(fake.activatePassword).toHaveBeenCalledWith(
       'activation-token',
       'a-secure-invite-password',
@@ -556,7 +556,7 @@ describe('identity UI', () => {
         <SecurityView client={fake} />
       </AppFeedbackProvider>,
     );
-    expect(await screen.findByText('Password aktif')).toBeVisible();
+    expect(await screen.findByText('Password set')).toBeVisible();
     expect((await axe(security.container)).violations).toHaveLength(0);
   });
 });

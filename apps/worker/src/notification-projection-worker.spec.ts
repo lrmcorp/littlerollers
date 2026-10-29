@@ -209,7 +209,7 @@ describe('NotificationProjectionWorker', () => {
         expect.objectContaining({
           userId: 'customer-1',
           category: 'ATTENDANCE',
-          title: 'Kehadiran diperbarui',
+          title: 'Attendance updated',
         }),
       ],
       skipDuplicates: true,
@@ -257,7 +257,7 @@ describe('NotificationProjectionWorker', () => {
       data: [
         expect.objectContaining({
           userId: 'customer-no-show',
-          title: 'Kehadiran tidak tercatat',
+          title: 'Attendance not recorded',
           href: '/bookings/booking-no-show',
         }),
       ],
@@ -267,7 +267,7 @@ describe('NotificationProjectionWorker', () => {
 
   it('creates one deterministic customer email occurrence for a posted adjustment', async () => {
     const previousBaseUrl = process.env.PUBLIC_WEB_BASE_URL;
-    process.env.PUBLIC_WEB_BASE_URL = 'https://dailydosepilates.com';
+    process.env.PUBLIC_WEB_BASE_URL = 'https://littlerollers.example';
     const event = {
       id: 'event-adjustment-posted',
       eventType: 'session.adjustment_posted.v1',
@@ -322,7 +322,7 @@ describe('NotificationProjectionWorker', () => {
 
   it('notifies customer, assigned instructor, and branch operations but emails only customer', async () => {
     const previousBaseUrl = process.env.PUBLIC_WEB_BASE_URL;
-    process.env.PUBLIC_WEB_BASE_URL = 'https://dailydosepilates.com';
+    process.env.PUBLIC_WEB_BASE_URL = 'https://littlerollers.example';
     const event = {
       id: 'event-booking-cancelled',
       eventType: 'booking.cancelled.v1',

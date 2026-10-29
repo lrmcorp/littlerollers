@@ -44,7 +44,7 @@ describe('AppFeedbackProvider', () => {
 
     await user.click(screen.getByRole('button', { name: 'Konfirmasi' }));
     expect(screen.getByRole('dialog', { name: 'Nonaktifkan akun?' })).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Lanjutkan' }));
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
     expect(screen.getByText('ya')).toBeInTheDocument();
   });
 
@@ -81,7 +81,7 @@ describe('AppFeedbackProvider', () => {
     await user.keyboard('{Escape}');
     expect(onDirtyClose).toHaveBeenCalledTimes(1);
     expect(onClose).not.toHaveBeenCalled();
-    expect(screen.getByRole('button', { name: 'Tutup dialog' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Close dialog' })).toBeEnabled();
   });
 
   it('only lets the topmost modal respond to Escape', async () => {
@@ -119,7 +119,7 @@ describe('AppFeedbackProvider', () => {
     render(<AnimatedHarness />);
     const dialog = screen.getByRole('dialog', { name: 'Modal animasi' });
     expect(screen.getByTestId('page-container')).not.toContainElement(dialog);
-    await user.click(screen.getByRole('button', { name: 'Tutup dialog' }));
+    await user.click(screen.getByRole('button', { name: 'Close dialog' }));
     expect(dialog.parentElement).toHaveAttribute('data-overlay-phase', 'exiting');
     await waitForElementToBeRemoved(() => screen.queryByRole('dialog', { name: 'Modal animasi' }));
   });

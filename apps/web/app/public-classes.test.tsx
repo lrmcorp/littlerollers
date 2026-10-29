@@ -32,13 +32,13 @@ describe('public class catalog', () => {
         }),
     };
     const view = render(<PublicClassesView client={client} />);
-    expect(await screen.findByText('Pilih studio untuk melihat kelas')).toBeInTheDocument();
+    expect(await screen.findByText('Choose a club to see sessions')).toBeInTheDocument();
     expect(screen.queryByText('Private Class')).not.toBeInTheDocument();
-    await userEvent.click(screen.getByRole('combobox', { name: /Studio/ }));
+    await userEvent.click(screen.getByRole('combobox', { name: /Club/ }));
     await userEvent.click(await screen.findByRole('option', { name: /Green Garden/ }));
     expect(await screen.findByRole('heading', { name: 'Private Class' })).toBeVisible();
-    expect(screen.getByText('2/4 tempat')).toBeVisible();
-    expect(screen.getByRole('link', { name: 'Lanjutkan booking' })).toHaveAttribute(
+    expect(screen.getByText('2 of 4 left')).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Book this session' })).toHaveAttribute(
       'href',
       '/sign-in?returnTo=%2Fbookings%2Fnew%3Fslot%3Dslot-1',
     );
@@ -51,6 +51,8 @@ describe('public class catalog', () => {
       list: vi.fn().mockRejectedValue({ response: { status: 503 } }),
     };
     render(<PublicClassesView client={client} />);
-    expect(await screen.findByRole('alert')).toHaveTextContent('Jadwal sedang tidak tersedia');
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'The timetable is unavailable right now',
+    );
   });
 });

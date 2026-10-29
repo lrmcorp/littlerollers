@@ -89,16 +89,18 @@ describe('public package catalog', () => {
         .mockResolvedValueOnce({ branches: [branch], items: [packages[0]!] }),
     };
     const view = render(<PublicPackagesView client={client} />);
-    expect(await screen.findByText('Pilih studio untuk melihat paket')).toBeVisible();
+    expect(await screen.findByText('Choose a club to see packages')).toBeVisible();
     expect(screen.queryByText('Movers Starter')).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: /Little Rollers Jakarta/ }));
     expect(await screen.findByRole('heading', { name: 'Movers Starter' })).toBeVisible();
     expect(screen.getByText(/Rp\s*1\.200\.000/)).toBeVisible();
-    expect(screen.getByText('4 sesi')).toBeVisible();
-    expect(screen.getByText('30 hari')).toBeVisible();
-    expect(screen.getByText('Tersedia untuk pembelian')).toBeVisible();
-    expect(screen.getByRole('link', { name: 'Masuk untuk memilih' })).toHaveAttribute(
+    const sessions = screen.getByText('Sessions').nextElementSibling;
+    expect(sessions).toHaveTextContent('4');
+    expect(screen.getByText('30 days')).toBeVisible();
+    expect(screen.getAllByText('1 hour').length).toBeGreaterThan(0);
+    expect(screen.getByText('On sale now')).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Sign in to buy' })).toHaveAttribute(
       'href',
       '/sign-in?returnTo=%2Fcheckout%3Fpackage%3Dpackage-starter%26branch%3Dbranch-1',
     );
@@ -115,13 +117,13 @@ describe('public package catalog', () => {
       'package-routine',
     ]);
     expect(packageDescriptor(packages[2]!, packages, recommendedId)).toBe(
-      'Nilai terbaik untuk latihan rutin',
+      'Lowest price per session here',
     );
     expect(packageDescriptor(packages[0]!, packages, recommendedId)).toBe(
-      'Cocok untuk mulai mencoba',
+      'A short run to try the club',
     );
     expect(packageDescriptor(packages[1]!, packages, recommendedId)).toBe(
-      'Fleksibel untuk latihan mingguan',
+      'For a regular weekly session',
     );
   });
 
@@ -152,26 +154,26 @@ describe('public package catalog', () => {
     render(<PublicPackagesView client={client} />);
     await userEvent.click(await screen.findByRole('button', { name: /Little Rollers Jakarta/ }));
 
-    expect(await screen.findByLabelText(/Harga normal Rp\s*1\.200\.000/)).toBeVisible();
+    expect(await screen.findByLabelText(/Usual price Rp\s*1\.200\.000/)).toBeVisible();
     expect(screen.getByText('Promo 10%')).toBeVisible();
     expect(screen.getByText(/Rp\s*1\.080\.000/)).toBeVisible();
-    expect(screen.getByText(/Hemat Rp\s*120\.000/)).toBeVisible();
+    expect(screen.getByText(/You save Rp\s*120\.000/)).toBeVisible();
   });
 
   it('uses friendly locations and role-aware CTA labels', () => {
     expect(publicBranchLocation(branch)).toBe('Jakarta · WIB');
-    expect(packageCtaLabel(null)).toBe('Masuk untuk memilih');
+    expect(packageCtaLabel(null)).toBe('Sign in to buy');
     expect(packageCtaLabel({ ...approvedCustomer, identityVerificationStatus: 'PENDING' })).toBe(
-      'Verifikasi untuk memilih',
+      'Verify to buy',
     );
-    expect(packageCtaLabel(approvedCustomer)).toBe('Pilih paket');
-    expect(packageCtaLabel(superOwner)).toBe('Buka Workspace');
+    expect(packageCtaLabel(approvedCustomer)).toBe('Buy this package');
+    expect(packageCtaLabel(superOwner)).toBe('Open workspace');
     expect(packageCtaLabel({ ...superOwner, roles: ['CUSTOMER', 'SUPER_OWNER'] })).toBe(
-      'Buka Workspace',
+      'Open workspace',
     );
     expect(packageAudienceState(superOwner)).toBe('STAFF');
     expect(packageJourneyCopy(superOwner)).toBe(
-      'Anda sedang menggunakan akun staf. Pembelian paket menggunakan akun customer.',
+      'You are signed in as staff. Packages are bought from a parent account.',
     );
     expect(packageCtaHref('STAFF', '/checkout?package=one')).toBe('/workspace');
     expect(packageCtaHref('CUSTOMER_APPROVED', '/checkout?package=one')).toBe(
@@ -193,13 +195,13 @@ describe('public package catalog', () => {
     await screen.findByRole('heading', { name: 'Movers Commitment' });
     expect(window.location.search).toBe('?slot=slot-1&branch=branch-1');
 
-    await userEvent.click(screen.getByRole('combobox', { name: /Tipe kelas/ }));
+    await userEvent.click(screen.getByRole('combobox', { name: /Class/ }));
     await userEvent.click(await screen.findByRole('option', { name: 'Private Class' }));
     expect(window.location.search).toBe('?slot=slot-1&branch=branch-1&classType=type-private');
     expect(screen.getByRole('heading', { name: 'Movers Starter' })).toBeVisible();
     expect(screen.queryByRole('heading', { name: 'Movers Routine' })).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Reset filter' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
     expect(window.location.search).toBe('?slot=slot-1&branch=branch-1');
   });
 
@@ -211,9 +213,11 @@ describe('public package catalog', () => {
         .mockResolvedValueOnce({ branches: [branch], items: [] }),
     };
     render(<PublicPackagesView client={client} />);
-    expect(await screen.findByRole('alert')).toHaveTextContent('Paket sedang tidak tersedia');
-    await userEvent.click(screen.getByRole('button', { name: 'Coba lagi' }));
-    expect(await screen.findByText('Pilih studio untuk melihat paket')).toBeVisible();
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Packages are unavailable right now',
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(await screen.findByText('Choose a club to see packages')).toBeVisible();
     expect(client.list).toHaveBeenCalledTimes(2);
   });
 });

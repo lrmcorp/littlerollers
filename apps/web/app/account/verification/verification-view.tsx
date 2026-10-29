@@ -35,75 +35,74 @@ import {
 } from './verification-continuation';
 
 const documentLabels: Record<DocumentKind, string> = {
-  SELFIE: 'Foto selfie',
-  KTP_FRONT: 'Foto KTP depan',
+  SELFIE: 'Selfie photo',
+  KTP_FRONT: 'Front of KTP',
 };
 
 const reasonLabels: Record<string, string> = {
-  BLURRY: 'Foto terlalu buram',
-  GLARE: 'Pantulan cahaya menutupi dokumen',
-  CROPPED: 'Sebagian dokumen terpotong',
-  DOCUMENT_UNREADABLE: 'Informasi pada dokumen belum terbaca jelas',
-  FACE_MISMATCH: 'Foto wajah belum sesuai dengan dokumen',
-  WRONG_DOCUMENT: 'Dokumen yang diunggah belum sesuai',
-  OTHER_REQUIRES_NOTE: 'Dokumen perlu diperbaiki',
+  BLURRY: 'The photo is blurry',
+  GLARE: 'Glare is covering the document',
+  CROPPED: 'Part of the document is cut off',
+  DOCUMENT_UNREADABLE: 'We cannot read the details on the document',
+  FACE_MISMATCH: 'The face does not match the document',
+  WRONG_DOCUMENT: 'This is not the right document',
+  OTHER_REQUIRES_NOTE: 'The document needs a fix',
 };
 
 const statusCopy = {
   PENDING: {
-    eyebrow: 'Sedang diperiksa',
-    title: 'Dokumen Anda sudah kami terima',
+    eyebrow: 'Being checked',
+    title: 'We have your documents',
     description:
-      'Tim Daily Dose sedang memeriksa selfie dan KTP Anda secara privat. Anda tidak perlu mengunggah ulang selama tidak ada permintaan perbaikan.',
+      'Our team is checking your selfie and KTP privately. You do not need to upload again unless we ask for a fix.',
   },
   ACTION_REQUIRED: {
-    eyebrow: 'Perlu diperbaiki',
-    title: 'Satu langkah lagi untuk menyelesaikan verifikasi',
-    description:
-      'Periksa catatan pada dokumen di bawah, lalu unggah foto pengganti yang lebih jelas.',
+    eyebrow: 'Needs a fix',
+    title: 'One more step to finish verification',
+    description: 'Read the note on the document below, then upload a clearer photo.',
   },
   APPROVED: {
-    eyebrow: 'Verifikasi selesai',
-    title: 'Identitas Anda telah disetujui',
-    description: 'Pembelian paket dan booking kelas kini tersedia dari akun Daily Dose Anda.',
+    eyebrow: 'Verified',
+    title: 'Your identity is approved',
+    description: 'You can now buy packages and book sessions from your Little Rollers account.',
   },
 } as const;
 
 function documentStatus(document: VerificationDocument) {
   if (document.status === 'APPROVED')
-    return { label: 'Disetujui', className: 'bg-dd-success-soft text-dd-success' };
+    return { label: 'Approved', className: 'bg-dd-success-soft text-dd-success' };
   if (document.status === 'REJECTED')
-    return { label: 'Perlu diunggah ulang', className: 'bg-dd-warning-soft text-dd-warning' };
+    return { label: 'Upload again', className: 'bg-dd-warning-soft text-dd-warning' };
   if (document.status === 'PENDING_DELETION')
-    return { label: 'Sedang dihapus', className: 'bg-dd-surface-muted text-dd-muted' };
+    return { label: 'Being deleted', className: 'bg-dd-surface-muted text-dd-muted' };
   if (document.status === 'DELETE_FAILED')
     return {
-      label: 'Penghapusan perlu dicoba lagi',
+      label: 'Deletion needs another try',
       className: 'bg-dd-danger-soft text-dd-danger',
     };
   if (document.status === 'DELETED')
-    return { label: 'Telah dihapus', className: 'bg-dd-surface-muted text-dd-muted' };
-  return { label: 'Sedang diperiksa', className: 'bg-dd-brass-soft text-dd-forest' };
+    return { label: 'Deleted', className: 'bg-dd-surface-muted text-dd-muted' };
+  return { label: 'Being checked', className: 'bg-dd-brass-soft text-dd-forest' };
 }
 
 function documentDescription(document: VerificationDocument) {
   if (document.status === 'APPROVED')
-    return 'Dokumen telah lolos pemeriksaan dan tidak dapat diganti.';
+    return 'This document passed the check and cannot be replaced.';
   if (document.status === 'REJECTED')
     return (
       reasonLabels[document.rejectionReasonCode ?? ''] ??
-      'Foto perlu diperbaiki sebelum pemeriksaan dilanjutkan.'
+      'Please fix the photo so we can continue the check.'
     );
   if (document.status === 'PENDING_DELETION')
-    return 'Dokumen lama sedang dihapus secara aman. Hubungi bantuan jika status tidak berubah.';
+    return 'The old document is being deleted safely. Contact us if this does not change.';
   if (document.status === 'DELETE_FAILED')
-    return 'Penghapusan dokumen mengalami kendala. File tetap privat dan tim kami perlu menindaklanjuti.';
-  if (document.status === 'DELETED') return 'Dokumen telah dihapus dan tidak dapat ditampilkan.';
+    return 'Deleting the document ran into a problem. The file stays private and our team will follow up.';
+  if (document.status === 'DELETED') return 'The document was deleted and cannot be shown.';
   if (document.scanStatus === 'PENDING')
-    return 'Pemeriksaan keamanan file sedang berlangsung. Upload ulang tersedia jika reviewer meminta perbaikan.';
+    return 'The file safety check is running. You can upload again if we ask for a fix.';
   if (['ERROR', 'REJECTED', 'INFECTED'].includes(document.scanStatus))
-    return 'Pemeriksaan keamanan file memerlukan tindak lanjut reviewer. File tetap privat selama proses berlangsung.';
-  return 'Dokumen sedang diperiksa. Upload ulang tersedia jika reviewer meminta perbaikan.';
+    return 'The file check needs a reviewer to follow up. The file stays private meanwhile.';
+  return 'The document is being checked. You can upload again if we ask for a fix.';
 }
 
 function usePrivateDocumentPreview(kind: DocumentKind, enabled = true) {
@@ -144,27 +143,27 @@ function DocumentPreviewDialog({
     <PreviewModal
       open
       title={documentLabels[document.kind]}
-      description="Dokumen privat hanya dapat dibuka melalui otorisasi singkat dan sekali pakai."
+      description="Private documents open through a short, one-time link."
       onClose={onClose}
       className="max-w-2xl"
     >
       <div className="grid min-h-64 place-items-center rounded-dd-lg bg-dd-surface-muted p-4">
         {preview.state === 'loading' ? (
-          <p role="status">Membuka dokumen secara aman…</p>
+          <p role="status">Opening the document securely…</p>
         ) : preview.state === 'error' ? (
           <p role="alert" className="text-dd-danger">
-            Dokumen belum dapat ditampilkan. Tutup lalu coba kembali.
+            The document could not be shown. Close this and try again.
           </p>
         ) : (
           <img
             src={preview.url}
-            alt={`Dokumen ${documentLabels[document.kind]}`}
+            alt={`Your ${documentLabels[document.kind].toLowerCase()}`}
             className="max-h-[65vh] rounded-dd-md object-contain"
           />
         )}
       </div>
       <p className="mt-3 text-xs leading-5 text-dd-muted">
-        Akses ini bersifat privat, hanya sekali pakai, dan tidak disimpan oleh browser.
+        This link is private, works once, and is not saved by your browser.
       </p>
     </PreviewModal>
   );
@@ -188,9 +187,9 @@ function ReplacementDialog({
   const confirmDiscard = () =>
     feedback.confirm({
       tone: 'warning',
-      title: 'Batalkan unggah ulang?',
-      message: 'Foto pengganti yang telah dipilih akan dilepas.',
-      confirmLabel: 'Buang foto',
+      title: 'Cancel the new upload?',
+      message: 'The photo you picked will be removed.',
+      confirmLabel: 'Remove photo',
     });
   const cancel = async () => {
     if (!file || (await confirmDiscard())) onClose();
@@ -209,8 +208,8 @@ function ReplacementDialog({
   return (
     <Drawer
       open
-      title={`Unggah ulang ${documentLabels[document.kind]}`}
-      description="Bandingkan dokumen saat ini dengan foto pengganti sebelum mengirim."
+      title={`Upload a new ${documentLabels[document.kind].toLowerCase()}`}
+      description="Compare the current document with the new photo before sending."
       onClose={onClose}
       busy={state === 'uploading'}
       dirty={Boolean(file)}
@@ -223,7 +222,7 @@ function ReplacementDialog({
             disabled={state === 'uploading'}
             onClick={() => void cancel()}
           >
-            Batal
+            Cancel
           </Button>
           <Button
             type="submit"
@@ -232,48 +231,48 @@ function ReplacementDialog({
             loading={state === 'uploading'}
             loadingLabel="Mengunggah…"
           >
-            {state === 'success' ? 'Dokumen diterima' : 'Kirim dokumen pengganti'}
+            {state === 'success' ? 'Document received' : 'Send new document'}
           </Button>
         </div>
       }
     >
       <div className="rounded-dd-lg bg-dd-surface-muted p-4 text-sm leading-6 text-dd-muted">
-        Pastikan gambar tajam, seluruh sisi dokumen terlihat, tidak tertutup pantulan cahaya, dan
-        berformat JPG, PNG, atau WebP maksimal 8 MB.
+        Make sure the photo is sharp, the whole document is visible, there is no glare, and it is a
+        JPG, PNG or WebP up to 8 MB.
       </div>
 
       <div className="mt-5 grid gap-4 sm:grid-cols-2">
         <div>
           <p className="mb-2 text-xs font-bold uppercase tracking-wider text-dd-muted">
-            Dokumen saat ini
+            Current document
           </p>
           <div className="grid min-h-40 place-items-center rounded-dd-lg bg-dd-surface-muted p-3">
             {currentPreview.state === 'ready' ? (
               <img
                 src={currentPreview.url}
-                alt={`Dokumen saat ini ${documentLabels[document.kind]}`}
+                alt={`Current ${documentLabels[document.kind].toLowerCase()}`}
                 className="max-h-44 rounded-dd-md object-contain"
               />
             ) : (
               <span className="text-sm text-dd-muted">
-                {currentPreview.state === 'loading' ? 'Membuka…' : 'Preview tidak tersedia'}
+                {currentPreview.state === 'loading' ? 'Opening…' : 'Preview not available'}
               </span>
             )}
           </div>
         </div>
         <div>
           <p className="mb-2 text-xs font-bold uppercase tracking-wider text-dd-muted">
-            Dokumen pengganti
+            New document
           </p>
           <div className="grid min-h-40 place-items-center rounded-dd-lg bg-dd-surface-muted p-3">
             {preview ? (
               <img
                 src={preview}
-                alt="Pratinjau dokumen pengganti"
+                alt="Preview of the new document"
                 className="max-h-44 rounded-dd-md object-contain"
               />
             ) : (
-              <span className="text-sm text-dd-muted">Belum dipilih</span>
+              <span className="text-sm text-dd-muted">Nothing chosen yet</span>
             )}
           </div>
         </div>
@@ -290,28 +289,28 @@ function ReplacementDialog({
             !['image/jpeg', 'image/png', 'image/webp'].includes(file.type)
           ) {
             setState('error');
-            setMessage('Pilih gambar JPG, PNG, atau WebP dengan ukuran maksimal 8 MB.');
+            setMessage('Choose a JPG, PNG or WebP image up to 8 MB.');
             feedback.showToast({
               tone: 'warning',
-              title: 'File belum sesuai',
-              message: 'Gunakan gambar JPG, PNG, atau WebP dengan ukuran maksimal 8 MB.',
+              title: 'This file will not work',
+              message: 'Use a JPG, PNG or WebP image up to 8 MB.',
             });
             return;
           }
           setState('uploading');
-          setMessage('Dokumen sedang diunggah dan divalidasi…');
+          setMessage('Uploading and checking the document…');
           try {
             await verificationClient.replace(document.kind, {
               file,
               expectedVersion: document.version,
             });
             setState('success');
-            setMessage('Dokumen pengganti berhasil diterima. Status verifikasi telah diperbarui.');
+            setMessage('We received the new document. Your verification status is updated.');
             await onComplete();
             feedback.showToast({
               tone: 'success',
-              title: 'Dokumen pengganti diterima',
-              message: `${documentLabels[document.kind]} kembali masuk ke antrean pemeriksaan.`,
+              title: 'New document received',
+              message: `Your ${documentLabels[document.kind].toLowerCase()} is back in the queue to check.`,
             });
             onClose();
           } catch (error) {
@@ -319,12 +318,12 @@ function ReplacementDialog({
             setState(status === 409 ? 'stale' : 'error');
             setMessage(
               status === 409
-                ? 'Status dokumen sudah berubah. Tutup panel lalu muat ulang sebelum mencoba lagi.'
+                ? 'The document status changed. Close this panel and reload before trying again.'
                 : status === 422
-                  ? 'File tidak lolos validasi. Pastikan gambar asli, tidak rusak, dan cukup jelas.'
+                  ? 'The file did not pass the check. Use an original, undamaged, clear photo.'
                   : status === 503
-                    ? 'Penyimpanan privat sedang tidak tersedia. Coba kembali beberapa saat lagi.'
-                    : 'Dokumen belum dapat diunggah. Periksa koneksi lalu coba kembali.',
+                    ? 'Private storage is unavailable right now. Please try again shortly.'
+                    : 'The document did not upload. Check your connection and try again.',
             );
             const mapped = messageForApiError(error);
             feedback.showAlert({
@@ -339,14 +338,14 @@ function ReplacementDialog({
         <label className="grid cursor-pointer place-items-center rounded-dd-lg border border-dashed border-dd-brass bg-dd-brass-soft/45 p-5 text-center focus-within:ring-2 focus-within:ring-dd-forest">
           <ImagePlus className="size-8 text-dd-forest" aria-hidden="true" />
           <span className="mt-3 font-bold text-dd-forest">
-            {file ? 'Ganti foto yang dipilih' : 'Pilih foto pengganti'}
+            {file ? 'Change the chosen photo' : 'Choose a new photo'}
           </span>
           <span className="mt-1 text-xs text-dd-muted">
-            {file ? `${(file.size / 1_000_000).toFixed(1)} MB` : 'JPG, PNG, atau WebP · maks. 8 MB'}
+            {file ? `${(file.size / 1_000_000).toFixed(1)} MB` : 'JPG, PNG or WebP · up to 8 MB'}
           </span>
           <input
             className="sr-only"
-            aria-label="Pilih foto pengganti"
+            aria-label="Choose a new photo"
             name="replacement"
             type="file"
             accept="image/jpeg,image/png,image/webp"
@@ -395,8 +394,8 @@ export function VerificationView() {
         feedback.showToast({
           id: 'invalid-verification-continuation',
           tone: 'warning',
-          title: 'Tujuan lanjutan tidak valid',
-          message: 'Setelah verifikasi selesai, Anda akan diarahkan ke halaman paket.',
+          title: 'That next page is not valid',
+          message: 'Once you are verified, we will take you to the packages page.',
         });
     }
     setHighlightedKind(verificationDocumentTarget(query.get('document')));
@@ -417,8 +416,8 @@ export function VerificationView() {
           feedback.showToast({
             id: 'verification-approved',
             tone: 'success',
-            title: 'Verifikasi selesai',
-            message: 'Mengarahkan Anda kembali ke aktivitas sebelumnya.',
+            title: 'Verified',
+            message: 'Taking you back to what you were doing.',
           });
           router.replace(continuation);
         } else if (invalidContinuation.current) {
@@ -456,39 +455,41 @@ export function VerificationView() {
 
   if (state === 'loading' && !summary)
     return (
-      <div aria-label="Memuat status verifikasi" className="animate-pulse space-y-5">
-        <div className="h-52 rounded-dd-xl bg-dd-surface-muted" />
+      <div aria-label="Loading verification status" className="animate-pulse space-y-5">
+        <div className="h-52 rounded-[22px] bg-dd-surface-muted" />
         <div className="grid gap-4 md:grid-cols-2">
-          <div className="h-60 rounded-dd-xl bg-dd-surface-muted" />
-          <div className="h-60 rounded-dd-xl bg-dd-surface-muted" />
+          <div className="h-60 rounded-[22px] bg-dd-surface-muted" />
+          <div className="h-60 rounded-[22px] bg-dd-surface-muted" />
         </div>
       </div>
     );
 
   if (state === 'error' && !summary)
     return (
-      <section className="mx-auto max-w-xl rounded-dd-xl border border-dd-danger/20 bg-white p-8 text-center shadow-dd-card">
+      <section className="mx-auto max-w-xl rounded-[22px] border border-dd-danger/20 bg-white p-8 text-center">
         <RefreshCw className="mx-auto size-9 text-dd-danger" />
-        <h1 className="mt-4 text-2xl font-bold">Status verifikasi belum dapat dimuat</h1>
+        <h1 className="mt-4 font-display text-2xl text-dd-forest">
+          Your verification status did not load
+        </h1>
         <p className="mt-2 text-sm leading-6 text-dd-muted">
-          Layanan mungkin sedang tidak tersedia atau sesi Anda telah berakhir.
+          The service may be unavailable, or you were signed out.
         </p>
         <Button type="button" onClick={() => void load()} className="mt-5">
-          Coba lagi
+          Try again
         </Button>
       </section>
     );
 
   if (!summary?.documents.length)
     return (
-      <section className="mx-auto max-w-xl rounded-dd-xl border border-dd-line bg-white p-8 text-center shadow-dd-card">
+      <section className="mx-auto max-w-xl rounded-[22px] border border-dd-line bg-white p-8 text-center">
         <FileCheck2 className="mx-auto size-9 text-dd-muted" />
-        <h1 className="mt-4 text-2xl font-bold">Dokumen verifikasi belum ditemukan</h1>
+        <h1 className="mt-4 font-display text-2xl text-dd-forest">We cannot find your documents</h1>
         <p className="mt-2 text-sm leading-6 text-dd-muted">
-          Hubungi tim Daily Dose agar dokumen registrasi Anda dapat diperiksa dengan aman.
+          Contact the Little Rollers team so they can check your registration documents.
         </p>
         <Link className="mt-5 inline-flex font-bold text-dd-forest" href="/contact">
-          Hubungi bantuan
+          Contact us
         </Link>
       </section>
     );
@@ -497,13 +498,13 @@ export function VerificationView() {
 
   return (
     <div className="space-y-6">
-      <section className="overflow-hidden rounded-dd-xl border border-dd-line bg-white shadow-dd-card">
+      <section className="overflow-hidden rounded-[22px] border border-dd-line bg-white">
         <div className="grid gap-7 p-6 sm:p-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:p-10">
           <div>
             <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-dd-brass-dark">
               {copy.eyebrow}
             </span>
-            <h1 className="mt-3 max-w-2xl text-3xl font-bold tracking-tight text-dd-ink sm:text-4xl">
+            <h1 className="mt-3 max-w-2xl font-display text-3xl text-dd-forest sm:text-4xl">
               {copy.title}
             </h1>
             <p className="mt-4 max-w-2xl text-sm leading-7 text-dd-muted sm:text-base">
@@ -516,13 +517,13 @@ export function VerificationView() {
                     className="rounded-dd-md bg-dd-forest px-5 py-3 text-sm font-bold text-white no-underline"
                     href="/classes"
                   >
-                    Lihat jadwal
+                    See the timetable
                   </Link>
                   <Link
                     className="rounded-dd-md border border-dd-line bg-white px-5 py-3 text-sm font-bold text-dd-ink no-underline"
                     href="/account"
                   >
-                    Kembali ke akun
+                    Back to my account
                   </Link>
                 </>
               )}
@@ -532,13 +533,13 @@ export function VerificationView() {
                     className="rounded-dd-md bg-dd-forest px-5 py-3 text-sm font-bold text-white no-underline"
                     href="/packages"
                   >
-                    Lihat paket
+                    See packages
                   </Link>
                   <Link
                     className="rounded-dd-md border border-dd-line bg-white px-5 py-3 text-sm font-bold text-dd-ink no-underline"
                     href="/classes"
                   >
-                    Booking kelas
+                    Book a session
                   </Link>
                 </>
               )}
@@ -546,9 +547,9 @@ export function VerificationView() {
           </div>
           <div className="rounded-dd-lg bg-dd-sidebar p-5 text-white">
             <ShieldCheck className="size-7 text-dd-brass" />
-            <h2 className="mt-4 text-base font-bold text-white">Progres verifikasi</h2>
+            <h2 className="mt-4 mb-0 font-display text-lg text-white">Your progress</h2>
             <ol className="mt-4 grid list-none gap-3 p-0">
-              {['Dokumen diterima', 'Sedang diperiksa', 'Selesai'].map((label, index) => (
+              {['Documents received', 'Being checked', 'Done'].map((label, index) => (
                 <li className="flex items-center gap-3 text-sm" key={label}>
                   <span
                     className={`grid size-7 shrink-0 place-items-center rounded-full border ${index + 1 <= progress ? 'border-dd-brass bg-dd-brass text-dd-sidebar' : 'border-white/25 text-white/55'}`}
@@ -570,16 +571,11 @@ export function VerificationView() {
       <section aria-labelledby="documents-title">
         <div className="mb-4 flex items-end justify-between gap-4">
           <div>
-            <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-dd-muted">
-              Dokumen
-            </span>
-            <h2 id="documents-title" className="mt-1 text-xl font-bold">
-              Status setiap dokumen
+            <h2 id="documents-title" className="m-0 font-display text-2xl text-dd-forest">
+              Your documents
             </h2>
           </div>
-          <span className="hidden text-xs text-dd-muted sm:block">
-            Pembaruan otomatis setiap 20 detik
-          </span>
+          <span className="hidden text-xs text-dd-muted sm:block">Updates every 20 seconds</span>
         </div>
         <div className="grid gap-4 md:grid-cols-2">
           {summary.documents.map((document) => {
@@ -588,7 +584,7 @@ export function VerificationView() {
               <article
                 id={`verification-document-${document.kind}`}
                 tabIndex={-1}
-                className={`rounded-dd-xl border bg-white p-5 shadow-dd-card outline-none transition sm:p-6 ${
+                className={`rounded-[22px] border bg-white p-5 outline-none transition sm:p-6 ${
                   highlightedKind === document.kind
                     ? 'border-dd-brass ring-4 ring-dd-brass/25'
                     : 'border-dd-line'
@@ -619,7 +615,7 @@ export function VerificationView() {
                     fullWidth
                     className="mt-5"
                   >
-                    Unggah ulang dokumen
+                    Upload again
                   </Button>
                 )}
                 {['PENDING_DELETION', 'DELETE_FAILED', 'DELETED'].includes(document.status) && (
@@ -627,7 +623,7 @@ export function VerificationView() {
                     className="mt-4 inline-flex text-sm font-bold text-dd-forest"
                     href="/contact"
                   >
-                    Hubungi bantuan
+                    Contact us
                   </Link>
                 )}
                 {!['DELETED', 'PENDING_DELETION'].includes(document.status) && (
@@ -639,7 +635,7 @@ export function VerificationView() {
                     leadingIcon={<Eye className="size-4" />}
                     className="mt-3"
                   >
-                    Lihat dokumen
+                    View document
                   </Button>
                 )}
               </article>
@@ -648,20 +644,20 @@ export function VerificationView() {
         </div>
       </section>
 
-      <aside className="grid gap-4 rounded-dd-xl border border-dd-line bg-dd-surface-muted p-5 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center">
+      <aside className="grid gap-4 rounded-[22px] border border-dd-line bg-dd-surface-muted p-5 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center">
         <LockKeyhole className="size-6 text-dd-forest" />
         <div>
-          <h2 className="text-sm font-bold">Privasi dokumen Anda</h2>
+          <h2 className="m-0 text-sm font-bold">Your privacy</h2>
           <p className="mt-1 text-xs leading-5 text-dd-muted">
-            File disimpan di penyimpanan privat, tidak menjadi aset publik, dan setiap akses
-            reviewer tercatat dalam audit.
+            Files are kept in private storage, never made public, and every time a reviewer opens
+            one it is logged.
           </p>
         </div>
         <Link
           className="inline-flex items-center gap-2 text-sm font-bold text-dd-forest"
           href="/contact"
         >
-          <HelpCircle className="size-4" /> Bantuan
+          <HelpCircle className="size-4" aria-hidden="true" /> Help
         </Link>
       </aside>
 

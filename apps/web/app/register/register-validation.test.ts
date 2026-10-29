@@ -29,7 +29,7 @@ describe('registration validation', () => {
     expect(validateRegistration(validValues())).toEqual({});
   });
 
-  it('returns Indonesian field errors for invalid identity values', () => {
+  it('returns English field errors for invalid identity values', () => {
     expect(
       validateRegistration(
         validValues({
@@ -42,12 +42,12 @@ describe('registration validation', () => {
         }),
       ),
     ).toMatchObject({
-      displayName: 'Nama lengkap wajib diisi.',
-      phone: 'Masukkan nomor WhatsApp yang valid, misalnya 0812 3456 7890.',
-      email: 'Masukkan alamat email yang valid.',
-      password: 'Password minimal 8 karakter.',
-      confirmation: 'Konfirmasi password tidak sama.',
-      consent: 'Persetujuan verifikasi identitas wajib diberikan.',
+      displayName: 'Please enter your full name.',
+      phone: 'Enter a valid WhatsApp number, for example 0812 3456 7890.',
+      email: 'Enter a valid email address.',
+      password: 'Use at least 8 characters.',
+      confirmation: 'The passwords do not match.',
+      consent: 'Please agree to the identity check to continue.',
     });
   });
 
@@ -60,7 +60,7 @@ describe('registration validation', () => {
     });
     const errors = validateRegistration(validValues({ selfie: atLimit, ktp: overLimit }));
     expect(errors.selfie).toBeUndefined();
-    expect(errors.ktp).toBe('Foto KTP maksimal berukuran 8 MB.');
+    expect(errors.ktp).toBe('The KTP photo must be 8 MB or smaller.');
   });
 
   it('rejects unsupported and missing identity images', () => {
@@ -70,17 +70,19 @@ describe('registration validation', () => {
         ktp: null,
       }),
     );
-    expect(errors.selfie).toBe('Foto selfie harus berformat JPG, PNG, atau WebP.');
-    expect(errors.ktp).toBe('Foto KTP wajib dipilih.');
+    expect(errors.selfie).toBe('The selfie photo must be a JPG, PNG or WebP image.');
+    expect(errors.ktp).toBe('Please choose a KTP photo.');
   });
 
   it('maps conflict, validation and dependency failures to safe customer messages', () => {
-    expect(registrationRequestErrorMessage(409)).toBe('Email atau nomor WhatsApp sudah digunakan.');
+    expect(registrationRequestErrorMessage(409)).toBe(
+      'That email or WhatsApp number already has an account.',
+    );
     expect(registrationRequestErrorMessage(422)).toBe(
-      'Periksa kembali data dan format foto yang dipilih.',
+      'Check your details and the photo formats, then try again.',
     );
     expect(registrationRequestErrorMessage(503)).toBe(
-      'Registrasi belum dapat diproses. Coba kembali.',
+      'We could not create your account. Please try again.',
     );
   });
 });

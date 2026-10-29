@@ -446,9 +446,7 @@ for (const breakpoint of breakpoints) {
     } else {
       await expect(page.getByRole('button', { name: 'Buka menu navigasi' })).toBeVisible();
     }
-    await expect(
-      page.getByRole('heading', { name: 'Movers', exact: true }),
-    ).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Movers', exact: true })).toBeVisible();
     if (breakpoint.width >= 1024) {
       await expect(page.getByText('Akun Saya', { exact: true }).first()).toBeVisible();
     } else {

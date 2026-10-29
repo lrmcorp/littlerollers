@@ -22,15 +22,13 @@ const session = (
 });
 
 describe('public detail routing and audience', () => {
-  it.each([
-    '/classes/movers',
-    '/packages/package-id',
-    '/schedule/slot-id',
-    '/locations/jakarta',
-  ])('treats %s as a public and customer-catalog route', (pathname) => {
-    expect(isPublicExperiencePath(pathname)).toBe(true);
-    expect(isCustomerCatalogPath(pathname)).toBe(true);
-  });
+  it.each(['/classes/movers', '/packages/package-id', '/schedule/slot-id', '/locations/jakarta'])(
+    'treats %s as a public and customer-catalog route',
+    (pathname) => {
+      expect(isPublicExperiencePath(pathname)).toBe(true);
+      expect(isCustomerCatalogPath(pathname)).toBe(true);
+    },
+  );
 
   it('keeps staff and multi-role accounts out of customer purchase flow', () => {
     expect(packageAudienceState(session(['SUPER_OWNER'], 'NOT_REQUIRED'))).toBe('STAFF');

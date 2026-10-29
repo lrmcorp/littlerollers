@@ -44,14 +44,14 @@ const listeners = new Set<() => void>();
 const tasks = new Map<AppLoadingToken, StoredTask>();
 let revision = 0;
 let navigationToken: AppLoadingToken | null = null;
-let latestSnapshot: LoadingSnapshot = { count: 0, label: 'Memuat…', revision: 0 };
-const serverSnapshot: LoadingSnapshot = { count: 0, label: 'Memuat…', revision: 0 };
+let latestSnapshot: LoadingSnapshot = { count: 0, label: 'Loading…', revision: 0 };
+const serverSnapshot: LoadingSnapshot = { count: 0, label: 'Loading…', revision: 0 };
 
 function updateSnapshot() {
   revision += 1;
   latestSnapshot = {
     count: tasks.size,
-    label: Array.from(tasks.values()).at(-1)?.label ?? 'Memuat…',
+    label: Array.from(tasks.values()).at(-1)?.label ?? 'Loading…',
     revision,
   };
   listeners.forEach((listener) => listener());
@@ -71,7 +71,7 @@ export const appLoading = {
     const token = newToken();
     if (normalized.mode === 'background') return token;
     const task: StoredTask = {
-      label: normalized.label ?? 'Memuat…',
+      label: normalized.label ?? 'Loading…',
       timeout: null,
     };
     task.timeout = setTimeout(() => {
@@ -115,7 +115,7 @@ export const appLoading = {
   },
 };
 
-export function startNavigation(label = 'Memuat halaman…') {
+export function startNavigation(label = 'Loading page…') {
   if (!navigationToken) navigationToken = appLoading.start(label);
   return navigationToken;
 }
@@ -126,11 +126,7 @@ export function completeNavigation() {
   navigationToken = null;
 }
 
-export function foregroundFetch(
-  input: RequestInfo | URL,
-  init?: RequestInit,
-  label = 'Memuat data…',
-) {
+export function foregroundFetch(input: RequestInfo | URL, init?: RequestInit, label = 'Loading…') {
   return appLoading.track(() => fetch(input, init), { label });
 }
 

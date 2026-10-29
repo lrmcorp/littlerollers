@@ -10,7 +10,7 @@ const options: CustomerBookingOptions = {
     branchId: '00000000-0000-4000-8000-000000000102',
     classTypeId: '00000000-0000-4000-8000-000000000103',
     startAt: new Date('2027-01-10T03:00:00Z'),
-    endAt: new Date('2027-01-10T04:00:00Z'),
+    endAt: new Date('2027-01-10T05:00:00Z'),
     timezone: 'Asia/Jakarta',
     status: 'PUBLISHED',
     capacity: 10,
@@ -32,7 +32,8 @@ const options: CustomerBookingOptions = {
     {
       id: '00000000-0000-4000-8000-000000000104',
       packageId: '00000000-0000-4000-8000-000000000105',
-      name: 'Reformer 10',
+      name: 'Movers 10 x 2h',
+      sessionDurationMinutes: 120,
       available: 6,
       projectedAvailable: 5,
       expiryAt: new Date('2027-03-01T00:00:00Z'),
@@ -62,17 +63,28 @@ function bookingClient(value: CustomerBookingOptions): BookingClient {
   } as unknown as BookingClient;
 }
 
+const oneHourPackage = {
+  id: '00000000-0000-4000-8000-000000000108',
+  packageId: '00000000-0000-4000-8000-000000000109',
+  name: 'Movers 5 x 1h',
+  sessionDurationMinutes: 60,
+  available: 2,
+  projectedAvailable: 1,
+  expiryAt: new Date('2027-02-01T00:00:00Z'),
+};
+
 describe('customer self booking flow', () => {
   it('books the selected slot using the authenticated customer package', async () => {
     window.history.replaceState({}, '', `?slot=${options.slot.id}`);
     const client = bookingClient(options);
     render(<CustomerBookingFlow client={client} />);
 
-    expect(await screen.findByRole('heading', { name: 'Konfirmasi kelas Anda' })).toBeVisible();
-    expect(screen.getByText('Reformer 10')).toBeVisible();
-    await userEvent.click(screen.getByRole('button', { name: 'Review booking' }));
-    expect(screen.getByText('6 → 5 sesi')).toBeVisible();
-    await userEvent.click(screen.getByRole('button', { name: 'Ya, konfirmasi booking' }));
+    expect(await screen.findByRole('heading', { name: 'Movers', level: 1 })).toBeVisible();
+    expect(screen.getByRole('radio', { name: /2 hours/ })).toBeChecked();
+    expect(screen.getByText('Movers 10 x 2h')).toBeVisible();
+    await userEvent.click(screen.getByRole('button', { name: 'Check booking' }));
+    expect(screen.getByText('Movers 10 x 2h (6 → 5 left)')).toBeVisible();
+    await userEvent.click(screen.getByRole('button', { name: 'Confirm booking' }));
 
     expect(client.create).toHaveBeenCalledWith(
       {
@@ -82,10 +94,55 @@ describe('customer self booking flow', () => {
       },
       expect.any(String),
     );
-    expect(await screen.findByText('Booking berhasil')).toBeVisible();
-    expect(
-      screen.queryByRole('button', { name: 'Ya, konfirmasi booking' }),
-    ).not.toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'You are booked in' })).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Confirm booking' })).not.toBeInTheDocument();
+  });
+
+  it('lists only packages of the chosen length and books a 1-hour session', async () => {
+    window.history.replaceState({}, '', `?slot=${options.slot.id}`);
+    const client = bookingClient({ ...options, packages: [...options.packages, oneHourPackage] });
+    render(<CustomerBookingFlow client={client} />);
+
+    await screen.findByText('Movers 10 x 2h');
+    expect(screen.queryByText('Movers 5 x 1h')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('radio', { name: /1 hour/ }));
+    expect(screen.getByText('Movers 5 x 1h')).toBeVisible();
+    expect(screen.queryByText('Movers 10 x 2h')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Check booking' }));
+    expect(screen.getByText('1 hour')).toBeVisible();
+    await userEvent.click(screen.getByRole('button', { name: 'Confirm booking' }));
+    expect(client.create).toHaveBeenCalledWith(
+      expect.objectContaining({ customerPackageId: oneHourPackage.id }),
+      expect.any(String),
+    );
+  });
+
+  it('points to buying a package when none matches the chosen length', async () => {
+    window.history.replaceState({}, '', `?slot=${options.slot.id}`);
+    render(<CustomerBookingFlow client={bookingClient(options)} />);
+
+    await userEvent.click(await screen.findByRole('radio', { name: /1 hour/ }));
+    expect(screen.getByRole('link', { name: 'Buy a 1 hour package' })).toHaveAttribute(
+      'href',
+      `/packages?branch=${options.slot.branchId}&classType=${options.slot.classTypeId}&slot=${options.slot.id}`,
+    );
+    expect(screen.getByRole('button', { name: 'Check booking' })).toBeDisabled();
+  });
+
+  it('offers only 1 hour when the slot is a 1-hour block', async () => {
+    window.history.replaceState({}, '', `?slot=${options.slot.id}`);
+    render(
+      <CustomerBookingFlow
+        client={bookingClient({
+          ...options,
+          slot: { ...options.slot, endAt: new Date('2027-01-10T04:00:00Z') },
+          packages: [oneHourPackage],
+        })}
+      />,
+    );
+
+    expect(await screen.findByRole('radio', { name: /1 hour/ })).toBeChecked();
+    expect(screen.queryByRole('radio', { name: /2 hours/ })).not.toBeInTheDocument();
   });
 
   it('preserves the slot when the customer needs to buy a matching package', async () => {
@@ -105,8 +162,8 @@ describe('customer self booking flow', () => {
       />,
     );
 
-    expect(await screen.findByText('Paket yang sesuai diperlukan', { exact: false })).toBeVisible();
-    expect(screen.getByRole('link', { name: 'Lihat paket yang sesuai' })).toHaveAttribute(
+    expect(await screen.findByText('You need a package for this class')).toBeVisible();
+    expect(screen.getByRole('link', { name: 'See packages for this class' })).toHaveAttribute(
       'href',
       `/packages?branch=${options.slot.branchId}&classType=${options.slot.classTypeId}&slot=${options.slot.id}`,
     );
@@ -117,7 +174,7 @@ describe('customer self booking flow', () => {
     const secondPackage = {
       ...options.packages[0]!,
       id: '00000000-0000-4000-8000-000000000107',
-      name: 'Reformer 20',
+      name: 'Movers 20 x 2h',
     };
     const client = bookingClient({
       ...options,
@@ -126,20 +183,20 @@ describe('customer self booking flow', () => {
     vi.mocked(client.create).mockRejectedValue(new Error('network unavailable'));
     render(<CustomerBookingFlow client={client} />);
 
-    await screen.findByText('Reformer 10');
-    await userEvent.click(screen.getByRole('button', { name: 'Review booking' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Ya, konfirmasi booking' }));
+    await screen.findByText('Movers 10 x 2h');
+    await userEvent.click(screen.getByRole('button', { name: 'Check booking' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Confirm booking' }));
     await waitFor(() => expect(client.create).toHaveBeenCalledTimes(1));
     const firstKey = vi.mocked(client.create).mock.calls[0]![1];
 
-    await userEvent.click(screen.getByRole('button', { name: 'Ya, konfirmasi booking' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Confirm booking' }));
     await waitFor(() => expect(client.create).toHaveBeenCalledTimes(2));
     expect(vi.mocked(client.create).mock.calls[1]![1]).toBe(firstKey);
 
-    await userEvent.click(screen.getByRole('button', { name: 'Kembali ubah paket' }));
-    await userEvent.click(screen.getByRole('radio', { name: /Reformer 20/ }));
-    await userEvent.click(screen.getByRole('button', { name: 'Review booking' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Ya, konfirmasi booking' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Change length or package' }));
+    await userEvent.click(screen.getByRole('radio', { name: /Movers 20 x 2h/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'Check booking' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Confirm booking' }));
     await waitFor(() => expect(client.create).toHaveBeenCalledTimes(3));
     expect(vi.mocked(client.create).mock.calls[2]![1]).not.toBe(firstKey);
   });

@@ -59,7 +59,7 @@ async function request<T>(path: string, init?: RequestInit, foreground = true): 
     headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
   } satisfies RequestInit;
   const response = foreground
-    ? await foregroundFetch(`/api/v1${path}`, requestInit, 'Memuat profil…')
+    ? await foregroundFetch(`/api/v1${path}`, requestInit, 'Loading profile…')
     : await fetch(`/api/v1${path}`, requestInit);
   if (!response.ok) {
     const error = { response: { status: response.status }, body: await response.text() };

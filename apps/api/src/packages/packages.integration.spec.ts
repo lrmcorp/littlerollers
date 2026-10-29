@@ -1226,10 +1226,7 @@ databaseDescribe('synthetic package purchase MySQL integration', () => {
 
         await db.idempotencyRecord.deleteMany({
           where: {
-            OR: [
-              { scope: `order:${actorId}` },
-              { scope: `purchase-decision:${orderId}` },
-            ],
+            OR: [{ scope: `order:${actorId}` }, { scope: `purchase-decision:${orderId}` }],
           },
         });
       }

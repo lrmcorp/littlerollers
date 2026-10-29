@@ -360,7 +360,7 @@ export function PaymentAccountsView() {
           <TextInput
             label="Nama penerima"
             name="accountHolderName"
-            placeholder="Daily Dose Pilates"
+            placeholder="Little Rollers"
             required
           />
           <TextInput

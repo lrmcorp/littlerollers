@@ -67,8 +67,8 @@ describe('customer booking timeline', () => {
       limit: 20,
     });
 
-    await userEvent.click(screen.getByRole('tab', { name: 'Riwayat' }));
-    expect(await screen.findByText('Status kehadiran sedang diproses')).toBeVisible();
+    await userEvent.click(screen.getByRole('tab', { name: 'Past' }));
+    expect(await screen.findByText('Attendance being recorded')).toBeVisible();
     await waitFor(() =>
       expect(client.list).toHaveBeenCalledWith({
         timeline: 'HISTORY',
@@ -109,12 +109,12 @@ describe('customer booking timeline', () => {
 
     render(<CustomerBookingsView client={client} />);
     expect(await screen.findByText('Kelas 1')).toBeVisible();
-    expect(screen.getByText('Halaman 1 · 20 data dari 25 booking')).toBeVisible();
-    await userEvent.click(screen.getByRole('button', { name: 'Berikutnya' }));
+    expect(screen.getByText('Page 1 · 20 of 25 bookings')).toBeVisible();
+    await userEvent.click(screen.getByRole('button', { name: 'Next' }));
     expect(await screen.findByText('Kelas 21')).toBeVisible();
     expect(screen.queryByText('Kelas 1')).not.toBeInTheDocument();
-    expect(screen.getByText('Halaman 2 · 5 data dari 25 booking')).toBeVisible();
-    await userEvent.click(screen.getByRole('button', { name: 'Sebelumnya' }));
+    expect(screen.getByText('Page 2 · 5 of 25 bookings')).toBeVisible();
+    await userEvent.click(screen.getByRole('button', { name: 'Previous' }));
     expect(await screen.findByText('Kelas 1')).toBeVisible();
   });
 });

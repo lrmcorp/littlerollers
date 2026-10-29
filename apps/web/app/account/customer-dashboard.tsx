@@ -104,7 +104,10 @@ export function CustomerDashboard() {
 
   return (
     <main className="grid gap-6" aria-labelledby="customer-dashboard-title">
-      <h1 id="customer-dashboard-title" className="font-display text-3xl text-dd-forest sm:text-4xl">
+      <h1
+        id="customer-dashboard-title"
+        className="font-display text-3xl text-dd-forest sm:text-4xl"
+      >
         Hi, {session.displayName}
       </h1>
 
@@ -194,7 +197,10 @@ export function CustomerDashboard() {
             <h2 className="m-0 font-display text-2xl text-dd-forest" id="packages-title">
               Sessions left
             </h2>
-            <Link className="inline-flex min-h-11 items-center text-sm font-medium" href="/account/packages">
+            <Link
+              className="inline-flex min-h-11 items-center text-sm font-medium"
+              href="/account/packages"
+            >
               All packages
             </Link>
           </div>
@@ -208,7 +214,8 @@ export function CustomerDashboard() {
                   <span>
                     <strong className="block">{item.packageName}</strong>
                     <span className="text-sm text-dd-ink/80">
-                      {item.branchName} · until {new Date(item.expiryAt).toLocaleDateString('en-GB')}
+                      {item.branchName} · until{' '}
+                      {new Date(item.expiryAt).toLocaleDateString('en-GB')}
                     </span>
                   </span>
                   <strong className="shrink-0 font-display text-3xl text-dd-forest">
@@ -271,7 +278,10 @@ export function CustomerDashboard() {
             <h2 className="m-0 font-display text-2xl text-dd-forest" id="later-title">
               Coming up
             </h2>
-            <Link className="inline-flex min-h-11 items-center text-sm font-medium" href="/bookings">
+            <Link
+              className="inline-flex min-h-11 items-center text-sm font-medium"
+              href="/bookings"
+            >
               All bookings
             </Link>
           </div>

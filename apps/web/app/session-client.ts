@@ -43,14 +43,14 @@ export const browserSessionClient: SessionClient = {
     let value: Omit<WebSession, 'sessionExpiresAt'> & { sessionExpiresAt: Date | string };
     try {
       value = (await appLoading.track(identity.getMe(), {
-        label: 'Memuat sesi…',
+        label: 'Checking your session…',
       })) as unknown as typeof value;
     } catch (error) {
       const status = (error as { response?: { status?: number } })?.response?.status;
       if (status !== 401) throw error;
       await appLoading.track(auth.refreshSession(), { label: 'Memperbarui sesi…' });
       value = (await appLoading.track(identity.getMe(), {
-        label: 'Memuat sesi…',
+        label: 'Checking your session…',
       })) as unknown as typeof value;
     }
     return { ...value, sessionExpiresAt: new Date(value.sessionExpiresAt) };

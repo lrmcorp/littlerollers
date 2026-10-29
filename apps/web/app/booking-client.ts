@@ -306,7 +306,7 @@ export const browserBookingClient: BookingClient = {
     const response = await foregroundFetch(
       `/api/v1/bookings/options/${encodeURIComponent(classSlotId)}`,
       { credentials: 'include' },
-      'Memuat pilihan booking…',
+      'Loading booking options…',
     );
     if (!response.ok) throw { response };
     const value = (await response.json()) as Omit<CustomerBookingOptions, 'slot' | 'packages'> & {
@@ -380,7 +380,7 @@ export const browserBookingClient: BookingClient = {
     const response = await foregroundFetch(
       `/api/v1/bookings?${query.toString()}`,
       { credentials: 'include' },
-      'Memuat booking…',
+      'Loading bookings…',
     );
     if (!response.ok) throw { response };
     const result = (await response.json()) as {
@@ -420,7 +420,7 @@ export const browserBookingClient: BookingClient = {
     const response = await foregroundFetch(
       `/api/v1/bookings/${encodeURIComponent(id)}`,
       { credentials: 'include' },
-      'Memuat detail booking…',
+      'Loading booking…',
     );
     if (!response.ok) throw { response };
     const item = (await response.json()) as any;
@@ -467,7 +467,7 @@ export const browserBookingClient: BookingClient = {
     const response = await foregroundFetch(
       `/api/v1/bookings/${encodeURIComponent(id)}/reschedule-options`,
       { credentials: 'include' },
-      'Memuat pilihan jadwal…',
+      'Loading sessions…',
     );
     if (!response.ok) throw { response };
     const value = (await response.json()) as any;
@@ -675,7 +675,8 @@ const customerMessages: Record<string, string> = {
   SESSION_EXPIRED: 'You were signed out. Please sign in again.',
   FORBIDDEN: 'Your account cannot do this.',
   VALIDATION_ERROR: 'This package length does not fit that session. Choose another.',
-  OFFLINE_OR_REQUEST_FAILED: 'We could not reach the club system. Check your connection and try again.',
+  OFFLINE_OR_REQUEST_FAILED:
+    'We could not reach the club system. Check your connection and try again.',
   RESCHEDULE_CUTOFF_PASSED: 'Reschedules close 24 hours before the session.',
   PENDING_RESCHEDULE_EXISTS: 'This booking already has a reschedule request waiting.',
   TARGET_CLASS_FULL: 'The new session is full.',

@@ -28,13 +28,13 @@ export function ProfileView() {
 
   if (!profile)
     return (
-      <section className="rounded-dd-xl border border-dd-line bg-white p-8 shadow-dd-card">
+      <section className="rounded-[22px] border border-dd-line bg-white p-8">
         <h1 className="text-2xl font-bold">
-          {state === 'error' ? 'Profil belum dapat dimuat' : 'Memuat profil…'}
+          {state === 'error' ? 'Your profile did not load' : 'Loading profile…'}
         </h1>
         {state === 'error' && (
           <Button className="mt-5" onClick={() => void load()}>
-            Coba lagi
+            Try again
           </Button>
         )}
       </section>
@@ -43,12 +43,13 @@ export function ProfileView() {
   return (
     <div className="mx-auto max-w-3xl space-y-6 font-sans">
       <header>
-        <p className="text-xs font-bold uppercase tracking-[0.16em] text-dd-brass-dark">Akun</p>
-        <h1 className="mt-2 text-3xl font-bold tracking-tight">Profil Saya</h1>
-        <p className="mt-2 text-dd-muted">Kelola nama tampilan dan lihat identitas kontak akun.</p>
+        <h1 className="m-0 font-display text-3xl text-dd-forest sm:text-4xl">My profile</h1>
+        <p className="mt-2 text-dd-muted">
+          Your display name and the contact details on your account.
+        </p>
       </header>
       <form
-        className="grid gap-5 rounded-dd-xl border border-dd-line bg-white p-6 shadow-dd-card"
+        className="grid gap-5 rounded-[22px] border border-dd-line bg-white p-6"
         onSubmit={async (event) => {
           event.preventDefault();
           if (state === 'saving') return;
@@ -64,8 +65,8 @@ export function ProfileView() {
             setState('ready');
             feedback.showToast({
               tone: 'success',
-              title: 'Profil diperbarui',
-              message: 'Nama tampilan terbaru sudah tersimpan.',
+              title: 'Profile updated',
+              message: 'Your new display name is saved.',
             });
             await session?.refresh();
           } catch (error) {
@@ -73,8 +74,8 @@ export function ProfileView() {
             setState(status === 409 ? 'stale' : 'error');
             setMessage(
               status === 409
-                ? 'Profil sudah berubah. Muat ulang sebelum mencoba lagi.'
-                : 'Profil belum dapat disimpan.',
+                ? 'Your profile changed. Reload before trying again.'
+                : 'Your profile was not saved.',
             );
             if (status !== 409)
               feedback.showAlert({ tone: 'danger', ...messageForApiError(error) });
@@ -82,7 +83,7 @@ export function ProfileView() {
         }}
       >
         <label className="grid gap-2 text-sm font-semibold">
-          Nama tampilan
+          Display name
           <input
             name="displayName"
             defaultValue={profile.displayName}
@@ -94,24 +95,24 @@ export function ProfileView() {
         </label>
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="grid gap-2 text-sm font-semibold">
-            Email akun
+            Email
             <input
-              value={profile.emailMasked ?? 'Belum tersedia'}
+              value={profile.emailMasked ?? 'Not set'}
               readOnly
               className="rounded-dd-md border border-dd-line bg-dd-surface-muted px-3 text-dd-muted"
             />
           </label>
           <label className="grid gap-2 text-sm font-semibold">
-            Nomor WhatsApp
+            WhatsApp number
             <input
-              value={profile.phoneMasked ?? 'Belum tersedia'}
+              value={profile.phoneMasked ?? 'Not set'}
               readOnly
               className="rounded-dd-md border border-dd-line bg-dd-surface-muted px-3 text-dd-muted"
             />
           </label>
         </div>
         <p className="text-xs leading-5 text-dd-muted">
-          Perubahan email atau nomor login membutuhkan verifikasi terpisah melalui tim Daily Dose.
+          To change your email or phone number, contact your club so the team can verify it.
         </p>
         {message && (
           <p
@@ -122,23 +123,20 @@ export function ProfileView() {
           </p>
         )}
         <div className="flex flex-wrap gap-3">
-          <Button type="submit" loading={state === 'saving'} loadingLabel="Menyimpan…">
-            Simpan profil
+          <Button type="submit" loading={state === 'saving'} loadingLabel="Saving…">
+            Save profile
           </Button>
           <ButtonLink href="/account/security" variant="secondary">
-            Keamanan akun
+            Account security
           </ButtonLink>
         </div>
       </form>
-      <section className="rounded-dd-xl border border-dd-line bg-white p-6 shadow-dd-card">
-        <p className="text-xs font-bold uppercase tracking-[0.14em] text-dd-brass-dark">
-          Preferensi latihan
-        </p>
-        <h2 className="mt-2 text-xl font-semibold">Studio utama</h2>
+      <section className="rounded-[22px] border border-dd-line bg-white p-6">
+        <h2 className="m-0 font-display text-xl text-dd-forest">Home club</h2>
         <p className="mt-2 text-sm leading-6 text-dd-muted">
           {profile.preferredBranch
-            ? `${profile.preferredBranch.name} menjadi default untuk jadwal, paket baru, checkout baru, dan bantuan WhatsApp.`
-            : 'Pilih studio yang paling sering Anda gunakan.'}
+            ? `${profile.preferredBranch.name} is your default for the timetable, new packages, checkout and WhatsApp help.`
+            : 'Choose the club you visit most.'}
         </p>
         <Button
           type="button"
@@ -146,7 +144,7 @@ export function ProfileView() {
           className="mt-4"
           onClick={() => studioPreference?.openStudioPreference()}
         >
-          Ganti studio
+          Change club
         </Button>
       </section>
     </div>

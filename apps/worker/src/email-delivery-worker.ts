@@ -244,9 +244,9 @@ export class EmailDeliveryWorker {
                 eventKey: `email-fallback:${current.id}`,
                 category: 'SYSTEM',
                 tone: 'WARNING',
-                title: 'Email belum dapat dikirim',
+                title: 'We could not send an email',
                 message:
-                  'Informasi tetap tersedia di dalam aplikasi. Tim operasional telah menerima status kegagalan.',
+                  'The details are still here in the app. Our team has been told about the problem.',
                 href: null,
                 metadataMasked: { occurrenceId: current.id },
               },

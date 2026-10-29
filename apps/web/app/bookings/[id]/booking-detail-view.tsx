@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { ArrowLeft, CalendarDays, MapPin } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  bookingFailure,
+  customerBookingFailure,
   bookingProblem,
   browserBookingClient,
   type BookingClient,
@@ -20,21 +20,21 @@ import { isCustomerOnlySession } from '../../session-audience';
 import { Skeleton } from '../../ui';
 
 const statusLabels: Record<string, string> = {
-  BOOKED: 'Terjadwal',
-  RESCHEDULE_PENDING: 'Perubahan jadwal diproses',
-  CANCELLED: 'Dibatalkan',
-  ATTENDED: 'Hadir',
-  NO_SHOW: 'Tidak hadir',
+  BOOKED: 'Booked',
+  RESCHEDULE_PENDING: 'Reschedule requested',
+  CANCELLED: 'Cancelled',
+  ATTENDED: 'Attended',
+  NO_SHOW: 'Missed',
 };
 
 const reasonLabels = {
-  PERSONAL_UNAVAILABLE: 'Saya tidak dapat hadir pada jadwal semula',
-  CUSTOMER_SCHEDULE_CONFLICT: 'Jadwal saya berbenturan',
-  WRONG_CLASS_SELECTED: 'Saya memilih jadwal yang keliru',
+  PERSONAL_UNAVAILABLE: 'We cannot make the original time',
+  CUSTOMER_SCHEDULE_CONFLICT: 'It clashes with something else',
+  WRONG_CLASS_SELECTED: 'I booked the wrong session',
 } as const;
 
 const dateTime = (value: Date, timezone: string) =>
-  value.toLocaleString('id-ID', {
+  value.toLocaleString('en-GB', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
@@ -110,7 +110,7 @@ export function BookingDetailView({
       setBooking(null);
       setOptions(null);
       setRescheduleUnavailable(null);
-      setDetailError(await bookingFailure(cause));
+      setDetailError(await customerBookingFailure(cause));
     } finally {
       setLoading(false);
     }
@@ -122,23 +122,23 @@ export function BookingDetailView({
 
   if (loading)
     return (
-      <section className="rounded-dd-xl border border-dd-line bg-white p-6">
-        <Skeleton label="Memuat detail booking" />
+      <section className="rounded-[22px] bg-white p-6">
+        <Skeleton label="Loading booking" />
       </section>
     );
   if (!booking)
     return (
-      <section className="rounded-dd-xl border border-dd-line bg-white p-6">
-        <h1 className="text-2xl font-semibold">Booking tidak tersedia</h1>
+      <section className="rounded-[22px] bg-white p-6">
+        <h1 className="m-0 font-display text-2xl text-dd-forest">Booking not available</h1>
         {detailError && (
           <div className="mt-4">
-            <AlertBanner tone="danger" title="Detail belum dapat dimuat" message={detailError} />
+            <AlertBanner tone="danger" title="This booking did not load" message={detailError} />
           </div>
         )}
         <div className="mt-5 flex flex-wrap gap-3">
-          <ButtonLink href="/bookings">Kembali</ButtonLink>
+          <ButtonLink href="/bookings">Back to bookings</ButtonLink>
           <ButtonLink href="/contact" variant="secondary">
-            Hubungi studio
+            Contact the club
           </ButtonLink>
         </div>
       </section>
@@ -149,28 +149,30 @@ export function BookingDetailView({
       <header>
         <Link
           href="/bookings"
-          className="inline-flex items-center gap-2 text-sm font-semibold text-dd-forest no-underline"
+          className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-dd-forest no-underline"
         >
-          <ArrowLeft className="size-4" />
-          Booking Saya
+          <ArrowLeft className="size-4" aria-hidden="true" />
+          My bookings
         </Link>
-        <p className="mt-5 text-xs font-bold uppercase tracking-[0.16em] text-dd-forest">
-          Detail booking
-        </p>
-        <h1 id="booking-detail-title" className="mt-2 text-2xl font-semibold sm:text-3xl">
-          {booking.classSlot?.classType.name ?? 'Kelas Daily Dose'}
+        <h1
+          id="booking-detail-title"
+          className="mt-3 font-display text-3xl text-dd-forest sm:text-4xl"
+        >
+          {booking.classSlot?.classType.name ?? 'Session'}
         </h1>
         <p className="mt-2 text-sm text-dd-muted">
-          {statusLabels[booking.status] ?? 'Status booking'} · Booking •{booking.id.slice(-8)}
+          {statusLabels[booking.status] ?? 'Booking'} ·{' '}
+          {(booking.sessionDurationMinutes ?? 60) >= 120 ? '2 hours' : '1 hour'} · Reference •
+          {booking.id.slice(-8)}
         </p>
       </header>
       <section className="grid gap-4 md:grid-cols-2">
-        <article className="rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card">
-          <CalendarDays className="size-6 text-dd-forest" />
-          <h2 className="mt-4 text-lg font-semibold">Waktu kelas</h2>
-          <p className="mt-2 text-sm leading-6 text-dd-muted">
+        <article className="rounded-[22px] bg-lr-sky p-5">
+          <CalendarDays className="size-6 text-dd-forest" aria-hidden="true" />
+          <h2 className="mt-3 mb-0 font-display text-xl text-dd-forest">When</h2>
+          <p className="mt-2 text-sm leading-6 text-dd-ink">
             {booking.classSlot
-              ? booking.classSlot.startAt.toLocaleString('id-ID', {
+              ? booking.classSlot.startAt.toLocaleString('en-GB', {
                   weekday: 'long',
                   day: 'numeric',
                   month: 'long',
@@ -179,51 +181,51 @@ export function BookingDetailView({
                   minute: '2-digit',
                   timeZone: booking.classSlot.timezone,
                 })
-              : 'Jadwal tidak tersedia'}
+              : 'Time not available'}
           </p>
         </article>
-        <article className="rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card">
-          <MapPin className="size-6 text-dd-forest" />
-          <h2 className="mt-4 text-lg font-semibold">Studio dan paket</h2>
-          <p className="mt-2 text-sm leading-6 text-dd-muted">
-            {booking.branch?.name ?? 'Studio Daily Dose'}
+        <article className="rounded-[22px] bg-white p-5">
+          <MapPin className="size-6 text-dd-forest" aria-hidden="true" />
+          <h2 className="mt-3 mb-0 font-display text-xl text-dd-forest">Club and package</h2>
+          <p className="mt-2 text-sm leading-6 text-dd-ink">
+            {booking.branch?.name ?? 'Little Rollers'}
             <br />
-            {booking.package?.name ?? 'Paket customer'}
+            {booking.package?.name ?? 'Your package'}
           </p>
         </article>
       </section>
       {booking.attendance && (
         <AlertBanner
           tone="success"
-          title="Kehadiran tercatat"
-          message={`Check-in pada ${booking.attendance.checkedInAt.toLocaleString('id-ID')}.`}
+          title="Attendance recorded"
+          message={`Checked in at ${booking.attendance.checkedInAt.toLocaleString('en-GB')}.`}
         />
       )}
       {booking.status === 'BOOKED' && (
         <AlertBanner
           tone="info"
-          title="Siap untuk kelas"
-          message="Datang lebih awal dan tunjukkan QR check-in yang dikirim oleh studio."
+          title="All set"
+          message="Arrive a little early and show the check-in QR pass the club sends you."
         />
       )}
       {rescheduleUnavailable && (
-        <section className="space-y-3" aria-label="Ketersediaan perubahan jadwal">
+        <section className="space-y-3" aria-label="Reschedule">
           <AlertBanner
             tone="info"
-            title="Perubahan jadwal sedang tidak tersedia"
-            message="Booking Anda tetap aktif. Coba kembali atau hubungi studio jika Anda memerlukan bantuan untuk mengganti jadwal."
+            title="Rescheduling is unavailable right now"
+            message="Your booking is still active. Try again, or contact the club if you need to change the time."
           />
           <div className="flex flex-wrap gap-3">
             <Button
               variant="secondary"
               loading={rescheduleLoading}
-              loadingLabel="Memuat pilihan jadwal…"
+              loadingLabel="Loading sessions…"
               onClick={() => void loadRescheduleOptions()}
             >
-              Coba lagi
+              Try again
             </Button>
             <ButtonLink href="/contact" variant="secondary">
-              Hubungi studio
+              Contact the club
             </ButtonLink>
           </div>
         </section>
@@ -239,17 +241,17 @@ export function BookingDetailView({
           }
           title={
             options.latestRequest.status === 'APPROVED'
-              ? 'Reschedule disetujui'
+              ? 'Reschedule approved'
               : options.latestRequest.status === 'REJECTED'
-                ? 'Reschedule ditolak'
-                : 'Reschedule sedang ditinjau'
+                ? 'Reschedule not approved'
+                : 'Reschedule being reviewed'
           }
           message={
             options.latestRequest.status === 'PENDING'
-              ? 'Reservation tetap berada di kelas semula sampai tim studio memberikan keputusan.'
+              ? 'Your place stays in the original session until the club decides.'
               : options.latestRequest.status === 'APPROVED'
-                ? 'Booking Anda sudah dipindahkan ke jadwal baru.'
-                : 'Booking tetap berada di jadwal semula. Hubungi studio bila Anda memerlukan bantuan.'
+                ? 'Your booking has moved to the new session.'
+                : 'Your booking stays in the original session. Contact the club if you need help.'
           }
         />
       )}
@@ -257,27 +259,23 @@ export function BookingDetailView({
         <div className="space-y-3">
           <AlertBanner
             tone="warning"
-            title="Batas reschedule telah lewat"
-            message={`Pengajuan ditutup pada ${dateTime(options.cutoffAt, booking.classSlot?.timezone ?? 'Asia/Jakarta')}. Hubungi studio untuk bantuan atau adjustment manual.`}
+            title="Reschedules have closed"
+            message={`Requests closed on ${dateTime(options.cutoffAt, booking.classSlot?.timezone ?? 'Asia/Jakarta')}. Contact the club for help.`}
           />
           <ButtonLink href="/contact" variant="secondary">
-            Hubungi studio
+            Contact the club
           </ButtonLink>
         </div>
       )}
       {rescheduleMessage && (
-        <AlertBanner
-          tone="success"
-          title="Permintaan berhasil dikirim"
-          message={rescheduleMessage}
-        />
+        <AlertBanner tone="success" title="Request sent" message={rescheduleMessage} />
       )}
       {options?.canRequest && !showForm && (
-        <section className="rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card">
-          <h2 className="text-lg font-semibold">Perlu mengganti jadwal?</h2>
+        <section className="rounded-[22px] bg-white p-5">
+          <h2 className="m-0 font-display text-xl text-dd-forest">Need a different time?</h2>
           <p className="mt-2 text-sm leading-6 text-dd-muted">
-            Pengajuan dapat dibuat sampai tepat H-24. Reservation tetap di kelas ini selama
-            permintaan ditinjau.
+            You can ask up to 24 hours before the session. Your place stays here while the club
+            reviews the request.
           </p>
           <Button
             className="mt-4"
@@ -286,14 +284,14 @@ export function BookingDetailView({
               setShowForm(true);
             }}
           >
-            Ajukan reschedule
+            Ask to reschedule
           </Button>
         </section>
       )}
       {showForm && options?.canRequest && (
         <form
-          className="space-y-5 rounded-dd-xl border border-dd-line bg-white p-5 shadow-dd-card"
-          aria-label="Pengajuan reschedule"
+          className="space-y-5 rounded-[22px] bg-white p-5"
+          aria-label="Reschedule request"
           onSubmit={(event) => {
             event.preventDefault();
             if (!targetId) return;
@@ -316,34 +314,34 @@ export function BookingDetailView({
               .then(async () => {
                 intentKey.current = newIntentKey();
                 setRescheduleMessage(
-                  'Tim studio akan meninjau jadwal tujuan. Anda akan menerima notifikasi setelah keputusan dibuat.',
+                  'The club will review the new session and let you know their decision.',
                 );
                 setShowForm(false);
                 setConfirming(false);
                 await load();
               })
               .catch(async (cause) => {
-                setMutationError(await bookingFailure(cause));
+                setMutationError(await customerBookingFailure(cause));
                 setConfirming(false);
               })
               .finally(() => setSubmitting(false));
           }}
         >
           <div>
-            <h2 className="text-lg font-semibold">Pilih jadwal pengganti</h2>
+            <h2 className="m-0 font-display text-xl text-dd-forest">Pick the new session</h2>
             <p className="mt-1 text-sm text-dd-muted">
-              Hanya jadwal yang masih memenuhi syarat ditampilkan.
+              Only sessions with places that fit your booking length are shown.
             </p>
           </div>
           {options.targets.length ? (
             <>
               <SearchSelect
-                label="Jadwal tujuan"
+                label="New session"
                 value={targetId}
                 options={options.targets.map((target) => ({
                   id: target.id,
                   label: dateTime(target.startAt, target.timezone),
-                  description: `${target.availableCapacity} tempat tersedia`,
+                  description: `${target.availableCapacity} places left`,
                 }))}
                 onChange={(value) => {
                   setTargetId(value);
@@ -351,7 +349,7 @@ export function BookingDetailView({
                 }}
               />
               <SelectInput
-                label="Alasan"
+                label="Reason"
                 value={reasonCode}
                 onChange={(event) => {
                   setReasonCode(event.target.value as keyof typeof reasonLabels);
@@ -367,20 +365,20 @@ export function BookingDetailView({
               {confirming && (
                 <AlertBanner
                   tone="warning"
-                  title="Konfirmasi perubahan jadwal"
-                  message="Setelah dikirim, jadwal asal tetap berlaku sampai permintaan disetujui oleh studio."
+                  title="Check the change"
+                  message="After you send it, the original session stays booked until the club approves."
                 />
               )}
               {mutationError && (
                 <AlertBanner
                   tone="danger"
-                  title="Permintaan belum dapat diproses"
+                  title="We could not send the request"
                   message={mutationError}
                 />
               )}
               <div className="flex flex-wrap gap-3">
-                <Button type="submit" loading={submitting} loadingLabel="Mengirim…">
-                  {confirming ? 'Kirim permintaan' : 'Tinjau permintaan'}
+                <Button type="submit" loading={submitting} loadingLabel="Sending…">
+                  {confirming ? 'Send request' : 'Review request'}
                 </Button>
                 <Button
                   variant="secondary"
@@ -390,15 +388,15 @@ export function BookingDetailView({
                     setMutationError('');
                   }}
                 >
-                  Batal
+                  Cancel
                 </Button>
               </div>
             </>
           ) : (
             <AlertBanner
               tone="warning"
-              title="Belum ada jadwal pengganti"
-              message="Tidak ada kelas dengan cabang dan jenis yang sama yang masih memiliki tempat."
+              title="No other sessions available"
+              message="No session for this class and club has places left right now."
             />
           )}
         </form>

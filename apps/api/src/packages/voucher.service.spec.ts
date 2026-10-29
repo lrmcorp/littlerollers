@@ -2,7 +2,7 @@ import { calculateVoucherDiscount, normalizeVoucherCode } from './voucher.servic
 
 describe('voucher business rules', () => {
   it('normalizes voucher codes without case sensitivity', () => {
-    expect(normalizeVoucherCode('  reformer-10 ')).toBe('MOVERS-10');
+    expect(normalizeVoucherCode('  movers-10 ')).toBe('MOVERS-10');
   });
 
   it('calculates percentage discounts and respects the maximum', () => {

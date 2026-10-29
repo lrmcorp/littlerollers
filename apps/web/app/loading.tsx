@@ -5,7 +5,7 @@ import { completeNavigation, startNavigation } from './components/app-loading';
 
 export default function Loading() {
   useEffect(() => {
-    startNavigation('Memuat halaman…');
+    startNavigation('Loading page…');
     return () => completeNavigation();
   }, []);
   return (

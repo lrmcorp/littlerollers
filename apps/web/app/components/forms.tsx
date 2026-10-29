@@ -315,8 +315,8 @@ export function SearchSelect({
   value,
   defaultValue = '',
   name,
-  placeholder = 'Pilih data',
-  searchPlaceholder = 'Cari…',
+  placeholder = 'Choose',
+  searchPlaceholder = 'Search…',
   description,
   error,
   required,
@@ -325,7 +325,7 @@ export function SearchSelect({
   compact,
   wrapperClassName,
   loading,
-  emptyMessage = 'Data tidak ditemukan.',
+  emptyMessage = 'No matches.',
   loadError,
   nextCursor,
   filterOptions = true,
@@ -461,7 +461,7 @@ export function SearchSelect({
             <button
               type="button"
               className="absolute right-9 top-1/2 grid size-7 -translate-y-1/2 place-items-center rounded-full border-0 bg-transparent text-dd-muted hover:bg-dd-surface-muted"
-              aria-label={`Hapus pilihan ${label}`}
+              aria-label={`Clear ${label}`}
               onClick={() => {
                 commit(undefined);
                 inputRef.current?.focus();
@@ -483,7 +483,7 @@ export function SearchSelect({
           >
             {loading && (
               <p className="flex items-center gap-2 px-3 py-3 text-sm text-dd-muted" role="status">
-                <LoaderCircle className="size-4 animate-spin motion-reduce:animate-none" /> Memuat…
+                <LoaderCircle className="size-4 animate-spin motion-reduce:animate-none" /> Loading…
               </p>
             )}
             {!loading && loadError && (
@@ -495,7 +495,7 @@ export function SearchSelect({
                     className="mt-2 font-semibold text-dd-forest underline"
                     onClick={onRetry}
                   >
-                    Coba lagi
+                    Try again
                   </button>
                 )}
               </div>
@@ -535,7 +535,7 @@ export function SearchSelect({
                 className="mt-1 w-full rounded-dd-sm border-0 bg-dd-surface-muted px-3 py-2 text-sm font-semibold text-dd-forest"
                 onClick={onLoadMore}
               >
-                Muat berikutnya
+                Load more
               </button>
             )}
           </div>
@@ -582,7 +582,7 @@ export function AsyncSearchSelect({
       });
       setNextCursor(page.nextCursor);
     } catch {
-      if (request === requestRef.current) setLoadError('Data belum dapat dimuat.');
+      if (request === requestRef.current) setLoadError('The list did not load.');
     } finally {
       if (request === requestRef.current) setLoading(false);
     }
@@ -642,7 +642,7 @@ export function AsyncMultiSearchSelect({
               <button
                 type="button"
                 className="grid size-5 place-items-center rounded-full border-0 bg-transparent"
-                aria-label={`Hapus ${option.label}`}
+                aria-label={`Remove ${option.label}`}
                 onClick={() => {
                   const next = value.filter((item) => item !== option.id);
                   onChange(
@@ -714,7 +714,7 @@ export function MultiSearchSelect({
               <button
                 type="button"
                 className="grid size-5 place-items-center rounded-full border-0 bg-transparent"
-                aria-label={`Hapus ${option.label}`}
+                aria-label={`Remove ${option.label}`}
                 onClick={() => {
                   const next = value.filter((item) => item !== option.id);
                   onChange(
