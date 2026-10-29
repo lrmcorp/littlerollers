@@ -518,9 +518,12 @@ export const browserClassSlotClient: ClassSlotClient = {
 export function classSlotFailure(error: unknown) {
   notifySessionFailure(error);
   const typed = error as {
-    response?: { status?: number; data?: { code?: string; error?: { code?: string } } };
+    response?: {
+      status?: number;
+      data?: { code?: string; error?: { code?: string; details?: { issue?: string }[] } };
+    };
     status?: number;
-    data?: { code?: string; error?: { code?: string } };
+    data?: { code?: string; error?: { code?: string; details?: { issue?: string }[] } };
     error?: { code?: string };
     code?: string;
   };
@@ -549,6 +552,13 @@ export function classSlotFailure(error: unknown) {
     VALIDATION_ERROR: 'Tanggal, waktu, atau pilihan kelas belum valid. Periksa kembali form isian.',
     CHECK_IN_TOO_EARLY: 'Presensi baru dapat dicatat mulai 30 menit sebelum kelas dimulai.',
   };
+  // Bentrok jadwal: sebutkan kelas yang menghalangi (bisa di cabang lain) agar staf tahu harus mengubah apa.
+  const bentrok =
+    typed?.response?.data?.error?.details?.[0]?.issue ?? typed?.data?.error?.details?.[0]?.issue;
+  if (bentrok && code === 'INSTRUCTOR_SCHEDULE_COLLISION')
+    return `Instruktur ini sudah mengajar kelas lain pada jam yang sama: ${bentrok}. Pilih instruktur lain atau ubah jamnya.`;
+  if (bentrok && code === 'SLOT_SCHEDULE_COLLISION')
+    return `Ruangan ini sudah dipakai kelas lain pada jam yang sama: ${bentrok}. Pilih ruangan lain atau ubah jamnya.`;
   if (code && messages[code]) return messages[code];
   if (status === 403) return 'Permission yang sesuai diperlukan.';
   if (status === 404) return messages.RESOURCE_NOT_FOUND;
