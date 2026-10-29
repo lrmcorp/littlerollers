@@ -33,7 +33,9 @@ const DEFAULT_SLIDES: HeroSlideItem[] = [
     highlightTitle: 'With a Special Package',
     description:
       'Get a private introduction session and guidance from internationally certified instructors.',
-    imageSrc: '/images/public/classes/reformer-pilates.png',
+    imageSrc: '/images/public/landing/hero-studio-reformer.jpg',
+    // Foto potret: hero yang melebar menampilkan pita jendela dan deretan reformer.
+    imagePosition: '50% 64%',
     primaryCta: {
       label: 'Choose a Package',
       href: '/packages',
@@ -183,6 +185,7 @@ export function HeroCarousel({ config }: { config?: HeroCarouselPayload | null }
               <Image
                 className="object-cover object-[65%_center] lg:object-[60%_center]"
                 src={slide.imageSrc || '/images/public/landing/hero-pilates.png'}
+                style={slide.imagePosition ? { objectPosition: slide.imagePosition } : undefined}
                 fill
                 priority={index === 0}
                 sizes="100vw"
