@@ -45,16 +45,16 @@ describe('LandingClasses', () => {
     expect(within(rows[0]!).getByRole('heading', { name: 'Reformer Pilates' })).toBeInTheDocument();
     expect(within(rows[0]!).getByText('Latihan seluruh tubuh dengan reformer.')).toBeInTheDocument();
     expect(within(rows[1]!).getByText('Gerak presisi di atas mat.')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Lihat detail Reformer Pilates' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'View Reformer Pilates details' })).toHaveAttribute(
       'href',
       '/classes/reformer-pilates',
     );
-    expect(screen.getByRole('link', { name: 'Lihat detail Mat Pilates' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'View Mat Pilates details' })).toHaveAttribute(
       'href',
       '/classes/mat-pilates',
     );
-    expect(screen.getByRole('link', { name: /Lihat semua kelas/ })).toHaveAttribute('href', '/classes');
-    expect(screen.getByAltText('Reformer Pilates di Daily Dose Pilates')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /See all classes/ })).toHaveAttribute('href', '/classes');
+    expect(screen.getByAltText('Reformer Pilates at Daily Dose Pilates')).toBeInTheDocument();
     expect((await axe(view.container)).violations).toHaveLength(0);
   });
 
@@ -69,20 +69,20 @@ describe('LandingClasses', () => {
 
     expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(6);
     expect(screen.queryByRole('heading', { name: 'Kelas 7' })).not.toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Lihat semua 8 kelas' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'See all 8 classes' })).toHaveAttribute(
       'href',
       '/classes',
     );
 
     rerender(<LandingClasses classes={many.slice(0, 6)} />);
     expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(6);
-    expect(screen.queryByRole('link', { name: /Lihat semua \d+ kelas/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /See all \d+ classes/ })).not.toBeInTheDocument();
   });
 
   it('shows a busy placeholder list while the catalog is loading', async () => {
     const view = render(<LandingClasses classes={null} />);
 
-    expect(screen.getByLabelText('Memuat kelas')).toHaveAttribute('aria-busy', 'true');
+    expect(screen.getByLabelText('Loading classes')).toHaveAttribute('aria-busy', 'true');
     expect(screen.queryByRole('heading', { level: 3 })).not.toBeInTheDocument();
     expect((await axe(view.container)).violations).toHaveLength(0);
   });
@@ -95,7 +95,7 @@ describe('LandingClasses', () => {
     expect(screen.queryByRole('list')).not.toBeInTheDocument();
 
     rerender(<LandingClasses classes={[]} />);
-    expect(screen.getByText('Kelas aktif belum tersedia.')).toBeInTheDocument();
+    expect(screen.getByText('No classes are available yet.')).toBeInTheDocument();
     expect(screen.queryByRole('list')).not.toBeInTheDocument();
   });
 });
@@ -105,9 +105,9 @@ describe('LandingStudio', () => {
     const view = render(
       <LandingStudio
         stats={[
-          ['Studio', '2 lokasi'],
+          ['Studio', '2 locations'],
           ['Format', 'Personal & kelompok'],
-          ['Durasi', '50 menit'],
+          ['Durasi', '50 minutes'],
           ['Area', 'Jakarta & BSD'],
         ]}
       />,
@@ -117,13 +117,13 @@ describe('LandingStudio', () => {
     expect(showcase).not.toBeNull();
     expect(view.container.querySelector('#about')).not.toBeNull();
     expect(within(showcase as HTMLElement).getByRole('heading', { level: 2 })).toHaveTextContent(
-      /Ruang tenang yang dirancang untuk\s*bergerak/,
+      /A calm space designed for\s*movement/,
     );
     expect(view.container.querySelectorAll('dl > div')).toHaveLength(4);
-    expect(screen.getByText('2 lokasi')).toBeInTheDocument();
+    expect(screen.getByText('2 locations')).toBeInTheDocument();
     expect(screen.getByText('Jakarta & BSD')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Jelajahi Studio' })).toHaveAttribute('href', '/locations');
-    expect(screen.getByAltText(/Reception Daily Dose Pilates/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Explore our studios' })).toHaveAttribute('href', '/locations');
+    expect(screen.getByAltText(/Daily Dose Pilates reception/)).toBeInTheDocument();
     expect((await axe(view.container)).violations).toHaveLength(0);
   });
 });
@@ -152,15 +152,15 @@ describe('LandingPackages', () => {
     const journey = view.container.querySelector('[data-testid="package-journey"]') as HTMLElement;
     expect(journey).not.toBeNull();
     expect(within(journey).getByRole('heading', { level: 2 })).toHaveTextContent(
-      /Bangun rutinitas yang\s*konsisten/,
+      /Build a routine that\s*lasts/,
     );
     const steps = within(journey).getByRole('list');
     expect(steps.children).toHaveLength(3);
-    expect(within(steps).getByText('Pilih studio')).toBeInTheDocument();
-    expect(within(steps).getByText('Bandingkan paket')).toBeInTheDocument();
-    expect(within(steps).getByText('Booking kelas')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Pilih Paket' })).toHaveAttribute('href', '/packages');
-    expect(screen.getByRole('link', { name: 'Lihat Jadwal' })).toHaveAttribute(
+    expect(within(steps).getByText('Choose a studio')).toBeInTheDocument();
+    expect(within(steps).getByText('Compare packages')).toBeInTheDocument();
+    expect(within(steps).getByText('Book a class')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Choose a Package' })).toHaveAttribute('href', '/packages');
+    expect(screen.getByRole('link', { name: 'See Schedule' })).toHaveAttribute(
       'href',
       '/classes#schedule',
     );

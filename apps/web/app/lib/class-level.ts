@@ -6,9 +6,21 @@ const levelLabels: Record<string, string> = {
   ADVANCED: 'Lanjutan',
 };
 
-export function classLevelLabel(level: string | null | undefined): string {
+const levelLabelsEn: Record<string, string> = {
+  ALL_LEVELS: 'All Levels',
+  BEGINNER: 'Beginner',
+  INTERMEDIATE: 'Intermediate',
+  ADVANCED: 'Advanced',
+};
+
+export function classLevelLabel(
+  level: string | null | undefined,
+  lang: 'id' | 'en' = 'id',
+): string {
   if (!level) return '';
-  const known = levelLabels[level.trim().toUpperCase().replace(/[\s-]+/g, '_')];
+  const known = (lang === 'en' ? levelLabelsEn : levelLabels)[
+    level.trim().toUpperCase().replace(/[\s-]+/g, '_')
+  ];
   if (known) return known;
   const words = level.trim().replace(/_/g, ' ').toLowerCase();
   return words.charAt(0).toUpperCase() + words.slice(1);

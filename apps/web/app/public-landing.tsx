@@ -23,7 +23,7 @@ export function studioAreaSummary(branches: PublicSiteConfig['branches']) {
     })
     .filter(Boolean)
     .filter((area, index, values) => values.indexOf(area) === index);
-  if (!areas.length) return 'Belum tersedia';
+  if (!areas.length) return 'Coming soon';
   if (areas.length === 1) return areas[0]!;
   if (areas.length === 2) return areas.join(' & ');
   return `${areas.slice(0, 2).join(', ')} +${areas.length - 2}`;
@@ -35,9 +35,9 @@ export function classDurationSummary(classes: PublicSiteConfig['classes']) {
     .filter((duration) => Number.isFinite(duration) && duration > 0)
     .filter((duration, index, values) => values.indexOf(duration) === index)
     .sort((left, right) => left - right);
-  if (!durations.length) return 'Bervariasi';
-  if (durations.length === 1) return `${durations[0]} menit`;
-  return `${durations[0]}–${durations.at(-1)} menit`;
+  if (!durations.length) return 'Varies';
+  if (durations.length === 1) return `${durations[0]} minutes`;
+  return `${durations[0]}–${durations.at(-1)} minutes`;
 }
 
 export function PublicLanding() {
@@ -67,7 +67,7 @@ export function PublicLanding() {
         if (active) setSiteConfig(result);
       })
       .catch(() => {
-        if (active) setCatalogError('Informasi studio belum dapat dimuat.');
+        if (active) setCatalogError('Studio information could not be loaded.');
       });
     return () => {
       active = false;
@@ -77,22 +77,22 @@ export function PublicLanding() {
   if (isCustomer) {
     return (
       <div className="flex min-h-dvh items-center justify-center bg-ed-cream text-ed-forest" role="status">
-        <p className="font-serif text-lg">Mengarahkan ke Beranda Member…</p>
+        <p className="font-serif text-lg">Taking you to your member home…</p>
       </div>
     );
   }
 
   const classCards = siteConfig?.classes ?? [];
   const studioCount = siteConfig?.branches.length ?? 0;
-  const studioAreas = siteConfig ? studioAreaSummary(siteConfig.branches) : 'Memuat…';
-  const classDuration = siteConfig ? classDurationSummary(siteConfig.classes ?? []) : 'Memuat…';
+  const studioAreas = siteConfig ? studioAreaSummary(siteConfig.branches) : 'Loading…';
+  const classDuration = siteConfig ? classDurationSummary(siteConfig.classes ?? []) : 'Loading…';
 
   return (
     <div className="ed-scope min-w-0 overflow-hidden bg-ed-cream text-ed-ink" id="top">
       <a className="skip-link" href="#public-main">
-        Langsung ke konten utama
+        Skip to main content
       </a>
-      <PublicHeader variant="editorial" />
+      <PublicHeader variant="editorial" lang="en" />
 
       <main id="public-main">
         {/* Hero Carousel Section */}
@@ -104,10 +104,10 @@ export function PublicLanding() {
         {/* Studio showcase (Editorial Calm) */}
         <LandingStudio
           stats={[
-            ['Studio', siteConfig ? `${studioCount} lokasi` : 'Memuat…'],
-            ['Format', 'Personal & kelompok'],
-            ['Durasi', classDuration],
-            ['Area', studioAreas],
+            ['Studios', siteConfig ? `${studioCount} locations` : 'Loading…'],
+            ['Format', 'Private & small group'],
+            ['Duration', classDuration],
+            ['Areas', studioAreas],
           ]}
         />
 
@@ -121,7 +121,7 @@ export function PublicLanding() {
         <LandingPackages />
       </main>
 
-      <PublicFooter variant="editorial" />
+      <PublicFooter variant="editorial" lang="en" />
     </div>
   );
 }

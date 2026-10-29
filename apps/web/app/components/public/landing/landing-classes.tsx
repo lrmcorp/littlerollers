@@ -43,7 +43,7 @@ function ClassRow({ item, index }: { item: PublicClass; index: number }) {
           src={imageSrc}
           fill
           sizes="(max-width: 639px) 88px, 160px"
-          alt={`${name} di Daily Dose Pilates`}
+          alt={`${name} at Daily Dose Pilates`}
           className="object-cover"
         />
       </div>
@@ -52,15 +52,15 @@ function ClassRow({ item, index }: { item: PublicClass; index: number }) {
           <h3 className="m-0 text-[clamp(22px,2.2vw,30px)] leading-[1.25] font-medium tracking-[-0.02em]">
             {name}
           </h3>
-          <p className="ed-eyebrow mt-2 mb-0 text-ed-green">{classLevelLabel(level)}</p>
+          <p className="ed-eyebrow mt-2 mb-0 text-ed-green">{classLevelLabel(level, 'en')}</p>
         </div>
         <p className="m-0 text-[15px] leading-[1.65] text-ed-muted">{summary}</p>
         <Link
-          aria-label={`Lihat detail ${name}`}
+          aria-label={`View ${name} details`}
           className="inline-flex items-center gap-1.5 text-sm font-bold text-ed-green underline-offset-4 after:absolute after:inset-0 hover:underline"
           href={`/classes/${slug}`}
         >
-          <span>Lihat detail</span>
+          <span>View details</span>
           <ArrowUpRight aria-hidden="true" className="size-4" />
         </Link>
       </div>
@@ -114,16 +114,16 @@ export function LandingClasses({ classes, error }: LandingClassesProps) {
       <div className="ed-wrap ed-section">
         <Reveal className="flex flex-col justify-between gap-8 sm:flex-row sm:items-end">
           <div>
-            <span className="ed-eyebrow text-ed-green">Kelas populer</span>
+            <span className="ed-eyebrow text-ed-green">Popular classes</span>
             <h2
               className="ed-display mt-6 text-[clamp(40px,5vw,72px)] text-balance"
               id="popular-title"
             >
-              Temukan kelas sesuai <span className="ed-serif">tujuan Anda.</span>
+              Find the class that fits <span className="ed-serif">your goals.</span>
             </h2>
           </div>
           <Link className="ed-link shrink-0 text-ed-green" href={routes.classes}>
-            <span>Lihat semua kelas</span>
+            <span>See all classes</span>
             <ArrowRight aria-hidden="true" className="size-4" />
           </Link>
         </Reveal>
@@ -134,7 +134,7 @@ export function LandingClasses({ classes, error }: LandingClassesProps) {
           ) : classes === null ? (
             <ol
               aria-busy="true"
-              aria-label="Memuat kelas"
+              aria-label="Loading classes"
               className="m-0 list-none border-t border-ed-line p-0"
             >
               {[1, 2, 3].map((key) => (
@@ -151,14 +151,14 @@ export function LandingClasses({ classes, error }: LandingClassesProps) {
               {hasMore ? (
                 <div className="mt-10">
                   <Link className="ed-link text-ed-green" href={routes.classes}>
-                    <span>Lihat semua {classes!.length} kelas</span>
+                    <span>See all {classes!.length} classes</span>
                     <ArrowRight aria-hidden="true" className="size-4" />
                   </Link>
                 </div>
               ) : null}
             </Reveal>
           ) : (
-            <ClassesNotice>Kelas aktif belum tersedia.</ClassesNotice>
+            <ClassesNotice>No classes are available yet.</ClassesNotice>
           )}
         </div>
       </div>

@@ -35,25 +35,25 @@ export function LandingStudio({ stats }: { stats: readonly LandingStudioStat[] }
               src="/images/public/landing/studio-showcase.png"
               fill
               sizes="(max-width: 1023px) 100vw, 50vw"
-              alt="Reception Daily Dose Pilates dengan interior hangat"
+              alt="Daily Dose Pilates reception with a warm interior"
             />
           </div>
 
           <div className="flex flex-col justify-center gap-8 lg:py-6">
-            <span className="ed-eyebrow text-ed-mint">Studio kami</span>
+            <span className="ed-eyebrow text-ed-mint">Our studios</span>
             <h2
               className="ed-display text-[clamp(36px,4vw,58px)] text-balance"
               id="studio-showcase-title"
             >
-              Ruang tenang yang dirancang untuk <span className="ed-serif">bergerak.</span>
+              A calm space designed for <span className="ed-serif">movement.</span>
             </h2>
             <p className="m-0 max-w-[460px] text-[17px] leading-[1.7] text-ed-mint">
-              Studio yang bersih, tenang, dan tertata untuk mendukung perjalanan Pilates Anda
-              dengan kenyamanan maksimal dan privasi tinggi.
+              Clean, calm, and well-kept studios that support your Pilates journey with comfort and
+              privacy.
             </p>
             <div>
               <Link className="ed-link" href={routes.locations}>
-                <span>Jelajahi Studio</span>
+                <span>Explore our studios</span>
                 <ArrowRight aria-hidden="true" className="size-4" />
               </Link>
             </div>
