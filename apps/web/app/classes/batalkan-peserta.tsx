@@ -36,12 +36,15 @@ export function BatalkanPeserta({
   client,
   pengajuan,
   onBerubah,
+  tampilan = 'ikon',
 }: {
   booking: Pick<CustomerBookingRecord, 'id' | 'status' | 'customer'>;
   kelasMulai: Date;
   client: BatalClient;
   pengajuan?: PengajuanPembatalan;
   onBerubah(): void;
+  /** `tombol`: tombol berlabel untuk halaman detail booking; `ikon`: tombol X di daftar peserta. */
+  tampilan?: 'ikon' | 'tombol';
 }) {
   const sessionContext = useSessionContext();
   const session = sessionContext?.session;
@@ -165,15 +168,25 @@ export function BatalkanPeserta({
 
   return (
     <>
-      <button
-        type="button"
-        aria-label={`Batalkan booking ${nama}`}
-        title="Batalkan booking"
-        onClick={() => void buka()}
-        className="flex size-11 shrink-0 items-center justify-center rounded-dd-sm border border-dd-border-interactive bg-white text-dd-danger transition hover:border-dd-danger focus-visible:outline-2 focus-visible:outline-dd-forest"
-      >
-        <X className="size-[18px]" aria-hidden="true" />
-      </button>
+      {tampilan === 'tombol' ? (
+        <Button
+          variant="danger"
+          leadingIcon={<X className="size-4" aria-hidden="true" />}
+          onClick={() => void buka()}
+        >
+          Batalkan booking
+        </Button>
+      ) : (
+        <button
+          type="button"
+          aria-label={`Batalkan booking ${nama}`}
+          title="Batalkan booking"
+          onClick={() => void buka()}
+          className="flex size-11 shrink-0 items-center justify-center rounded-dd-sm border border-dd-border-interactive bg-white text-dd-danger transition hover:border-dd-danger focus-visible:outline-2 focus-visible:outline-dd-forest"
+        >
+          <X className="size-[18px]" aria-hidden="true" />
+        </button>
+      )}
       <Modal
         open={mode !== null}
         title={mode === 'langsung' ? `Batalkan booking ${nama}?` : `Ajukan pembatalan ${nama}?`}
