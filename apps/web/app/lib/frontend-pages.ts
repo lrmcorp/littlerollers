@@ -149,19 +149,6 @@ export const frontendPages: FrontendPageDefinition[] = [
     isAdvanced: true,
   },
   {
-    href: '/workspace/ulasan',
-    label: 'Ulasan instruktur',
-    shortLabel: 'Ulasan',
-    description:
-      'Nilai bintang dan catatan member untuk instruktur kelas yang mereka hadiri. Internal, tidak tampil di situs.',
-    group: 'Operasional Studio',
-    capabilities: ['instructor-review:read'],
-    priority: 7,
-    branchScope: 'topbar',
-    accent: 'info',
-    roleRelevance: ['SUPER_OWNER', 'OWNER', 'MANAGER'],
-  },
-  {
     href: '/workspace/guide',
     label: 'Panduan Operasional Staf',
     shortLabel: 'SOP Studio',

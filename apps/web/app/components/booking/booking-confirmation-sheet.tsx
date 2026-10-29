@@ -21,8 +21,6 @@ import {
 } from '@/api-clients/booking-client';
 import type { PublicClassSlot } from '@/api-clients/public-class-catalog-client';
 import type { LedgerBalance } from '@/api-clients/ledger-client';
-import type { UlasanInstrukturClient } from '@/api-clients/ulasan-instruktur-client';
-import { UlasanInstruktur } from '../customer/ulasan-instruktur';
 
 function formatFullDate(dateStr: string, timezone: string) {
   try {
@@ -77,8 +75,6 @@ export interface BookingConfirmationSheetProps {
   bookingClient?: BookingClient;
   isVerified?: boolean;
   studioName?: string;
-  /** Ulasan instruktur kelas sebelumnya yang belum diisi, ditanyakan sebelum booking berikutnya. */
-  ulasanClient?: Pick<UlasanInstrukturClient, 'tertunda' | 'kirim'>;
 }
 
 const EMPTY_PACKAGES: LedgerBalance[] = [];
@@ -94,7 +90,6 @@ export function BookingConfirmationSheet({
   bookingClient = browserBookingClient,
   isVerified = true,
   studioName,
-  ulasanClient,
 }: BookingConfirmationSheetProps) {
   const [status, setStatus] = useState<BookingSheetStatus>('ready');
   const [selectedPkgId, setSelectedPkgId] = useState<string>('');
@@ -462,8 +457,6 @@ export function BookingConfirmationSheet({
                   </p>
                 )}
               </div>
-
-              {status === 'ready' && <UlasanInstruktur ringkas client={ulasanClient} />}
             </div>
           )}
         </div>
