@@ -80,6 +80,8 @@ Dokumentasi ini adalah **source of truth** untuk requirement, governance, arsite
 | Operations | [Customer Reschedule Runbook](operations/reschedule-runbook.md) | Operations | Product Owner + Technical Lead |
 | Operations | [Dynamic RBAC & Access Recovery Runbook](operations/02-rbac-access-recovery-runbook.md) | Operations | Technical Lead + Security |
 | Operations | [Identity Review Runbook](operations/03-identity-review-runbook.md) | Operations | PO + TL + QA + Ops |
+| Operations | [VPS Docker Compose Runbook](operations/05-vps-docker-compose-runbook.md) | Operations | Technical Lead |
+| Operations | [Portainer Stack Runbook](operations/06-portainer-stack-runbook.md) | Operations | Technical Lead |
 | Governance | [CR-SMTP-001](governance/11-cr-smtp-001.md) | Product Owner | PO + TL |
 | Template | [Email Template Register](templates/email-template-register.md) | PM/BA | PO + TL |
 | Quality | [Test Strategy, UAT & Release](quality/01-test-uat-and-release.md) | QA Engineer | PM/BA + Technical Lead |

@@ -1,0 +1,257 @@
+# ==============================================================================
+# Little Rollers - Docker Compose Stack untuk Portainer.io
+# ==============================================================================
+# PANDUAN PENGGUNAAN DI PORTAINER:
+# 1. Network reverse proxy eksternal menggunakan 'proxy-net' (sudah ada di server).
+# 2. Salin isi file 'portainer.env.example' ke bagian 'Environment variables' pada
+#    halaman pembuatan Stack di Portainer.
+# 3. Service 'migrate' dan 'private-storage-init' akan berstatus 'Exited (0)'
+#    setelah selesai; hal ini normal dan menandakan inisialisasi berhasil.
+# ==============================================================================
+
+name: ${STACK_NAME:-littlerollers}
+
+x-app: &app
+  image: littlerollers-app:${APP_VERSION:-latest}
+  build:
+    context: .
+    args:
+      API_BASE_URL: ${API_BASE_URL:-http://api:32121}
+      NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID:-}
+  environment: &app-env
+    NODE_ENV: production
+    APP_VERSION: ${APP_VERSION:-latest}
+    PORT: 32121
+    WEB_PORT: 32120
+    WEB_BIND_ADDRESS: 0.0.0.0
+    API_BASE_URL: ${API_BASE_URL:-http://api:32121}
+    PUBLIC_WEB_BASE_URL: ${PUBLIC_WEB_BASE_URL:-https://littlerollers.playgo.id}
+    MYSQL_DATABASE: ${MYSQL_DATABASE:-littlerollers}
+    MYSQL_USER: ${MYSQL_USER:-littlerollers}
+    MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    DATABASE_URL: ${DATABASE_URL:-mysql://${MYSQL_USER:-littlerollers}:${MYSQL_PASSWORD}@mysql:3306/${MYSQL_DATABASE:-littlerollers}}
+    REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+    HEALTH_PROBE_TIMEOUT_MS: ${HEALTH_PROBE_TIMEOUT_MS:-2000}
+    WORKER_HEARTBEAT_INTERVAL_MS: ${WORKER_HEARTBEAT_INTERVAL_MS:-10000}
+    WORKER_HEARTBEAT_TTL_SECONDS: ${WORKER_HEARTBEAT_TTL_SECONDS:-30}
+    QUOTA_EVALUATION_SYNTHETIC_ENABLED: ${QUOTA_EVALUATION_SYNTHETIC_ENABLED:-false}
+    QUOTA_EVALUATION_POLL_INTERVAL_MS: ${QUOTA_EVALUATION_POLL_INTERVAL_MS:-10000}
+    QUOTA_EVALUATION_LEASE_MS: ${QUOTA_EVALUATION_LEASE_MS:-30000}
+    QUOTA_EVALUATION_MAX_ATTEMPTS: ${QUOTA_EVALUATION_MAX_ATTEMPTS:-5}
+    QUOTA_EVALUATION_BACKOFF_MS: ${QUOTA_EVALUATION_BACKOFF_MS:-60000}
+    PRIVATE_UPLOAD_DRIVER: local
+    PRIVATE_UPLOAD_ROOT: /app/data/private
+    PRIVATE_UPLOAD_MAX_BYTES: ${PRIVATE_UPLOAD_MAX_BYTES:-8000000}
+    PRIVATE_VIEW_AUTH_TTL_SECONDS: ${PRIVATE_VIEW_AUTH_TTL_SECONDS:-300}
+    IDENTITY_DOCUMENT_RETENTION_DAYS: ${IDENTITY_DOCUMENT_RETENTION_DAYS:-30}
+    AUTH_ACCESS_TTL_SECONDS: ${AUTH_ACCESS_TTL_SECONDS:-900}
+    AUTH_REFRESH_TTL_SECONDS: ${AUTH_REFRESH_TTL_SECONDS:-2592000}
+    AUTH_OTP_TTL_SECONDS: ${AUTH_OTP_TTL_SECONDS:-300}
+    AUTH_OTP_MAX_ATTEMPTS: ${AUTH_OTP_MAX_ATTEMPTS:-5}
+    AUTH_INVITATION_TTL_SECONDS: ${AUTH_INVITATION_TTL_SECONDS:-86400}
+    AUTH_PASSWORD_ENABLED: ${AUTH_PASSWORD_ENABLED:-true}
+    AUTH_SYNTHETIC_ENABLED: ${AUTH_SYNTHETIC_ENABLED:-false}
+    NEXT_PUBLIC_AUTH_SYNTHETIC_ENABLED: ${NEXT_PUBLIC_AUTH_SYNTHETIC_ENABLED:-false}
+    GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+    NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID:-}
+    EMAIL_DRIVER: ${EMAIL_DRIVER:-smtp}
+    EMAIL_DELIVERY_ENABLED: ${EMAIL_DELIVERY_ENABLED:-true}
+    SMTP_HOST: ${SMTP_HOST:-smtp.hostinger.com}
+    SMTP_PORT: ${SMTP_PORT:-465}
+    SMTP_SECURE: ${SMTP_SECURE:-true}
+    SMTP_USER: ${SMTP_USER:-noreply@dailydosepilates.com}
+    SMTP_PASSWORD: ${SMTP_PASSWORD}
+    SMTP_FROM_NAME: ${SMTP_FROM_NAME:-Little Rollers}
+    SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-noreply@dailydosepilates.com}
+    SMTP_CONNECTION_TIMEOUT_MS: ${SMTP_CONNECTION_TIMEOUT_MS:-15000}
+    SMTP_MAX_ATTEMPTS: ${SMTP_MAX_ATTEMPTS:-5}
+    SMTP_RATE_LIMIT_PER_MINUTE: ${SMTP_RATE_LIMIT_PER_MINUTE:-3}
+    SMTP_RATE_LIMIT_PER_HOUR: ${SMTP_RATE_LIMIT_PER_HOUR:-150}
+    NOTIFICATION_ENCRYPTION_KEY: ${NOTIFICATION_ENCRYPTION_KEY}
+    PUBLIC_SUPPORT_WHATSAPP_E164: ${PUBLIC_SUPPORT_WHATSAPP_E164:-+628111000000}
+    PAYMENT_PROOF_MAX_BYTES: ${PAYMENT_PROOF_MAX_BYTES:-10000000}
+    PAYMENT_PROOF_SCAN_DRIVER: clamav
+    PAYMENT_PROOF_CLAMAV_HOST: clamav
+    PAYMENT_PROOF_CLAMAV_PORT: 3310
+    PAYMENT_PROOF_SCAN_TIMEOUT_MS: ${PAYMENT_PROOF_SCAN_TIMEOUT_MS:-15000}
+    PAYMENT_PROOF_ABANDONED_TTL_MINUTES: ${PAYMENT_PROOF_ABANDONED_TTL_MINUTES:-60}
+    PURCHASE_IDEMPOTENCY_TTL_SECONDS: ${PURCHASE_IDEMPOTENCY_TTL_SECONDS:-86400}
+    BOOKING_ENABLED: ${BOOKING_ENABLED:-false}
+    RESCHEDULE_ENABLED: ${RESCHEDULE_ENABLED:-false}
+    SESSION_ADJUSTMENT_ENABLED: ${SESSION_ADJUSTMENT_ENABLED:-false}
+    IDENTITY_REVIEW_ENABLED: ${IDENTITY_REVIEW_ENABLED:-false}
+    RBAC_POLICY_SOURCE: ${RBAC_POLICY_SOURCE:-shadow}
+    RBAC_MANAGEMENT_ENABLED: ${RBAC_MANAGEMENT_ENABLED:-false}
+  restart: unless-stopped
+  networks: [littlerollers-internal]
+  logging:
+    driver: json-file
+    options:
+      max-size: '20m'
+      max-file: '5'
+
+services:
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-littlerollers}
+      MYSQL_USER: ${MYSQL_USER:-littlerollers}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    ports:
+      # Port 3315 telah diverifikasi aman dan tidak bentrok di server
+      - '${MYSQL_PORT:-3315}:3306'
+    command:
+      - mysqld
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --server-id=1
+      - --log-bin=mysql-bin
+      - --binlog-format=ROW
+      - --binlog-row-image=FULL
+      - --gtid-mode=ON
+      - --enforce-gtid-consistency=ON
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ['CMD-SHELL', 'mysqladmin ping -h 127.0.0.1 -u root -p$${MYSQL_ROOT_PASSWORD}']
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    networks: [littlerollers-internal]
+
+  redis:
+    image: redis:8-alpine
+    restart: unless-stopped
+    command: ['redis-server', '--appendonly', 'yes']
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 3s
+      retries: 20
+    networks: [littlerollers-internal]
+
+  clamav:
+    image: clamav/clamav:1.4
+    restart: unless-stopped
+    volumes:
+      - clamav-data:/var/lib/clamav
+    healthcheck:
+      test: ['CMD', '/usr/local/bin/clamdcheck.sh']
+      interval: 30s
+      timeout: 10s
+      retries: 20
+      start_period: 120s
+    networks: [littlerollers-internal]
+
+  migrate:
+    <<: *app
+    restart: 'no'
+    command:
+      [
+        'node',
+        'apps/api/node_modules/prisma/build/index.js',
+        'migrate',
+        'deploy',
+        '--schema',
+        'apps/api/prisma/schema.prisma',
+      ]
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  private-storage-init:
+    <<: *app
+    user: '0:0'
+    restart: 'no'
+    command: ['sh', '-c', 'install -d -o 1001 -g 1001 -m 0700 /app/data/private']
+    volumes:
+      - private-uploads:/app/data/private
+
+  api:
+    <<: *app
+    networks:
+      - littlerollers-internal
+      - proxy-net
+    command: ['node', 'apps/api/dist/main.js']
+    volumes:
+      - private-uploads:/app/data/private
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      private-storage-init:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      clamav:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "const socket=require('node:net').connect(32121,'127.0.0.1');socket.setTimeout(3000);socket.once('connect',()=>{socket.end();process.exit(0)});socket.once('timeout',()=>{socket.destroy();process.exit(1)});socket.once('error',()=>process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  worker:
+    <<: *app
+    command: ['node', 'apps/worker/dist/main.js']
+    volumes:
+      - private-uploads:/app/data/private
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      private-storage-init:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      clamav:
+        condition: service_healthy
+
+  web:
+    <<: *app
+    working_dir: /app/apps/web
+    command: ['node', '.next/standalone/apps/web/server.js']
+    environment:
+      <<: *app-env
+      PORT: 32120
+      HOSTNAME: 0.0.0.0
+    networks:
+      - littlerollers-internal
+      - proxy-net
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "const fs=require('node:fs');const root='/app/apps/web/.next/standalone/apps/web';if(!fs.existsSync(root+'/.next/static')||!fs.existsSync(root+'/public'))process.exit(1);fetch('http://127.0.0.1:32120/').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+volumes:
+  mysql-data:
+  redis-data:
+  clamav-data:
+  private-uploads:
+
+networks:
+  littlerollers-internal:
+    driver: bridge
+  proxy-net:
+    name: ${PROXY_NETWORK_NAME:-proxy-net}
+    external: true

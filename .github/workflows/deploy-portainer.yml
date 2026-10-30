@@ -1,0 +1,29 @@
+name: Deploy to Portainer
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  trigger-portainer:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Portainer Deployment Webhook
+        env:
+          PORTAINER_WEBHOOK_URL: ${{ secrets.PORTAINER_WEBHOOK_URL }}
+        run: |
+          if [ -z "$PORTAINER_WEBHOOK_URL" ]; then
+            echo "PORTAINER_WEBHOOK_URL secret belum diatur di GitHub Secrets. Melewati webhook trigger."
+            exit 0
+          fi
+          echo "Memanggil Webhook Portainer untuk redeploy..."
+          response=$(curl -k -s -w "\n%{http_code}" -X POST "$PORTAINER_WEBHOOK_URL")
+          http_code=$(echo "$response" | tail -n1)
+          echo "Response HTTP code: $http_code"
+          if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
+            echo "Portainer webhook berhasil dipicu!"
+          else
+            echo "Peringatan: Webhook mengembalikan kode HTTP $http_code"
+          fi
+

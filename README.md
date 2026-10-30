@@ -178,6 +178,14 @@ release baru lalu jalankan kembali build dan startup; service `migrate` akan
 menjalankan migrasi Prisma sebelum API dan worker dimulai. Jangan menjalankan
 `docker compose down -v` atau `docker system prune` pada VPS.
 
+### Deployment Portainer.io
+
+Untuk deploy melalui antarmuka Portainer.io:
+1. Buat network eksternal `dailydose-v2-proxy` pada menu **Networks** Portainer (driver bridge).
+2. Pada menu **Stacks**, buat stack baru menggunakan file [`docker-compose.portainer.yml`](docker-compose.portainer.yml).
+3. Salin environment variables dari [`portainer.env.example`](portainer.env.example) ke bagian **Environment variables** (Advanced mode).
+4. Panduan detail operasional tersedia di [`docs/operations/06-portainer-stack-runbook.md`](docs/operations/06-portainer-stack-runbook.md).
+
 ### Email transaksional SMTP
 
 Production memakai SMTP Niagahoster melalui `smtp.hostinger.com:465` dengan
